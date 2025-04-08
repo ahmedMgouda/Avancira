@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Avancira.Admin.Shared</RootNamespace>
+    <AssemblyName>Avancira.Admin.Shared</AssemblyName>
+  </PropertyGroup>
+</Project>
