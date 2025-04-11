@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
-using Avancira.Domain;
+using Avancira.Domain.Common;
 
 namespace Avancira.Infrastructure.Persistence.Interceptors;
 public class AuditInterceptor(ICurrentUser currentUser, TimeProvider timeProvider, IPublisher publisher) : SaveChangesInterceptor

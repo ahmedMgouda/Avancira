@@ -1,6 +1,6 @@
 ﻿using Avancira.Domain.Contracts;
 
-namespace Avancira.Domain;
+namespace Avancira.Domain.Common;
 public class AuditableEntity<TId> : BaseEntity<TId>, IAuditable, ISoftDeletable
 {
     public DateTimeOffset Created { get; set; }

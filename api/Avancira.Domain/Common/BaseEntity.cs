@@ -3,7 +3,7 @@ using Avancira.Domain.Events;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Avancira.Domain;
+namespace Avancira.Domain.Common;
 public abstract class BaseEntity<TId> : IEntity<TId>
 {
     public TId Id { get; protected init; } = default!;
