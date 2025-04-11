@@ -20,4 +20,13 @@
     <ProjectReference Include="..\..\api\Avancira.API\Avancira.API.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="loki.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="prometheus.yml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

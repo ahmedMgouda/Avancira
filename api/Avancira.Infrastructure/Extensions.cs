@@ -19,6 +19,7 @@ using Avancira.ServiceDefaults;
 using Avancira.Infrastructure.OpenApi;
 using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Identity;
+using Avancira.Infrastructure.Storage;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -75,11 +76,12 @@ public static class Extensions
         app.UseJobDashboard(app.Configuration);
         app.UseRouting();
         app.UseStaticFiles();
-        app.UseStaticFiles(new StaticFileOptions()
-        {
-            FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "assets")),
-            RequestPath = new PathString("/assets")
-        });
+        //app.UseStaticFiles(new StaticFileOptions()
+        //{
+        //    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "assets")),
+        //    RequestPath = new PathString("/assets")
+        //});
+        app.UseStaticFilesUploads();
         app.UseAuthentication();
         app.UseAuthorization();
 

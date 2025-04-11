@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Microsoft.Extensions.Options;
 using Avancira.Infrastructure.Persistence.Interceptors;
+using Avancira.Infrastructure.Common.Extensions;
 
 namespace Avancira.Infrastructure.Persistence;
 public static class Extensions
@@ -33,6 +34,7 @@ public static class Extensions
             .PostConfigure(config =>
             {
                 Logger.Information("current db provider: {DatabaseProvider}", config.Provider);
+                config.ConnectionString = config.ConnectionString.ExpandEnvironmentVariables();
             });
         builder.Services.AddScoped<ISaveChangesInterceptor, AuditInterceptor>();
         return builder;

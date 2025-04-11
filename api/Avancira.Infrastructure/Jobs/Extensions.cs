@@ -7,6 +7,7 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Avancira.Infrastructure.Common.Extensions;
 
 namespace Avancira.Infrastructure.Jobs;
 
@@ -32,7 +33,7 @@ internal static class Extensions
                 case DbProviders.PostgreSQL:
                     config.UsePostgreSqlStorage(o =>
                     {
-                        o.UseNpgsqlConnection(dbOptions.ConnectionString);
+                        o.UseNpgsqlConnection(dbOptions.ConnectionString.ExpandEnvironmentVariables());
                     });
                     break;
 
