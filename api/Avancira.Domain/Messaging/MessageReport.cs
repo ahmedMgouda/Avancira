@@ -1,19 +1,18 @@
-﻿using Avancira.Domain.Messaging;
-using Avancira.Domain.Common;
+﻿using Avancira.Domain.Common;
 using Avancira.Domain.Messaging.Events;
 
-namespace Avancira.Domain.Messagings
+namespace Avancira.Domain.Messaging
 {
     public class MessageReport : BaseEntity<Guid>
     {
-        public Guid MessageId { get; set; }
-        public string UserId { get; set; } = default!;
-        public string ReportReason { get; set; }
-        public DateTimeOffset ReportedAt { get; set; }
+        public Guid MessageId { get; private set; }
+        public string UserId { get; private set; }
+        public string ReportReason { get; private set; }
+        public DateTimeOffset ReportedAt { get; private set; }
 
-        public Message Message { get; set; } = default!;
+        public Message Message { get; private set; } = default!;
 
-        public MessageReport(Guid messageId, string userId, string reportReason)
+        private MessageReport(Guid messageId, string userId, string reportReason)
         {
             MessageId = messageId;
             UserId = userId;

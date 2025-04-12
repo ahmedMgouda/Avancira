@@ -1,6 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Avancira.Domain.Messaging;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Avancira.Domain.Messagings;
 
 namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
 public class MessageReportConfiguration : IEntityTypeConfiguration<MessageReport>

@@ -9,10 +9,9 @@ namespace Avancira.Domain.Messaging
         private const int MaxDeletionMinutes = 10;
 
         public Guid ChatId { get; private set; }
-
-        public string SenderId { get; private set; }
-        public string RecipientId { get; private set; }
-        public string Content { get; private set; }
+        public string SenderId { get; private set; } = default!;
+        public string RecipientId { get; private set; } = default!;
+        public string Content { get; private set; } = string.Empty;
         public DateTimeOffset SentAt { get; private set; }
         public bool IsRead { get; private set; }
         public DateTimeOffset? ReadAt { get; private set; }
@@ -22,8 +21,11 @@ namespace Avancira.Domain.Messaging
         public string? FilePath { get; private set; }
         public DateTimeOffset? DeletedAt { get; private set; }
         public Chat Chat { get; private set; } = default!;
-        public List<MessageReaction> Reactions { get; private set; }
-        public Message(Guid chatId, string senderId, string recipientId, string content)
+        public MessageReport? Report { get; private set; }
+        public List<MessageReaction> Reactions { get; private set; } = new List<MessageReaction>();
+
+        private Message() { }
+        private Message(Guid chatId, string senderId, string recipientId, string content)
         {
             ChatId = chatId;
             SenderId = senderId;
@@ -32,12 +34,10 @@ namespace Avancira.Domain.Messaging
             SentAt = DateTimeOffset.UtcNow;
             IsRead = false;
             IsDelivered = false;
-            Reactions = new List<MessageReaction>();
             IsPinned = false;
             FilePath = null;
             DeletedAt = null;
         }
-
         public static Message Create(Guid chatId, string senderId, string recipientId, string content)
         {
             var message = new Message(chatId, senderId, recipientId, content);
@@ -46,24 +46,16 @@ namespace Avancira.Domain.Messaging
 
             return message;
         }
-        public bool CanBeDeleted()
-        {
-            return DateTimeOffset.UtcNow - SentAt <= TimeSpan.FromMinutes(MaxDeletionMinutes);
-        }
+        public bool CanBeDeleted() =>
+            DateTimeOffset.UtcNow - SentAt <= TimeSpan.FromMinutes(MaxDeletionMinutes);
         public void Delete()
         {
-            if (CanBeDeleted())
-            {
-                DeletedAt = DateTimeOffset.UtcNow;
-
-                QueueDomainEvent(new MessageDeletedEvent(this));
-            }
-            else
-            {
+            if (!CanBeDeleted())
                 throw new AvanciraException("Message cannot be deleted after 10 minutes.");
-            }
+
+            DeletedAt = DateTimeOffset.UtcNow;
+            QueueDomainEvent(new MessageDeletedEvent(this));
         }
-        public bool IsDeleted() => DeletedAt.HasValue;
         public void MarkAsRead()
         {
             if (IsRead) return;
@@ -80,31 +72,20 @@ namespace Avancira.Domain.Messaging
             DeliveredAt = DateTimeOffset.UtcNow;
             QueueDomainEvent(new MessageDeliveredEvent(this));
         }
-        public void PinMessage()
+        public void TogglePin()
         {
-            if (IsPinned) return;
+            IsPinned = !IsPinned;
 
-            IsPinned = true;
-            QueueDomainEvent(new MessagePinnedEvent(this));
-        }
-        public void UnpinMessage()
-        {
-            if (!IsPinned) return;
-
-            IsPinned = false;
-            QueueDomainEvent(new MessageUnpinnedEvent(this));
-        }
-        public void RemoveReaction(string userId)
-        {
-            var reaction = Reactions.FirstOrDefault(r => r.UserId == userId);
-
-            if (reaction != null)
+            if (IsPinned)
             {
-                Reactions.Remove(reaction);
-                QueueDomainEvent(new MessageReactionRemovedEvent(reaction));
+                QueueDomainEvent(new MessagePinnedEvent(this));
+            }
+            else
+            {
+                QueueDomainEvent(new MessageUnpinnedEvent(this));
             }
         }
-        public void AddReaction(string userId, string reactionType)
+        public void AddOrUpdateReaction(string userId, string reactionType)
         {
             var existingReaction = Reactions.FirstOrDefault(r => r.UserId == userId);
 
@@ -120,11 +101,31 @@ namespace Avancira.Domain.Messaging
                 QueueDomainEvent(new MessageReactionAddedEvent(newReaction));
             }
         }
-        public void RemoveReaction(MessageReaction reaction)
+        public void RemoveReaction(string userId)
         {
-            Reactions.Remove(reaction);
+            var reaction = Reactions.SingleOrDefault(r => r.UserId == userId);
 
-            QueueDomainEvent(new MessageReactionRemovedEvent(reaction));
+            if (reaction != null)
+            {
+                Reactions.Remove(reaction);
+                QueueDomainEvent(new MessageReactionRemovedEvent(reaction));
+            }
+        }
+        public void ReportMessage(string userId, string reportReason)
+        {
+            if (userId != RecipientId)
+            {
+                throw new AvanciraException("Only the recipient can report the message.");
+            }
+
+            if (Report != null)
+            {
+                throw new AvanciraException("Message can only be reported once.");
+            }
+
+            var messageReport = MessageReport.Create(Id, userId, reportReason);
+
+            Report = messageReport;
         }
     }
 }

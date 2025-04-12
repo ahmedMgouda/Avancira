@@ -22,10 +22,7 @@ namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
         builder.Property(chat => chat.CreatedAt)
             .IsRequired();
 
-        builder.Property(chat => chat.IsBlockedByStudent)
-            .IsRequired();
-
-        builder.Property(chat => chat.IsBlockedByTutor)
+        builder.Property(chat => chat.BlockStatus)
             .IsRequired();
 
         builder.HasMany(chat => chat.Messages)
