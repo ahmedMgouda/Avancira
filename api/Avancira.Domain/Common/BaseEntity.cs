@@ -1,5 +1,5 @@
-﻿using Avancira.Domain.Contracts;
-using Avancira.Domain.Events;
+﻿using Avancira.Domain.Common.Contracts;
+using Avancira.Domain.Common.Events;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations.Schema;
 

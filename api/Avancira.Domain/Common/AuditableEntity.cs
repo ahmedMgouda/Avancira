@@ -1,4 +1,4 @@
-﻿using Avancira.Domain.Contracts;
+﻿using Avancira.Domain.Common.Contracts;
 
 namespace Avancira.Domain.Common;
 public class AuditableEntity<TId> : BaseEntity<TId>, IAuditable, ISoftDeletable

@@ -1,7 +1,7 @@
-﻿using Avancira.Domain.Events;
+﻿using Avancira.Domain.Common.Events;
 using System.Collections.ObjectModel;
 
-namespace Avancira.Domain.Contracts;
+namespace Avancira.Domain.Common.Contracts;
 public interface IEntity
 {
     Collection<DomainEvent> DomainEvents { get; }

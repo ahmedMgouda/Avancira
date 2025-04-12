@@ -1,4 +1,4 @@
-﻿using Avancira.Domain.Events;
+﻿using Avancira.Domain.Common.Events;
 using Backend.Domain.PromoCodes;
 
 namespace Avancira.Domain.PromoCodes.Events;

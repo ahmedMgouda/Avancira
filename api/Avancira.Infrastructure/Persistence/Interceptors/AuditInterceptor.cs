@@ -1,7 +1,6 @@
 ﻿using Avancira.Application.Audit;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Domain.Auditing;
-using Avancira.Domain.Contracts;
 using Avancira.Infrastructure.Identity.Audit;
 using MediatR;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -9,6 +8,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using Avancira.Domain.Common;
+using Avancira.Domain.Common.Contracts;
 
 namespace Avancira.Infrastructure.Persistence.Interceptors;
 public class AuditInterceptor(ICurrentUser currentUser, TimeProvider timeProvider, IPublisher publisher) : SaveChangesInterceptor

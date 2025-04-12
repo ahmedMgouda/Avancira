@@ -1,4 +1,4 @@
-﻿namespace Avancira.Domain.Contracts;
+﻿namespace Avancira.Domain.Common.Contracts;
 public interface IAuditable
 {
     DateTimeOffset Created { get; }

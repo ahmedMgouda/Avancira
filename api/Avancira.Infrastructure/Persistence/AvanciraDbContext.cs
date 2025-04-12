@@ -1,6 +1,5 @@
 ﻿using Avancira.Application.Persistence;
 using Avancira.Domain.Auditing;
-using Avancira.Domain.Contracts;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Identity.Users;
 using MediatR;
@@ -9,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using Avancira.Domain.Common.Contracts;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,

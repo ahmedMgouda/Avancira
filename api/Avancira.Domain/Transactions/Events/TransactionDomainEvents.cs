@@ -1,4 +1,4 @@
-﻿using Avancira.Domain.Events;
+﻿using Avancira.Domain.Common.Events;
 
 namespace Avancira.Domain.Transactions.Events
 {
