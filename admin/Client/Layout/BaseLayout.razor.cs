@@ -18,18 +18,18 @@ public partial class BaseLayout
         if (_themePreference == null) _themePreference = new ClientPreference();
         SetCurrentTheme(_themePreference);
 
-        Toast.Add("Like this project? ", Severity.Info, config =>
-        {
-            config.BackgroundBlurred = true;
-            config.Icon = Icons.Custom.Brands.GitHub;
-            config.Action = "Star us on Github!";
-            config.ActionColor = Color.Info;
-            config.OnClick = snackbar =>
-            {
-                Navigation.NavigateTo("https://github.com/fullstackhero/dotnet-starter-kit");
-                return Task.CompletedTask;
-            };
-        });
+        //Toast.Add("Like this project? ", Severity.Info, config =>
+        //{
+        //    config.BackgroundBlurred = true;
+        //    config.Icon = Icons.Custom.Brands.GitHub;
+        //    config.Action = "Star us on Github!";
+        //    config.ActionColor = Color.Info;
+        //    config.OnClick = snackbar =>
+        //    {
+        //        Navigation.NavigateTo("https://github.com/fullstackhero/dotnet-starter-kit");
+        //        return Task.CompletedTask;
+        //    };
+        //});
     }
 
     private async Task ToggleDarkLightMode(bool isDarkMode)

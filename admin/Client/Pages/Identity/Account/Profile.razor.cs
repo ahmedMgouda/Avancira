@@ -52,7 +52,7 @@ public partial class Profile
     private async Task UpdateProfileAsync()
     {
         if (await ApiHelper.ExecuteCallGuardedAsync(
-            () => PersonalClient.UpdateUserEndpointAsync(_profileModel), Toast, _customValidation))
+            () => PersonalClient.UpdateUserProfileAsync(_profileModel), Toast, _customValidation))
         {
             Toast.Add("Your Profile has been updated. Please Login again to Continue.", Severity.Success);
             await AuthService.ReLoginAsync(Navigation.Uri);
@@ -77,7 +77,7 @@ public partial class Profile
             byte[]? buffer = new byte[imageFile.Size];
             await imageFile.OpenReadStream(AppConstants.MaxAllowedSize).ReadAsync(buffer);
             string? base64String = $"data:{AppConstants.StandardImageFormat};base64,{Convert.ToBase64String(buffer)}";
-            _profileModel.Image = new FileUploadCommand() { Name = fileName, Data = base64String, Extension = extension };
+            _profileModel.Image = new FileUploadDto() { Name = fileName, Data = base64String, Extension = extension };
 
             await UpdateProfileAsync();
         }

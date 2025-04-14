@@ -76,30 +76,25 @@ internal sealed class IdentityDbInitializer(
 
     private async Task SeedAdminUserAsync()
     {
-        const string adminEmail = "admin@system.local";
-        const string adminUserName = "ADMIN";
-        const string defaultProfilePicture = "/images/profile/default.png"; // <- set this to your actual default path
-        const string defaultPassword = "Pa$$w0rd!"; // <- use a strong password or read from config
-
-        if (await userManager.Users.FirstOrDefaultAsync(u => u.Email == adminEmail) is not User adminUser)
+        if (await userManager.Users.FirstOrDefaultAsync(u => u.Email == AppConstants.EmailAddress) is not User adminUser)
         {
             adminUser = new User
             {
                 FirstName = "System",
                 LastName = "Administrator",
-                Email = adminEmail,
-                UserName = adminUserName,
+                Email = AppConstants.EmailAddress,
+                UserName = AppConstants.AdminUserName,
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
-                NormalizedEmail = adminEmail.ToUpperInvariant(),
-                NormalizedUserName = adminUserName.ToUpperInvariant(),
-                ImageUrl = new Uri(originSettings.Value.OriginUrl! + defaultProfilePicture),
+                NormalizedEmail = AppConstants.EmailAddress.ToUpperInvariant(),
+                NormalizedUserName = AppConstants.AdminUserName.ToUpperInvariant(),
+                ImageUrl = new Uri(originSettings.Value.OriginUrl! + AppConstants.DefaultProfilePicture),
                 IsActive = true
             };
 
             logger.LogInformation("Seeding default Admin user");
             var password = new PasswordHasher<User>();
-            adminUser.PasswordHash = password.HashPassword(adminUser, defaultPassword);
+            adminUser.PasswordHash = password.HashPassword(adminUser, AppConstants.DefaultPassword);
             await userManager.CreateAsync(adminUser);
         }
 

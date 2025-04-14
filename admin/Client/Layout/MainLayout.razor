@@ -4,13 +4,10 @@
             OnClick="@((e) => DrawerToggle())" />
     </MudTooltip>
     <MudButton Variant="Variant.Text" Color="Color.Transparent" Href="/" DropShadow="false">
-         fullstackhero
+         Avancira
      </MudButton>
     <MudSpacer />
-    <MudHidden Breakpoint="Breakpoint.MdAndUp" Invert="true">
-        <MudButton Variant="Variant.Filled" DropShadow="false" Color="Color.Primary"
-            Href="https://opencollective.com/fullstackhero" Target="_blank" StartIcon="@Icons.Material.Filled.Favorite">
-            Sponsor</MudButton>
+@*     <MudHidden Breakpoint="Breakpoint.MdAndUp" Invert="true">
         <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.WbSunny"
                              Color="@Color.Warning" title="off" Class="d-flex ml-auto" ToggledIcon="@Icons.Material.Filled.DarkMode"
                              ToggledColor="@Color.Surface" toggledTitle="on" style="left:8px!important" @onclick="@ToggleDarkMode" />
@@ -34,9 +31,9 @@
             <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit"
                 Href="https://github.com/fullstackhero/dotnet-starter-kit" Target="_blank" />
         </MudTooltip>
-    </MudHidden>
+    </MudHidden> *@
     <MudHidden Breakpoint="Breakpoint.SmAndDown" Invert="true">
-        <MudTooltip Text="Sponsor">
+        @* <MudTooltip Text="Sponsor">
             <MudIconButton Icon="@Icons.Material.Filled.Favorite" Color="Color.Inherit"
                 Href="https://opencollective.com/fullstackhero" Target="_blank" />
         </MudTooltip>
@@ -57,7 +54,7 @@
                 MudBlazor Documentation</MudMenuItem>
             <MudMenuItem Href="https://fullstackhero.net/getting-started/" Target="_blank">
                 Quick-Start Guide</MudMenuItem>
-        </MudMenu>
+        </MudMenu> *@
     </MudHidden>
      <MudMenu DropShadow="false" PopoverClass="mud-elevation-25" AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
         <ActivatorContent>

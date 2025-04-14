@@ -35,5 +35,9 @@ var postgresql = builder.AddContainer("postgresql", "postgres:latest")
 builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
     .WaitFor(postgresql);
 
+// Admin Dashboard
+var blazor = builder.AddProject<Projects.Client>("admin-dashboard");
+
+
 
 builder.Build().Run();

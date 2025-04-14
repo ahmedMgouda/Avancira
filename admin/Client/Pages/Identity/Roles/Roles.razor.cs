@@ -17,7 +17,7 @@ public partial class Roles
     [Inject]
     private IApiClient RolesClient { get; set; } = default!;
 
-    protected EntityClientTableContext<RoleDto, string?, CreateOrUpdateRoleCommand> Context { get; set; } = default!;
+    protected EntityClientTableContext<RoleDto, string?, CreateOrUpdateRoleDto> Context { get; set; } = default!;
 
     private bool _canViewRoleClaims;
 
@@ -38,14 +38,14 @@ public partial class Roles
                 new(role => role.Description, "Description")
             },
             idFunc: role => role.Id,
-            loadDataFunc: async () => (await RolesClient.GetRolesEndpointAsync()).ToList(),
+            loadDataFunc: async () => (await RolesClient.GetRolesAsync()).ToList(),
             searchFunc: (searchString, role) =>
                 string.IsNullOrWhiteSpace(searchString)
                     || role.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
                     || role.Description?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true,
-            createFunc: async role => await RolesClient.CreateOrUpdateRoleEndpointAsync(role),
-            updateFunc: async (_, role) => await RolesClient.CreateOrUpdateRoleEndpointAsync(role),
-            deleteFunc: async id => await RolesClient.DeleteRoleEndpointAsync(id!),
+            createFunc: async role => await RolesClient.CreateOrUpdateRoleAsync(role),
+            updateFunc: async (_, role) => await RolesClient.CreateOrUpdateRoleAsync(role),
+            deleteFunc: async id => await RolesClient.DeleteRoleAsync(id!),
             hasExtraActionsFunc: () => _canViewRoleClaims,
             canUpdateEntityFunc: e => !AvanciraRoles.IsDefault(e.Name!),
             canDeleteEntityFunc: e => !AvanciraRoles.IsDefault(e.Name!),

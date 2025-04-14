@@ -2,7 +2,7 @@
 
 <PageHeader Title="Users" Header="Users" SubHeader="Manage Users." />
 
-<EntityTable TEntity="UserDetail" TId="Guid" TRequest="RegisterUserCommand" Context="@Context">
+<EntityTable TEntity="UserDetailDto" TId="Guid" TRequest="RegisterUserDto" Context="@Context">
     <ExtraActions>
         <MudMenuItem OnClick="(() => ViewProfile(context.Id))">View Profile</MudMenuItem>
         @if (_canViewRoles)

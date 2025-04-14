@@ -7,8 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Avancira.API.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class RolesController : ControllerBase
+public class RolesController : BaseApiController
 {
     private readonly IRoleService _roleService;
 
@@ -19,11 +18,8 @@ public class RolesController : ControllerBase
 
     [HttpGet]
     [RequiredPermission("Permissions.Roles.View")]
-    [SwaggerOperation(
-        OperationId = "GetRoles",
-        Summary = "Get a list of all roles",
-        Description = "Retrieve a list of all roles available in the system."
-    )]
+    [ProducesResponseType(typeof(IEnumerable<RoleDto>), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GetRoles")]
     public async Task<IActionResult> GetRoles()
     {
         var roles = await _roleService.GetRolesAsync();
@@ -32,11 +28,8 @@ public class RolesController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [RequiredPermission("Permissions.Roles.View")]
-    [SwaggerOperation(
-        OperationId = "GetRoleById",
-        Summary = "Get role details by ID",
-        Description = "Retrieve the details of a role by its ID."
-    )]
+    [ProducesResponseType(typeof(RoleDto), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GetRoleById")]
     public async Task<IActionResult> GetRoleById(string id)
     {
         var role = await _roleService.GetRoleAsync(id);
@@ -49,11 +42,8 @@ public class RolesController : ControllerBase
 
     [HttpGet("{id:guid}/permissions")]
     [RequiredPermission("Permissions.Roles.View")]
-    [SwaggerOperation(
-        OperationId = "GetRolePermissions",
-        Summary = "Get role permission",
-        Description = "Get role permission"
-    )]
+    [ProducesResponseType(typeof(RoleDto), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GetRolePermissions")]
     public async Task<IActionResult> GetRolePermissions(Guid id, CancellationToken cancellationToken)
     {
         var permissions = await _roleService.GetWithPermissionsAsync(id.ToString(), cancellationToken);
@@ -62,11 +52,8 @@ public class RolesController : ControllerBase
 
     [HttpPost]
     [RequiredPermission("Permissions.Roles.Create")]
-    [SwaggerOperation(
-        OperationId = "CreateOrUpdateRole",
-        Summary = "Create or update a role",
-        Description = "Create a new role or update an existing role."
-    )]
+    [ProducesResponseType(typeof(RoleDto), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "CreateOrUpdateRole")]
     public async Task<IActionResult> CreateOrUpdateRole([FromBody] CreateOrUpdateRoleDto request)
     {
         var result = await _roleService.CreateOrUpdateRoleAsync(request);
@@ -79,11 +66,8 @@ public class RolesController : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [RequiredPermission("Permissions.Roles.Delete")]
-    [SwaggerOperation(
-        OperationId = "DeleteRole",
-        Summary = "Delete a role by ID",
-        Description = "Remove a role from the system by its ID."
-    )]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [SwaggerOperation(OperationId = "DeleteRole")]
     public async Task<IActionResult> DeleteRole(string id)
     {
         await _roleService.DeleteRoleAsync(id);
@@ -92,12 +76,9 @@ public class RolesController : ControllerBase
 
     [HttpPut("{id:guid}/permissions")]
     [RequiredPermission("Permissions.Roles.Create")]
-    [SwaggerOperation(
-        OperationId = "UpdateRolePermissions",
-        Summary = "update role permissions",
-        Description = "Update role permissions"
-    )]
-    public async Task<ActionResult<string>> UpdateRolePermissions([FromBody] UpdatePermissionsDto request, string id)
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "UpdateRolePermissions")]
+    public async Task<IActionResult> UpdateRolePermissions([FromBody] UpdatePermissionsDto request, string id)
     {
         if (id != request.RoleId)
         {

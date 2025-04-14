@@ -42,7 +42,7 @@ public partial class RolePermissions
         _canSearchRoleClaims = await AuthService.HasPermissionAsync(state.User, AvanciraActions.View, AvanciraResources.RoleClaims);
 
         if (await ApiHelper.ExecuteCallGuardedAsync(
-                () => RolesClient.GetRolePermissionsAsync(Id), Toast, Navigation)
+                () => RolesClient.GetRolePermissionsAsync(@Guid.Parse(Id)), Toast, Navigation)
             is RoleDto role && role.Permissions is not null)
         {
             _title = string.Format("{0} Permissions", role.Name);

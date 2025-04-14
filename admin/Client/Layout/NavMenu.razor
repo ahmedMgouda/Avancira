@@ -2,7 +2,6 @@
 <MudNavMenu>
     <MudText Typo="Typo.subtitle2" Color="Color.Surface" Class="ml-4 my-3">Start</MudText>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
     @if (_canViewAuditTrails)
     {
         <MudNavLink Match="NavLinkMatch.Prefix" Href="/identity/audit-trail" Icon="@Icons.Material.Filled.WorkHistory">Audit Trail</MudNavLink>
@@ -23,10 +22,6 @@
         @if (_canViewRoles)
         {
             <MudNavLink Href="/identity/roles" Icon="@Icons.Material.Filled.EmojiPeople">Roles</MudNavLink>
-        }
-        @if (_canViewTenants)
-        {
-            <MudNavLink Href="/tenants" Icon="@Icons.Material.Filled.GroupWork" Disabled="!_canViewTenants">Tenants</MudNavLink>
         }
     }
 </MudNavMenu>

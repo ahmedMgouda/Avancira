@@ -8,7 +8,7 @@
 }
 else
 {
-    <MudTable Hover="true" Outlined Items="_userRolesList" Filter="new Func<UserRoleDetail, bool>(Search)">
+    <MudTable Hover="true" Outlined Items="_userRolesList" Filter="new Func<UserRoleDetailDto, bool>(Search)">
         <ToolBarContent>
             <div class="justify-center mud-text-align-center">
                 <MudButton Variant="Variant.Filled" DropShadow="false" Color="Color.Info" Class="ml-auto" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/identity/users">
@@ -33,16 +33,17 @@ else
         </ToolBarContent>
         <HeaderContent>
             <MudTh>
-                <MudTableSortLabel SortBy="new Func<UserRoleDetail, object?>(x => x.RoleName)">Role Name
+                <MudTableSortLabel SortBy="new Func<UserRoleDetailDto, object?>(x => x.RoleName)">
+                    Role Name
                 </MudTableSortLabel>
             </MudTh>
             <MudTh>
-                <MudTableSortLabel SortBy="new Func<UserRoleDetail, object?>(x => x.Description)">
+                <MudTableSortLabel SortBy="new Func<UserRoleDetailDto, object?>(x => x.Description)">
                     Description
                 </MudTableSortLabel>
             </MudTh>
             <MudTh>
-                <MudTableSortLabel SortBy="new Func<UserRoleDetail, object>(x => x.Enabled)">
+                <MudTableSortLabel SortBy="new Func<UserRoleDetailDto, object>(x => x.Enabled)">
                     Status
                 </MudTableSortLabel>
             </MudTh>

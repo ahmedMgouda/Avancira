@@ -10,14 +10,14 @@ public partial class Security
     [Inject]
     public IApiClient PersonalClient { get; set; } = default!;
 
-    private readonly ChangePasswordCommand _passwordModel = new();
+    private readonly ChangePasswordDto _passwordModel = new();
 
     private FshValidation? _customValidation;
 
     private async Task ChangePasswordAsync()
     {
         if (await ApiHelper.ExecuteCallGuardedAsync(
-            () => PersonalClient.ChangePasswordEndpointAsync(_passwordModel),
+            () => PersonalClient.ChangePasswordAsync(_passwordModel),
             Toast,
             _customValidation,
             "Password Changed!"))

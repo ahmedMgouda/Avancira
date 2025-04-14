@@ -19,7 +19,7 @@ public partial class Users
     [Inject]
     protected IApiClient UsersClient { get; set; } = default!;
 
-    protected EntityClientTableContext<UserDetail, Guid, RegisterUserCommand> Context { get; set; } = default!;
+    protected EntityClientTableContext<UserDetailDto, Guid, RegisterUserDto> Context { get; set; } = default!;
 
     private bool _canExportUsers;
     private bool _canViewAuditTrails;
@@ -58,7 +58,7 @@ public partial class Users
                 new(user => user.IsActive, "Active", Type: typeof(bool))
             },
             idFunc: user => user.Id,
-            loadDataFunc: async () => (await UsersClient.GetUsersListEndpointAsync()).ToList(),
+            loadDataFunc: async () => (await UsersClient.GetUsersListAsync()).ToList(),
             searchFunc: (searchString, user) =>
                 string.IsNullOrWhiteSpace(searchString)
                     || user.FirstName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
@@ -66,7 +66,7 @@ public partial class Users
                     || user.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
                     || user.PhoneNumber?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
                     || user.UserName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true,
-            createFunc: user => UsersClient.RegisterUserEndpointAsync(user),
+            createFunc: user => UsersClient.RegisterUserAsync(user),
             hasExtraActionsFunc: () => true,
             exportAction: string.Empty);
     }

@@ -56,7 +56,7 @@ public partial class Audit
                 new(audit => audit.DateTime, "Date", Template: DateFieldTemplate),
                 new(audit => audit.Operation, "Operation")
             },
-            loadDataFunc: async () => _trails = (await ApiClient.GetUserAuditTrailEndpointAsync(Id)).Adapt<List<RelatedAuditTrail>>(),
+            loadDataFunc: async () => _trails = (await ApiClient.GetUserAuditTrailAsync(Id)).Adapt<List<RelatedAuditTrail>>(),
             searchFunc: (searchString, trail) =>
                 (string.IsNullOrWhiteSpace(searchString) // check Search String
                     || trail.Entity?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true

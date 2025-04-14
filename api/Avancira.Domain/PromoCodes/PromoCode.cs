@@ -9,8 +9,8 @@ public class PromoCode : AuditableEntity
         ListingPromoCodes = new List<ListingPromoCode>();
     }
     public string Code { get; set; } = string.Empty;
-    public decimal DiscountAmount { get; set; }
-    public double DiscountPercentage { get; set; }
+    public decimal? DiscountAmount { get; set; }
+    public double? DiscountPercentage { get; set; }
     public int MaxUsageCount { get; set; }
     public int UsageCount { get; set; }
     public DateTime StartDate { get; set; }

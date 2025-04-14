@@ -50,9 +50,9 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         }
 
         return new AuthenticationState(new ClaimsPrincipal(claimsIdentity));
-    }`
+    }
 
-    public async Task<bool> LoginAsync(string tenantId, TokenGenerationDto request)
+    public async Task<bool> LoginAsync(TokenGenerationDto request)
     {
         var tokenResponse = await _client.GenerateTokenAsync(request);
 
@@ -139,7 +139,7 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         }
     }
 
-    private async Task<(bool Succeeded, RefreshTokenDto? Token)> TryRefreshTokenAsync(RefreshTokenDto request)
+    private async Task<(bool Succeeded, TokenResponse? Token)> TryRefreshTokenAsync(RefreshTokenDto request)
     {
         var authState = await GetAuthenticationStateAsync();
         try

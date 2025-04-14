@@ -124,7 +124,7 @@ public sealed class TokenService : ITokenService
             new(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty),
             new(AvanciraClaims.Fullname, $"{user.FirstName} {user.LastName}"),
             new(ClaimTypes.Surname, user.LastName ?? string.Empty),
-            new(AvanciraClaims.TimeZoneId, user.TimeZoneId),
+            new(AvanciraClaims.TimeZoneId, user.TimeZoneId ?? string.Empty),
             new(AvanciraClaims.IpAddress, ipAddress),
             new(AvanciraClaims.ImageUrl, user.ImageUrl == null ? string.Empty : user.ImageUrl.ToString())
         };

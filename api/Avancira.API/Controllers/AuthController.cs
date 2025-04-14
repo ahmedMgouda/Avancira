@@ -8,8 +8,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Avancira.API.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class AuthController : ControllerBase
+public class AuthController : BaseApiController
 {
     private readonly ITokenService _tokenService;
 
@@ -20,11 +19,8 @@ public class AuthController : ControllerBase
 
     [HttpPost("token")]
     [AllowAnonymous]
-    [SwaggerOperation(
-        OperationId = "GenerateToken",
-        Summary = "Generates an authentication token",
-        Description = "Generates an authentication token based on the provided credentials. This operation is public and does not require user authentication."
-    )]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GenerateToken")]
     public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request, CancellationToken cancellationToken)
     {
         string ip = HttpContext.GetIpAddress();
@@ -41,11 +37,8 @@ public class AuthController : ControllerBase
 
     [HttpPost("refresh")]
     [AllowAnonymous]
-    [SwaggerOperation(
-        OperationId = "RefreshToken",
-        Summary = "Refreshes an existing authentication token",
-        Description = "Refreshes an existing authentication token. This operation is public and does not require user authentication."
-    )]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "RefreshToken")]
     public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto request, CancellationToken cancellationToken)
     {
         string ip = HttpContext.GetIpAddress();

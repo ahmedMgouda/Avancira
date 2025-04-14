@@ -26,7 +26,7 @@ public static class Extensions
         });
         services.AddBlazoredLocalStorage();
         services.AddAuthentication(config);
-        services.AddTransient<IApiClient, ApiClient11>();
+        services.AddTransient<IApiClient, ApiClient>();
         services.AddHttpClient(ClientName, client =>
         {
             client.DefaultRequestHeaders.AcceptLanguage.Clear();

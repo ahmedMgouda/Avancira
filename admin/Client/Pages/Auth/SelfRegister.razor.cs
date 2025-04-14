@@ -8,7 +8,7 @@ namespace Avancira.Admin.Client.Pages.Auth;
 
 public partial class SelfRegister
 {
-    private readonly RegisterUserCommand _createUserRequest = new();
+    private readonly RegisterUserDto _createUserRequest = new();
     private FshValidation? _customValidation;
     private bool BusySubmitting { get; set; }
 
@@ -25,7 +25,7 @@ public partial class SelfRegister
         BusySubmitting = true;
 
         var response = await ApiHelper.ExecuteCallGuardedAsync(
-            () => UsersClient.SelfRegisterUserEndpointAsync("", _createUserRequest),
+            () => UsersClient.SelfRegisterUserAsync(_createUserRequest),
             Toast, Navigation,
             _customValidation);
 

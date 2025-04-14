@@ -29,509 +29,230 @@ namespace Avancira.Admin.Infrastructure.Api
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IApiClient
     {
-        /// <summary>
-        /// Generates an authentication token
-        /// </summary>
-        /// <remarks>
-        /// Generates an authentication token based on the provided credentials. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GenerateTokenAsync(TokenGenerationDto? body);
+        System.Threading.Tasks.Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Generates an authentication token
-        /// </summary>
-        /// <remarks>
-        /// Generates an authentication token based on the provided credentials. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GenerateTokenAsync(TokenGenerationDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Refreshes an existing authentication token
-        /// </summary>
-        /// <remarks>
-        /// Refreshes an existing authentication token. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RefreshTokenAsync(RefreshTokenDto? body);
+        System.Threading.Tasks.Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Refreshes an existing authentication token
-        /// </summary>
-        /// <remarks>
-        /// Refreshes an existing authentication token. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RefreshTokenAsync(RefreshTokenDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get a list of all roles
-        /// </summary>
-        /// <remarks>
-        /// Retrieve a list of all roles available in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRolesAsync();
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoleDto>> GetRolesAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a list of all roles
-        /// </summary>
-        /// <remarks>
-        /// Retrieve a list of all roles available in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRolesAsync(System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoleDto>> GetRolesAsync(System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Create or update a role
-        /// </summary>
-        /// <remarks>
-        /// Create a new role or update an existing role.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body);
+        System.Threading.Tasks.Task<RoleDto> CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Create or update a role
-        /// </summary>
-        /// <remarks>
-        /// Create a new role or update an existing role.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<RoleDto> CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get role details by ID
-        /// </summary>
-        /// <remarks>
-        /// Retrieve the details of a role by its ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRoleByIdAsync(string id);
+        System.Threading.Tasks.Task<RoleDto> GetRoleByIdAsync(string id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get role details by ID
-        /// </summary>
-        /// <remarks>
-        /// Retrieve the details of a role by its ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRoleByIdAsync(string id, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<RoleDto> GetRoleByIdAsync(string id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Delete a role by ID
-        /// </summary>
-        /// <remarks>
-        /// Remove a role from the system by its ID.
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteRoleAsync(string id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Delete a role by ID
-        /// </summary>
-        /// <remarks>
-        /// Remove a role from the system by its ID.
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteRoleAsync(string id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get role permission
-        /// </summary>
-        /// <remarks>
-        /// Get role permission
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRolePermissionsAsync(System.Guid id);
+        System.Threading.Tasks.Task<RoleDto> GetRolePermissionsAsync(System.Guid id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get role permission
-        /// </summary>
-        /// <remarks>
-        /// Get role permission
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetRolePermissionsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<RoleDto> GetRolePermissionsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// update role permissions
-        /// </summary>
-        /// <remarks>
-        /// Update role permissions
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body);
+        System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// update role permissions
-        /// </summary>
-        /// <remarks>
-        /// Update role permissions
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get a specific user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the details of a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserByIdAsync(string id);
+        System.Threading.Tasks.Task<UserDetailDto> GetUserByIdAsync(string id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a specific user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the details of a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserByIdAsync(string id, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<UserDetailDto> GetUserByIdAsync(string id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Delete a user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint deletes a user from the system by their unique identifier (ID).
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteUserAsync(string id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Delete a user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint deletes a user from the system by their unique identifier (ID).
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteUserAsync(string id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get the current user's profile
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the profile information of the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetCurrentUserProfileAsync();
+        System.Threading.Tasks.Task<UserDetailDto> GetCurrentUserProfileAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get the current user's profile
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the profile information of the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetCurrentUserProfileAsync(System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<UserDetailDto> GetCurrentUserProfileAsync(System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Update the profile of the current user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows the currently authenticated user to update their profile information.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body);
+        System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Update the profile of the current user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows the currently authenticated user to update their profile information.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get the current user's permissions
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of permissions for the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetCurrentUserPermissionsAsync();
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<string>> GetCurrentUserPermissionsAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get the current user's permissions
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of permissions for the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetCurrentUserPermissionsAsync(System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<string>> GetCurrentUserPermissionsAsync(System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get roles assigned to a specific user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of roles assigned to a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserRolesAsync(System.Guid id);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserRoleDetailDto>> GetUserRolesAsync(System.Guid id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get roles assigned to a specific user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of roles assigned to a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserRolesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserRoleDetailDto>> GetUserRolesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Assign roles to a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint assigns roles to a user by their unique ID. You must provide the roles to be assigned in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task AssignRolesToUserAsync(string id, AssignUserRoleDto? body);
+        System.Threading.Tasks.Task<string> AssignRolesToUserAsync(string id, AssignUserRoleDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Assign roles to a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint assigns roles to a user by their unique ID. You must provide the roles to be assigned in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task AssignRolesToUserAsync(string id, AssignUserRoleDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> AssignRolesToUserAsync(string id, AssignUserRoleDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get audit trails for a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the audit trails for a specific user, including their actions and changes.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserAuditTrailAsync(System.Guid? id);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<AuditTrail>> GetUserAuditTrailAsync(System.Guid? id);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get audit trails for a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the audit trails for a specific user, including their actions and changes.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUserAuditTrailAsync(System.Guid? id, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<AuditTrail>> GetUserAuditTrailAsync(System.Guid? id, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get a list of all users
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves a list of all users in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUsersListAsync();
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailDto>> GetUsersListAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a list of all users
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves a list of all users in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task GetUsersListAsync(System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailDto>> GetUsersListAsync(System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Register a new user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint registers a new user in the system. You must provide the necessary user details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RegisterUserAsync(RegisterUserDto? body);
+        System.Threading.Tasks.Task<RegisterUserResponseDto> RegisterUserAsync(RegisterUserDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Register a new user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint registers a new user in the system. You must provide the necessary user details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task RegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<RegisterUserResponseDto> RegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Allow a user to self-register
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to self-register in the system by providing their registration details.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task SelfRegisterUserAsync(RegisterUserDto? body);
+        System.Threading.Tasks.Task<RegisterUserResponseDto> SelfRegisterUserAsync(RegisterUserDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Allow a user to self-register
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to self-register in the system by providing their registration details.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task SelfRegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<RegisterUserResponseDto> SelfRegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Reset a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to reset their password by providing the necessary details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body);
+        System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Reset a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to reset their password by providing the necessary details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Send a password reset email
-        /// </summary>
-        /// <remarks>
-        /// This endpoint triggers sending a password reset email to a user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body);
+        System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Send a password reset email
-        /// </summary>
-        /// <remarks>
-        /// This endpoint triggers sending a password reset email to a user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Change a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to change their password by providing the old and new password.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body);
+        System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Change a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to change their password by providing the old and new password.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Toggle the status of a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows toggling the status (active/inactive) of a user by their ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ToggleUserStatusAsync(string id, ToggleUserStatusDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Toggle the status of a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows toggling the status (active/inactive) of a user by their ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ToggleUserStatusAsync(string id, ToggleUserStatusDto? body, System.Threading.CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Confirm a user's email address
-        /// </summary>
-        /// <remarks>
-        /// This endpoint confirms a user's email address by providing the user ID and confirmation code.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ConfirmEmailAsync(string? userId, string? code);
+        System.Threading.Tasks.Task<string> ConfirmEmailAsync(string? userId, string? code);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Confirm a user's email address
-        /// </summary>
-        /// <remarks>
-        /// This endpoint confirms a user's email address by providing the user ID and confirmation code.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ConfirmEmailAsync(string? userId, string? code, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<string> ConfirmEmailAsync(string? userId, string? code, System.Threading.CancellationToken cancellationToken);
+
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<UserDetailDtoPagedList> SearchUsersAsync(PaginationFilter? body);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<UserDetailDtoPagedList> SearchUsersAsync(PaginationFilter? body, System.Threading.CancellationToken cancellationToken);
 
     }
 
@@ -567,29 +288,17 @@ namespace Avancira.Admin.Infrastructure.Api
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
-        /// <summary>
-        /// Generates an authentication token
-        /// </summary>
-        /// <remarks>
-        /// Generates an authentication token based on the provided credentials. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GenerateTokenAsync(TokenGenerationDto? body)
+        public virtual System.Threading.Tasks.Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto? body)
         {
             return GenerateTokenAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Generates an authentication token
-        /// </summary>
-        /// <remarks>
-        /// Generates an authentication token based on the provided credentials. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GenerateTokenAsync(TokenGenerationDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -602,6 +311,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -633,7 +343,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<TokenResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -655,29 +370,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Refreshes an existing authentication token
-        /// </summary>
-        /// <remarks>
-        /// Refreshes an existing authentication token. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task RefreshTokenAsync(RefreshTokenDto? body)
+        public virtual System.Threading.Tasks.Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto? body)
         {
             return RefreshTokenAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Refreshes an existing authentication token
-        /// </summary>
-        /// <remarks>
-        /// Refreshes an existing authentication token. This operation is public and does not require user authentication.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task RefreshTokenAsync(RefreshTokenDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -690,6 +393,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -721,7 +425,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<TokenResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -743,29 +452,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get a list of all roles
-        /// </summary>
-        /// <remarks>
-        /// Retrieve a list of all roles available in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetRolesAsync()
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoleDto>> GetRolesAsync()
         {
             return GetRolesAsync(System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a list of all roles
-        /// </summary>
-        /// <remarks>
-        /// Retrieve a list of all roles available in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetRolesAsync(System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoleDto>> GetRolesAsync(System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -774,6 +471,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -805,7 +503,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<RoleDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -827,29 +530,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Create or update a role
-        /// </summary>
-        /// <remarks>
-        /// Create a new role or update an existing role.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body)
+        public virtual System.Threading.Tasks.Task<RoleDto> CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body)
         {
             return CreateOrUpdateRoleAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Create or update a role
-        /// </summary>
-        /// <remarks>
-        /// Create a new role or update an existing role.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<RoleDto> CreateOrUpdateRoleAsync(CreateOrUpdateRoleDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -862,6 +553,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -893,7 +585,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<RoleDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -915,29 +612,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get role details by ID
-        /// </summary>
-        /// <remarks>
-        /// Retrieve the details of a role by its ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetRoleByIdAsync(string id)
+        public virtual System.Threading.Tasks.Task<RoleDto> GetRoleByIdAsync(string id)
         {
             return GetRoleByIdAsync(id, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get role details by ID
-        /// </summary>
-        /// <remarks>
-        /// Retrieve the details of a role by its ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetRoleByIdAsync(string id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<RoleDto> GetRoleByIdAsync(string id, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -949,6 +634,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -981,7 +667,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<RoleDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1003,13 +694,7 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Delete a role by ID
-        /// </summary>
-        /// <remarks>
-        /// Remove a role from the system by its ID.
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteRoleAsync(string id)
         {
@@ -1017,13 +702,7 @@ namespace Avancira.Admin.Infrastructure.Api
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Delete a role by ID
-        /// </summary>
-        /// <remarks>
-        /// Remove a role from the system by its ID.
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteRoleAsync(string id, System.Threading.CancellationToken cancellationToken)
         {
@@ -1067,7 +746,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 204)
                         {
                             return;
                         }
@@ -1091,29 +770,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get role permission
-        /// </summary>
-        /// <remarks>
-        /// Get role permission
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetRolePermissionsAsync(System.Guid id)
+        public virtual System.Threading.Tasks.Task<RoleDto> GetRolePermissionsAsync(System.Guid id)
         {
             return GetRolePermissionsAsync(id, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get role permission
-        /// </summary>
-        /// <remarks>
-        /// Get role permission
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetRolePermissionsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<RoleDto> GetRolePermissionsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -1125,6 +792,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1158,7 +826,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<RoleDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1180,29 +853,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// update role permissions
-        /// </summary>
-        /// <remarks>
-        /// Update role permissions
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body)
+        public virtual System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body)
         {
             return UpdateRolePermissionsAsync(id, body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// update role permissions
-        /// </summary>
-        /// <remarks>
-        /// Update role permissions
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -1218,6 +879,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1251,7 +913,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1273,29 +940,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get a specific user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the details of a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetUserByIdAsync(string id)
+        public virtual System.Threading.Tasks.Task<UserDetailDto> GetUserByIdAsync(string id)
         {
             return GetUserByIdAsync(id, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a specific user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the details of a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetUserByIdAsync(string id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<UserDetailDto> GetUserByIdAsync(string id, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -1307,6 +962,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1339,7 +995,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<UserDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1361,13 +1022,7 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Delete a user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint deletes a user from the system by their unique identifier (ID).
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteUserAsync(string id)
         {
@@ -1375,13 +1030,7 @@ namespace Avancira.Admin.Infrastructure.Api
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Delete a user by ID
-        /// </summary>
-        /// <remarks>
-        /// This endpoint deletes a user from the system by their unique identifier (ID).
-        /// </remarks>
-        /// <returns>OK</returns>
+        /// <returns>No Content</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteUserAsync(string id, System.Threading.CancellationToken cancellationToken)
         {
@@ -1425,7 +1074,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 204)
                         {
                             return;
                         }
@@ -1449,29 +1098,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get the current user's profile
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the profile information of the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetCurrentUserProfileAsync()
+        public virtual System.Threading.Tasks.Task<UserDetailDto> GetCurrentUserProfileAsync()
         {
             return GetCurrentUserProfileAsync(System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get the current user's profile
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the profile information of the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetCurrentUserProfileAsync(System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<UserDetailDto> GetCurrentUserProfileAsync(System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1480,6 +1117,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1511,7 +1149,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<UserDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1533,29 +1176,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Update the profile of the current user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows the currently authenticated user to update their profile information.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body)
+        public virtual System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body)
         {
             return UpdateUserProfileAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Update the profile of the current user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows the currently authenticated user to update their profile information.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1568,6 +1199,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1599,7 +1231,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1621,29 +1258,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get the current user's permissions
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of permissions for the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetCurrentUserPermissionsAsync()
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<string>> GetCurrentUserPermissionsAsync()
         {
             return GetCurrentUserPermissionsAsync(System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get the current user's permissions
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of permissions for the currently authenticated user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetCurrentUserPermissionsAsync(System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<string>> GetCurrentUserPermissionsAsync(System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1652,6 +1277,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1683,7 +1309,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<string>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1705,29 +1336,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get roles assigned to a specific user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of roles assigned to a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetUserRolesAsync(System.Guid id)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserRoleDetailDto>> GetUserRolesAsync(System.Guid id)
         {
             return GetUserRolesAsync(id, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get roles assigned to a specific user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the list of roles assigned to a user by their unique identifier (ID).
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetUserRolesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserRoleDetailDto>> GetUserRolesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -1739,6 +1358,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1772,7 +1392,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<UserRoleDetailDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1794,29 +1419,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Assign roles to a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint assigns roles to a user by their unique ID. You must provide the roles to be assigned in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task AssignRolesToUserAsync(string id, AssignUserRoleDto? body)
+        public virtual System.Threading.Tasks.Task<string> AssignRolesToUserAsync(string id, AssignUserRoleDto? body)
         {
             return AssignRolesToUserAsync(id, body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Assign roles to a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint assigns roles to a user by their unique ID. You must provide the roles to be assigned in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task AssignRolesToUserAsync(string id, AssignUserRoleDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> AssignRolesToUserAsync(string id, AssignUserRoleDto? body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -1832,6 +1445,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1865,7 +1479,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1887,29 +1506,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get audit trails for a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the audit trails for a specific user, including their actions and changes.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetUserAuditTrailAsync(System.Guid? id)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<AuditTrail>> GetUserAuditTrailAsync(System.Guid? id)
         {
             return GetUserAuditTrailAsync(id, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get audit trails for a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves the audit trails for a specific user, including their actions and changes.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetUserAuditTrailAsync(System.Guid? id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<AuditTrail>> GetUserAuditTrailAsync(System.Guid? id, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1918,6 +1525,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -1955,7 +1563,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AuditTrail>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -1977,29 +1590,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Get a list of all users
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves a list of all users in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task GetUsersListAsync()
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailDto>> GetUsersListAsync()
         {
             return GetUsersListAsync(System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get a list of all users
-        /// </summary>
-        /// <remarks>
-        /// This endpoint retrieves a list of all users in the system.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task GetUsersListAsync(System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UserDetailDto>> GetUsersListAsync(System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2008,6 +1609,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2039,7 +1641,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<UserDetailDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2061,29 +1668,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Register a new user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint registers a new user in the system. You must provide the necessary user details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task RegisterUserAsync(RegisterUserDto? body)
+        public virtual System.Threading.Tasks.Task<RegisterUserResponseDto> RegisterUserAsync(RegisterUserDto? body)
         {
             return RegisterUserAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Register a new user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint registers a new user in the system. You must provide the necessary user details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task RegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<RegisterUserResponseDto> RegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2096,6 +1691,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2127,7 +1723,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<RegisterUserResponseDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2149,29 +1750,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Allow a user to self-register
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to self-register in the system by providing their registration details.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task SelfRegisterUserAsync(RegisterUserDto? body)
+        public virtual System.Threading.Tasks.Task<RegisterUserResponseDto> SelfRegisterUserAsync(RegisterUserDto? body)
         {
             return SelfRegisterUserAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Allow a user to self-register
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to self-register in the system by providing their registration details.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task SelfRegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<RegisterUserResponseDto> SelfRegisterUserAsync(RegisterUserDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2184,6 +1773,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2215,7 +1805,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<RegisterUserResponseDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2237,29 +1832,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Reset a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to reset their password by providing the necessary details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body)
+        public virtual System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body)
         {
             return ResetPasswordAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Reset a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to reset their password by providing the necessary details in the request body.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2272,6 +1855,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2303,7 +1887,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2325,29 +1914,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Send a password reset email
-        /// </summary>
-        /// <remarks>
-        /// This endpoint triggers sending a password reset email to a user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body)
+        public virtual System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body)
         {
             return ForgotPasswordAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Send a password reset email
-        /// </summary>
-        /// <remarks>
-        /// This endpoint triggers sending a password reset email to a user.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2360,6 +1937,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2391,7 +1969,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2413,29 +1996,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Change a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to change their password by providing the old and new password.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body)
+        public virtual System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body)
         {
             return ChangePasswordAsync(body, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Change a user's password
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows a user to change their password by providing the old and new password.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2448,6 +2019,7 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2479,7 +2051,12 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2501,12 +2078,6 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Toggle the status of a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows toggling the status (active/inactive) of a user by their ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task ToggleUserStatusAsync(string id, ToggleUserStatusDto? body)
@@ -2515,12 +2086,6 @@ namespace Avancira.Admin.Infrastructure.Api
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Toggle the status of a user
-        /// </summary>
-        /// <remarks>
-        /// This endpoint allows toggling the status (active/inactive) of a user by their ID.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ToggleUserStatusAsync(string id, ToggleUserStatusDto? body, System.Threading.CancellationToken cancellationToken)
@@ -2594,29 +2159,17 @@ namespace Avancira.Admin.Infrastructure.Api
             }
         }
 
-        /// <summary>
-        /// Confirm a user's email address
-        /// </summary>
-        /// <remarks>
-        /// This endpoint confirms a user's email address by providing the user ID and confirmation code.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task ConfirmEmailAsync(string? userId, string? code)
+        public virtual System.Threading.Tasks.Task<string> ConfirmEmailAsync(string? userId, string? code)
         {
             return ConfirmEmailAsync(userId, code, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Confirm a user's email address
-        /// </summary>
-        /// <remarks>
-        /// This endpoint confirms a user's email address by providing the user ID and confirmation code.
-        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ConfirmEmailAsync(string? userId, string? code, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<string> ConfirmEmailAsync(string? userId, string? code, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2625,6 +2178,7 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
@@ -2666,7 +2220,94 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            throw new ApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<UserDetailDtoPagedList> SearchUsersAsync(PaginationFilter? body)
+        {
+            return SearchUsersAsync(body, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<UserDetailDtoPagedList> SearchUsersAsync(PaginationFilter? body, System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/Users/search"
+                    urlBuilder_.Append("api/Users/search");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<UserDetailDtoPagedList>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -2807,6 +2448,39 @@ namespace Avancira.Admin.Infrastructure.Api
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AuditTrail
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("userId")]
+        public System.Guid UserId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("operation")]
+        public string? Operation { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entity")]
+        public string? Entity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dateTime")]
+        public System.DateTime DateTime { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("previousValues")]
+        public string? PreviousValues { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("newValues")]
+        public string? NewValues { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("modifiedProperties")]
+        public string? ModifiedProperties { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("primaryKey")]
+        public string? PrimaryKey { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangePasswordDto
     {
 
@@ -2852,11 +2526,56 @@ namespace Avancira.Admin.Infrastructure.Api
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class Filter
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("logic")]
+        public string? Logic { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("filters")]
+        public System.Collections.Generic.ICollection<Filter>? Filters { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("field")]
+        public string? Field { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("operator")]
+        public string? Operator { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public object? Value { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ForgotPasswordDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PaginationFilter
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("advancedSearch")]
+        public Search AdvancedSearch { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("keyword")]
+        public string? Keyword { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("advancedFilter")]
+        public Filter AdvancedFilter { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("orderBy")]
+        public System.Collections.Generic.ICollection<string>? OrderBy { get; set; } = default!;
 
     }
 
@@ -2900,6 +2619,15 @@ namespace Avancira.Admin.Infrastructure.Api
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RegisterUserResponseDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("userId")]
+        public string? UserId { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ResetPasswordDto
     {
 
@@ -2911,6 +2639,36 @@ namespace Avancira.Admin.Infrastructure.Api
 
         [System.Text.Json.Serialization.JsonPropertyName("token")]
         public string? Token { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RoleDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string? Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("permissions")]
+        public System.Collections.Generic.ICollection<string>? Permissions { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class Search
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("fields")]
+        public System.Collections.Generic.ICollection<string>? Fields { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("keyword")]
+        public string? Keyword { get; set; } = default!;
 
     }
 
@@ -2935,6 +2693,21 @@ namespace Avancira.Admin.Infrastructure.Api
 
         [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TokenResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("token")]
+        public string? Token { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refreshToken")]
+        public string? RefreshToken { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refreshTokenExpiryTime")]
+        public System.DateTime RefreshTokenExpiryTime { get; set; } = default!;
 
     }
 
@@ -2974,6 +2747,66 @@ namespace Avancira.Admin.Infrastructure.Api
 
         [System.Text.Json.Serialization.JsonPropertyName("deleteCurrentImage")]
         public bool DeleteCurrentImage { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UserDetailDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("userName")]
+        public string? UserName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("firstName")]
+        public string? FirstName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("lastName")]
+        public string? LastName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("email")]
+        public string? Email { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("emailConfirmed")]
+        public bool EmailConfirmed { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("phoneNumber")]
+        public string? PhoneNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
+        public System.Uri? ImageUrl { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.3.0.0 (NJsonSchema v11.2.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UserDetailDtoPagedList
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public System.Collections.Generic.ICollection<UserDetailDto>? Items { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasPrevious")]
+        public bool HasPrevious { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasNext")]
+        public bool HasNext { get; set; } = default!;
 
     }
 

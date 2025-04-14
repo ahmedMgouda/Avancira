@@ -7,7 +7,7 @@ namespace Avancira.Admin.Client.Pages.Auth;
 
 public partial class ForgotPassword
 {
-    private readonly ForgotPasswordCommand _forgotPasswordRequest = new();
+    private readonly ForgotPasswordDto _forgotPasswordRequest = new();
     private FshValidation? _customValidation;
     private bool BusySubmitting { get; set; }
 
@@ -19,7 +19,7 @@ public partial class ForgotPassword
         BusySubmitting = true;
 
         await ApiHelper.ExecuteCallGuardedAsync(
-            () => UsersClient.ForgotPasswordEndpointAsync("", _forgotPasswordRequest),
+            () => UsersClient.ForgotPasswordAsync(_forgotPasswordRequest),
             Toast,
             _customValidation);
 
