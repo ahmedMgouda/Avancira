@@ -94,12 +94,12 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body);
+        System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken);
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
@@ -130,12 +130,12 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body);
+        System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken);
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
@@ -202,30 +202,30 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body);
+        System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken);
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body);
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken);
-
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body);
+        System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken);
+
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken);
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
@@ -311,12 +311,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Auth/token"
-                    urlBuilder_.Append("api/Auth/token");
+                    // Operation Path: "api/auth/token"
+                    urlBuilder_.Append("api/auth/token");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -393,12 +393,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Auth/refresh"
-                    urlBuilder_.Append("api/Auth/refresh");
+                    // Operation Path: "api/auth/refresh"
+                    urlBuilder_.Append("api/auth/refresh");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -471,12 +471,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles"
-                    urlBuilder_.Append("api/Roles");
+                    // Operation Path: "api/roles"
+                    urlBuilder_.Append("api/roles");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -553,12 +553,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles"
-                    urlBuilder_.Append("api/Roles");
+                    // Operation Path: "api/roles"
+                    urlBuilder_.Append("api/roles");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -634,12 +634,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles/{id}"
-                    urlBuilder_.Append("api/Roles/");
+                    // Operation Path: "api/roles/{id}"
+                    urlBuilder_.Append("api/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -719,8 +719,8 @@ namespace Avancira.Admin.Infrastructure.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles/{id}"
-                    urlBuilder_.Append("api/Roles/");
+                    // Operation Path: "api/roles/{id}"
+                    urlBuilder_.Append("api/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -792,12 +792,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles/{id}/permissions"
-                    urlBuilder_.Append("api/Roles/");
+                    // Operation Path: "api/roles/{id}/permissions"
+                    urlBuilder_.Append("api/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/permissions");
 
@@ -855,7 +855,7 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body)
+        public virtual System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body)
         {
             return UpdateRolePermissionsAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -863,7 +863,7 @@ namespace Avancira.Admin.Infrastructure.Api
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task UpdateRolePermissionsAsync(string id, UpdatePermissionsDto? body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -879,12 +879,11 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Roles/{id}/permissions"
-                    urlBuilder_.Append("api/Roles/");
+                    // Operation Path: "api/roles/{id}/permissions"
+                    urlBuilder_.Append("api/roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/permissions");
 
@@ -913,12 +912,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            return objectResponse_.Object;
+                            return;
                         }
                         else
                         {
@@ -962,12 +956,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/{id}"
-                    urlBuilder_.Append("api/Users/");
+                    // Operation Path: "api/users/{id}"
+                    urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -1047,8 +1041,8 @@ namespace Avancira.Admin.Infrastructure.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/{id}"
-                    urlBuilder_.Append("api/Users/");
+                    // Operation Path: "api/users/{id}"
+                    urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -1117,12 +1111,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/profile"
-                    urlBuilder_.Append("api/Users/profile");
+                    // Operation Path: "api/users/profile"
+                    urlBuilder_.Append("api/users/profile");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1178,7 +1172,7 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body)
+        public virtual System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body)
         {
             return UpdateUserProfileAsync(body, System.Threading.CancellationToken.None);
         }
@@ -1186,7 +1180,7 @@ namespace Avancira.Admin.Infrastructure.Api
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task UpdateUserProfileAsync(UpdateUserDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1199,12 +1193,11 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/profile"
-                    urlBuilder_.Append("api/Users/profile");
+                    // Operation Path: "api/users/profile"
+                    urlBuilder_.Append("api/users/profile");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1231,12 +1224,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            return objectResponse_.Object;
+                            return;
                         }
                         else
                         {
@@ -1277,12 +1265,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/permissions"
-                    urlBuilder_.Append("api/Users/permissions");
+                    // Operation Path: "api/users/permissions"
+                    urlBuilder_.Append("api/users/permissions");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1358,12 +1346,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/{id}/roles"
-                    urlBuilder_.Append("api/Users/");
+                    // Operation Path: "api/users/{id}/roles"
+                    urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles");
 
@@ -1445,12 +1433,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/{id}/roles"
-                    urlBuilder_.Append("api/Users/");
+                    // Operation Path: "api/users/{id}/roles"
+                    urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/roles");
 
@@ -1525,12 +1513,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/audit-trails"
-                    urlBuilder_.Append("api/Users/audit-trails");
+                    // Operation Path: "api/users/audit-trails"
+                    urlBuilder_.Append("api/users/audit-trails");
                     urlBuilder_.Append('?');
                     if (id != null)
                     {
@@ -1609,12 +1597,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users"
-                    urlBuilder_.Append("api/Users");
+                    // Operation Path: "api/users"
+                    urlBuilder_.Append("api/users");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1691,12 +1679,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/register"
-                    urlBuilder_.Append("api/Users/register");
+                    // Operation Path: "api/users/register"
+                    urlBuilder_.Append("api/users/register");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1773,12 +1761,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/self-register"
-                    urlBuilder_.Append("api/Users/self-register");
+                    // Operation Path: "api/users/self-register"
+                    urlBuilder_.Append("api/users/self-register");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1834,7 +1822,7 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body)
+        public virtual System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body)
         {
             return ResetPasswordAsync(body, System.Threading.CancellationToken.None);
         }
@@ -1842,7 +1830,7 @@ namespace Avancira.Admin.Infrastructure.Api
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task ResetPasswordAsync(ResetPasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1855,12 +1843,11 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/reset-password"
-                    urlBuilder_.Append("api/Users/reset-password");
+                    // Operation Path: "api/users/reset-password"
+                    urlBuilder_.Append("api/users/reset-password");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1887,12 +1874,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            return objectResponse_.Object;
+                            return;
                         }
                         else
                         {
@@ -1916,7 +1898,7 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body)
+        public virtual System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body)
         {
             return ForgotPasswordAsync(body, System.Threading.CancellationToken.None);
         }
@@ -1924,7 +1906,7 @@ namespace Avancira.Admin.Infrastructure.Api
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task ForgotPasswordAsync(ForgotPasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1937,12 +1919,11 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/forgot-password"
-                    urlBuilder_.Append("api/Users/forgot-password");
+                    // Operation Path: "api/users/forgot-password"
+                    urlBuilder_.Append("api/users/forgot-password");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -1969,12 +1950,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            return objectResponse_.Object;
+                            return;
                         }
                         else
                         {
@@ -1998,7 +1974,7 @@ namespace Avancira.Admin.Infrastructure.Api
 
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body)
+        public virtual System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body)
         {
             return ChangePasswordAsync(body, System.Threading.CancellationToken.None);
         }
@@ -2006,7 +1982,7 @@ namespace Avancira.Admin.Infrastructure.Api
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<string> ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordDto? body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2019,12 +1995,11 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/change-password"
-                    urlBuilder_.Append("api/Users/change-password");
+                    // Operation Path: "api/users/change-password"
+                    urlBuilder_.Append("api/users/change-password");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -2051,12 +2026,7 @@ namespace Avancira.Admin.Infrastructure.Api
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<string>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            return objectResponse_.Object;
+                            return;
                         }
                         else
                         {
@@ -2107,8 +2077,8 @@ namespace Avancira.Admin.Infrastructure.Api
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/{id}/toggle-status"
-                    urlBuilder_.Append("api/Users/");
+                    // Operation Path: "api/users/{id}/toggle-status"
+                    urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/toggle-status");
 
@@ -2178,12 +2148,12 @@ namespace Avancira.Admin.Infrastructure.Api
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/confirm-email"
-                    urlBuilder_.Append("api/Users/confirm-email");
+                    // Operation Path: "api/users/confirm-email"
+                    urlBuilder_.Append("api/users/confirm-email");
                     urlBuilder_.Append('?');
                     if (userId != null)
                     {
@@ -2270,12 +2240,12 @@ namespace Avancira.Admin.Infrastructure.Api
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                 
-                    // Operation Path: "api/Users/search"
-                    urlBuilder_.Append("api/Users/search");
+                    // Operation Path: "api/users/search"
+                    urlBuilder_.Append("api/users/search");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 

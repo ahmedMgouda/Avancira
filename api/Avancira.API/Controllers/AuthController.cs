@@ -7,7 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Avancira.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController : BaseApiController
 {
     private readonly ITokenService _tokenService;

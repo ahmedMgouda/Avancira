@@ -6,7 +6,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Avancira.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/roles")]
 public class RolesController : BaseApiController
 {
     private readonly IRoleService _roleService;
@@ -76,7 +76,7 @@ public class RolesController : BaseApiController
 
     [HttpPut("{id:guid}/permissions")]
     [RequiredPermission("Permissions.Roles.Create")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "UpdateRolePermissions")]
     public async Task<IActionResult> UpdateRolePermissions([FromBody] UpdatePermissionsDto request, string id)
     {

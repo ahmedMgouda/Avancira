@@ -13,7 +13,7 @@ using Avancira.Application.Paging;
 
 namespace Avancira.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/users")]
 public class UsersController : BaseApiController
 {
     private readonly IAuditService _auditService;
@@ -26,6 +26,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpGet("{id:guid}")]
+    [RequiredPermission("Permissions.Users.View")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetUserById")]
     public async Task<IActionResult> GetUserById(string id, CancellationToken cancellationToken)
@@ -39,9 +40,10 @@ public class UsersController : BaseApiController
     }
 
     [HttpGet("profile")]
+    [RequiredPermission("Permissions.Users.View")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "GetCurrentUserProfile")]
-    public async Task<IActionResult> GetCurrentUserProfile(CancellationToken cancellationToken)
+    [SwaggerOperation(OperationId = "GetUserProfile")]
+    public async Task<IActionResult> GetUserProfile(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
 
@@ -51,8 +53,8 @@ public class UsersController : BaseApiController
 
     [HttpGet("permissions")]
     [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "GetCurrentUserPermissions")]
-    public async Task<IActionResult> GetCurrentUserPermissions(CancellationToken cancellationToken)
+    [SwaggerOperation(OperationId = "GetUserPermissions")]
+    public async Task<IActionResult> GetUserPermissionsAsync(CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -75,6 +77,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpGet("audit-trails")]
+    [RequiredPermission("Permissions.AuditTrails.View")]
     [ProducesResponseType(typeof(List<AuditTrail>), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetUserAuditTrail")]
     public async Task<IActionResult> GetUserAuditTrail(Guid id)
@@ -99,7 +102,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost("{id:guid}/roles")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "AssignRolesToUser")]
     public async Task<IActionResult> AssignRolesToUser([FromBody] AssignUserRoleDto command, string id, CancellationToken cancellationToken)
     {
@@ -108,6 +111,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "RegisterUser")]
     public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
@@ -130,7 +134,7 @@ public class UsersController : BaseApiController
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ResetPassword")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto command, CancellationToken cancellationToken)
     {
@@ -140,7 +144,7 @@ public class UsersController : BaseApiController
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto command, CancellationToken cancellationToken)
     {
@@ -148,7 +152,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost("change-password")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ChangePassword")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto command, CancellationToken cancellationToken)
     {
@@ -159,7 +163,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost("{id:guid}/toggle-status")]
-    [AllowAnonymous]
+    [RequiredPermission("Permissions.Users.Update")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ToggleUserStatus")]
     public async Task<IActionResult> ToggleUserStatus(string id, [FromBody] ToggleUserStatusDto command, CancellationToken cancellationToken)
@@ -185,7 +189,6 @@ public class UsersController : BaseApiController
 
     [HttpPut("profile")]
     [RequiredPermission("Permissions.Users.Update")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "UpdateUserProfile")]
     public async Task<IActionResult> UpdateUserProfile([FromBody] UpdateUserDto request)
     {
@@ -197,7 +200,7 @@ public class UsersController : BaseApiController
 
     [HttpGet("confirm-email")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ConfirmEmail")]
     public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string code)
     {

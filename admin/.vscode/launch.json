@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Blazor WebAssembly in Chrome",
+        "type": "chrome",
+        "request": "launch",
+        "url": "https://localhost:7100", // Replace with your frontend HTTPS URL
+        "webRoot": "${workspaceFolder}",
+        "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
+      }
+    ]
+  }
+  
