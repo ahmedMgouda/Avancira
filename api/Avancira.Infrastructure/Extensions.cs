@@ -20,6 +20,7 @@ using Avancira.Infrastructure.OpenApi;
 using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Storage;
+using Avancira.Infrastructure.Catalog;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -31,6 +32,7 @@ public static class Extensions
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
+        builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration);
         builder.Services.ConfigureFileStorage();
         builder.Services.ConfigureJwtAuth();

@@ -10,6 +10,7 @@
     <PackageReference Include="Ardalis.Specification" Version="9.0.1" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>

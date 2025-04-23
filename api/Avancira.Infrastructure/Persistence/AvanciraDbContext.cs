@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using Avancira.Domain.Common.Contracts;
+using Avancira.Domain.Catalog;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,
@@ -31,6 +32,8 @@ public class AvanciraDbContext : IdentityDbContext<User,
     }
 
     public DbSet<AuditTrail> AuditTrails { get; set; }
+    public DbSet<ListingCategory> LessonCategories { get; set; }
+    public DbSet<Listing> Listings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
