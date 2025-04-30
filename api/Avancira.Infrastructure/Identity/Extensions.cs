@@ -25,7 +25,7 @@ internal static class Extensions
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped(sp => (ICurrentUserInitializer)sp.GetRequiredService<ICurrentUser>());
-        services.AddTransient<IUserService, UserService>();
+        services.AddTransient<Avancira.Application.Identity.Users.Abstractions.IUserService, UserService>();
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<IAuditService, AuditService>();
         services.BindDbContext<AvanciraDbContext>();

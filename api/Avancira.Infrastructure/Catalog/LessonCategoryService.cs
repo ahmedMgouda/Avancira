@@ -1,5 +1,6 @@
 ﻿using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Domain.Catalog;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,16 @@ namespace Avancira.Infrastructure.Catalog
             _logger = logger;
         }
 
+        public LessonCategoryDto CreateCategory(Category category)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool DeleteCategory(int id)
+        {
+            throw new NotImplementedException();
+        }
+
         public List<LessonCategoryDto> GetLandingPageCategories()
         {
             throw new NotImplementedException();
@@ -34,6 +45,16 @@ namespace Avancira.Infrastructure.Catalog
             //.Take(12)
             //    .Select(category => MapToLessonCategoryDto(category, _dbContext.ListingLessonCategories.Include(l => l.Listing).Count(l => l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id)))
             //    .ToList();
+        }
+
+        public Task<PagedResult<LessonCategoryDto>> SearchCategoriesAsync(string? query, int page, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public LessonCategoryDto UpdateCategory(int id, Category updatedCategory)
+        {
+            throw new NotImplementedException();
         }
     }
 }

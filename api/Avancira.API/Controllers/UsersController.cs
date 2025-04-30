@@ -17,9 +17,9 @@ namespace Avancira.API.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IAuditService _auditService;
-    private readonly IUserService _userService;
+    private readonly Avancira.Application.Identity.Users.Abstractions.IUserService _userService;
 
-    public UsersController(IAuditService auditService, IUserService userService)
+    public UsersController(IAuditService auditService, Avancira.Application.Identity.Users.Abstractions.IUserService userService)
     {
         _auditService = auditService;
         _userService = userService;

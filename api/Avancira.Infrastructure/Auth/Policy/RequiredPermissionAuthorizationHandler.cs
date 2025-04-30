@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
 namespace Avancira.Infrastructure.Auth.Policy;
-public sealed class RequiredPermissionAuthorizationHandler(IUserService userService) : AuthorizationHandler<PermissionAuthorizationRequirement>
+public sealed class RequiredPermissionAuthorizationHandler(Avancira.Application.Identity.Users.Abstractions.IUserService userService) : AuthorizationHandler<PermissionAuthorizationRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionAuthorizationRequirement requirement)
     {

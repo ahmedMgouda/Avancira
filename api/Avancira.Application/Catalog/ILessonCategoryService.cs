@@ -1,15 +1,20 @@
-﻿using Avancira.Application.Catalog.Dtos;
-using System;
+using Avancira.Application.Catalog.Dtos;
+using Avancira.Domain.Catalog;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Avancira.Application.Catalog
+public interface ILessonCategoryService
 {
-    public interface ILessonCategoryService
-    {
-        // Read
-        List<LessonCategoryDto> GetLandingPageCategories();
-    }
+    // Create
+    LessonCategoryDto CreateCategory(Category category);
+
+    // Read
+    List<LessonCategoryDto> GetLandingPageCategories();
+    Task<PagedResult<LessonCategoryDto>> SearchCategoriesAsync(string? query, int page, int pageSize);
+
+    // Update
+    LessonCategoryDto UpdateCategory(int id, Category updatedCategory);
+
+    // Delete
+    bool DeleteCategory(int id);
 }

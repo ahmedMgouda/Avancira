@@ -1,12 +1,15 @@
-﻿using Avancira.Application.Catalog;
-using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
-namespace Avancira.API.Controllers;
+namespace Backend.Controllers;
 
 [Route("api/landing")]
-[AllowAnonymous]
-public class LandingAPIController : BaseApiController
+[ApiController]
+public class LandingAPIController : BaseController
 {
     private readonly IListingService _listingService;
     private readonly IUserService _userService;
@@ -30,14 +33,14 @@ public class LandingAPIController : BaseApiController
     public IActionResult GetCourseStats()
     {
         var stats = _listingService.GetListingStatistics();
-        return Ok(stats);
+        return JsonOk(stats);
     }
 
     [HttpGet("categories")]
     public IActionResult GetCategories()
     {
         var categories = _categoryService.GetLandingPageCategories();
-        return Ok(categories);
+        return JsonOk(categories);
     }
 
     [HttpGet("courses")]
@@ -59,7 +62,7 @@ public class LandingAPIController : BaseApiController
                 instructorImg = course.ListingImagePath ?? "default-instructor.jpg"
             }).ToList();
 
-        return Ok(listings);
+        return JsonOk(listings);
     }
 
     [HttpGet("trending-courses")]
@@ -81,7 +84,7 @@ public class LandingAPIController : BaseApiController
                 instructorImg = course.ListingImagePath ?? "default-instructor.jpg"
             }).ToList();
 
-        return Ok(listings);
+        return JsonOk(listings);
     }
 
 
@@ -95,14 +98,14 @@ public class LandingAPIController : BaseApiController
             new { Img = "assets/img/mentor/ahmed_mostafa.jpg", Name = "Ahmed Mostafa", Designation = "Creative Director & Multimedia Specialist", Rating = 4.5, Reviews = 2500, Students = 850 }
         };
 
-        return Ok(instructors);
+        return JsonOk(instructors);
     }
 
     [HttpGet("job-locations")]
     public async Task<IActionResult> GetJobLocationsAsync()
     {
         var jobLocations = await _userService.GetLandingPageUsersAsync();
-        return Ok(jobLocations);
+        return JsonOk(jobLocations);
     }
 
     [HttpGet("student-reviews")]
@@ -114,6 +117,7 @@ public class LandingAPIController : BaseApiController
             new { Img = "assets/img/user/user21.png", Name = "Anderson Saviour", Position = "IT Manager", Comment = "Very insightful lessons and great support.", Rating = 4 }
         };
 
-        return Ok(studentReviews);
+        return JsonOk(studentReviews);
     }
 }
+

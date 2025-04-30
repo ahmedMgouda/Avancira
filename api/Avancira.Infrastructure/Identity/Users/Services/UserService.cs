@@ -28,7 +28,7 @@ internal sealed partial class UserService(
     IJobService jobService,
     IMailService mailService,
     IStorageService storageService
-    ) : IUserService
+    ) : Avancira.Application.Identity.Users.Abstractions.IUserService
 {
     public async Task<string> ConfirmEmailAsync(string userId, string code, CancellationToken cancellationToken)
     {
