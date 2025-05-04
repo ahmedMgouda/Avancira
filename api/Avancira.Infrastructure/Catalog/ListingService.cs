@@ -31,7 +31,7 @@ namespace Avancira.Infrastructure.Catalog
             throw new NotImplementedException();
         }
 
-        public ListingDto GetListingById(int id)
+        public ListingDto GetListingById(Guid id)
         {
             throw new NotImplementedException();
         }

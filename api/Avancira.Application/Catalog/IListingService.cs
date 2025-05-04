@@ -9,7 +9,7 @@ public interface IListingService
     Task<ListingResponseDto> CreateListingAsync(ListingRequestDto model, string userId);
 
     // Read
-    ListingDto GetListingById(int id);
+    ListingDto GetListingById(Guid id);
     Task<PagedResult<ListingResponseDto>> GetTutorListingsAsync(string userId, int page, int pageSize);
     IEnumerable<ListingDto> GetLandingPageListings();
     IEnumerable<ListingDto> GetLandingPageTrendingListings();

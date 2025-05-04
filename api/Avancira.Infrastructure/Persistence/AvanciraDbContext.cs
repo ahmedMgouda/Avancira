@@ -10,6 +10,9 @@ using Microsoft.Extensions.Options;
 using System.Reflection;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Catalog;
+using Avancira.Domain.Messaging;
+using Avancira.Domain;
+using Backend.Domain.PromoCodes;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,
@@ -32,8 +35,27 @@ public class AvanciraDbContext : IdentityDbContext<User,
     }
 
     public DbSet<AuditTrail> AuditTrails { get; set; }
+
+    //public DbSet<Address> Addresses { get; set; }
+    //public DbSet<Country> Countries { get; set; }
+
+    //public DbSet<Referral> Referrals { get; set; }
+
     public DbSet<ListingCategory> LessonCategories { get; set; }
+    //public DbSet<ListingLessonCategory> ListingLessonCategories { get; set; }
+    public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Listing> Listings { get; set; }
+    public DbSet<ListingReview> Reviews { get; set; }
+    public DbSet<Chat> Chats { get; set; }
+    public DbSet<Message> Messages { get; set; }
+
+    public DbSet<Subscription> Subscriptions { get; set; }
+    //public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
+    public DbSet<PromoCode> PromoCodes { get; set; }
+    //public DbSet<UserCard> UserCards { get; set; }
+    //public DbSet<Transaction> Transactions { get; set; }
+    //public DbSet<Wallet> Wallets { get; set; }
+    //public DbSet<WalletLog> WalletLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

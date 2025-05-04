@@ -9,8 +9,8 @@ namespace Avancira.Application.Catalog.Dtos
 {
     public class ChatDto
     {
-        public int Id { get; set; }
-        public int ListingId { get; set; }
+        public Guid Id { get; set; }
+        public Guid ListingId { get; set; }
         public string TutorId { get; set; }
         public string StudentId { get; set; }
         public string RecipientId { get; set; }

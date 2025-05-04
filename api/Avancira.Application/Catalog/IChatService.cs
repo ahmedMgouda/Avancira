@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public interface IChatService
 {
     // Create
-    Chat GetOrCreateChat(string studentId, string tutorId, int listingId);
+    Chat GetOrCreateChat(string studentId, string tutorId, Guid listingId);
     // Read
     List<ChatDto> GetUserChats(string userId);
     // Update
