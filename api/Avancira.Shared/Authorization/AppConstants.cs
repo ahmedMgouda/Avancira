@@ -18,5 +18,5 @@ public static class AppConstants
     public const string EmailAddress = "admin@system.local";
     public const string AdminUserName = "ADMIN";
     public const string DefaultProfilePicture = "assets/defaults/profile-picture.webp";
-    public const string DefaultPassword = "Pa$$w0rd!";
+    public const string DefaultPassword = "Test@1234";
 }

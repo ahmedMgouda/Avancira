@@ -38,13 +38,12 @@ namespace Avancira.Infrastructure.Catalog
 
         public List<LessonCategoryDto> GetLandingPageCategories()
         {
-            throw new NotImplementedException();
-            //return _dbContext.LessonCategories
-            //    .OrderBy(_ => Guid.NewGuid())
-            //    .Where(category => category.DisplayInLandingPage)
-            //.Take(12)
-            //    .Select(category => MapToLessonCategoryDto(category, _dbContext.ListingLessonCategories.Include(l => l.Listing).Count(l => l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id)))
-            //    .ToList();
+            return _dbContext.LessonCategories
+                .OrderBy(_ => Guid.NewGuid())
+                //.Where(category => category.DisplayInLandingPage)
+                .Take(12)
+                .Select(category => MapToLessonCategoryDto(category, _dbContext.LessonCategories.Include(l => l.Listing).Count(l => true /*l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id*/)))
+                .ToList();
         }
 
         public Task<PagedResult<LessonCategoryDto>> SearchCategoriesAsync(string? query, int page, int pageSize)
@@ -55,6 +54,17 @@ namespace Avancira.Infrastructure.Catalog
         public LessonCategoryDto UpdateCategory(int id, Category updatedCategory)
         {
             throw new NotImplementedException();
+        }
+
+        private static LessonCategoryDto MapToLessonCategoryDto(ListingCategory category, int? courses = null)
+        {
+            return new LessonCategoryDto
+            {
+                //Id = category.Id,
+                //Name = category.Name,
+                //Image = category.ImageUrl,
+                Courses = courses ?? 0
+            };
         }
     }
 }

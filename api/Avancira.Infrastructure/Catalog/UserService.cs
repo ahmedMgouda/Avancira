@@ -1,7 +1,15 @@
-﻿using Avancira.Application.Catalog;
+﻿using Avancira.Application.Auth.Jwt;
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
+using Avancira.Infrastructure.Identity.Users;
+using Avancira.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Builder.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +20,14 @@ namespace Avancira.Infrastructure.Catalog
 {
     public class UserService : IUserService
     {
+        private readonly AvanciraDbContext _dbContext;
+        public UserService(
+               AvanciraDbContext dbContext
+           )
+        {
+            _dbContext = dbContext;
+        }
+
         public Task<bool> ChangePasswordAsync(string userId, string oldPassword, string newPassword)
         {
             throw new NotImplementedException();
@@ -37,9 +53,31 @@ namespace Avancira.Infrastructure.Catalog
             throw new NotImplementedException();
         }
 
-        public Task<List<object>> GetLandingPageUsersAsync()
+        public async Task<List<object>> GetLandingPageUsersAsync()
         {
-            throw new NotImplementedException();
+            var targetCities = new List<string> { "Sydney", "Brisbane", "Perth" };
+
+            // Fetch actual mentor counts from the database
+            //var jobLocations = await _dbContext.Users
+            //    .Where(u => u.Address != null && targetCities.Contains(u.Address.City))
+            //    .GroupBy(u => u.Address.City)
+            //    .Select(group => new
+            //    {
+            //        City = group.Key,
+            //        Mentors = group.Count()
+            //    })
+            //    .ToDictionaryAsync(x => x.City, x => x.Mentors);
+
+            // Define default job locations and override counts if data exists
+            var predefinedLocations = targetCities.Select(city => (object)new
+            {
+                Img = $"assets/img/city/city_{city.ToLower()}.jpg",
+                City = city,
+                Country = "Australia",
+                Mentors =0 /*jobLocations.GetValueOrDefault(city, 0)*/
+            }).ToList();
+
+            return predefinedLocations;
         }
 
         public Task<string?> GetPaymentGatewayAsync(string userId)

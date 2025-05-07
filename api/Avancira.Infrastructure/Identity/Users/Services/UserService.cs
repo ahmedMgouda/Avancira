@@ -17,6 +17,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using Avancira.Infrastructure.Auth.Jwt;
+using Avancira.Application.Auth.Jwt;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(
@@ -27,9 +32,12 @@ internal sealed partial class UserService(
     ICacheService cache,
     IJobService jobService,
     IMailService mailService,
-    IStorageService storageService
+    IStorageService storageService,
+    IOptions<JwtOptions> jwtOptions
     ) : Avancira.Application.Identity.Users.Abstractions.IUserService
 {
+    private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+
     public async Task<string> ConfirmEmailAsync(string userId, string code, CancellationToken cancellationToken)
     {
         var user = await userManager.Users
@@ -275,5 +283,51 @@ internal sealed partial class UserService(
 
         return userRoles;
     }
+
+    public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+
+        if (user == null || !await userManager.CheckPasswordAsync(user, request.Password))
+            throw new UnauthorizedException("Invalid email or password.");
+
+        //if (!user.EmailConfirmed)
+        //    throw new AvanciraException("Email not confirmed.");
+
+        //if (!user.IsActive)
+        //    throw new AvanciraException("User account is disabled.");
+
+        var userClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Name, user.UserName ?? user.Email),
+            new Claim(ClaimTypes.Email, user.Email)
+        };
+
+        var userRoles = await userManager.GetRolesAsync(user);
+        foreach (var role in userRoles)
+        {
+            userClaims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expires = DateTime.UtcNow.AddDays(7);
+
+        var token = new JwtSecurityToken(
+            issuer: JwtAuthConstants.Issuer,
+            audience: JwtAuthConstants.Audience,
+            claims: userClaims,
+            expires: expires,
+            signingCredentials: creds
+        );
+
+        return new LoginResponseDto
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            Expiration = expires
+        };
+    }
+
 }
 
