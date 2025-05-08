@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Avancira.Domain.Common;
+using Avancira.Domain.Common.Contracts;
+using Microsoft.AspNetCore.Identity;
 
 namespace Avancira.Infrastructure.Identity.Users;
 public class User : IdentityUser

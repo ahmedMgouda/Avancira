@@ -21,6 +21,8 @@ using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Catalog;
+using Avancira.Infrastructure.Persistence.Repositories;
+using Avancira.Application;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -63,6 +65,10 @@ public static class Extensions
         builder.Services.ConfigureRateLimit(builder.Configuration);
         builder.Services.ConfigureSecurityHeaders(builder.Configuration);
 
+        // Register repositories
+        builder.Services.AddRepositories();
+
+        builder.Services.AddApplicationServices();
         return builder;
     }
 

@@ -1,11 +1,9 @@
 ﻿using Avancira.Application.Caching;
-using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Jobs;
 using Avancira.Application.Mail;
 using Avancira.Application.Storage;
 using Avancira.Application.Storage.File;
-using Avancira.Shared.Exceptions;
 using Avancira.Infrastructure.Constants;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Persistence;
@@ -17,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Security.Claims;
 using System.Text;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(

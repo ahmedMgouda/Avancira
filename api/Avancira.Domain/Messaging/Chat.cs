@@ -1,8 +1,8 @@
 ﻿using Avancira.Domain.Catalog;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Messaging.Events;
-using Avancira.Shared.Exceptions;
 
 namespace Avancira.Domain.Messaging
 {

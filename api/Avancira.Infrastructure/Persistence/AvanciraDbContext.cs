@@ -35,6 +35,7 @@ public class AvanciraDbContext : IdentityDbContext<User,
     }
 
     public DbSet<AuditTrail> AuditTrails { get; set; }
+    public DbSet<Category> Categories { get; set; }
 
     //public DbSet<Address> Addresses { get; set; }
     //public DbSet<Country> Countries { get; set; }

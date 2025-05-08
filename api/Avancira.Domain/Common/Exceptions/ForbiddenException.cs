@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Avancira.Shared.Exceptions;
+namespace Avancira.Domain.Common.Exceptions;
 public class ForbiddenException : AvanciraException
 {
     public ForbiddenException()

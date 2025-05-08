@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Net;
 
-namespace Avancira.Shared.Exceptions;
+namespace Avancira.Domain.Common.Exceptions;
 public class UnauthorizedException : AvanciraException
 {
     public UnauthorizedException()

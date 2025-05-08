@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Avancira.Shared.Exceptions;
+namespace Avancira.Domain.Common.Exceptions;
 public class AvanciraException : Exception
 {
     public IEnumerable<string> ErrorMessages { get; }

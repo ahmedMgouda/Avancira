@@ -1,6 +1,4 @@
-﻿using Avancira.Shared.Exceptions;
-using System.Net;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 
 namespace Avancira.Shared.Authorization;
 public static class ClaimsPrincipalExtensions
@@ -20,16 +18,14 @@ public static class ClaimsPrincipalExtensions
     public static string? GetPhoneNumber(this ClaimsPrincipal principal)
         => principal.FindFirstValue(ClaimTypes.MobilePhone);
 
-    public static string GetUserId(this ClaimsPrincipal principal)
+    public static string? GetUserId(this ClaimsPrincipal principal)
     {
-        return principal.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedException("User ID is missing from your session. Please log in again.");
+        return principal.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
-    public static string GetUserTimeZone(this ClaimsPrincipal principal)
+    public static string? GetUserTimeZone(this ClaimsPrincipal principal)
     {
-        return principal.FindFirstValue(AvanciraClaims.TimeZoneId)
-            ?? throw new UnauthorizedException("Time zone is missing from your session. Please log in again.");
+        return principal.FindFirstValue(AvanciraClaims.TimeZoneId);
     }
     public static Uri? GetImageUrl(this ClaimsPrincipal principal)
     {

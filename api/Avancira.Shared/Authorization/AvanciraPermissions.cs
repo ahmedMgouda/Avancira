@@ -29,21 +29,14 @@ namespace Avancira.Shared.Authorization;
         new("Delete Products", AvanciraActions.Delete, AvanciraResources.Products),
         new("Export Products", AvanciraActions.Export, AvanciraResources.Products),
 
-        //brands
-        new("View Brands", AvanciraActions.View, AvanciraResources.Brands, IsBasic: true),
-        new("Search Brands", AvanciraActions.Search, AvanciraResources.Brands, IsBasic: true),
-        new("Create Brands", AvanciraActions.Create, AvanciraResources.Brands),
-        new("Update Brands", AvanciraActions.Update, AvanciraResources.Brands),
-        new("Delete Brands", AvanciraActions.Delete, AvanciraResources.Brands),
-        new("Export Brands", AvanciraActions.Export, AvanciraResources.Brands),
+        //categories
+        new("View Categories", AvanciraActions.View, AvanciraResources.Categories, IsBasic: true),
+        new("Search Categories", AvanciraActions.Search, AvanciraResources.Categories, IsBasic: true),
+        new("Create Categories", AvanciraActions.Create, AvanciraResources.Categories),
+        new("Update Categories", AvanciraActions.Update, AvanciraResources.Categories),
+        new("Delete Categories", AvanciraActions.Delete, AvanciraResources.Categories),
+        new("Export Categories", AvanciraActions.Export, AvanciraResources.Categories),
 
-        //todos
-        new("View Todos", AvanciraActions.View, AvanciraResources.Todos, IsBasic: true),
-        new("Search Todos", AvanciraActions.Search, AvanciraResources.Todos, IsBasic: true),
-        new("Create Todos", AvanciraActions.Create, AvanciraResources.Todos),
-        new("Update Todos", AvanciraActions.Update, AvanciraResources.Todos),
-        new("Delete Todos", AvanciraActions.Delete, AvanciraResources.Todos),
-        new("Export Todos", AvanciraActions.Export, AvanciraResources.Todos),
 
          new("View Hangfire", AvanciraActions.View, AvanciraResources.Hangfire),
          new("View Dashboard", AvanciraActions.View, AvanciraResources.Dashboard),
