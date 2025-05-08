@@ -4,6 +4,7 @@ using System.Security.Claims;
 namespace Avancira.Application.Identity.Users.Abstractions;
 public interface IUserService
 {
+    Task<LoginResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken);
     Task<bool> ExistsWithNameAsync(string name);
     Task<bool> ExistsWithEmailAsync(string email, string? exceptId = null);
     Task<bool> ExistsWithPhoneNumberAsync(string phoneNumber, string? exceptId = null);

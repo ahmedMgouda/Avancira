@@ -228,4 +228,43 @@ public class UsersController : BaseApiController
         await Task.CompletedTask;
         return Ok(result);
     }
+
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "Login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _userService.LoginAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GetCurrentUser")]
+    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
+
+        var user = await _userService.GetAsync(userId, cancellationToken);
+        return Ok(user);
+    }
+
+    //// Read
+    //[Authorize]
+    //[HttpGet("me")]
+    //public async Task<IActionResult> GetAsync()
+    //{
+    //    var userId = GetUserId();
+    //    var user = await _userService.GetUserAsync(userId);
+    //    if (user == null)
+    //    {
+    //        throw new UnauthorizedAccessException("User not found.");
+    //    }
+    //    return JsonOk(user);
+    //}
+
 }

@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace Backend.Controllers;
 
+[AllowAnonymous]
 [Route("api/landing")]
 [ApiController]
 public class LandingAPIController : BaseController
