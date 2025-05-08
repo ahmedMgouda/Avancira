@@ -30,9 +30,6 @@ public partial class NavMenu
         _canViewDashboard = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Dashboard);
         _canViewRoles = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Roles);
         _canViewUsers = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Users);
-        _canViewProducts = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Products);
-        _canViewBrands = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Brands);
-        _canViewTodos = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.Todos);
         _canViewAuditTrails = await AuthService.HasPermissionAsync(user, AvanciraActions.View, AvanciraResources.AuditTrails);
     }
 }

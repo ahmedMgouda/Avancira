@@ -1,7 +1,7 @@
 ﻿using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Auth.Jwt;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Users;

@@ -1,5 +1,5 @@
 ﻿using Avancira.Application.Caching;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Shared.Authorization;
 using Microsoft.EntityFrameworkCore;
 

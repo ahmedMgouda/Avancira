@@ -1,6 +1,5 @@
 ﻿using Avancira.Application.Jobs;
 using Avancira.Application.Persistence;
-using Avancira.Shared.Exceptions;
 using Avancira.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -8,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Avancira.Infrastructure.Common.Extensions;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Infrastructure.Jobs;
 

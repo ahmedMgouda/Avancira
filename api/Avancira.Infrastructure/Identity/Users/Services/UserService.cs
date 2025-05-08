@@ -16,6 +16,11 @@ using System.Collections.ObjectModel;
 using System.Security.Claims;
 using System.Text;
 using Avancira.Domain.Common.Exceptions;
+using Microsoft.Extensions.Options;
+using Avancira.Application.Auth.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using Avancira.Infrastructure.Auth.Jwt;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(

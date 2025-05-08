@@ -1,7 +1,7 @@
 ﻿using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Roles.Dtos;
 using Avancira.Application.Identity.Users.Abstractions;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Shared.Authorization;
 using Microsoft.AspNetCore.Identity;

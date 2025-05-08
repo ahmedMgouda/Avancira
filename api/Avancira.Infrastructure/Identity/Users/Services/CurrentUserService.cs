@@ -1,5 +1,5 @@
 ﻿using Avancira.Application.Identity.Users.Abstractions;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Shared.Authorization;
 using System.Security.Claims;
 

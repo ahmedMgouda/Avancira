@@ -1,6 +1,6 @@
 ﻿using Avancira.Domain.Messaging.Events;
 using Avancira.Domain.Common;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Domain.Messaging
 {

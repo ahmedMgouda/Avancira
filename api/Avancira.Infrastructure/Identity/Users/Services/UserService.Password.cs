@@ -1,6 +1,6 @@
 ﻿using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Mail;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Collections.ObjectModel;
 using System.Text;

@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Text;
 using Avancira.Application.Auth.Jwt;
-using Avancira.Shared.Exceptions;
+using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

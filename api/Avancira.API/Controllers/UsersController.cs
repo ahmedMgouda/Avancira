@@ -1,5 +1,4 @@
 ﻿using Avancira.Application.Audit;
-using Avancira.Shared.Exceptions;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Infrastructure.Auth.Policy;
@@ -10,6 +9,7 @@ using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
 using Avancira.Domain.Auditing;
 using Avancira.Application.Paging;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.API.Controllers;
 
