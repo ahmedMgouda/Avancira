@@ -12,17 +12,15 @@ namespace Avancira.Migrations.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
+            migrationBuilder.AddColumn<string>(
                 name: "TimeZoneId",
                 schema: "identity",
                 table: "Users",
                 type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text");
+                nullable: true);
 
             migrationBuilder.CreateTable(
-                name: "Category",
+                name: "Categories",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -32,7 +30,7 @@ namespace Avancira.Migrations.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Category", x => x.Id);
+                    table.PrimaryKey("PK_Categories", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -50,6 +48,8 @@ namespace Avancira.Migrations.Migrations
                     ReviewFeedback = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     AdminReviewerId = table.Column<string>(type: "text", nullable: true),
                     ReviewDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsVisible = table.Column<bool>(type: "boolean", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     LastModified = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -107,7 +107,7 @@ namespace Avancira.Migrations.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Transaction",
+                name: "Transactions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -135,21 +135,55 @@ namespace Avancira.Migrations.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Transaction", x => x.Id);
+                    table.PrimaryKey("PK_Transactions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Transaction_Users_RecipientId",
+                        name: "FK_Transactions_Users_RecipientId",
                         column: x => x.RecipientId,
                         principalSchema: "identity",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Transaction_Users_SenderId",
+                        name: "FK_Transactions_Users_SenderId",
                         column: x => x.SenderId,
                         principalSchema: "identity",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserCards",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    CardId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Last4 = table.Column<string>(type: "character varying(4)", maxLength: 4, nullable: false),
+                    ExpMonth = table.Column<long>(type: "bigint", nullable: false),
+                    ExpYear = table.Column<long>(type: "bigint", nullable: false),
+                    Brand = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Type = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserCards", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Wallets",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Balance = table.Column<decimal>(type: "numeric", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Wallets", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -175,7 +209,7 @@ namespace Avancira.Migrations.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "LessonCategories",
+                name: "ListingCategories",
                 columns: table => new
                 {
                     ListingId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -183,15 +217,15 @@ namespace Avancira.Migrations.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LessonCategories", x => new { x.ListingId, x.CategoryId });
+                    table.PrimaryKey("PK_ListingCategories", x => new { x.ListingId, x.CategoryId });
                     table.ForeignKey(
-                        name: "FK_LessonCategories_Category_CategoryId",
+                        name: "FK_ListingCategories_Categories_CategoryId",
                         column: x => x.CategoryId,
-                        principalTable: "Category",
+                        principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_LessonCategories_Listings_ListingId",
+                        name: "FK_ListingCategories_Listings_ListingId",
                         column: x => x.ListingId,
                         principalTable: "Listings",
                         principalColumn: "Id",
@@ -293,9 +327,32 @@ namespace Avancira.Migrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_Lessons_Transaction_TransactionId",
+                        name: "FK_Lessons_Transactions_TransactionId",
                         column: x => x.TransactionId,
-                        principalTable: "Transaction",
+                        principalTable: "Transactions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WalletLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WalletId = table.Column<int>(type: "integer", nullable: false),
+                    AmountChanged = table.Column<decimal>(type: "numeric", nullable: false),
+                    NewBalance = table.Column<decimal>(type: "numeric", nullable: false),
+                    Reason = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WalletLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WalletLogs_Wallets_WalletId",
+                        column: x => x.WalletId,
+                        principalTable: "Wallets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -393,11 +450,6 @@ namespace Avancira.Migrations.Migrations
                 column: "TutorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LessonCategories_CategoryId",
-                table: "LessonCategories",
-                column: "CategoryId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Lessons_ListingId",
                 table: "Lessons",
                 column: "ListingId");
@@ -416,6 +468,11 @@ namespace Avancira.Migrations.Migrations
                 name: "IX_Lessons_TransactionId",
                 table: "Lessons",
                 column: "TransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ListingCategories_CategoryId",
+                table: "ListingCategories",
+                column: "CategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ListingPromoCode_PromoCodeId",
@@ -461,24 +518,29 @@ namespace Avancira.Migrations.Migrations
                 column: "ListingId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Transaction_RecipientId",
-                table: "Transaction",
+                name: "IX_Transactions_RecipientId",
+                table: "Transactions",
                 column: "RecipientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Transaction_SenderId",
-                table: "Transaction",
+                name: "IX_Transactions_SenderId",
+                table: "Transactions",
                 column: "SenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletLogs_WalletId",
+                table: "WalletLogs",
+                column: "WalletId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "LessonCategories");
+                name: "Lessons");
 
             migrationBuilder.DropTable(
-                name: "Lessons");
+                name: "ListingCategories");
 
             migrationBuilder.DropTable(
                 name: "ListingPromoCode");
@@ -496,10 +558,16 @@ namespace Avancira.Migrations.Migrations
                 name: "Subscriptions");
 
             migrationBuilder.DropTable(
-                name: "Category");
+                name: "UserCards");
 
             migrationBuilder.DropTable(
-                name: "Transaction");
+                name: "WalletLogs");
+
+            migrationBuilder.DropTable(
+                name: "Transactions");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
 
             migrationBuilder.DropTable(
                 name: "PromoCodes");
@@ -508,21 +576,18 @@ namespace Avancira.Migrations.Migrations
                 name: "Messages");
 
             migrationBuilder.DropTable(
+                name: "Wallets");
+
+            migrationBuilder.DropTable(
                 name: "Chats");
 
             migrationBuilder.DropTable(
                 name: "Listings");
 
-            migrationBuilder.AlterColumn<string>(
+            migrationBuilder.DropColumn(
                 name: "TimeZoneId",
                 schema: "identity",
-                table: "Users",
-                type: "text",
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+                table: "Users");
         }
     }
 }

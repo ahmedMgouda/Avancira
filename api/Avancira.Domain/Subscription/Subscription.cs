@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Avancira.Domain
+namespace Avancira.Domain.Subscriptions
 {
     public class Subscription
     {

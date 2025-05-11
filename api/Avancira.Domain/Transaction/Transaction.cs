@@ -55,5 +55,29 @@ namespace Avancira.Domain.Transactions
                 QueueDomainEvent(new TransactionStatusChangedEvent(this, oldStatus, newStatus));
             }
         }
+        public void AssignRecipient(string recipientId)
+        {
+            if (!string.IsNullOrWhiteSpace(recipientId))
+            {
+                RecipientId = recipientId;
+            }
+        }
+
+        public void AssignStripeCustomer(string stripeCustomerId)
+        {
+            if (!string.IsNullOrWhiteSpace(stripeCustomerId))
+            {
+                StripeCustomerId = stripeCustomerId;
+            }
+        }
+
+        public void AssignPayPalPaymentId(string payPalPaymentId)
+        {
+            if (!string.IsNullOrWhiteSpace(payPalPaymentId))
+            {
+                PayPalPaymentId = payPalPaymentId;
+            }
+        }
+
     }
 }

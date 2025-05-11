@@ -17,7 +17,7 @@ namespace Avancira.Application.Catalog.Dtos
         public TimeSpan Duration { get; set; }
         public decimal Price { get; set; }
         public string? StudentId { get; set; }
-        public int ListingId { get; set; }
+        public Guid ListingId { get; set; }
         public TransactionPaymentMethod PaymentMethod { get; set; }
         public LessonStatus? Status { get; set; }
         public string? MeetingToken { get; set; }

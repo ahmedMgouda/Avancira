@@ -160,7 +160,7 @@ public class Listing : AuditableEntity
         if (IsActive)
         {
             IsActive = false;
-            QueueDomainEvent(new ListingDeletedEvent(this));
+            QueueDomainEvent(new ListingDeactivatedEvent(this));
         }
     }
 }

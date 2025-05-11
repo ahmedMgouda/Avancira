@@ -119,6 +119,9 @@ namespace Avancira.Migrations.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset>("LastModified")
                         .HasColumnType("timestamp with time zone");
 
@@ -140,6 +143,9 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("Listings");
@@ -157,7 +163,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("LessonCategories");
+                    b.ToTable("ListingCategories");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Catalog.ListingReview", b =>
@@ -363,7 +369,7 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("MessageReport");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Subscription", b =>
+            modelBuilder.Entity("Avancira.Domain.Subscriptions.Subscription", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -481,7 +487,101 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Transaction");
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.UserCard.UserCard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CardId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("ExpMonth")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ExpYear")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Last4")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserCards");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Wallets.Wallet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Wallets.WalletLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountChanged")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("NewBalance")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("WalletId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("WalletLogs");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Roles.Role", b =>
@@ -979,6 +1079,17 @@ namespace Avancira.Migrations.Migrations
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Wallets.WalletLog", b =>
+                {
+                    b.HasOne("Avancira.Domain.Wallets.Wallet", "Wallet")
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Roles.RoleClaim", b =>

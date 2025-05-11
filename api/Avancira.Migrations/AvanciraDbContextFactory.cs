@@ -17,8 +17,13 @@ namespace Avancira.Migrations
     {
         public AvanciraDbContext CreateDbContext(string[] args)
         {
-            var connectionString = Environment.GetEnvironmentVariable("Avancira__Database__ConnectionString")
-                ?? "Host=localhost;Port=5432;Database=AvanciraDb;Username=postgres;Password=password";
+            var host = Environment.GetEnvironmentVariable("Avancira__Database__Host") ?? "localhost";
+            var port = Environment.GetEnvironmentVariable("Avancira__Database__Port") ?? "5432";
+            var database = Environment.GetEnvironmentVariable("Avancira__Database__Name") ?? "AvanciraDb";
+            var username = Environment.GetEnvironmentVariable("Avancira__Database__User") ?? "postgres";
+            var password = Environment.GetEnvironmentVariable("Avancira__Database__Password") ?? "password";
+
+            var connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
 
             var optionsBuilder = new DbContextOptionsBuilder<AvanciraDbContext>();
             optionsBuilder.UseNpgsql(connectionString, b => b.MigrationsAssembly("Avancira.Migrations"));

@@ -11,8 +11,11 @@ using System.Reflection;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Messaging;
-using Avancira.Domain;
 using Backend.Domain.PromoCodes;
+using Avancira.Domain.Transactions;
+using Avancira.Domain.Subscriptions;
+using Avancira.Domain.Wallets;
+using Avancira.Domain.UserCard;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,
@@ -53,10 +56,10 @@ public class AvanciraDbContext : IdentityDbContext<User,
     public DbSet<Subscription> Subscriptions { get; set; }
     //public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
     public DbSet<PromoCode> PromoCodes { get; set; }
-    //public DbSet<UserCard> UserCards { get; set; }
-    //public DbSet<Transaction> Transactions { get; set; }
-    //public DbSet<Wallet> Wallets { get; set; }
-    //public DbSet<WalletLog> WalletLogs { get; set; }
+    public DbSet<UserCard> UserCards { get; set; }
+    public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<Wallet> Wallets { get; set; }
+    public DbSet<WalletLog> WalletLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
