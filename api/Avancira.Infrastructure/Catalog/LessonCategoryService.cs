@@ -38,11 +38,11 @@ namespace Avancira.Infrastructure.Catalog
 
         public List<LessonCategoryDto> GetLandingPageCategories()
         {
-            return _dbContext.LessonCategories
+            return _dbContext.ListingCategories
                 .OrderBy(_ => Guid.NewGuid())
                 //.Where(category => category.DisplayInLandingPage)
                 .Take(12)
-                .Select(category => MapToLessonCategoryDto(category, _dbContext.LessonCategories.Include(l => l.Listing).Count(l => true /*l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id*/)))
+                .Select(category => MapToLessonCategoryDto(category, _dbContext.ListingCategories.Include(l => l.Listing).Count(l => true /*l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id*/)))
                 .ToList();
         }
 

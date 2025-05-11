@@ -10,6 +10,7 @@ internal static class Extension
     internal static IServiceCollection ConfigureFileStorage(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddTransient<IFileUploadService, FileUploadService>();
         services.AddTransient<IStorageService, LocalFileStorageService>();
 
         return services;

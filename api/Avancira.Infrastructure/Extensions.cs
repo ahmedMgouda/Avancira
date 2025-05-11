@@ -23,6 +23,7 @@ using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Persistence.Repositories;
 using Avancira.Application;
+using Mapster;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -46,6 +47,9 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
+
+        // Configure Mappings
+        TypeAdapterConfig.GlobalSettings.Scan(typeof(IListingService).Assembly);
 
         // Define module assemblies
         var assemblies = AppDomain.CurrentDomain

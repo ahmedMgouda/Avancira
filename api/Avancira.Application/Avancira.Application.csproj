@@ -16,5 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Avancira.Domain\Avancira.Domain.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Catalog\Listings\Validators\" />
+  </ItemGroup>
   
 </Project>

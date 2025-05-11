@@ -13,8 +13,8 @@ public class Listing : AuditableEntity
     public ListingLocationType LocationType { get; private set; } = ListingLocationType.Webcam;
 
     public bool DisplayOnLandingPage { get; private set; } = false;
-    public bool IsActive { get; private set; } = true;
-    
+    public bool IsActive { get; private set; } = true; // User can deactivate the listing, but it will still be visible in the admin panel.
+
     public ListingApprovalStatus ApprovalStatus { get; private set; }
 
     public string? ReviewFeedback { get; private set; }
@@ -22,10 +22,12 @@ public class Listing : AuditableEntity
 
     public DateTime? ReviewDate { get; private set; }
 
-    public virtual ICollection<ListingCategory> ListingCategories { get; private set; }
+    public virtual ICollection<ListingCategory> ListingCategories { get; set; }
     public virtual ICollection<ListingReview> ListingReviews { get; private set; }
     public virtual ICollection<ListingPromoCode> ListingPromoCodes { get; set; }
 
+    public bool IsVisible { get; private set; } = true; // User can hide the listing to stop students from seeing it to have a pause or holiday.
+    public Guid UserId { get; set; }
 
     public decimal AverageRating => ListingReviews.Any() ? ListingReviews.Average(r => r.RatingValue) : 0;
 
@@ -111,5 +113,54 @@ public class Listing : AuditableEntity
     public void ToggleDisplayOnHomePage()
     {
         DisplayOnLandingPage = !DisplayOnLandingPage;
+    }
+
+    public void UpdateDescription(string newDescription)
+    {
+        if (!string.IsNullOrWhiteSpace(newDescription) && !string.Equals(Description, newDescription, StringComparison.OrdinalIgnoreCase))
+        {
+            Description = newDescription;
+            QueueDomainEvent(new ListingUpdatedEvent(this));
+        }
+    }
+
+    public void UpdateLocations(ListingLocationType newLocations)
+    {
+        if (LocationType != newLocations)
+        {
+            LocationType = newLocations;
+            QueueDomainEvent(new ListingUpdatedEvent(this));
+        }
+    }
+    public void UpdateHourlyRate(decimal newHourlyRate)
+    {
+        if (newHourlyRate > 0 && HourlyRate != newHourlyRate)
+        {
+            HourlyRate = newHourlyRate;
+            QueueDomainEvent(new ListingUpdatedEvent(this));
+        }
+    }
+    public void ToggleVisibility()
+    {
+        IsVisible = !IsVisible;
+        QueueDomainEvent(new ListingUpdatedEvent(this));
+    }
+
+    public void UpdateTitle(string newTitle)
+    {
+        if (!string.IsNullOrWhiteSpace(newTitle) && !string.Equals(Name, newTitle, StringComparison.OrdinalIgnoreCase))
+        {
+            Name = newTitle;
+            QueueDomainEvent(new ListingUpdatedEvent(this));
+        }
+    }
+
+    public void Delete()
+    {
+        if (IsActive)
+        {
+            IsActive = false;
+            QueueDomainEvent(new ListingDeletedEvent(this));
+        }
     }
 }

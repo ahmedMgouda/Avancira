@@ -42,7 +42,7 @@ public class AvanciraDbContext : IdentityDbContext<User,
 
     //public DbSet<Referral> Referrals { get; set; }
 
-    public DbSet<ListingCategory> LessonCategories { get; set; }
+    public DbSet<ListingCategory> ListingCategories { get; set; }
     //public DbSet<ListingLessonCategory> ListingLessonCategories { get; set; }
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Listing> Listings { get; set; }
