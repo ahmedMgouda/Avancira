@@ -1,13 +1,13 @@
 using System.Threading.Tasks;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
-using Avancira.Domain.Subscriptions;
+using Avancira.Domain.Subscription;
 using Backend.Domain.PromoCodes;
 
 public interface ISubscriptionService
 {
     // Create
-    Task<(int SubscriptionId, int TransactionId)> CreateSubscriptionAsync(SubscriptionRequestDto request, string userId);
+    Task<(int SubscriptionId, Guid TransactionId)> CreateSubscriptionAsync(SubscriptionRequestDto request, string userId);
 
     // Read
     Task<bool> HasActiveSubscriptionAsync(string userId);

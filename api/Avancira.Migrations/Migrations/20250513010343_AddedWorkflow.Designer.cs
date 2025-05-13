@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Avancira.Migrations.Migrations
 {
     [DbContext(typeof(AvanciraDbContext))]
-    [Migration("20250511033550_AddedWorkflow")]
+    [Migration("20250513010343_AddedWorkflow")]
     partial class AddedWorkflow
     {
         /// <inheritdoc />
@@ -372,7 +372,7 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("MessageReport");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Subscriptions.Subscription", b =>
+            modelBuilder.Entity("Avancira.Domain.Subscription.Subscription", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -402,6 +402,42 @@ namespace Avancira.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Subscriptions");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subscription.SubscriptionHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BillingFrequency")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CancellationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ChangeDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NextBillingDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SubscriptionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.ToTable("SubscriptionHistories");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Transactions.Transaction", b =>
@@ -670,6 +706,10 @@ namespace Avancira.Migrations.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("HangoutId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
@@ -701,6 +741,10 @@ namespace Avancira.Migrations.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<string>("PayPalAccountId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
@@ -715,6 +759,18 @@ namespace Avancira.Migrations.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
+
+                    b.Property<string>("SkypeId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StripeConnectedAccountId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("TimeZoneId")
                         .HasColumnType("text");
@@ -1068,6 +1124,17 @@ namespace Avancira.Migrations.Migrations
                         .HasForeignKey("Avancira.Domain.Messaging.MessageReport", "MessageId1");
 
                     b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subscription.SubscriptionHistory", b =>
+                {
+                    b.HasOne("Avancira.Domain.Subscription.Subscription", "Subscription")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Transactions.Transaction", b =>

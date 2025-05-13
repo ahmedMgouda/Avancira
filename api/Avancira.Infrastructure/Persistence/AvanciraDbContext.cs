@@ -13,9 +13,9 @@ using Avancira.Domain.Catalog;
 using Avancira.Domain.Messaging;
 using Backend.Domain.PromoCodes;
 using Avancira.Domain.Transactions;
-using Avancira.Domain.Subscriptions;
 using Avancira.Domain.Wallets;
 using Avancira.Domain.UserCard;
+using Avancira.Domain.Subscription;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,
@@ -54,7 +54,7 @@ public class AvanciraDbContext : IdentityDbContext<User,
     public DbSet<Message> Messages { get; set; }
 
     public DbSet<Subscription> Subscriptions { get; set; }
-    //public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
+    public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
     public DbSet<PromoCode> PromoCodes { get; set; }
     public DbSet<UserCard> UserCards { get; set; }
     public DbSet<Transaction> Transactions { get; set; }

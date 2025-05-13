@@ -13,9 +13,9 @@ public interface IPaymentService
     Task<PaymentHistoryDto> GetPaymentHistoryAsync(string userId);
 
     // Update
-    Task<Transaction> CapturePaymentAsync(int transactionId, string gatewayName = "Stripe", string recipientId = "");
+    Task<Transaction> CapturePaymentAsync(Guid transactionId, string gatewayName = "Stripe", string recipientId = "");
 
     // Refunds & Deletions
-    Task<bool> RefundPaymentAsync(int transactionId, decimal refundAmount, decimal retainedAmount, string gatewayName = "Stripe");
+    Task<bool> RefundPaymentAsync(Guid transactionId, decimal refundAmount, decimal retainedAmount, string gatewayName = "Stripe");
 }
 

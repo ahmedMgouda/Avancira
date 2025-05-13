@@ -9,22 +9,30 @@ using System.Threading.Tasks;
 
 namespace Avancira.Domain.Subscription
 {
-    public class Subscription
+    public class SubscriptionHistory
     {
         [Key]
         public int Id { get; set; }
+
         [Required]
-        public string UserId { get; set; }
-        [Required]
-        public DateTime StartDate { get; set; }
-        public DateTime NextBillingDate { get; set; } // Always the next scheduled charge
-        public DateTime? CancellationDate { get; set; } // Only set when cancelled
-        [Required]
-        [Range(0, double.MaxValue, ErrorMessage = "Amount must be a positive value.")]
-        public decimal Amount { get; set; }
+        public int SubscriptionId { get; set; }
+
+        [ForeignKey(nameof(SubscriptionId))]
+        public virtual Subscription? Subscription { get; set; }
+
         [Required]
         public SubscriptionBillingFrequency BillingFrequency { get; set; }
-        [NotMapped]
+
+        public DateTime StartDate { get; set; } // When this record became active
+
+        public DateTime? CancellationDate { get; set; } // If cancelled
+
+        public DateTime NextBillingDate { get; set; } // Snapshot of what was next at this time
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; } // Charge at that time
+
+        public DateTime ChangeDate { get; set; } // When this record was created
         public SubscriptionStatus Status
         {
             get
@@ -34,15 +42,9 @@ namespace Avancira.Domain.Subscription
                 return SubscriptionStatus.Active;
             }
         }
-
-        public Subscription()
-        {
-            UserId = string.Empty;
-        }
-
         public override string ToString()
         {
-            return $"Subscription: {Id}, UserId: {UserId}, Amount: {Amount:C}, StartDate: {StartDate}, EndDate: {NextBillingDate}, Status: {Status}";
+            return $"SubscriptionHistory: {Id}, SubId: {SubscriptionId}, BillingFrequency: {BillingFrequency}, NextCharge: {NextBillingDate}, ChangeDate: {ChangeDate}";
         }
     }
 }

@@ -13,6 +13,46 @@ namespace Avancira.Migrations.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
+                name: "HangoutId",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "PayPalAccountId",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "SkypeId",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "StripeConnectedAccountId",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "StripeCustomerId",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
                 name: "TimeZoneId",
                 schema: "identity",
                 table: "Users",
@@ -285,6 +325,31 @@ namespace Avancira.Migrations.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SubscriptionHistories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SubscriptionId = table.Column<int>(type: "integer", nullable: false),
+                    BillingFrequency = table.Column<int>(type: "integer", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CancellationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NextBillingDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ChangeDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubscriptionHistories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SubscriptionHistories_Subscriptions_SubscriptionId",
+                        column: x => x.SubscriptionId,
+                        principalTable: "Subscriptions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Lessons",
                 columns: table => new
                 {
@@ -518,6 +583,11 @@ namespace Avancira.Migrations.Migrations
                 column: "ListingId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SubscriptionHistories_SubscriptionId",
+                table: "SubscriptionHistories",
+                column: "SubscriptionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_RecipientId",
                 table: "Transactions",
                 column: "RecipientId");
@@ -555,7 +625,7 @@ namespace Avancira.Migrations.Migrations
                 name: "Reviews");
 
             migrationBuilder.DropTable(
-                name: "Subscriptions");
+                name: "SubscriptionHistories");
 
             migrationBuilder.DropTable(
                 name: "UserCards");
@@ -576,6 +646,9 @@ namespace Avancira.Migrations.Migrations
                 name: "Messages");
 
             migrationBuilder.DropTable(
+                name: "Subscriptions");
+
+            migrationBuilder.DropTable(
                 name: "Wallets");
 
             migrationBuilder.DropTable(
@@ -583,6 +656,31 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.DropTable(
                 name: "Listings");
+
+            migrationBuilder.DropColumn(
+                name: "HangoutId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "PayPalAccountId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "SkypeId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "StripeConnectedAccountId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "StripeCustomerId",
+                schema: "identity",
+                table: "Users");
 
             migrationBuilder.DropColumn(
                 name: "TimeZoneId",

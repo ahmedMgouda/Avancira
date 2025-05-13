@@ -8,7 +8,7 @@ namespace Avancira.Application.Catalog.Dtos
 {
     public class TransactionDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string SenderId { get; set; }
         public string SenderName { get; set; }
         public string? RecipientId { get; set; }
