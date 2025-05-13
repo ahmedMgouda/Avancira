@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\admin\Client\Client.csproj" />
     <ProjectReference Include="..\..\api\Avancira.API\Avancira.API.csproj" />
+    <ProjectReference Include="..\..\Frontend.Angular\Frontend.Angular.csproj" />
   </ItemGroup>
 
   <ItemGroup>

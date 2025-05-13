@@ -35,9 +35,19 @@ var postgresql = builder.AddContainer("postgresql", "postgres:latest")
 builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
     .WaitFor(postgresql);
 
-// Admin Dashboard
-var blazor = builder.AddProject<Projects.Client>("admin-dashboard");
 
+// Frontend
+builder.AddExecutable(
+    name: "avancira-frontend-container",
+    command: "npm",
+    workingDirectory: "../../Frontend.Angular",
+    args: new[] { "install", "&&", "npm", "run", "start", "--", "--port", "4200", "--ssl", "true", "--host", "0.0.0.0" }
+)
+.WithHttpEndpoint(name: "avancira-frontend-container-http", port: 4200);
+
+
+// Admin Dashboard
+builder.AddProject<Projects.Client>("admin-dashboard");
 
 
 builder.Build().Run();
