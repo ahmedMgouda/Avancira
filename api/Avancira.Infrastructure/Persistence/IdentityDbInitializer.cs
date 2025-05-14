@@ -21,7 +21,19 @@ internal sealed class IdentityDbInitializer(
     {
         await SeedRolesAsync();
         await SeedAdminUserAsync();
-        await SeedDefaultUsersAsync();
+
+        CountrySeeder.Seed(context, userManager);
+        UserSeeder.Seed(context, userManager);
+        CategorySeeder.Seed(context, userManager);
+        ListingSeeder.Seed(context, userManager);
+        ListingCategorySeeder.Seed(context, userManager);
+
+        PromoCodeSeeder.Seed(context);
+        // LessonSeeder.Seed(context);
+        // ReviewSeeder.Seed(context);
+        // ChatSeeder.Seed(context);
+        // MessageSeeder.Seed(context);
+
     }
 
     private async Task SeedRolesAsync()
@@ -105,68 +117,4 @@ internal sealed class IdentityDbInitializer(
             await userManager.AddToRoleAsync(adminUser, AvanciraRoles.Admin);
         }
     }
-
-    private async Task SeedDefaultUsersAsync()
-    {
-        var defaultUsers = new List<User>
-        {
-                new User
-                {
-                    FirstName = "Tutor",
-                    LastName = "",
-                    //Bio = "An experienced tutor in various subjects, passionate about helping students achieve their full potential. Offers personalized lessons in multiple areas to cater to diverse learning needs.",
-                    UserName = "tutor@avancira.com",
-                    Email = "tutor@avancira.com",
-                    //Address = new Address
-                    //{
-                    //    StreetAddress = "101 Grafton Street",
-                    //    City = "Bondi Junction",
-                    //    State = "NSW",
-                    //    Country = "Australia",
-                    //    PostalCode = "2022",
-                    //    Latitude = -33.8912,
-                    //    Longitude = 151.2646,
-                    //    FormattedAddress = "101 Grafton Street, Bondi Junction NSW 2022, Australia"
-                    //},
-                    //CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
-                    TimeZoneId = "Australia/Sydney",
-                    //ProfileImageUrl = $"https://robohash.org/{Guid.NewGuid()}?size=200x200&set=set1",
-                },
-                new User
-                {
-                    FirstName = "Student",
-                    LastName = "",
-                    //Bio = "A dedicated student, always eager to learn and expand knowledge. Focused on achieving academic success with the support of talented tutors and mentors.",
-                    UserName = "student@avancira.com",
-                    Email = "student@avancira.com",
-                    //Address = new Address
-                    //{
-                    //    StreetAddress = "22 Bronte Road",
-                    //    City = "Bondi Junction",
-                    //    State = "NSW",
-                    //    Country = "Australia",
-                    //    PostalCode = "2022",
-                    //    Latitude = -33.8915,
-                    //    Longitude = 151.2691,
-                    //    FormattedAddress = "22 Bronte Road, Bondi Junction NSW 2022, Australia"
-                    //},
-                    //CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
-                    TimeZoneId = "Australia/Sydney",
-                    //ProfileImageUrl = $"https://robohash.org/{Guid.NewGuid()}?size=200x200&set=set1",
-                },
-        };
-
-        var password = new PasswordHasher<User>();
-        foreach (var user in defaultUsers)
-        {
-            if (await userManager.FindByEmailAsync(user.Email) is null)
-            {
-                user.PasswordHash = password.HashPassword(user, AppConstants.DefaultPassword);
-                await userManager.CreateAsync(user);
-                await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
-                logger.LogInformation("Seeded user {Email}", user.Email);
-            }
-        }
-    }
-
 }

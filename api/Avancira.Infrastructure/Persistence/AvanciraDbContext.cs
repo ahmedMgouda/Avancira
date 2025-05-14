@@ -16,6 +16,7 @@ using Avancira.Domain.Transactions;
 using Avancira.Domain.Wallets;
 using Avancira.Domain.UserCard;
 using Avancira.Domain.Subscription;
+using Avancira.Infrastructure.Catalog;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<User,
@@ -40,13 +41,12 @@ public class AvanciraDbContext : IdentityDbContext<User,
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<Category> Categories { get; set; }
 
-    //public DbSet<Address> Addresses { get; set; }
-    //public DbSet<Country> Countries { get; set; }
+    public DbSet<Address> Addresses { get; set; }
+    public DbSet<Country> Countries { get; set; }
 
-    //public DbSet<Referral> Referrals { get; set; }
+    public DbSet<Referral> Referrals { get; set; }
 
     public DbSet<ListingCategory> ListingCategories { get; set; }
-    //public DbSet<ListingLessonCategory> ListingLessonCategories { get; set; }
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Listing> Listings { get; set; }
     public DbSet<ListingReview> Reviews { get; set; }

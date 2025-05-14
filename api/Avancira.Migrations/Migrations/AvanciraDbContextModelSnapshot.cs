@@ -620,6 +620,113 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("WalletLogs");
                 });
 
+            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Address", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FormattedAddress")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StreetAddress")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Addresses");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Country", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Countries");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Referral", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReferredId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReferrerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferredId");
+
+                    b.HasIndex("ReferrerId");
+
+                    b.ToTable("Referrals");
+                });
+
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Roles.Role", b =>
                 {
                     b.Property<string>("Id")
@@ -688,9 +795,16 @@ namespace Avancira.Migrations.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Bio")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
+
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -780,6 +894,8 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1159,6 +1275,36 @@ namespace Avancira.Migrations.Migrations
                     b.Navigation("Wallet");
                 });
 
+            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Address", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", "User")
+                        .WithOne("Address")
+                        .HasForeignKey("Avancira.Infrastructure.Catalog.Address", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Referral", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", "Referred")
+                        .WithMany()
+                        .HasForeignKey("ReferredId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", "Referrer")
+                        .WithMany()
+                        .HasForeignKey("ReferrerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Referred");
+
+                    b.Navigation("Referrer");
+                });
+
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Roles.RoleClaim", b =>
                 {
                     b.HasOne("Avancira.Infrastructure.Identity.Roles.Role", null)
@@ -1166,6 +1312,15 @@ namespace Avancira.Migrations.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Catalog.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryId");
+
+                    b.Navigation("Country");
                 });
 
             modelBuilder.Entity("Backend.Domain.PromoCodes.ListingPromoCode", b =>
@@ -1279,6 +1434,12 @@ namespace Avancira.Migrations.Migrations
                     b.Navigation("Reactions");
 
                     b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
+                {
+                    b.Navigation("Address")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Backend.Domain.PromoCodes.PromoCode", b =>

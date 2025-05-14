@@ -7,11 +7,26 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Avancira.Migrations.Migrations
 {
     /// <inheritdoc />
-    public partial class AddedWorkflow : Migration
+    public partial class BasicWorkflow : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "Bio",
+                schema: "identity",
+                table: "Users",
+                type: "character varying(500)",
+                maxLength: 500,
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "CountryId",
+                schema: "identity",
+                table: "Users",
+                type: "integer",
+                nullable: true);
+
             migrationBuilder.AddColumn<string>(
                 name: "HangoutId",
                 schema: "identity",
@@ -60,17 +75,59 @@ namespace Avancira.Migrations.Migrations
                 nullable: true);
 
             migrationBuilder.CreateTable(
+                name: "Addresses",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FormattedAddress = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
+                    StreetAddress = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    City = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    State = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Country = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Latitude = table.Column<double>(type: "double precision", nullable: false),
+                    Longitude = table.Column<double>(type: "double precision", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Addresses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Addresses_Users_UserId",
+                        column: x => x.UserId,
+                        principalSchema: "identity",
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     DisplayInLandingPage = table.Column<bool>(type: "boolean", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: false)
+                    ImageUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Countries",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Countries", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -126,6 +183,35 @@ namespace Avancira.Migrations.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PromoCodes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Referrals",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ReferrerId = table.Column<string>(type: "text", nullable: false),
+                    ReferredId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Referrals", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Referrals_Users_ReferredId",
+                        column: x => x.ReferredId,
+                        principalSchema: "identity",
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Referrals_Users_ReferrerId",
+                        column: x => x.ReferrerId,
+                        principalSchema: "identity",
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -500,6 +586,18 @@ namespace Avancira.Migrations.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Users_CountryId",
+                schema: "identity",
+                table: "Users",
+                column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Addresses_UserId",
+                table: "Addresses",
+                column: "UserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Chats_ListingId",
                 table: "Chats",
                 column: "ListingId");
@@ -578,6 +676,16 @@ namespace Avancira.Migrations.Migrations
                 column: "Code");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Referrals_ReferredId",
+                table: "Referrals",
+                column: "ReferredId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Referrals_ReferrerId",
+                table: "Referrals",
+                column: "ReferrerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Reviews_ListingId",
                 table: "Reviews",
                 column: "ListingId");
@@ -601,11 +709,30 @@ namespace Avancira.Migrations.Migrations
                 name: "IX_WalletLogs_WalletId",
                 table: "WalletLogs",
                 column: "WalletId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Users_Countries_CountryId",
+                schema: "identity",
+                table: "Users",
+                column: "CountryId",
+                principalTable: "Countries",
+                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Users_Countries_CountryId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Addresses");
+
+            migrationBuilder.DropTable(
+                name: "Countries");
+
             migrationBuilder.DropTable(
                 name: "Lessons");
 
@@ -620,6 +747,9 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.DropTable(
                 name: "MessageReport");
+
+            migrationBuilder.DropTable(
+                name: "Referrals");
 
             migrationBuilder.DropTable(
                 name: "Reviews");
@@ -656,6 +786,21 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.DropTable(
                 name: "Listings");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Users_CountryId",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "Bio",
+                schema: "identity",
+                table: "Users");
+
+            migrationBuilder.DropColumn(
+                name: "CountryId",
+                schema: "identity",
+                table: "Users");
 
             migrationBuilder.DropColumn(
                 name: "HangoutId",

@@ -1,5 +1,6 @@
 ﻿using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
+using Avancira.Infrastructure.Catalog;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -15,6 +16,16 @@ public class User : IdentityUser
     public string? RefreshToken { get; set; }
     public DateTime RefreshTokenExpiryTime { get; set; }
     public string? ObjectId { get; set; }
+
+
+
+    [MaxLength(500)]
+    public string? Bio { get; set; }
+    public Address Address { get; set; }
+    public int? CountryId { get; set; }
+    [ForeignKey(nameof(User.CountryId))]
+    public virtual Country? Country { get; set; }
+
 
 
     [MaxLength(255)]
