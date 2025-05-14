@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace Backend.Controllers;
 
+[AllowAnonymous]
 [Route("api/configs")]
 [ApiController]
 public class ConfigsAPIController : BaseController

@@ -67,7 +67,7 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         await CacheAuthTokens(token, refreshToken);
 
         // Get permissions for the current user and add them to the cache
-        var permissions = await _client.GetCurrentUserPermissionsAsync();
+        var permissions = await _client.GetUserPermissionsAsync();
         await CachePermissions(permissions);
 
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
