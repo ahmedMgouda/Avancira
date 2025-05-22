@@ -28,6 +28,7 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<ILessonCategoryService, LessonCategoryService>();
             services.AddTransient<IListingService, ListingService>();
             services.AddTransient<IUserService, UserService>();
+            services.AddTransient<IChatService, ChatService>();
 
             return services;
         }

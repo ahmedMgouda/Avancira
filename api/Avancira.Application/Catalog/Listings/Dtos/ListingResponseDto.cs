@@ -9,7 +9,7 @@ namespace Avancira.Application.Catalog.Listings.Dtos
 {
     public class ListingResponseDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal HourlyRate { get; set; }

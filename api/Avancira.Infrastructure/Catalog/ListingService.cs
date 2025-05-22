@@ -106,7 +106,11 @@ namespace Avancira.Infrastructure.Catalog
                 .Select(id => new ListingCategory { ListingId = listing.Id, CategoryId = id })
                 .ToList();
 
-            listing = model.Adapt<Listing>();
+            // Map updated fields from the request onto the existing entity
+            listing.Update(model.Name,
+                model.Description,
+                model.HourlyRate,
+                null);
 
             await _dbContext.SaveChangesAsync();
 
@@ -374,7 +378,7 @@ namespace Avancira.Infrastructure.Catalog
         {
             return new ListingDto
             {
-                Id = listing.Id.GetHashCode(),
+                Id = listing.Id,
                 IsVisible = listing.IsVisible,
                 ContactedCount = contactedCount ?? 0,
                 Reviews = 0,

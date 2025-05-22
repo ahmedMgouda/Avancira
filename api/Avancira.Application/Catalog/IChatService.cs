@@ -1,14 +1,15 @@
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Messaging;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public interface IChatService
 {
     // Create
-    Chat GetOrCreateChat(string studentId, string tutorId, Guid listingId);
+    Task<Chat> GetOrCreateChatAsync(string studentId, string tutorId, Guid listingId);
     // Read
-    List<ChatDto> GetUserChats(string userId);
+    Task<List<ChatDto>> GetUserChatsAsync(string userId);
     // Update
-    bool SendMessage(SendMessageDto messageDto, string senderId);
+    Task<bool> SendMessageAsync(SendMessageDto messageDto, string senderId);
 }
 
