@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Avancira.Application.Storage.File.Dtos;
 
 namespace Avancira.Application.Catalog.Dtos
 {
@@ -12,7 +12,7 @@ namespace Avancira.Application.Catalog.Dtos
         public Guid ListingId { get; set; }
         public string? RecipientId { get; set; }
         public string? Content { get; set; }
-        public IFormFile? File { get; set; }
+        public FileUploadDto? File { get; set; }
 
         public SendMessageDto()
         {
