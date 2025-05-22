@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Avancira.Application.Storage.File.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -25,7 +25,7 @@ namespace Avancira.Infrastructure.Storage.Files
             _logger = logger;
         }
 
-        public async Task<string> SaveFileAsync(IFormFile file, string subDirectory = "")
+        public async Task<string> SaveFileAsync(FileUploadDto file, string subDirectory = "")
         {
             var uploadsFolder = string.IsNullOrEmpty(subDirectory)
                 ? _baseUploadFolder
@@ -37,19 +37,16 @@ namespace Avancira.Infrastructure.Storage.Files
             }
 
             // Generate a unique file name (using GUID)
-            var fileExtension = Path.GetExtension(file.FileName);
-            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+            var uniqueFileName = $"{Guid.NewGuid()}{file.Extension}";
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            var bytes = Convert.FromBase64String(file.Data);
+            await File.WriteAllBytesAsync(filePath, bytes);
 
             return $"{_appOptions.BaseUrl}/api/uploads/{(string.IsNullOrEmpty(subDirectory) ? "" : $"{subDirectory}/")}{uniqueFileName}";
         }
 
-        public async Task<string?> ReplaceFileAsync(IFormFile? newFile, string? currentFilePath, string subDirectory = "")
+        public async Task<string?> ReplaceFileAsync(FileUploadDto? newFile, string? currentFilePath, string subDirectory = "")
         {
             if (newFile == null)
             {

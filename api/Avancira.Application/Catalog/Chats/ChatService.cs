@@ -1,6 +1,8 @@
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Persistence;
+using Avancira.Application.Storage;
+using Avancira.Application.Storage.File;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Messaging;
 using Microsoft.Extensions.Logging;
@@ -11,18 +13,18 @@ public class ChatService : IChatService
 {
     private readonly IRepository<Chat> _chatRepository;
     private readonly IUserService _userService;
-    private readonly IFileUploadService _fileUploadService;
+    private readonly IStorageService _storageService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
         IRepository<Chat> chatRepository,
         IUserService userService,
-        IFileUploadService fileUploadService,
+        IStorageService storageService,
         ILogger<ChatService> logger)
     {
         _chatRepository = chatRepository;
         _userService = userService;
-        _fileUploadService = fileUploadService;
+        _storageService = storageService;
         _logger = logger;
     }
 
@@ -106,7 +108,8 @@ public class ChatService : IChatService
         string? filePath = null;
         if (messageDto.File != null)
         {
-            filePath = await _fileUploadService.SaveFileAsync(messageDto.File, "chat");
+            var uri = await _storageService.UploadAsync<Chat>(messageDto.File, FileType.Image);
+            filePath = uri?.ToString();
         }
 
         chat.AddMessage(senderId, messageDto.RecipientId ?? string.Empty, messageDto.Content ?? string.Empty, filePath);
