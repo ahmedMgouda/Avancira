@@ -2,6 +2,7 @@
 using Avancira.Domain.Common.Contracts;
 using Avancira.Infrastructure.Catalog;
 using Microsoft.AspNetCore.Identity;
+using Avancira.Domain.Messaging;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -12,6 +13,7 @@ public class User : IdentityUser
     public string LastName { get; set; } = string.Empty;
     public Uri? ImageUrl { get; set; }
     public bool IsActive { get; set; }
+    public ChatStatus Status { get; set; } = ChatStatus.Offline;
     public string? TimeZoneId { get; set; }
     public string? RefreshToken { get; set; }
     public DateTime RefreshTokenExpiryTime { get; set; }

@@ -4,11 +4,14 @@ using Avancira.Domain.Messaging;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Application.Persistence;
 using Avancira.Application.Catalog.Chats;
+using Microsoft.AspNetCore.SignalR;
+using Avancira.API.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Catalog
 {
@@ -148,15 +151,21 @@ namespace Avancira.Infrastructure.Catalog
         private readonly IRepository<Chat> _chatRepository;
         private readonly AvanciraDbContext _dbContext;
         private readonly ILogger<ChatService> _logger;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IHubContext<ChatHub> _hubContext;
 
         public ChatService(
             IRepository<Chat> chatRepository,
             AvanciraDbContext dbContext,
-            ILogger<ChatService> logger)
+            ILogger<ChatService> logger,
+            IFileUploadService fileUploadService,
+            IHubContext<ChatHub> hubContext)
         {
             _chatRepository = chatRepository;
             _dbContext = dbContext;
             _logger = logger;
+            _fileUploadService = fileUploadService;
+            _hubContext = hubContext;
         }
 
         public async Task<Chat> GetOrCreateChatAsync(string studentId, string tutorId, Guid listingId)
@@ -231,6 +240,7 @@ namespace Avancira.Infrastructure.Catalog
                             SenderId = m.SenderId,
                             SenderName = senders.TryGetValue(m.SenderId, out var s) ? $"{s.FirstName} {s.LastName}" : string.Empty,
                             Content = m.Content,
+                            FilePath = m.FilePath,
                             Timestamp = m.SentAt.DateTime,
                         }).ToList(),
                         MyRole = isStudent ? UserRole.Student : UserRole.Tutor
@@ -245,9 +255,64 @@ namespace Avancira.Infrastructure.Catalog
         {
             var chat = await GetOrCreateChatAsync(senderId, messageDto.RecipientId ?? string.Empty, messageDto.ListingId);
 
-            chat.AddMessage(senderId, messageDto.RecipientId ?? string.Empty, messageDto.Content ?? string.Empty);
+            string? filePath = null;
+            if (messageDto.File != null)
+            {
+                filePath = await _fileUploadService.SaveFileAsync(messageDto.File, "chat");
+            }
+
+            var message = chat.AddMessage(senderId, messageDto.RecipientId ?? string.Empty, messageDto.Content ?? string.Empty, filePath);
 
             await _chatRepository.UpdateAsync(chat);
+
+            await _hubContext.Clients.Group(chat.Id.ToString()).SendAsync("NewMessage", new { chatId = chat.Id, messageId = message.Id });
+
             return true;
+        }
+
+        public async Task BlockUserAsync(Guid chatId, string userId)
+        {
+            var chat = await _chatRepository.GetByIdAsync(chatId);
+            if (chat == null) throw new Exception("Chat not found");
+            chat.BlockUser(userId);
+            await _chatRepository.UpdateAsync(chat);
+        }
+
+        public async Task UnblockUserAsync(Guid chatId, string userId)
+        {
+            var chat = await _chatRepository.GetByIdAsync(chatId);
+            if (chat == null) throw new Exception("Chat not found");
+            chat.UnblockUser(userId);
+            await _chatRepository.UpdateAsync(chat);
+        }
+
+        public async Task<List<MessageDto>> SearchMessagesAsync(Guid chatId, string query, string userId)
+        {
+            var messages = await _dbContext.Messages
+                .Where(m => m.ChatId == chatId && m.Content.Contains(query))
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+
+            var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
+            var senders = _dbContext.Users.Where(u => senderIds.Contains(u.Id)).ToDictionary(u => u.Id, u => u);
+
+            return messages.Select(m => new MessageDto
+            {
+                SentBy = m.SenderId == userId ? "me" : "contact",
+                SenderId = m.SenderId,
+                SenderName = senders.TryGetValue(m.SenderId, out var s) ? $"{s.FirstName} {s.LastName}" : string.Empty,
+                Content = m.Content,
+                FilePath = m.FilePath,
+                Timestamp = m.SentAt.DateTime
+            }).ToList();
+        }
+
+        public async Task<List<string>> GetChatFilesAsync(Guid chatId)
+        {
+            return await _dbContext.Messages
+                .Where(m => m.ChatId == chatId && m.FilePath != null)
+                .OrderBy(m => m.SentAt)
+                .Select(m => m.FilePath!)
+                .ToListAsync();
         }
     }

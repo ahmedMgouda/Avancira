@@ -40,10 +40,15 @@ namespace Avancira.Domain.Messaging
                 throw new AvanciraException("Message not found.");
             return message;
         }
-        public void AddMessage(string senderId, string recipientId, string content)
+        public Message AddMessage(string senderId, string recipientId, string content, string? filePath = null)
         {
             var message = Message.Create(Id, senderId, recipientId, content);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                message.AttachFile(filePath);
+            }
             Messages.Add(message);
+            return message;
         }
         public void DeleteMessage(Guid messageId)
         {

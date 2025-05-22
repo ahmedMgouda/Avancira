@@ -12,6 +12,7 @@ namespace Avancira.Application.Catalog.Dtos
         public string SenderId { get; set; }
         public string SenderName { get; set; }
         public string Content { get; set; }
+        public string? FilePath { get; set; }
         public DateTime Timestamp { get; set; }
 
         public MessageDto()
@@ -20,6 +21,7 @@ namespace Avancira.Application.Catalog.Dtos
             SenderId = string.Empty;
             SenderName = string.Empty;
             Content = string.Empty;
+            FilePath = string.Empty;
         }
     }
 }
