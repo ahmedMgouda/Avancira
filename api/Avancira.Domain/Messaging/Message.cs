@@ -46,6 +46,11 @@ namespace Avancira.Domain.Messaging
 
             return message;
         }
+
+        public void AttachFile(string path)
+        {
+            FilePath = path;
+        }
         public bool CanBeDeleted() =>
             DateTimeOffset.UtcNow - SentAt <= TimeSpan.FromMinutes(MaxDeletionMinutes);
         public void Delete()

@@ -1,4 +1,5 @@
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -12,16 +13,19 @@ public class ChatsAPIController : BaseController
 {
     private readonly IChatService _chatService;
     private readonly IListingService _listingService;
+    private readonly IUserService _userService;
     private readonly ILogger<ChatsAPIController> _logger;
 
     public ChatsAPIController(
         IChatService chatService,
         IListingService listingService,
+        IUserService userService,
         ILogger<ChatsAPIController> logger
     )
     {
         _chatService = chatService;
         _listingService = listingService;
+        _userService = userService;
         _logger = logger;
     }
 
@@ -62,7 +66,7 @@ public class ChatsAPIController : BaseController
             }
             messageDto.RecipientId = listing.TutorId;
         }
-        if (messageDto == null || string.IsNullOrWhiteSpace(messageDto.Content) || string.IsNullOrEmpty(messageDto.RecipientId))
+        if (messageDto == null || (string.IsNullOrWhiteSpace(messageDto.Content) && messageDto.File == null) || string.IsNullOrEmpty(messageDto.RecipientId))
         {
             return JsonError("Invalid message data.");
         }
@@ -76,6 +80,50 @@ public class ChatsAPIController : BaseController
         }
 
         return JsonOk(new { success = true, message = "Message sent successfully." });
+    }
+
+    [Authorize]
+    [HttpPut("status")]
+    public async Task<IActionResult> SetStatus([FromBody] UpdateChatStatusDto request)
+    {
+        var userId = GetUserId();
+        await _userService.SetChatStatusAsync(userId, request.Status);
+        return JsonOk();
+    }
+
+    [Authorize]
+    [HttpPut("{chatId}/block")]
+    public async Task<IActionResult> BlockUser(Guid chatId)
+    {
+        var userId = GetUserId();
+        await _chatService.BlockUserAsync(chatId, userId);
+        return JsonOk();
+    }
+
+    [Authorize]
+    [HttpPut("{chatId}/unblock")]
+    public async Task<IActionResult> UnblockUser(Guid chatId)
+    {
+        var userId = GetUserId();
+        await _chatService.UnblockUserAsync(chatId, userId);
+        return JsonOk();
+    }
+
+    [Authorize]
+    [HttpGet("{chatId}/search")]
+    public async Task<IActionResult> SearchChat(Guid chatId, [FromQuery] string q)
+    {
+        var userId = GetUserId();
+        var messages = await _chatService.SearchMessagesAsync(chatId, q, userId);
+        return JsonOk(messages);
+    }
+
+    [Authorize]
+    [HttpGet("{chatId}/files")]
+    public async Task<IActionResult> GetChatFiles(Guid chatId)
+    {
+        var files = await _chatService.GetChatFilesAsync(chatId);
+        return JsonOk(files);
     }
 }
 

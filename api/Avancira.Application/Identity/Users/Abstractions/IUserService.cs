@@ -1,4 +1,5 @@
 ﻿using Avancira.Application.Identity.Users.Dtos;
+using Avancira.Domain.Messaging;
 using System.Security.Claims;
 
 namespace Avancira.Application.Identity.Users.Abstractions;
@@ -30,4 +31,6 @@ public interface IUserService
     Task ChangePasswordAsync(ChangePasswordDto request, string userId);
     Task<string> AssignRolesAsync(string userId, AssignUserRoleDto request, CancellationToken cancellationToken);
     Task<List<UserRoleDetailDto>> GetUserRolesAsync(string userId, CancellationToken cancellationToken);
+
+    Task SetChatStatusAsync(string userId, ChatStatus status);
 }

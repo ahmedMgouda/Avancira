@@ -1,9 +1,12 @@
 using Avancira.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
+using Avancira.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureAvanciraFramework();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers(options =>
 {
@@ -21,6 +24,7 @@ app.UseAvanciraFramework();
 app.UseHttpsRedirection();
 
 app.MapControllers();
+app.MapHub<Avancira.API.Hubs.ChatHub>(Avancira.API.Hubs.ChatHub.HubUrl);
 
 
 app.Run();
