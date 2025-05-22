@@ -16,7 +16,7 @@ namespace Avancira.Application.Catalog.Listings.Mappers
         public void Register(TypeAdapterConfig config)
         {
             config.NewConfig<Listing, ListingDto>()
-                .Map(dest => dest.Id, src => src.Id.GetHashCode())
+                .Map(dest => dest.Id, src => src.Id)
                 .Map(dest => dest.IsVisible, src => src.IsVisible)
                 .Map(dest => dest.ContactedCount, src => 0)
                 .Map(dest => dest.Reviews, src => 0)

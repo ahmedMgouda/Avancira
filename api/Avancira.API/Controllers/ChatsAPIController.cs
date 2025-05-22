@@ -1,6 +1,8 @@
 using Avancira.Application.Catalog.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
 
 namespace Backend.Controllers;
 
@@ -26,17 +28,29 @@ public class ChatsAPIController : BaseController
     // Read
     [Authorize]
     [HttpGet]
-    public IActionResult GetUserChats()
+    public async Task<IActionResult> GetUserChats()
     {
         var userId = GetUserId();
-        var chats = _chatService.GetUserChats(userId);
+        var chats = await _chatService.GetUserChatsAsync(userId);
         return JsonOk(chats);
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> CreateChat([FromBody] CreateChatDto chatDto)
+    {
+        if (chatDto == null || string.IsNullOrEmpty(chatDto.RecipientId))
+            return JsonError("Invalid chat data.");
+
+        var userId = GetUserId();
+        var chat = await _chatService.GetOrCreateChatAsync(userId, chatDto.RecipientId, chatDto.ListingId);
+        return JsonOk(new { chatId = chat.Id });
     }
 
     // Update
     [Authorize]
     [HttpPut("send")]
-    public IActionResult SendMessage([FromBody] SendMessageDto messageDto)
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto messageDto)
     {
         // Validate the messageDto
         if (messageDto.RecipientId == null || string.IsNullOrEmpty(messageDto.RecipientId))
@@ -56,7 +70,7 @@ public class ChatsAPIController : BaseController
         // Check if a chat already exists
         var senderId = GetUserId();
 
-        if (!_chatService.SendMessage(messageDto, senderId))
+        if (!await _chatService.SendMessageAsync(messageDto, senderId))
         {
             return JsonError("Failed to send the message.");
         }
