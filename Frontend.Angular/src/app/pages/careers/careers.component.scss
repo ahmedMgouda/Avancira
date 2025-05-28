@@ -1,0 +1,56 @@
+.join-team-section {
+  background: linear-gradient(135deg, #6a11cb, #2575fc); // Gradient background
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  font-family: 'Open Sans', sans-serif;
+  margin: 20px 0;
+
+  .join-team-content {
+    max-width: 600px;
+
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+
+    .cta-button {
+      background: white;
+      color: #6a11cb;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 12px 25px;
+      border-radius: 25px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+      span {
+        margin-left: 8px;
+        font-size: 1.2rem;
+      }
+
+      &:hover {
+        background: #6a11cb;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+}

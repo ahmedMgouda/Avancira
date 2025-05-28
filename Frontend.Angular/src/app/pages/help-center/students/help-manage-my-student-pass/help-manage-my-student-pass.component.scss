@@ -1,0 +1,81 @@
+.manage-student-pass-section {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+  
+    .title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 15px;
+    }
+  
+    .description {
+      font-size: 1.2rem;
+      color: #4a4a4a;
+      margin-bottom: 20px;
+    }
+  
+    .steps-list {
+      list-style: none;
+      padding-left: 0;
+      font-size: 1rem;
+      color: #4a4a4a;
+      margin-bottom: 20px;
+  
+      li {
+        margin-bottom: 15px;
+        position: relative;
+  
+        &:before {
+          content: '•';
+          position: absolute;
+          left: -15px;
+          top: 0;
+          color: #1a73e8;
+          font-size: 1.5rem;
+        }
+  
+        strong {
+          color: #1a73e8;
+        }
+  
+        span {
+          color: #ff5a5f;
+        }
+      }
+    }
+  
+    .info-box {
+      background-color: #ffeef0;
+      border-left: 4px solid #ff5a5f;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 20px;
+  
+      .info-text {
+        font-size: 1rem;
+        color: #4a4a4a;
+        display: flex;
+        align-items: center;
+  
+        .icon {
+          font-size: 1.5rem;
+          margin-right: 8px;
+          color: #ff5a5f;
+        }
+  
+        .link {
+          color: #1a73e8;
+          text-decoration: none;
+  
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+  

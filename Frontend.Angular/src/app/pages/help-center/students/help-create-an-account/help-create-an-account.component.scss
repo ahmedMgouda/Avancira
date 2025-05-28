@@ -1,0 +1,56 @@
+.help-create-account {
+    padding: 20px;
+    background: linear-gradient(135deg, #f9fafa, #ffffff);
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Open Sans', sans-serif;
+  
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+  
+    .description {
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 15px;
+      color: #34495e;
+  
+      .link {
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 600;
+  
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  
+    .details {
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 20px;
+      color: #4a4a4a;
+    }
+  
+    .alert {
+      font-size: 1rem;
+      line-height: 1.8;
+      background: #fdf4f4;
+      border-left: 4px solid #f66a61;
+      padding: 10px 15px;
+      border-radius: 5px;
+      color: #d93025;
+      display: flex;
+      align-items: center;
+  
+      .icon {
+        font-size: 1.2rem;
+        margin-right: 10px;
+      }
+    }
+  }
+  

@@ -1,0 +1,218 @@
+<div class="card">
+  <div class="card-body">
+    <ul class="nav nav-tabs nav-tabs-bottom" role="tablist">
+      <li class="nav-item" role="presentation"><a class="nav-link active" href="#bottom-tab1" data-bs-toggle="tab"
+          aria-selected="true" role="tab">My Reviews</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab2" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">My Recommendations</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab3" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">Sponsorship</a></li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane show active" id="bottom-tab1" role="tabpanel">
+
+        <!-- My Reviews Tab -->
+        <div class="tab-pane show active" id="reviews">
+          <h3 class="mb-3">Reviews Pending</h3>
+          <ul class="list-group mb-4">
+            <li class="list-group-item d-flex justify-content-between align-items-center"
+              *ngFor="let review of pendingReviews">
+              <div>
+                <strong>{{ review.name }}</strong>
+                <p class="text-muted">{{ review.subject }}</p>
+              </div>
+              <button class="btn btn-primary btn-sm" (click)="openModal(review.revieweeId)">Leave a Review</button>
+            </li>
+          </ul>
+
+          <div class="reviews-section">
+            <div class="reviews-tabs mb-3">
+              <button class="btn btn-outline-primary me-2" [class.active]="activeSubTab === 'received'"
+                (click)="setActiveTab('received')">Reviews Received</button>
+              <button class="btn btn-outline-primary" [class.active]="activeSubTab === 'sent'"
+                (click)="setActiveTab('sent')">Reviews Sent</button>
+            </div>
+
+            <!-- Reviews Received -->
+            <div *ngIf="activeSubTab === 'received'" class="doc-review review-listing">
+              <h3>Reviews Received</h3>
+              <ul class="comments-list">
+                <!-- Comment List -->
+                <li *ngFor="let review of receivedReviews">
+                  <div class="comment">
+                    <img class="avatar rounded-circle" alt="User Image" [src]="review.avatar">
+                    <div class="comment-body">
+                      <div class="meta-data">
+                        <span class="comment-author">{{ review.name }}</span>
+                        <span class="comment-date">Reviewed {{ review.date | timeAgo }}</span>
+                        <div class="review-count rating">
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                        </div>
+                      </div>
+                      <p class="comment-content">
+                        {{ review.feedback }}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+                <!-- /Comment List -->
+              </ul>
+            </div>
+
+            <!-- Reviews Sent -->
+            <div *ngIf="activeSubTab === 'sent'" class="doc-review review-listing">
+              <h3>Reviews Sent</h3>
+              <ul class="list-group">
+                <!-- Comment List -->
+                <li *ngFor="let review of sentReviews">
+                  <div class="comment">
+                    <img class="avatar rounded-circle" alt="User Image" [src]="review.avatar">
+                    <div class="comment-body">
+                      <div class="meta-data">
+                        <span class="comment-author">{{ review.name }}</span>
+                        <span class="comment-date">Reviewed {{ review.date | timeAgo }}</span>
+                        <div class="review-count rating">
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                        </div>
+                      </div>
+                      <p class="comment-content">
+                        {{ review.feedback }}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+                <!-- /Comment List -->
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- /My Reviews Tab -->
+
+      </div>
+
+      <div class="tab-pane" id="bottom-tab2" role="tabpanel">
+
+        <div class="container">
+          <div class="text-center my-4">
+            <h2 class="d-flex align-items-center justify-content-center gap-2">
+              <i class="fas fa-bullhorn"></i> Boost your visibility
+            </h2>
+            <h2 class="d-flex align-items-center justify-content-center gap-2">
+              <i class="fas fa-user-plus"></i> Enhance your profile
+            </h2>
+            <h2 class="d-flex align-items-center justify-content-center gap-2">
+              <i class="fas fa-bell"></i> Get more lesson requests
+            </h2>
+          </div>
+
+          <div class="description text-center mb-4">
+            <p>Avancira is based on trust and reputation. You can ask for recommendations from your personal network
+              (friends, family, alumni, colleagues, ...). Your recommendations will be visible on your tutor listing
+              once they have been verified by our team.</p>
+          </div>
+
+          <div class="text-center mb-4">
+            <h3>Ask for recommendations via:</h3>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+              <button class="btn btn-primary"><i class="fas fa-envelope me-1"></i> Email</button>
+              <button class="btn btn-primary"><i class="fab fa-facebook-f me-1"></i> Facebook</button>
+              <button class="btn btn-primary"><i class="fab fa-facebook-messenger me-1"></i> Messenger</button>
+              <button class="btn btn-primary"><i class="fab fa-linkedin-in me-1"></i> LinkedIn</button>
+            </div>
+          </div>
+
+          <div class="direct-link text-center mb-4">
+            <h3>Or directly share a link:</h3>
+            <div class="input-group w-50 mx-auto">
+              <input type="text" class="form-control" [value]="recommendationLink" readonly />
+              <button class="btn btn-secondary" (click)="copyLink()">Copy the link</button>
+            </div>
+          </div>
+
+          <div class="recommendations">
+            <h3 class="text-center">Received Recommendations</h3>
+            <div class="doc-review review-listing">
+              <ul class="list-group">
+                <!-- Comment List -->
+                <li *ngFor="let review of recommendations">
+                  <div class="comment">
+                    <img class="avatar rounded-circle" alt="User Image" [src]="review.avatar">
+                    <div class="comment-body">
+                      <div class="meta-data">
+                        <span class="comment-author">{{ review.name }}</span>
+                        <span class="comment-date">Reviewed {{ review.date | timeAgo }}</span>
+                        <div class="review-count rating">
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                          <i class="fas fa-star filled"></i>
+                        </div>
+                      </div>
+                      <p class="comment-content">
+                        {{ review.feedback }}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+                <!-- /Comment List -->
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tab-pane" id="bottom-tab3" role="tabpanel">
+
+        <div class="referral-section text-center">
+          <i class="fas fa-rocket fa-2x text-primary mb-3"></i>
+          <h2 class="fw-bold">Win 1 Month Free Premium by Referring a Friend!</h2>
+          <p class="text-muted">Share your personal link to refer a friend. This offer is valid only for new users.</p>
+
+          <div class="invite-input d-flex flex-wrap justify-content-center align-items-center gap-2 mb-3">
+            <input type="text" class="form-control w-50" placeholder="Enter email addresses separated by ;">
+            <button class="btn btn-primary px-4">
+              <i class="fas fa-envelope"></i> Send Invitation
+            </button>
+          </div>
+
+          <p class="fw-semibold">Or share your referral link:</p>
+
+          <div class="referral-link d-flex flex-wrap justify-content-center align-items-center gap-2">
+            <input type="text" class="form-control w-50" value="https://www.avancira.com/signup?referral=liTw5l"
+              readonly>
+            <button class="btn btn-secondary px-4">Copy Link</button>
+          </div>
+
+          <div class="social-icons mt-3 d-flex justify-content-center gap-2">
+            <button class="btn btn-outline-primary">
+              <i class="fab fa-facebook-f"></i>
+            </button>
+            <button class="btn btn-outline-info">
+              <i class="fab fa-twitter"></i>
+            </button>
+            <button class="btn btn-outline-success">
+              <i class="fab fa-linkedin-in"></i>
+            </button>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+
+  </div>
+</div>
+<app-modal *ngIf="isModalOpen" [isOpen]="isModalOpen" (onClose)="closeModal()">
+  <app-leave-review [revieweeId]="selectedRevieweeId" (onClose)="closeModal()"></app-leave-review>
+</app-modal>

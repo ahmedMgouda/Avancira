@@ -1,0 +1,161 @@
+.premium-subscription-page {
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  background: linear-gradient(120deg, #f3f4f6, #ffffff);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+
+  .premium-container {
+    max-width: 800px;
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .premium-header {
+    text-align: center;
+    background: #007bff;
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+    h1 {
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+
+    h2 {
+      font-size: 2rem;
+      margin: 10px 0 0;
+      font-weight: bold;
+    }
+  }
+
+  .benefits-section {
+    text-align: center;
+    background: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+
+    h3 {
+      font-size: 1.5rem;
+      color: #007bff;
+      margin-bottom: 10px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+
+      li {
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+
+        &::before {
+          content: '\f00c';
+          font-family: 'Font Awesome 5 Free';
+          font-weight: 900;
+          color: #28a745;
+        }
+      }
+    }
+  }
+
+  .saved-cards-section {
+    h3 {
+      font-size: 1.5rem;
+      color: #333;
+      text-align: center;
+    }
+
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      list-style: none;
+      padding: 0;
+
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f9f9f9;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        font-size: 1rem;
+
+        &.selected {
+          border-color: #28a745;
+          background: #e8f5e9;
+          color: #28a745;
+        }
+
+        &:hover {
+          background: #f1f1f1;
+        }
+      }
+    }
+  }
+
+  .pay-button {
+    background: #007bff;
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+    margin-top: 20px;
+
+    &:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+    }
+
+    &:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  }
+
+  .login-btn {
+    background: #28a745;
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+
+    &:hover {
+      background: #218838;
+    }
+  }
+}

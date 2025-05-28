@@ -1,0 +1,171 @@
+@use "sass:color";
+@use 'colors';
+
+.booking-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f0f8ff; // Light blue background
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); // Subtle shadow
+  font-family: Arial, sans-serif;
+
+  .back-button {
+    font-size: 1.2rem;
+    color: #007bff; // Primary blue
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 4rem;
+    transition: color 0.3s;
+
+    &:hover {
+      color: #0056b3; // Dark blue on hover
+    }
+  }
+
+  .tutor-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    background: #ffffff; // White background
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); // Small shadow
+
+    .tutor-image {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 2px solid #007bff; // Blue border
+    }
+
+    .tutor-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      h2 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #343a40; // Primary text
+        font-weight: bold;
+      }
+
+      p {
+        margin: 5px 0;
+        font-size: 1rem;
+        color: #6c757d; // Muted text
+
+        strong {
+          color: #007bff; // Highlighted blue
+        }
+      }
+    }
+  }
+
+  .details-section {
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      color: #007bff; // Section headings
+    }
+
+    p {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: #343a40; // Primary text
+    }
+  }
+
+  .message-section {
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      color: #007bff;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ced4da; // Light gray border
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: Arial, sans-serif;
+      resize: none;
+      transition: border-color 0.3s;
+
+      &:focus {
+        border-color: #007bff; // Blue focus state
+        outline: none;
+      }
+    }
+
+    .btn-primary {
+      background-color: #0056b3; // Dark blue button
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background-color: #003d82; // Darker blue
+      }
+    }
+
+    .success-message {
+      color: #007bff; // Success blue
+      font-size: 1rem;
+      margin-top: 10px;
+    }
+  }
+
+  .propose-lesson-section {
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+    app-propose-lesson {
+      width: 100%;
+    }
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #6c757d; // Muted text
+    margin-top: 50px;
+    animation: fade-in 0.5s ease-in-out;
+  }
+}
+
+/* Keyframe animation for loading fade-in effect */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

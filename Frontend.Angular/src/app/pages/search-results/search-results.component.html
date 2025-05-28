@@ -1,0 +1,188 @@
+<!-- Page Content -->
+<div class="content">
+  <div class="container-fluid">
+
+    <div class="row">
+      <!-- Left Column: Search Filter -->
+      <div class="col-md-12 col-lg-6 col-xl-2">
+
+        <!-- Search Filter -->
+        <div class="card search-filter">
+          <div class="card-header">
+            <h4 class="card-title mb-0">Search Filter</h4>
+          </div>
+          <div class="card-body">
+            <div class="filter-widget">
+              <div class="">
+                <input type="text" class="form-control" placeholder="Query" [(ngModel)]="searchQuery"
+                  (keydown.enter)="performSearch()">
+              </div>
+            </div>
+            <div class="filter-widget">
+              <h4>Select Categories</h4>
+              <div *ngFor="let category of categories">
+                <label class="custom_check">
+                  <input type="checkbox" [checked]="searchCategories.includes(category.name)"
+                    (change)="toggleCategory(category.name)">
+                  <span class="checkmark"></span> {{ category.name }}
+                </label>
+              </div>
+            </div>
+            <div class="btn-search">
+              <button type="button" class="btn btn-block w-100" (click)="performSearch(false)">Search</button>
+            </div>
+          </div>
+        </div>
+        <!-- /Search Filter -->
+
+      </div>
+
+      <!-- Right Column: Search Results or Messages -->
+      <div class="col-md-12 col-lg-6 col-xl-10">
+        <!-- Show Loading Spinner -->
+        <div *ngIf="isLoading" class="loading">
+          Loading...
+        </div>
+
+        <!-- Show Error Message -->
+        <div *ngIf="hasError" class="error">
+          Failed to fetch search results. Please try again later.
+        </div>
+
+        <!-- Show No Results Message -->
+        <div *ngIf="!isLoading && !hasError && searchResults.length === 0" class="no-results">
+          No results found for "{{ searchQuery }}".
+        </div>
+
+        <!-- Show Search Results -->
+        <div *ngIf="!isLoading && !hasError && searchResults.length > 0">
+          <div class="row align-items-center mb-4">
+            <div class="col-md-6 col">
+              <h4>{{ totalResults }} Tutors found</h4>
+            </div>
+
+            <div class="col-md-6 col-auto">
+              <div class="view-icons">
+                <a href="javascript:void(0)" class="grid-view" (click)="toggleView(true)"
+                  [ngClass]="{'active': isGridView}">
+                  <i class="fas fa-th-large"></i>
+                </a>
+                <a href="javascript:void(0)" class="list-view" (click)="toggleView(false)"
+                  [ngClass]="{'active': !isGridView}">
+                  <i class="fas fa-bars"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" *ngIf="isGridView; else listView">
+            <div class="col-sm-3 col-md-3 col-xl-3" *ngFor="let mentor of searchResults">
+              <div class="profile-widget">
+                <div class="user-avatar">
+                  <a [href]="'/listing/' + mentor.id">
+                    <img [src]="mentor.listingImagePath" class="img-fluid" [alt]="mentor.tutorName">
+                  </a>
+                  <a href="javascript:void(0)" class="fav-btn">
+                    <i class="far fa-bookmark"></i>
+                  </a>
+                </div>
+                <div class="pro-content">
+                  <h3 class="title">
+                    <a [href]="'/listing/' + mentor.id">{{ mentor.title }}</a>
+                    <i class="fas fa-check-circle verified"></i>
+                  </h3>
+                  <p class="speciality">{{ mentor.lessonCategory }}</p>
+                  <div class="rating">
+                    <i *ngFor="let star of [1, 2, 3, 4, 5]" class="fas" [ngClass]="{'fa-star filled': star <= (mentor.rating ? mentor.rating : 4.5), 
+                    'fa-star': star > (mentor.rating ? mentor.rating : 4.5)}">
+                    </i>
+                    <span class="d-inline-block average-rating">({{ mentor.reviews }})</span>
+                  </div>
+                  <ul class="available-info">
+                    <li>
+                      <i class="fas fa-map-marker-alt"></i> {{ mentor.tutorAddress?.city }}, {{
+                      mentor.tutorAddress?.state }} {{ mentor.tutorAddress?.country }}
+                    </li>
+                    <!-- <li>
+                      <i class="far fa-clock"></i> Available on Fri, 22 Mar
+                    </li> -->
+                    <li>
+                      <i class="far fa-money-bill-alt"></i> {{ mentor.rates.hourly | currency }} <i
+                        class="fas fa-info-circle" data-bs-toggle="tooltip" title="Lesson Pricing"></i>
+                    </li>
+                  </ul>
+                  <div class="row row-sm">
+                    <div class="col-6">
+                      <a [href]="'/listing/' + mentor.id" class="btn view-btn">View Profile</a>
+                    </div>
+                    <div class="col-6">
+                      <a [href]="'/listing/' + mentor.id" class="btn book-btn">Book Appointment</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #listView>
+            <div class="card" *ngFor="let mentor of searchResults">
+              <div class="card-body">
+                <div class="mentor-widget">
+                  <div class="user-info-left">
+                    <div class="mentor-img">
+                      <a [href]="'/listing/' + mentor.id">
+                        <img [src]="mentor.listingImagePath" class="img-fluid" [alt]="mentor.tutorName">
+                      </a>
+                    </div>
+                    <div class="user-info-cont">
+                      <h4 class="usr-name"><a [href]="'/listing/' + mentor.id">{{ mentor.title }}</a></h4>
+                      <p class="mentor-type">{{ mentor.lessonCategory }}</p>
+                      <div class="rating">
+                        <i *ngFor="let star of [1, 2, 3, 4, 5]" class="fas" [ngClass]="{'fa-star filled': star <= (mentor.rating ? mentor.rating : 4.5), 
+                                            'fa-star': star > (mentor.rating ? mentor.rating : 4.5)}">
+                        </i>
+                        <span class="d-inline-block average-rating">({{ mentor.reviews }})</span>
+                      </div>
+                      <div class="mentor-details">
+                        <p class="user-location"><i class="fas fa-map-marker-alt"></i> {{ mentor.tutorAddress?.city }},
+                          {{
+                          mentor.tutorAddress?.state }} {{ mentor.tutorAddress?.country }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="user-info-right">
+                    <div class="user-infos">
+                      <ul>
+                        <li><i class="far fa-comment"></i> {{ mentor.reviews }} Feedback</li>
+                        <li><i class="fas fa-map-marker-alt"></i> {{ mentor.tutorAddress?.city }}, {{
+                          mentor.tutorAddress?.state }} {{ mentor.tutorAddress?.country }}</li>
+                        <li><i class="far fa-money-bill-alt"></i> {{ mentor.rates.hourly | currency }} <i
+                            class="fas fa-info-circle" data-bs-toggle="tooltip" title="Lesson Pricing"></i></li>
+                      </ul>
+                    </div>
+                    <div class="mentor-booking">
+                      <a class="apt-btn" [href]="'/listing/' + mentor.id">Book Appointment</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+
+          <!-- Load More Button -->
+          <div class="load-more text-center" *ngIf="searchResults.length < totalResults && !isLoadingMore">
+            <input type="button" class="btn btn-primary btn-sm" value="Load More" (click)="loadMoreResults()" />
+          </div>
+
+          <div *ngIf="isLoadingMore" class="loading-more">
+            Loading more...
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+<!-- /Page Content -->

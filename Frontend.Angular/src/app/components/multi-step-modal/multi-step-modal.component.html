@@ -1,0 +1,32 @@
+<app-modal [size]="size" [title]="title" [isOpen]="isOpen" (onClose)="close()">
+  <div class="card">
+    <div class="card-header text-center">
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" [style.width]="getProgress() + '%'" aria-valuemin="0"
+          aria-valuemax="100">
+          {{ getProgress() }}%
+        </div>
+      </div>
+      <div class="steps-indicator">
+        <div *ngFor="let stepLabel of stepLabels; let i = index" class="step-item">
+          <span [class.active]="step === i + 1" [class.completed]="step > i + 1">
+            {{ i + 1 }}
+          </span>
+          <small>{{ stepLabel }}</small>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ng-content></ng-content>
+    </div>
+    <div class="modal-footer d-flex justify-content-between align-items-center">
+      <button type="button" class="btn btn-secondary me-2" *ngIf="step > 1" (click)="prevStep()">Previous</button>
+      <button type="button" class="btn btn-primary me-2" *ngIf="step < totalSteps" (click)="nextStep()" [disabled]="!isStepValid()">Next</button>
+      <div class="ms-auto">
+        <button type="submit" class="btn btn-success me-2" *ngIf="step === totalSteps" (click)="submit()">Create
+          Listing</button>
+        <button type="button" class="btn btn-danger" (click)="close()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</app-modal>

@@ -1,0 +1,36 @@
+<div class="recommendation-form">
+  <div class="form-header">
+    <h2>Submit a Recommendation for {{ recommendation.name }}</h2>
+    <div class="avatar">
+      <img *ngIf="recommendation.avatar" [src]="recommendation.avatar" alt="{{ recommendation.name }}" />
+      <span *ngIf="!recommendation.avatar">{{ recommendation.name[0] }}</span>
+    </div>
+  </div>
+
+  <form (ngSubmit)="submitRecommendation()">
+    <div class="form-group">
+      <label for="subject">Subject</label>
+      <input
+        type="text"
+        id="subject"
+        [(ngModel)]="recommendation.subject"
+        name="subject"
+        placeholder="Enter a subject (e.g., Great Tutor)"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="feedback">Feedback</label>
+      <textarea
+        id="feedback"
+        [(ngModel)]="recommendation.feedback"
+        name="feedback"
+        placeholder="Share your feedback here..."
+        required
+      ></textarea>
+    </div>
+
+    <button type="submit" class="btn-submit">Submit Recommendation</button>
+  </form>
+</div>

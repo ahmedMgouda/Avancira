@@ -1,0 +1,36 @@
+<!-- <div class="modal-header">
+  <h4 class="modal-title">{{ title }}</h4>
+</div>
+
+<div class="modal-body">
+  <ng-container *ngTemplateOutlet="contentTemplate"></ng-container>
+</div>
+
+<div class="modal-footer">
+  <button class="btn btn-secondary" (click)="close()">{{ closeButtonLabel }}</button>
+  <button class="btn btn-primary" (click)="save()">{{saveButtonLabel}}</button>
+</div> -->
+
+<div class="modal-header">
+  <h4 class="modal-title">{{ title }}</h4>
+</div>
+
+<div class="modal-body">
+  <div class="text-center" *ngIf="isConfirmation; else customContent">
+    <p  class="fs-5">{{ confirmationMessage }}</p>
+  </div>
+
+  <ng-template #customContent>
+    <ng-container *ngTemplateOutlet="contentTemplate"></ng-container>
+  </ng-template>
+</div>
+
+<div class="modal-footer" [ngClass]="isConfirmation ? 'confirmation' : ''">
+  <button class="btn btn-secondary" (click)="close()">
+    <i class="fas fa-times"></i> {{ closeButtonLabel }}
+  </button>
+
+  <button class="btn" [ngClass]="isConfirmation ? 'btn-danger' : 'btn-primary'" (click)="save()">
+    <i class="fas fa-check"></i> {{ saveButtonLabel }}
+  </button>
+</div>

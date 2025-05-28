@@ -1,0 +1,95 @@
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <!-- Page Size Selection & Page Info -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center">
+                <label for="pageSize" class="me-2 mb-0 fw-semibold">Show entries:</label>
+                <select id="pageSize" class="form-select form-select-sm w-auto"
+                    (change)="onPageSizeChange($event)">
+                    <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize">
+                        {{ size }}
+                    </option>
+                </select>
+            </div>
+            <div class="text-muted">
+                Page <strong>{{ page }}</strong> of <strong>{{ totalPages }}</strong>
+            </div>
+        </div>
+
+        <!-- Responsive Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center table-bordered">
+                <thead class="table-light border">
+                    <tr>
+                        <th *ngFor="let column of columns" class="fw-semibold cursor-pointer border-bottom"
+                            (click)="toggleSort(column.key)">
+                            {{ column.label }}
+                            <span>
+                                <i class="fas" 
+                                    [ngClass]="{
+                                        'fa-sort': sortColumn !== column.key, 
+                                        'fa-sort-up': sortColumn === column.key && sortDirection === 'asc', 
+                                        'fa-sort-down': sortColumn === column.key && sortDirection === 'desc'
+                                    }">
+                                </i>
+                            </span>
+                        </th>
+                        <th *ngIf="actions.length" class="fw-semibold border-bottom">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let item of sortedData()">
+                        <td *ngFor="let column of columns">
+                            <ng-container *ngIf="column.cellTemplate; else defaultCell">
+                                <ng-container
+                                    *ngTemplateOutlet="column.cellTemplate; context: { $implicit: item, value: getValue(item, column.key) }">
+                                </ng-container>
+                            </ng-container>
+                            <ng-template #defaultCell>
+                                <span [innerHTML]="getValue(item, column.key)"></span>
+                            </ng-template>
+                        </td>
+                        <td *ngIf="actions.length">
+                            <div class="d-flex justify-content-center gap-2">
+                                <ng-container *ngFor="let action of actions">
+                                    <button class="btn btn-sm d-flex align-items-center"
+                                        [ngClass]="action.class"
+                                        *ngIf="!action.condition || action.condition(item)"
+                                        (click)="action.callback(item)">
+                                        <i class="fas me-1" [ngClass]="action.icon"></i> {{ action.label }}
+                                    </button>
+                                </ng-container>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- No Data Message -->
+        <div class="text-center text-muted py-4" *ngIf="data.length === 0">
+            <i class="fas fa-box-open fa-2x"></i>
+            <p class="mt-2">No data available.</p>
+        </div>
+
+        <!-- Pagination Controls -->
+        <nav class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item" [class.disabled]="page === 1">
+                    <a class="page-link" (click)="onPageChange(page - 1)">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+                <li class="page-item" *ngFor="let i of [].constructor(totalPages); let idx = index"
+                    [class.active]="page === idx + 1">
+                    <a class="page-link" (click)="onPageChange(idx + 1)">{{ idx + 1 }}</a>
+                </li>
+                <li class="page-item" [class.disabled]="page === totalPages">
+                    <a class="page-link" (click)="onPageChange(page + 1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

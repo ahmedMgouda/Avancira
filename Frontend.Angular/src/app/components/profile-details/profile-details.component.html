@@ -1,0 +1,113 @@
+<!-- General Information -->
+<div class="profile-page" *ngIf="profile">
+    <div class="profile-section">
+        <h4>General Information 😊</h4>
+        <form>
+            <!-- <div class="form-group">
+            <label>Gender</label>
+            <select [(ngModel)]="profile.gender" name="gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div> -->
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" [(ngModel)]="profile.firstName" name="firstName" />
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" [(ngModel)]="profile.lastName" name="lastName" />
+            </div>
+            <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="date" [(ngModel)]="profile.dob" name="dob" />
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" [(ngModel)]="profile.email" name="email" disabled />
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" [(ngModel)]="profile.phoneNumber" name="phone" />
+            </div>
+            <div class="form-group">
+                <label>Skype ID</label>
+                <input type="text" [(ngModel)]="profile.skypeId" name="skypeId" />
+            </div>
+            <div class="form-group">
+                <label>Hangout ID</label>
+                <input type="text" [(ngModel)]="profile.hangoutId" name="hangoutId" />
+            </div>
+            <button type="button" class="btn validate-btn" (click)="saveProfile()">Validate</button>
+        </form>
+
+    </div>
+
+    <!-- Address -->
+    <div class="profile-section">
+        <app-map-address [initialAddress]="profile.address" (addressSelected)="updateAddress($event)"></app-map-address>
+    </div>
+
+    <!-- Profile Photo -->
+    <div class="profile-section">
+        <h4>Profile Photo 📸</h4>
+        <app-profile-image [profileImagePath]="profile.profileImagePath" [firstName]="profile.firstName"
+            [lastName]="profile.lastName" sizeClass="large"></app-profile-image>
+
+        <button class="upload-btn" (click)="onProfilePictureUpload()">📤</button>
+        <button type="button" class="btn change-password-btn" (click)="changePassword()">Change Password</button>
+    </div>
+
+    <!-- Qualification -->
+    <div class="profile-section">
+        <h4>Qualification 📜</h4>
+        <div *ngIf="diplomaStatus === DiplomaStatus.NotSubmitted" class="qualification-status">
+            <p>Your diploma has not been submitted yet.</p>
+            <input type="file" (change)="onFileSelected($event)" />
+            <button class="btn submit-btn" (click)="submitDiploma()">Submit Diploma</button>
+        </div>
+        <div *ngIf="diplomaStatus === DiplomaStatus.UnderReview" class="qualification-status">
+            <p>Your diploma is currently under review.</p>
+            <button class="btn under-review-btn" disabled>Under Review</button>
+        </div>
+        <div *ngIf="diplomaStatus === DiplomaStatus.Verified" class="qualification-status">
+            <p>Your diploma has been verified.</p>
+            <button class="btn verified-btn" disabled>Verified</button>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="profile-section">
+        <h4>Notifications 💬</h4>
+        <div class="notifications">
+            <div>
+                <h5>SMS</h5>
+                <div *ngFor="let sms of notifications.sms" class="notification-item">
+                    <label>
+                        <input type="checkbox" [(ngModel)]="sms.enabled" /> {{ sms.label }}
+                    </label>
+                </div>
+            </div>
+            <div>
+                <h5>EMAIL</h5>
+                <div *ngFor="let email of notifications.email" class="notification-item">
+                    <label>
+                        <input type="checkbox" [(ngModel)]="email.enabled" /> {{ email.label }}
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account -->
+    <div class="profile-section">
+        <h4>Delete Account ☠️</h4>
+        <p>ATTENTION! All of your data will be definitively and irreversibly deleted.</p>
+        <label>
+            <input type="checkbox" [(ngModel)]="deleteConfirmation" /> Delete my Account
+        </label>
+        <button type="button" class="btn delete-account-btn" (click)="confirmAndDeleteAccount()">
+            Delete my Account
+        </button>
+    </div>
+</div>

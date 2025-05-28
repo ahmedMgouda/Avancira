@@ -1,0 +1,61 @@
+.help-change-payment-method {
+    padding: 25px;
+    background: linear-gradient(135deg, #ffffff, #f9fafa);
+    border-radius: 12px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+    font-family: 'Open Sans', sans-serif;
+  
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+  
+    .intro {
+      font-size: 1.2rem;
+      font-weight: 400;
+      margin-bottom: 20px;
+      color: #34495e;
+    }
+  
+    .instructions {
+      list-style: none;
+      margin: 0 0 20px 0;
+      padding: 0;
+  
+      li {
+        position: relative;
+        padding-left: 20px;
+        margin-bottom: 10px;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #4a4a4a;
+  
+        &:before {
+          content: '✔';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #1a73e8;
+          font-size: 1.2rem;
+        }
+      }
+    }
+  
+    .note {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: #4a4a4a;
+      font-weight: 600;
+      text-align: justify;
+  
+      .icon {
+        font-size: 1.2rem;
+        color: #e53935;
+        margin-left: 5px;
+      }
+    }
+  }
+  

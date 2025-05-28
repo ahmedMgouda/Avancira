@@ -1,0 +1,56 @@
+<div class="terms-container">
+    <h1>Terms & Conditions</h1>
+    <p><strong>{{ platformInfo.platformName }}</strong> is a platform designed to connect users with expert tutors and service providers.</p>
+  
+    <section>
+      <h2>Contact Information</h2>
+      <p><strong>Email:</strong> <a href="mailto:{{ platformInfo.email }}">{{ platformInfo.email }}</a></p>
+      <p><strong>Address:</strong> {{ platformInfo.address }}</p>
+      <p><strong>Phone:</strong> {{ platformInfo.phone }}</p>
+    </section>
+  
+    <section>
+      <h2>Platform Ownership</h2>
+      <p>
+        {{ platformInfo.platformName }} is owned and operated by {{ platformInfo.president }}. Our registration number is 
+        <strong>{{ platformInfo.registrationNumber }}</strong>.
+      </p>
+    </section>
+    
+    <section>
+      <h2>General Terms</h2>
+      <p>
+        By using <strong>{{ platformInfo.platformName }}</strong>, you agree to adhere to the terms outlined below. Violations may 
+        result in account suspension.
+      </p>
+      <ul>
+        <li>You must provide accurate and truthful information when registering on the platform.</li>
+        <li>You are responsible for maintaining the confidentiality of your account and password.</li>
+        <li>The platform is not liable for disputes arising between users.</li>
+        <li>Payments must be completed through the platform’s supported methods.</li>
+      </ul>
+    </section>
+  
+    <section>
+      <h2>Refund Policy</h2>
+      <p>
+        Refunds will be processed only under specific circumstances, such as the unavailability of a tutor or services. 
+        For more details, contact us at <a href="mailto:{{ platformInfo.email }}">{{ platformInfo.email }}</a>.
+      </p>
+    </section>
+  
+    <section>
+      <h2>Data Privacy</h2>
+      <p>
+        Your data is securely stored and processed in compliance with GDPR regulations. For more information, see our 
+        <a href="/privacy-policy">Privacy Policy</a>.
+      </p>
+    </section>
+  
+    <footer>
+      <p>© {{ platformInfo.platformName }} - All rights reserved. For any inquiries, email us at 
+        <a href="mailto:{{ platformInfo.email }}">{{ platformInfo.email }}</a>.
+      </p>
+    </footer>
+  </div>
+  

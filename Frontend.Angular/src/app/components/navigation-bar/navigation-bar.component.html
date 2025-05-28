@@ -1,0 +1,8 @@
+<div class="nav-bar">
+    <ul>
+      <li *ngFor="let link of navLinks" [class.active]="isActive(link.path)">
+        <a [routerLink]="link.path">{{ link.label }}</a>
+      </li>
+    </ul>
+  </div>
+  

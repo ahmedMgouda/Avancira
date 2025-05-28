@@ -1,0 +1,83 @@
+.help-cancel-a-pack {
+    padding: 25px;
+    background: linear-gradient(135deg, #ffffff, #f9fafa);
+    border-radius: 12px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+    font-family: 'Open Sans', sans-serif;
+  
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+  
+    .intro {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #34495e;
+  
+      .link {
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 600;
+  
+        &:hover {
+          text-decoration: underline;
+          color: #0b5ed7;
+        }
+      }
+    }
+  
+    .steps-list {
+      list-style: none;
+      margin-bottom: 20px;
+      padding-left: 20px;
+  
+      li {
+        position: relative;
+        padding-left: 20px;
+        margin-bottom: 10px;
+        color: #34495e;
+        font-size: 1rem;
+        line-height: 1.8;
+  
+        &:before {
+          content: '✔';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #1a73e8;
+          font-size: 1.2rem;
+        }
+      }
+    }
+  
+    .info {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: #34495e;
+      margin-bottom: 20px;
+    }
+  
+    .note {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: #d9344e;
+      font-weight: 600;
+  
+      .link {
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 600;
+  
+        &:hover {
+          text-decoration: underline;
+          color: #0b5ed7;
+        }
+      }
+    }
+  }
+  

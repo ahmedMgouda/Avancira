@@ -1,0 +1,317 @@
+
+.right-sidebar {
+    flex: 1;
+    padding: 20px;
+    border-left: 1px solid #ddd;
+    background-color: #e8f5e9;
+    transition: background-color 0.3s ease;
+    animation: fadeInRight 0.6s ease-out;
+
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      background-color: #e3f2fd;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 10px;
+
+      .tab {
+        flex: 1;
+        text-align: center;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #0277bd;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 25px;
+        transition: all 0.3s ease;
+
+        &.active {
+          background: linear-gradient(135deg, #0288d1, #64b5f6);
+          color: white;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        &:hover {
+          background-color: #bbdefb;
+        }
+      }
+    }
+
+    .propositions,
+    .lessons {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+
+      h4 {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #0277bd;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+
+        li {
+          margin-bottom: 15px;
+          padding: 15px;
+          background: #f9f9f9;
+          border-radius: 8px;
+          box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+          &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+          }
+
+          p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #555;
+          }
+
+          .proposition-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+
+            .accept-btn {
+              background-color: #0288d1;
+              color: white;
+              border: none;
+              padding: 8px 15px;
+              border-radius: 5px;
+              font-size: 0.9rem;
+              cursor: pointer;
+              transition: background-color 0.3s ease;
+
+              &:hover {
+                background-color: #0277bd;
+              }
+            }
+
+            .refuse-btn {
+              background-color: #d32f2f;
+              color: white;
+              border: none;
+              padding: 8px 15px;
+              border-radius: 5px;
+              font-size: 0.9rem;
+              cursor: pointer;
+              transition: background-color 0.3s ease;
+
+              &:hover {
+                background-color: #c62828;
+              }
+            }
+          }
+        }
+      }
+
+      .no-propositions,
+      .no-lessons {
+        text-align: center;
+        font-size: 1rem;
+        color: #888;
+        margin-top: 20px;
+      }
+    }
+
+
+    .propositions {
+      h4 {
+        margin-bottom: 10px;
+      }
+
+      .propose-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-start;
+        /* Adjust to your layout */
+        margin-top: 20px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 25px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #ffffff;
+        background: linear-gradient(135deg, #4caf50, #81c784);
+        /* Gradient for vibrancy */
+        border: none;
+        border-radius: 25px;
+        /* Fully rounded buttons */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        /* Subtle shadow */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn span {
+        z-index: 2;
+        /* Ensure the text stays above any background effects */
+      }
+
+      .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 200%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        /* Subtle hover effect */
+        transform: skewX(-45deg);
+        transition: left 0.5s ease;
+        z-index: 1;
+      }
+
+      .btn:hover::before {
+        left: 100%;
+        /* Slide the effect across */
+      }
+
+      .btn:hover {
+        box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+        /* Slightly deeper shadow on hover */
+      }
+
+      .btn:active {
+        transform: scale(0.95);
+        /* Press effect */
+      }
+
+      .propose-pack {
+        background: linear-gradient(135deg, #ff9800, #ffc107);
+        /* Orange gradient */
+      }
+
+      .propose-pack:hover {
+        background: linear-gradient(135deg, #f57c00, #ffb300);
+      }
+
+      .propose-lesson {
+        background: linear-gradient(135deg, #3f51b5, #7986cb);
+        /* Blue gradient */
+      }
+
+      .propose-lesson:hover {
+        background: linear-gradient(135deg, #303f9f, #5c6bc0);
+      }
+
+      .propositions-section {
+        h3 {
+          margin-bottom: 10px;
+        }
+
+        ul {
+          list-style: none;
+          padding: 0;
+
+          li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
+
+            .proposition-actions {
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+
+              .accept-btn {
+                background-color: #388e3c;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+
+                &:hover {
+                  background-color: #2e7d32;
+                }
+              }
+
+              .refuse-btn {
+                background-color: #d32f2f;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+
+                &:hover {
+                  background-color: #c62828;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .no-propositions {
+        text-align: center;
+        color: #888;
+      }
+    }
+
+    .lessons {
+      h4 {
+        margin-bottom: 10px;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+
+        li {
+          margin-bottom: 10px;
+          padding: 10px;
+          background-color: #ffffff;
+          border-radius: 5px;
+          box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+      }
+
+      .no-lessons {
+        text-align: center;
+        color: #888;
+      }
+
+
+      .cancel-lesson-btn {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+
+        &:hover {
+          background-color: #c0392b;
+        }
+      }
+
+    }
+  }

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <IsPackable>false</IsPackable>
+    <AspireHostingUseHttp>false</AspireHostingUseHttp>
+    <OutputType>Library</OutputType>
+    <RunWorkingDirectory>.</RunWorkingDirectory>
+    <RunArguments></RunArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="**\*" />
+  </ItemGroup>
+
+  <Target Name="StartAngularDevServer" BeforeTargets="Run">
+    <Exec Command="npm install" WorkingDirectory="." />
+    <Exec Command="npm run start" WorkingDirectory="." />
+  </Target>
+
+</Project>

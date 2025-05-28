@@ -1,0 +1,79 @@
+.progress {
+    height: 8px;
+    border-radius: 5px;
+    background: #e0e0e0;
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #4CAF50, #66BB6A);
+    transition: width 0.4s ease-in-out;
+  }
+  
+  .steps-indicator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+  }
+  
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    flex: 1;
+    text-align: center;
+  }
+  
+  .step-item span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+    background: #ddd;
+    color: #666;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .step-item span.active {
+    background: #4CAF50;
+    color: white;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+  }
+  
+  .step-item span.completed {
+    background: #66BB6A;
+    color: white;
+  }
+  
+  .step-item small {
+    font-size: 12px;
+    margin-top: 5px;
+    color: #666;
+  }
+  
+  .step-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background: #ddd;
+    top: 50%;
+    left: 50%;
+    transform: translateX(50%);
+    z-index: -1;
+  }
+  
+  .step-item.completed::after {
+    background: #4CAF50;
+  }
+  

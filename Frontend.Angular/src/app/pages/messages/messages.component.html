@@ -1,0 +1,25 @@
+<div class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-9 col-12 mb-4">
+        <div class="chat-window">
+          <!-- Sidebar (Left) -->
+          <div class="chat-cont-left">
+            <app-message-list [(selectedContact)]="selectedContact"></app-message-list>
+          </div>
+
+          <!-- Main Content (Message Thread) -->
+          <div class="chat-cont-right">
+            <app-message-thread [selectedContact]="selectedContact"></app-message-thread>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-3 d-none d-sm-block">
+        <!-- Sidebar (Right) -->
+        <div class="sidebar-right">
+          <app-manage-lessons [selectedContact]="selectedContact"></app-manage-lessons>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

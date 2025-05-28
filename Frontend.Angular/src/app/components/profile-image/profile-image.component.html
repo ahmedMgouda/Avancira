@@ -1,0 +1,13 @@
+<div class="profile-image" [ngClass]="sizeClass">
+  <!-- Display the image if available and no error -->
+  <img
+    *ngIf="showImage"
+    [src]="profileImagePath"
+    alt="Profile Photo"
+    [class]="'pro-avatar profile-photo ' + (customClass || '')"
+    (error)="isImageError = true"
+  />
+
+  <!-- Display initials if no image is available or an error occurred -->
+  <div *ngIf="!showImage" class="profile-initials">{{ getInitials() }}</div>
+</div>

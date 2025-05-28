@@ -1,0 +1,63 @@
+.help-video-lesson-issues {
+    padding: 25px;
+    background: linear-gradient(135deg, #ffffff, #f5f7fa);
+    border-radius: 12px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+    font-family: 'Open Sans', sans-serif;
+  
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+  
+    .description {
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 20px;
+      color: #4a4a4a;
+      text-align: justify;
+    }
+  
+    .subtitle {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #1a73e8;
+      border-left: 4px solid #1a73e8;
+      padding-left: 8px;
+    }
+  
+    .details {
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 15px;
+      color: #34495e;
+    }
+  
+    .steps-list {
+      list-style: none;
+      padding-left: 20px;
+      margin-bottom: 20px;
+  
+      li {
+        position: relative;
+        padding-left: 20px;
+        margin-bottom: 8px;
+        color: #4a4a4a;
+        font-size: 1rem;
+  
+        &:before {
+          content: '✔';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #1a73e8;
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+  

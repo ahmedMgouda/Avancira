@@ -1,0 +1,57 @@
+<!-- Terms Accept -->
+<div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" id="terms_accept">
+  <label class="form-check-label" for="terms_accept">
+    I have read and accepted <a href="terms">Terms & Conditions</a>
+  </label>
+</div>
+<!-- /Terms Accept -->
+
+<!-- Payment Method Selection -->
+<div class="payment-method-selection mb-3">
+  <div class="form-check form-check-inline">
+    <input class="form-check-input"
+           type="radio"
+           name="paymentMethod"
+           id="paymentCard"
+           value="card"
+           [(ngModel)]="selectedPaymentMethod"
+           (change)="onPaymentMethodChange('card')">
+    <label class="form-check-label" for="paymentCard">Credit Card</label>
+  </div>
+
+  <div class="form-check form-check-inline ms-3">
+    <input class="form-check-input"
+           type="radio"
+           name="paymentMethod"
+           id="paymentPaypal"
+           value="paypal"
+           [(ngModel)]="selectedPaymentMethod"
+           (change)="onPaymentMethodChange('paypal')">
+    <label class="form-check-label" for="paymentPaypal">PayPal</label>
+  </div>
+</div>
+
+<!-- Credit Card Payment -->
+<div *ngIf="selectedPaymentMethod === 'card'">
+  <label class="payment-radio stripe-option">
+
+    Pay with Credit/Debit Card
+    <img
+      src="https://e7.pngegg.com/pngimages/633/870/png-clipart-powerd-by-stripe-payment-methods-credit-cards-tech-companies-payments-thumbnail.png"
+      alt="Stripe Logo" style="height: 24px;"></label>
+
+  <app-manage-cards [cardPurpose]="CardType" (cardSelected)="onCardSelected($event)"></app-manage-cards>
+
+  <!-- Submit Section -->
+  <div class="submit-section mt-4">
+    <button type="button" class="btn btn-primary submit-btn" (click)="confirmAndPay()">
+      Confirm and Pay {{ totalPrice | currency: 'USD' }}
+    </button>
+  </div>
+</div>
+
+<!-- PayPal Payment -->
+<div *ngIf="selectedPaymentMethod === 'paypal'">
+  <div id="paypal-button-container"></div>
+</div>

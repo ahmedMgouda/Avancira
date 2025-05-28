@@ -1,0 +1,250 @@
+<div class="card">
+  <div class="card-body">
+    <ul class="nav nav-tabs nav-tabs-bottom" role="tablist">
+      <li class="nav-item" role="presentation"><a class="nav-link active" href="#bottom-tab1" data-bs-toggle="tab"
+          aria-selected="true" role="tab">Balance</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab2" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">Method of Payment</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab3" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">Receiving Payments</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab4" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">Cancellation Policy</a></li>
+      <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab5" data-bs-toggle="tab"
+          aria-selected="false" tabindex="-1" role="tab">Subscription Settings</a></li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane show active" id="bottom-tab1" role="tabpanel">
+        <!-- Balance Summary -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card text-center p-3">
+              <h2 class="text-primary">{{ payment?.walletBalance }}</h2>
+              <p class="mb-0">Balance</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card text-center p-3">
+              <h2 class="text-success">{{ payment?.totalAmountCollected }}</h2>
+              <p class="mb-0">Total Amount Collected</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Table -->
+        <div class="card">
+          <div class="card-header">
+            <h4 class="card-title">Payment Transactions</h4>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Fee</th>
+                    <th>Net</th>
+                    <th>Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let payment of payment?.transactions">
+                    <td>{{ payment.date }}</td>
+                    <td class="fw-bold">{{ payment.description }}</td>
+                    <td class="fw-bold text-{{ payment.amount < 0 ? 'danger' : 'dark' }}">
+                      ${{ payment.amount }}
+                    </td>
+                    <td>${{ payment.platformFee }}</td>
+                    <td class="fw-bold text-success">${{ payment.net }}</td>
+                    <td>
+                      <span class="fs-4">
+                        <i class="fas" [ngClass]="{
+                                                  'fa-exchange-alt text-primary': payment.type === 'transfer',
+                                                  'fa-money-bill text-success': payment.type !== 'transfer'
+                                              }"></i>
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="bottom-tab2" role="tabpanel">
+        <h2 class="mb-3">Method of Payment</h2>
+        <p class="text-muted">To pay your tutors, please register a payment method.</p>
+        <div class="card p-3">
+          <app-manage-cards [cardPurpose]="CardType.Paying"></app-manage-cards>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="bottom-tab3" role="tabpanel">
+        <!-- Payment Method Section -->
+        <div class="card p-4 mb-4">
+          <h2 class="mb-3">Stripe Connect</h2>
+          <div class="text-center">
+            <button *ngIf="!isStripeConnected" class="btn btn-primary" (click)="connectStripe()">
+              Connect with Stripe
+            </button>
+            <div *ngIf="isStripeConnected" class="mt-3">
+              <p class="text-success">You are connected to Stripe</p>
+              <button class="btn btn-outline-secondary" (click)="connectStripe()">
+                Connect with a Different Account
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card p-4 mb-4">
+          <h2 class="mb-3">Paypal Connect</h2>
+          <div *ngIf="!isPayPalConnected" class="text-center">
+            <span id='paypal-button-container'></span>
+          </div>
+          <div *ngIf="isPayPalConnected" class="mt-3">
+            <p class="text-success">You are connected to PayPal</p>
+            <span id='paypal-button-container'></span>
+          </div>
+        </div>
+
+        <!-- Payment Preference Section -->
+        <div class="card p-4">
+          <h3 class="mb-3">I wish to be paid:</h3>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" id="endOfMonth" name="paymentPreference"
+              [value]="PaymentSchedule.Monthly" [(ngModel)]="paymentPreference" (change)="savePaymentPreference()" />
+            <label class="form-check-label" for="endOfMonth">At the end of the month</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" id="afterEachLesson" name="paymentPreference"
+              [value]="PaymentSchedule.PerLesson" [(ngModel)]="paymentPreference" (change)="savePaymentPreference()" />
+            <label class="form-check-label" for="afterEachLesson">After each lesson</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="bottom-tab4" role="tabpane4">
+        <div class="card shadow-sm p-4 mb-4">
+          <h3 class="mb-3 text-center">Set Your Compensation for Late Cancellations</h3>
+          <p class="text-muted text-center">
+            Avancira allows students to cancel a lesson at least 24 hours in advance with a full refund.
+            If a cancellation occurs within 24 hours, you can choose your level of compensation.
+          </p>
+
+          <div class="d-flex align-items-center justify-content-center my-4">
+            <button class="btn btn-outline-danger btn-lg me-3" (click)="adjustCompensation(-10)">
+              <i class="fas fa-minus"></i>
+            </button>
+
+            <span class="fs-2 fw-bold text-primary">{{ compensationPercentage }}%</span>
+
+            <button class="btn btn-outline-success btn-lg ms-3" (click)="adjustCompensation(10)">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+
+          <button class="btn btn-primary btn-lg w-100">
+            Get Compensated {{ compensationPercentage }}%
+          </button>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="bottom-tab5" role="tabpanel">
+        <h3 class="mb-4 fw-bold">Subscription Settings</h3>
+
+        <div *ngIf="subscriptionDetails; else noSubscription">
+          <!-- General Information -->
+          <div class="card shadow-sm p-4 mb-4">
+            <h5 class="mb-3 text-primary">Subscription Details</h5>
+            <p class="mb-2">
+              <strong>Status:</strong>
+              <span class="badge bg-success">{{ subscriptionDetails.status }}</span>
+            </p>
+            <p class="mb-2">
+              <strong>Start Date:</strong> {{ subscriptionDetails.startDate | date: 'longDate' }}
+            </p>
+            <p class="mb-2">
+              <strong>Next Billing Date:</strong> {{ subscriptionDetails.nextBillingDate | date: 'longDate' }}
+            </p>
+            <p class="mb-2">
+              <strong>Billing Frequency:</strong> {{ subscriptionDetails.billingFrequency }}
+              <a href="#" (click)="editBillingFrequency()" class="ms-2 text-decoration-none text-primary">Edit</a>
+            </p>
+            <p class="mb-2">
+              <strong>Next Billing Amount:</strong>
+              {{ subscriptionDetails.nextBillingAmount | currency: 'AUD':'symbol':'1.2-2' }}
+            </p>
+          </div>
+
+          <!-- Actions -->
+          <div class="card shadow-sm p-4 mb-4">
+            <h5 class="mb-3 text-primary">Actions</h5>
+            <div class="d-flex flex-wrap gap-2">
+
+              <!-- If user has an active subscription, show "Switch Plans" & "Cancel Plan" -->
+              <ng-container *ngIf="subscriptionDetails?.status === 'Active'; else showSubscribeButton">
+                <button class="btn btn-outline-secondary" (click)="switchPlans()">Switch Plans</button>
+                <button class="btn btn-outline-danger" (click)="cancelPlan()">Cancel Plan</button>
+              </ng-container>
+
+              <!-- If no active subscription, show "Subscribe Now" -->
+              <ng-template #showSubscribeButton>
+                <button class="btn btn-primary px-4 py-2" (click)="subscribeNow()">Subscribe Now</button>
+              </ng-template>
+
+            </div>
+          </div>
+        </div>
+
+
+        <!-- No Active Subscription Message -->
+        <ng-template #noSubscription>
+          <div class="card shadow-sm p-4 text-center">
+            <h5 class="mb-3 text-danger">No Active Subscription</h5>
+            <p class="text-muted mb-4">You don't have an active subscription at the moment.</p>
+            <button class="btn btn-primary px-4 py-2" (click)="subscribeNow()">Subscribe Now</button>
+          </div>
+        </ng-template>
+
+        <!-- Show Subscription History Even if No Active Subscription -->
+        <div *ngIf="subscriptionDetails?.subscriptionHistory?.length > 0; else noHistory">
+          <div class="card shadow-sm p-4 mb-4">
+            <h5 class="mb-3 text-primary">Subscription History</h5>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Status</th>
+                  <th>Change Date</th>
+                  <th>Billing Frequency</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let history of subscriptionDetails.subscriptionHistory">
+                  <td>{{ history.action }}</td>
+                  <td><span class="badge bg-info">{{ history.status }}</span></td>
+                  <td>{{ history.changeDate | date: 'longDate' }}</td>
+                  <td>{{ history.billingFrequency }}</td>
+                  <td>{{ history.amount | currency: 'AUD':'symbol':'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- No History Message -->
+        <ng-template #noHistory>
+          <div class="card shadow-sm p-4 text-center">
+            <h5 class="mb-3 text-muted">No Subscription History</h5>
+            <p class="text-muted mb-4">You haven't had any subscriptions yet.</p>
+          </div>
+        </ng-template>
+      </div>
+
+
+    </div>
+  </div>
+</div>

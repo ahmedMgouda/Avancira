@@ -1,0 +1,25 @@
+.stars {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  
+    input {
+      display: none; /* Hide radio buttons */
+    }
+  
+    label {
+      font-size: 2em;
+      color: #ccc;
+      cursor: pointer;
+      transition: color 0.2s;
+  
+      &.hovered {
+        color: #ffc107; /* Highlight stars on hover */
+      }
+  
+      &.selected {
+        color: #ffc107; /* Highlight stars when selected */
+      }
+    }
+  }
+  

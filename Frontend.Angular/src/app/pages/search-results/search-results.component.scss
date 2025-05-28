@@ -1,0 +1,103 @@
+@use 'colors';
+
+.search-results {
+    animation: pageLoad 1.5s ease-in-out;
+    padding: 50px;
+  
+    .header-section {
+      background: linear-gradient(to right, #e3f2fd, #c1d6e1);
+      padding: 20px 0;
+      text-align: center;
+  
+      h2 {
+        font-size: 2.5rem;
+        color: #1a237e;
+        text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+    }
+  
+    .loading,
+    .error,
+    .no-results {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #607d8b;
+      margin: 20px 0;
+    }
+  
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      margin-top: 30px;
+  
+      .result-card {
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        width: 200px;
+
+        &:hover {
+          transform: translateY(-10px);
+          box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+  
+        img {
+          width: 100%;
+          height: auto;
+          border-radius: 10px;
+        }
+  
+        .result-info {
+          margin-top: 15px;
+  
+          h3 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: #1976d2;
+          }
+  
+          p {
+            font-size: 1rem;
+            margin: 6px 0;
+            color: #607d8b;
+          }
+  
+          strong {
+            font-weight: bold;
+            color: #388e3c;
+          }
+        }
+      }
+    }
+  
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+  
+      .btn-primary {
+        background-color: #1976d2;
+        border: none;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+  
+        &:hover {
+          background-color: #1565c0;
+        }
+      }
+  
+      .loading-more {
+        font-size: 1.2rem;
+        color: #607d8b;
+        margin-left: 15px;
+      }
+    }
+  }
+  

@@ -1,0 +1,401 @@
+<!-- Home Banner -->
+<section class="home-slide d-flex align-items-center">
+    <div class="banner-two-bg-img">
+        <img src="assets/img/bg/banner-two-bg-01.png" class="img-fluid banner-two-bg" alt="">
+        <!-- <img src="assets/img/bg/banner-two-bg-02.png" class="img-fluid banner-two-bgtwo" alt=""> -->
+        <img src="assets/img/bg/banner-two-bg-03.png" class="img-fluid banner-two-bgthree" alt="">
+    </div>
+    <div class="container">
+        <div class="row ">
+            <div class="col-lg-7 d-flex align-items-center">
+                <div class="home-slide-face aos" data-aos="fade-up">
+                    <div class="home-slide-text ">
+                        <h1>Find the Perfect Mentors Near Your Location</h1>
+                        <p>Own your future learning new skills online</p>
+                    </div>
+                    <!-- Search -->
+                    <div class="search-box search-index-two">
+                        <div>
+                            <div class="form-group search-info location-search location-search-four">
+                                <input type="text" class="form-control text-truncate key"
+                                    placeholder=" Keyword / Course Name" [(ngModel)]="searchQuery"
+                                    (keydown.enter)="performSearch()">
+                                <input type="text" class="form-control text-truncate city" id="city-search"
+                                    placeholder=" City or Postalcode" (keydown.enter)="performSearch()">
+                                <a href="javascript:void(0);"
+                                    class="btn bg-search search-btn align-items-center d-flex justify-content-center"
+                                    (click)="performSearch()">
+                                    Find Mentors
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /Search -->
+                    <div class="poular-search">
+                        <p><span>Popular Search :</span> Designer, Developer, Web, iOS, PHP</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Home Banner -->
+
+<!-- Most popular Categories -->
+<section class="most-popular">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-05.png" class="img-fluid course-bg" alt="">
+        </div>
+        <div class="section-header section-head-one text-center aos" data-aos="fade-up">
+            <h2>Browse Courses By Categories</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" class="img-fluid" alt="">
+            </div>
+            <p class="sub-title">
+                {{ totalCourses }} Courses live
+                <span *ngIf="newCoursesToday > 0"> - {{ newCoursesToday }} added today</span>
+            </p>
+        </div>
+        <div class="popular-categories popular-cat-one aos" data-aos="fade-up">
+            <div class="row justify-content-center">
+                <div class="col-xl-3 col-lg-4 col-md-6" *ngFor="let category of categories" data-aos="fade-up">
+                    <a [routerLink]="['/search-results']" [queryParams]="{ categories: category.name }">
+                        <div class="sub-categories d-flex align-items-center">
+                            <div class="categories-img">
+                                <img [src]="category.image" [alt]="category.name">
+                            </div>
+                            <div class="categories-text">
+                                <h4>{{ category.name }}</h4>
+                                <p>Over <span>{{ category.courses }}</span> Courses</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="explore-more text-center">
+                <a href="search-results" class="all-browse">Browse All Categories <i
+                        class="fas fa-chevron-right"></i></a>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Most popular Categories -->
+
+<!-- Most trending course -->
+<section class="section trending-courses">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-04.png" class="img-fluid trend-course-bgone" alt="">
+            <img src="assets/img/bg/home-two-bg-06.png" class="img-fluid trend-course-bgtwo" alt="">
+        </div>
+        <div class="section-header section-head-one text-center aos" data-aos="fade-up">
+            <h2>Most Trending Courses</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" alt="">
+            </div>
+            <p class="sub-title">They are highly qualified and trained in their areas</p>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-md-12 most-trend-two owl-carousel owl-loaded owl-drag">
+                <owl-carousel-o [options]="customOptions">
+                    <ng-container *ngFor="let course of trendingCourses">
+                        <ng-template carouselSlide>
+                            <div class="course-box aos-init aos-animate" data-aos="fade-up">
+                                <div class="product">
+                                    <div class="product-img trend-course">
+                                        <a [href]="'/listing/' + course.listingId">
+                                            <img class="img-fluid course-tutor-img" [src]="course.img"
+                                                [alt]="course.title" width="600" height="300">
+                                        </a>
+                                    </div>
+                                    <div class="product-content">
+                                        <div class="rating rate-star">
+                                            <span class="average-rating rate-point">
+                                                <i class="fas fa-star"></i> {{ course.rating }} ({{ course.reviews }})
+                                            </span>
+                                            <span><img src="assets/img/icon/user-06.svg" alt="">{{ course.students }}
+                                                Students</span>
+                                        </div>
+                                        <h3 class="title"><a [href]="'/listing/' + course.listingId">{{ course.title
+                                                }}</a></h3>
+                                        <p class="description">{{ course.description }}</p>
+                                        <div class="rating rating-star rating-two align-items-center">
+                                            <div class="rating-img">
+                                                <img class="course-tutor-img" [src]="course.instructorImg"
+                                                    [alt]="course.instructor">
+                                            </div>
+                                            <h5><a [href]="'/listing/' + course.listingId">{{ course.instructor }}</a>
+                                            </h5>
+                                            <div class="course-btn">
+                                                <span>{{ course.price }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-template>
+                    </ng-container>
+                </owl-carousel-o>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Most trending course -->
+
+<!-- join us mentor -->
+<section class="join-mentor">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-07.png" class="img-fluid join-mentor-bgone" alt="">
+            <img src="assets/img/bg/home-two-bg-08.png" class="img-fluid join-mentor-bgtwo" alt="">
+        </div>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="join-mentor-img aos " data-aos="fade-up">
+                    <img src="assets/img/join.png" class="img-fluid" alt="">
+                </div>
+            </div>
+            <div class="col-lg-6 ">
+                <div class="head-join-us aos " data-aos="fade-up">
+                    <div class="join-mentor-details">
+                        <h2>Build in-demand tech skills in half the time</h2>
+                        <p>Do you want to move on next step? Choose your most popular leaning mentors, it will help you
+                            to achieve your professional goals.</p>
+                    </div>
+                    <div class="reg-log-btn">
+                        <a href="signup" class="reg-btn">Register Now</a>
+                        <a href="signin" class="log-btn">Sign In</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /join us mentor -->
+
+<!-- Selection Courses -->
+<section class="section trending-courses selection-cource">
+    <div class="container">
+        <div class="section-header section-head-one aos" data-aos="fade-up">
+            <h2>A Broad Selection Of Courses</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" alt="">
+            </div>
+            <p class="sub-title">
+                We collect reviews from our users so you can get an honest opinion of their experience with our website!
+            </p>
+        </div>
+
+        <div class="broad-course-tab" data-aos="fade-up">
+            <ul class="nav nav-pills" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation" *ngFor="let category of courseCategories; let i = index">
+                    <button class="nav-link" [ngClass]="{'active': selectedCategory === category.name}"
+                        (click)="selectCategory(category.name)" type="button" role="tab">
+                        {{ category.name }}
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content" id="pills-tabContent">
+            <div class="tab-pane fade show active">
+                <div class="row align-items-center">
+                    <div class="col-md-12 most-trend-two">
+                        <owl-carousel-o [options]="customOptions">
+                            <ng-container *ngFor="let course of filteredCourses">
+                                <ng-template carouselSlide>
+                                    <div class="course-box">
+                                        <div class="product">
+                                            <div class="product-img trend-course">
+                                                <a [href]="'/listing/' + course.listingId">
+                                                    <img class="img-fluid course-tutor-img" [src]="course.img"
+                                                        [alt]="course.title" width="600" height="300">
+                                                </a>
+                                            </div>
+                                            <div class="product-content">
+                                                <div class="rating rating-star rating-two align-items-center">
+                                                    <div class="rating-img">
+                                                        <img [src]="course.instructorImg" [alt]="course.instructor">
+                                                    </div>
+                                                    <h5><a [href]="'/listing/' + course.listingId">{{ course.instructor
+                                                            }}</a></h5>
+                                                    <div class="course-btn">
+                                                        <span>{{ course.price }}</span>
+                                                    </div>
+                                                </div>
+                                                <h3 class="title"><a [href]="'/listing/' + course.listingId">{{
+                                                        course.title }}</a></h3>
+                                                <p class="description">{{ course.description }}</p>
+                                                <div class="rating rate-star">
+                                                    <span class="average-rating rate-point">
+                                                        <i class="fas fa-star"></i>
+                                                        {{ course.rating }} ({{ course.reviews }} Reviews)
+                                                    </span>
+                                                    <span><i class="fas fa-user"></i> {{ course.students }}
+                                                        Students</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ng-template>
+                            </ng-container>
+                        </owl-carousel-o>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Selection Courses -->
+
+<!-- Featured Instructor -->
+<section class="featured-instructor feature-instructor-one">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-09.png" class="img-fluid feature-bgone" alt="">
+            <img src="assets/img/bg/home-two-bg-10.png" class="img-fluid feature-bgtwo" alt="">
+        </div>
+        <div class="section-header section-head-one text-center aos " data-aos="fade-up">
+            <h2>Meet Our Professional Mentor</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" alt="">
+            </div>
+            <p class="sub-title">They are highly qualified and trained in their areas</p>
+        </div>
+        <div class="featured-instructor-head aos " data-aos="fade-up">
+            <div class="row">
+                <div class="col-md-12">
+                    <owl-carousel-o [options]="customOptions">
+                        <ng-container *ngFor="let instructor of instructors">
+                            <ng-template carouselSlide>
+                                <div class="large-team">
+                                    <div class="student-img course-tutor-img">
+                                        <a href="payment"><img [src]="instructor.img" [alt]="instructor.name"></a>
+                                    </div>
+                                    <div class="ins-content">
+                                        <div class="team-name">
+                                            <h4><a href="payment">{{ instructor.name }}</a></h4>
+                                            <span class="designation">{{ instructor.designation }}</span>
+                                        </div>
+                                        <div class="rating rate-star">
+                                            <span class="average-rating rate-point">
+                                                <i class="fas fa-star"></i> {{ instructor.rating }} ({{
+                                                instructor.reviews }})
+                                            </span>
+                                            <span><img src="assets/img/icon/user-icon.svg" alt="">{{ instructor.students
+                                                }} Students</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ng-template>
+                        </ng-container>
+                    </owl-carousel-o>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Featured Instructor -->
+
+<!-- Job Location -->
+<section class="job-location-sec location-sec-two">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-11.png" class="img-fluid feature-bgthree" alt="">
+            <img src="assets/img/bg/home-two-bg-12.png" class="img-fluid feature-bgfour" alt="">
+        </div>
+        <div class="section-header section-head-one text-center aos " data-aos="fade-up">
+            <h2>Popular Job Location</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" alt="">
+            </div>
+            <p class="sub-title">Explore job locations with top mentors and thriving professional networks. Find
+                opportunities in the most dynamic cities.</p>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <owl-carousel-o [options]="customOptions">
+                    <ng-container *ngFor="let location of jobLocations">
+                        <ng-template carouselSlide>
+                            <div class="job-area-card">
+                                <div class="job-img">
+                                    <a href="javascript:void(0);"><img [src]="location.img" [alt]="location.city"></a>
+                                </div>
+                                <div class="job-place">
+                                    <h5>{{ location.city }}, {{ location.country }}</h5>
+                                    <span><img src="assets/img/icon/user-circle-03.svg" alt="">{{ location.mentors }}
+                                        Mentors</span>
+                                </div>
+                            </div>
+                        </ng-template>
+                    </ng-container>
+                </owl-carousel-o>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /JOb Location -->
+
+<!-- Faq -->
+<section class="faq-sec faq-sec-two">
+    <div class="container">
+        <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-09.png" class="img-fluid feature-bgone" alt="">
+            <img src="assets/img/bg/home-two-bg-10.png" class="img-fluid feature-bgtwo" alt="">
+        </div>
+        <!-- Section Header -->
+        <div class="section-header section-head-one text-center aos " data-aos="fade-up">
+            <h2>Frequently Asked Questions</h2>
+            <div class="title-bar">
+                <img src="assets/img/icon/index-title-bar.svg" alt="">
+            </div>
+            <p class="sub-title">They are highly aWe collect reviews from our users so you can get an </p>
+        </div>
+        <!-- /Section Header -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="faq-card">
+                    <!-- FAQ -->
+                    <div class="two-faq" *ngFor="let faq of faqs; let i = index">
+                        <a class="collapsed" data-bs-toggle="collapse" [attr.href]="'#faq' + i" role="button"
+                            aria-expanded="false" [attr.aria-controls]="'faq' + i">
+                            <span> {{ faq.question }} </span>
+                            <div class="collapse multi-collapse" [id]="'faq' + i">
+                                <div class="collapse-para">
+                                    {{ faq.answer }}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /Faq -->
+
+<!-- New Course subscribe -->
+<section class="new-course great-option">
+    <div class="container">
+        <!-- <div class="course-two-bg">
+            <img src="assets/img/bg/home-two-bg-07.png" class="img-fluid subscribe-bg" alt="">
+        </div> -->
+        <div class="head-join-us">
+            <div class="row">
+                <div class="col-xl-8" data-aos="fade-up">
+                    <h2>Find Your Next Great Opportunity!</h2>
+                </div>
+                <div class="col-xl-4">
+                    <div class="reg-log-btn" data-aos="fade-up">
+                        <a href="signup" class="reg-btn">Register Now</a>
+                        <a href="signin" class="log-btn">Sign In</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /New Course -->
+<!-- <app-footer-landing></app-footer-landing> -->

@@ -1,0 +1,52 @@
+<app-modal [title]="title" [isOpen]="true" (onClose)="closeModal()">
+    <!-- <ng-container *ngIf="editingSection === 'title'">
+            <label>Title</label>
+            <input type="text" [(ngModel)]="listing!.title" class="form-control">
+          </ng-container> -->
+    <!-- 
+
+    <ng-container *ngIf="editingSection === 'image'">
+        <label>Upload Image</label>
+        <input type="file" (change)="listing!.listingImage = $event.target.files[0]" class="form-control">
+    </ng-container>
+
+     -->
+
+    <ng-container *ngIf="editingSection === 'Lesson Category'">
+        <label for="lessonCategory">Lesson Category:</label>
+        <app-auto-complete-input [options]="lessonCategories" (searchTextChanged)="loadLessonCategories($event)"
+            (selectedOption)="selectOption($event)" (newOptionCreated)="addNewLessonCategory($event)">
+        </app-auto-complete-input>
+    </ng-container>
+    <ng-container *ngIf="editingSection === 'Locations'">
+        <div class="form-group">
+            <label for="locations">Locations:</label>
+            <select id="locations" class="form-control" [(ngModel)]="selectedLocations" multiple>
+                <option *ngFor="let location of locationOptions" [value]="location">
+                    {{ location }}
+                </option>
+            </select>
+        </div>        
+    </ng-container>
+    <ng-container *ngIf="editingSection === 'About Lesson'">
+        <label>About Lesson</label>
+        <textarea [(ngModel)]="listing!.aboutLesson" class="form-control"></textarea>
+    </ng-container>
+    <ng-container *ngIf="editingSection === 'About You'">
+        <label>About You</label>
+        <textarea [(ngModel)]="listing!.aboutYou" class="form-control"></textarea>
+    </ng-container>
+    <ng-container *ngIf="editingSection === 'Rates'">
+        <label>Hourly Rate</label>
+        <input type="number" [(ngModel)]="listing!.rates.hourly" class="form-control">
+    </ng-container>
+
+    <ng-content select="[modal-footer]" class="justify-content-center">
+        <div class="modal-footer d-flex justify-content-center">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="save()">Save</button>
+        </div>
+    </ng-content>
+
+
+</app-modal>

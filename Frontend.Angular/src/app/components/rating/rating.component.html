@@ -1,0 +1,24 @@
+<div class="stars">
+    <ng-container *ngFor="let star of [1, 2, 3, 4, 5]">
+      <input
+        type="radio"
+        [id]="'star' + star"
+        name="rating"
+        [value]="star"
+        [(ngModel)]="rating"
+        (change)="onRatingChange(star)"
+        required
+      />
+      <label
+        [for]="'star' + star"
+        class="star"
+        [class.selected]="star <= (rating ?? 0)"
+        [class.hovered]="star <= hoveredStar"
+        (mouseover)="onHover(star)"
+        (mouseout)="onHover(0)"
+      >
+        &#9733;
+      </label>
+    </ng-container>
+  </div>
+  

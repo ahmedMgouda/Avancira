@@ -1,0 +1,91 @@
+<div class="right-sidebar" *ngIf="selectedContact">
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab === 'propositions'" (click)="activeTab = 'propositions'">
+        Propositions
+      </button>
+      <button class="tab" [class.active]="activeTab === 'lessons'" (click)="activeTab = 'lessons'">
+        Lessons
+      </button>
+    </div>
+
+    <!-- Propositions Section -->
+    <div class="propositions" *ngIf="activeTab === 'propositions'">
+      <div class="propose-buttons">
+        <button class="btn propose-pack" *ngIf="selectedContact?.myRole === Role.Student">
+          <span>📦 Propose a Pack</span>
+        </button>
+        <button class="btn propose-lesson" *ngIf="selectedContact?.myRole === Role.Student" (click)="openModal()">
+          <span>📘 Propose a Lesson</span>
+        </button>
+      </div>
+      <div class="propositions-section" *ngIf="propositions.length > 0">
+        <h3>Propositions for {{ selectedContact.name }}</h3>
+        <ul>
+          <li *ngFor="let proposition of propositions">
+            <p><strong>Date:</strong> {{ proposition.date | date }}</p>
+            <p><strong>Duration:</strong> {{ proposition.duration }}</p>
+            <p><strong>Price:</strong> ${{ proposition.price }}</p>
+            <p><strong>Status:</strong> {{ LessonStatus[+proposition.status] }}</p>
+            <div class="proposition-actions" *ngIf="selectedContact?.myRole === Role.Tutor">
+              <!-- Accept Button -->
+              <button class="accept-btn" (click)="respondToProposition(proposition.id, true)">
+                Accept
+              </button>
+              <!-- Refuse Button -->
+              <button class="refuse-btn" (click)="respondToProposition(proposition.id, false)">
+                Refuse
+              </button>
+            </div>
+            <div class="proposition-actions" *ngIf="selectedContact?.myRole === Role.Student">
+              <!-- Cancel Button -->
+              <button class="refuse-btn" (click)="respondToProposition(proposition.id, false)">
+                Cancel
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="no-propositions" *ngIf="propositions.length === 0">
+        <p>No propositions pending.</p>
+      </div>
+    </div>
+
+    <!-- Lessons Section -->
+    <div class="lessons" *ngIf="activeTab === 'lessons'">
+      <ul>
+        <li *ngFor="let lesson of lessons">
+          <p><strong>Topic:</strong> {{ lesson.topic }}</p>
+          <p><strong>Date:</strong> {{ lesson.date | date }}</p>
+          <p><strong>Duration:</strong> {{ lesson.duration }}</p>
+          <p><strong>Status:</strong> {{ LessonStatus[+lesson.status] }}</p>
+          <!-- New Button to Start Video Call -->
+          <button
+            class="start-call-btn"
+            (click)="startVideoCall(lesson)"
+          >
+            Start Video Call
+          </button>
+
+          <!-- Show Cancel Button if lesson is Booked -->
+          <button
+            class="cancel-lesson-btn"
+            *ngIf="lesson.status === LessonStatus.Booked"
+            (click)="cancelLesson(lesson.id)"
+          >
+            Cancel Lesson
+          </button>
+        </li>
+      </ul>
+      <div class="no-lessons" *ngIf="lessons.length === 0">
+        <p>No lessons scheduled.</p>
+      </div>
+    </div>
+
+
+
+  </div>
+  <app-modal *ngIf="isModalOpen" [isOpen]="isModalOpen" (onClose)="closeModal()">
+    <app-propose-lesson [listing]="selectedListing" [studentId]="selectedContact?.studentId ?? null"
+      (onClose)="closeModal()"></app-propose-lesson>
+  </app-modal>

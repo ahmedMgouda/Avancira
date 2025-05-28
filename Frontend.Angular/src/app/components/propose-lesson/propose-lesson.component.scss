@@ -1,0 +1,131 @@
+@use "sass:color";
+@use 'colors';
+
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  background: colors.$background-white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: colors.$shadow-medium;
+  font-family: "Arial", sans-serif;
+
+  h3 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 1.5rem;
+    color: colors.$primary-color;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+
+    label {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: colors.$text-color-muted;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid colors.$border-color;
+      border-radius: 5px;
+      font-size: 1rem;
+      background: colors.$secondary-color-light;
+      transition: border 0.3s ease;
+
+      &:focus {
+        border-color: colors.$primary-color;
+        background: colors.$background-white;
+      }
+    }
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      text-align: center;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease-in-out;
+
+      &.btn-primary {
+        background-color: colors.$success-color;
+        color: colors.$text-color-light;
+
+        &:hover {
+          background-color: color.adjust(colors.$success-color, $lightness: -10%);
+        }
+      }
+
+      &.btn-secondary {
+        background-color: colors.$danger-color;
+        color: colors.$text-color-light;
+
+        &:hover {
+          background-color: color.adjust(colors.$danger-color, $lightness: -10%);
+        }
+      }
+    }
+  }
+
+  .success-message {
+    margin-top: 1.5rem;
+    color: colors.$success-color;
+    text-align: center;
+    font-weight: bold;
+  }
+}
+
+.no-payment-details-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  background: color.adjust(colors.$success-color, $lightness: 50%); // Light yellow background
+  border: 1px solid color.adjust(colors.$success-color, $lightness: 40%); // Light yellow border
+  border-radius: 8px;
+  box-shadow: colors.$shadow-small;
+  margin-top: 20px;
+
+  .icon-container {
+    font-size: 2.5rem;
+    color: color.adjust(colors.$success-color, $lightness: -20%); // Brown color for warning icon
+    margin-bottom: 10px;
+  }
+
+  .warning-message {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: color.adjust(colors.$success-color, $lightness: -20%);
+    margin-bottom: 15px;
+  }
+
+  .add-payment-btn {
+    background-color: colors.$primary-color;
+    color: colors.$text-color-light;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background-color: colors.$primary-color-dark;
+    }
+  }
+}

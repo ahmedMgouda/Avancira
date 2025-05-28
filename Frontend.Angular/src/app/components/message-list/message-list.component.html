@@ -1,0 +1,37 @@
+<form class="chat-search d-flex align-items-center">
+  <div class="avatar avatar-online me-3">
+    <img [src]="user.profileImagePath" alt="User Image" class="avatar-img rounded-circle" [imageFallback]="user.firstName + ' ' + user.lastName">
+  </div>
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <i class="fas fa-search"></i>
+    </div>
+    <input type="text" class="form-control rounded-pill" placeholder="Search">
+  </div>
+</form>
+<div class="chat-header">
+  <span>Chats</span>
+</div>
+<div class="chat-users-list">
+  <div class="chat-scroll">
+
+    <a class="media read-chat d-flex" *ngFor="let contact of contacts"
+      [class.active]="contact.id === selectedContact?.id" (click)="selectContact(contact)">
+      <div class="media-img-wrap flex-shrink-0">
+        <div class="avatar avatar-online">
+          <img [src]="contact.profileImagePath" alt="User Image" class="avatar-img rounded-circle">
+        </div>
+      </div>
+      <div class="media-body flex-grow-1">
+        <div>
+          <div class="user-name">{{ contact.name }}</div>
+          <div class="user-last-chat">{{ contact.lastMessage }}</div>
+        </div>
+        <div>
+          <div class="last-chat-time block">{{ contact.timestamp | timeAgo }}</div>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>

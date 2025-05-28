@@ -1,0 +1,32 @@
+<div class="premium-subscription-page">
+  <div class="premium-container">
+
+    <div class="premium-header">
+      <h1>{{ subscription.title }}</h1>
+      <p>{{ subscription.subtitle }}</p>
+      <h2>${{ subscription.price }}</h2>
+    </div>
+
+    <div class="benefits-section">
+      <h3>Benefits</h3>
+      <ul>
+        <li *ngFor="let benefit of subscription.benefits">
+          {{ benefit }}
+        </li>
+      </ul>
+    </div>
+
+    <div *ngIf="isLoggedIn; else notLoggedIn">
+      <app-manage-cards *ngIf="!savedCardsAvailable" [cardPurpose]="CardType" (cardSelected)="onCardSelected($event)">
+      </app-manage-cards>
+      <button class="pay-button" [disabled]="!selectedCard" (click)="payWithSelectedCard()">
+        Pay with Selected Card
+      </button>
+    </div>
+
+    <ng-template #notLoggedIn>
+      <p>You need to log in to subscribe to premium features.</p>
+      <button class="login-btn" (click)="goToLogin()">Login</button>
+    </ng-template>
+  </div>
+</div>

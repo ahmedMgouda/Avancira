@@ -1,0 +1,241 @@
+.payment-method-section {
+  .saved-cards-section {
+    h3 {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      list-style: none;
+      padding: 0;
+      justify-content: center;
+
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #f9f9f9;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        min-width: 250px;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        font-size: 1rem;
+
+        &.selected {
+          border-color: #4caf50;
+          background-color: #e8f5e9;
+          color: #4caf50;
+          box-shadow: 0 6px 10px rgba(76, 175, 80, 0.2);
+        }
+
+        &:hover {
+          background-color: #f1f1f1;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+  }
+
+  // .method-list {
+  //   display: flex;
+  //   flex-wrap: wrap;
+  //   gap: 1rem;
+
+  //   .method-item {
+  //     display: flex;
+  //     flex-direction: column;
+  //     gap: 0.5rem;
+  //     padding: 1rem;
+  //     border: 2px solid transparent;
+  //     border-radius: 10px;
+  //     background: #f9f9f9;
+  //     transition: all 0.3s ease;
+  //     cursor: pointer;
+
+  //     &.selected {
+  //       border-color: #28a745; // Green border for selected card
+  //       background: #e8f5e9; // Light green background for selected card
+  //     }
+
+  //     &:hover {
+  //       border-color: #007bff; // Blue border on hover
+  //     }
+
+  //     .method-details {
+  //       display: flex;
+  //       align-items: center;
+  //       gap: 0.5rem;
+
+  //       .card-icon {
+  //         font-size: 2rem;
+  //         color: #007bff;
+  //       }
+
+  //       .method-name {
+  //         font-weight: bold;
+  //         color: #333;
+  //       }
+
+  //       .method-info {
+  //         font-size: 0.9rem;
+  //         color: #777;
+  //       }
+  //     }
+
+  //     .method-actions {
+  //       display: flex;
+  //       justify-content: space-between;
+  //       gap: 0.5rem;
+
+  //       .favorite {
+  //         background: none;
+  //         border: none;
+  //         font-size: 1.2rem;
+  //         color: #007bff;
+  //         cursor: pointer;
+
+  //         &.active {
+  //           color: #ff6347;
+  //         }
+  //       }
+
+  //       .delete {
+  //         background: none;
+  //         border: none;
+  //         font-size: 1.2rem;
+  //         color: #dc3545;
+  //         cursor: pointer;
+  //       }
+  //     }
+  //   }
+  // }
+
+  form {
+    margin-top: 30px;
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+      }
+    }
+
+    .card-input-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+
+      .card-input {
+        flex: 1;
+
+        &.small-input {
+          flex: 0 0 48%;
+        }
+
+        .input-container {
+          background: #f9f9f9;
+          border: 1px solid #ddd;
+          padding: 10px;
+          border-radius: 8px;
+        }
+      }
+    }
+
+    .input-errors {
+      color: #d9534f;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+
+    .add-method-btn {
+      display: block;
+      margin: 0 auto;
+      padding: 10px 20px;
+      font-size: 1.2rem;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+
+      &:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .add-card-btn-container {
+    display: flex;
+    justify-content: center; // Center horizontally
+    align-items: center; // Center vertically (if needed)
+    margin-top: 20px; // Add space from the top if required
+
+    .add-card-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: #007bff; // Blue button color
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      i {
+        margin-right: 8px; // Space between icon and text
+        font-size: 18px; // Slightly larger icon
+      }
+
+      &:hover {
+        background-color: #0056b3; // Darker blue for hover
+        transform: scale(1.05); // Slight zoom effect
+      }
+
+      &:active {
+        background-color: #00408d; // Even darker blue for active state
+        transform: scale(1); // Reset zoom
+      }
+
+      &:focus {
+        outline: none; // Remove default focus outline
+        box-shadow: 0 0 0 3px rgba(38, 143, 255, 0.5); // Custom focus outline
+      }
+    }
+  }
+}

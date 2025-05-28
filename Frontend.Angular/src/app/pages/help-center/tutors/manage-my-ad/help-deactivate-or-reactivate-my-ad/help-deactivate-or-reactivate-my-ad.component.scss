@@ -1,0 +1,55 @@
+.deactivate-reactivate-ad {
+    padding: 25px;
+    background: linear-gradient(135deg, #ffffff, #f9fafc);
+    border-radius: 12px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+    font-family: 'Open Sans', sans-serif;
+  
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+  
+    .intro {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      color: #34495e;
+    }
+  
+    .description {
+      font-size: 1rem;
+      margin-bottom: 20px;
+      color: #4a4a4a;
+      line-height: 1.6;
+    }
+  
+    .section {
+      margin-bottom: 30px;
+  
+      .subtitle {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #2c3e50;
+      }
+  
+      .instructions {
+        list-style: none;
+        padding-left: 20px;
+  
+        li {
+          font-size: 1rem;
+          line-height: 1.8;
+          color: #4a4a4a;
+          margin-bottom: 10px;
+  
+          strong {
+            color: #1a73e8;
+          }
+        }
+      }
+    }
+  }
+  

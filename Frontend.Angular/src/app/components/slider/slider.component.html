@@ -1,0 +1,15 @@
+<div class="slider-container">
+    <div class="slider">
+      <button class="slider-btn left" (click)="slideLeft()">
+        ←
+      </button>
+      <div class="slider-track" #sliderTrack>
+        <div class="slider" *ngFor="let item of items">
+            <ng-container *ngTemplateOutlet="itemTemplate; context: { $implicit: item }"></ng-container>
+        </div>
+      </div>
+      <button class="slider-btn right" (click)="slideRight()">
+        →
+      </button>
+    </div>
+  </div>

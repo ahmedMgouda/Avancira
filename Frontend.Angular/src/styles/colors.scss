@@ -1,0 +1,66 @@
+// Base Colors
+$primary-color: #2a3eb1; // Brighter dark blue for prominent elements
+$primary-color-light: #5a67d8; // Medium blue for secondary use
+$primary-color-dark: #162c78; // Rich dark blue for contrasts
+$primary-color-hover: lighten($primary-color, 5%); // Dynamic hover
+
+$secondary-color: #5db9f6; // Vibrant light blue
+$secondary-color-light: #e8f5fd; // Softer very light blue
+$secondary-color-dark: #1e88e5; // Deeper medium-light blue
+$secondary-color-hover: darken($secondary-color, 10%); // Hover adjustment
+
+// Success and Danger
+$success-color: #3dcc6f; // Richer green for success
+$success-color-hover: lighten($success-color, 10%);
+$danger-color: #e63946; // Vibrant red for danger
+$danger-color-hover: lighten($danger-color, 10%);
+
+// Notification and Warnings
+$notification-info: #90caf9;
+$notification-warning: #ffeeba;
+$notification-danger: #e04848;
+$highlight-color: #f57c00;
+$highlight-color-dark: #e65100;
+$warning-color: #ff9800;
+
+// Text Colors
+$text-color-primary: #ffffff; // Light text for dark backgrounds
+$text-color-secondary: #2a3e75; // Balanced dark blue text for light backgrounds
+$text-color-light: #f9f9f9; // Softer white for very dark areas
+$text-color-muted: lighten($text-color-secondary, 20%); // Subtle muted text
+
+
+// Background Colors
+$background-white: #ffffff; // Kept for clean content areas
+$background-light: #f4f6fa; // Warmer light gray for overall backgrounds
+$background-muted: #eef2f7; // Subtle muted tone for non-prominent areas
+$background-hover: darken($background-light, 5%);
+$background-dark: #000000;
+
+// Borders
+$border-color: #dddddd;
+$border-light: lighten($border-color, 10%);
+
+// Gradients
+$gradient-primary: linear-gradient(135deg, $primary-color-light, $primary-color);
+$gradient-secondary: linear-gradient(135deg, lighten($secondary-color, 15%), $secondary-color);
+$gradient-success: linear-gradient(90deg, $success-color, lighten($success-color, 10%));
+$gradient-danger: linear-gradient(90deg, $danger-color, darken($danger-color, 10%));
+
+// Shadows
+$shadow-small: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 10px rgba(0, 0, 0, 0.2);
+$shadow-large: 0 8px 20px rgba(0, 0, 0, 0.3);
+$shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.15);
+
+
+// Button Colors (New Section)
+$button-primary-bg: $primary-color;
+$button-primary-hover: darken($primary-color, 5%);
+$button-secondary-bg: $secondary-color;
+$button-secondary-hover: darken($secondary-color, 5%);
+
+// Social Media Colors
+$social-facebook: #4267b2;
+$social-twitter: #1da1f2;
+$social-linkedin: #0077b5;

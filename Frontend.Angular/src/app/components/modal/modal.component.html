@@ -1,0 +1,17 @@
+<div class="modal-backdrop fade show" *ngIf="isOpen"></div>
+<div class="modal fade show d-block" *ngIf="isOpen" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered  {{ getModalSizeClass() }}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ title }}</h5>
+        <button type="button" class="btn-close" (click)="close()"></button>
+      </div>
+      <div class="modal-body">
+        <ng-content></ng-content>
+      </div>
+      <div modal-footer>
+        <ng-content select="[modal-footer]"></ng-content>
+      </div>    
+    </div>
+  </div>
+</div>

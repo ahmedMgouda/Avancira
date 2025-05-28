@@ -1,0 +1,217 @@
+<div class="card">
+    <div class="card-body">
+        <ul class="nav nav-tabs nav-tabs-bottom" role="tablist">
+            <li class="nav-item" role="presentation"><a class="nav-link active" href="#bottom-tab1" data-bs-toggle="tab"
+                    aria-selected="true" role="tab">Basic Information</a></li>
+            <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab2" data-bs-toggle="tab"
+                    aria-selected="false" tabindex="-1" role="tab">Bio & Qualifications</a></li>
+            <li class="nav-item" role="presentation"><a class="nav-link" href="#bottom-tab3" data-bs-toggle="tab"
+                    aria-selected="false" tabindex="-1" role="tab">Change Password</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane show active" id="bottom-tab1" role="tabpanel">
+                <!-- Basic Information Form -->
+                <form>
+
+                    <div class="row form-row">
+                        <div class="col-12 col-md-12">
+                            <div class="form-group">
+                                <div class="change-avatar">
+                                    <div class="profile-img">
+                                        <img [src]="profile.profileImagePath" alt="User Image"
+                                            [imageFallback]="profile.firstName + ' ' + profile.lastName">
+                                    </div>
+                                    <div class="upload-img">
+                                        <div class="change-photo-btn">
+                                            <span><i class="fa fa-upload"></i> Upload Photo</span>
+                                            <input type="file" class="upload" (change)="onProfilePictureUpload($event)">
+                                        </div>
+                                        <small class="form-text text-muted">Allowed JPG, GIF or PNG. Max size of
+                                            2MB</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-group">
+                                    <label>First Name</label>
+                                    <input type="text" class="form-control" [(ngModel)]="profile.firstName"
+                                        name="firstName" placeholder="Enter first name">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input type="text" class="form-control" [(ngModel)]="profile.lastName"
+                                        name="lastName" placeholder="Enter last name">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" [(ngModel)]="profile.dateOfBirth" name="dateOfBirth"
+                                    class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-group">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" [(ngModel)]="profile.email" name="email"
+                                        disabled placeholder="Enter email">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-group">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" [(ngModel)]="profile.phoneNumber"
+                                        name="phoneNumber" placeholder="Enter phone number">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Skype ID</label>
+                                <input type="text" class="form-control" [(ngModel)]="profile.skypeId" name="skypeId"
+                                    placeholder="Enter Skype ID">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hangout ID</label>
+                                <input type="text" class="form-control" [(ngModel)]="profile.hangoutId" name="hangoutId"
+                                    placeholder="Enter Hangout ID">
+                            </div>
+
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Timezone</label>
+                                <select class="form-select" [(ngModel)]="profile.timeZoneId" name="timeZoneId">
+                                  <option *ngFor="let tz of timezones" [value]="tz.id">{{ tz.label }}</option>
+                                </select>
+                              </div>
+                              
+                            <div class="mb-3">
+                                <app-map-address [initialAddress]="profile.address?.formattedAddress || null"
+                                    (addressSelected)="updateAddress($event)"></app-map-address>
+                            </div>
+                        </div>
+                        <div class="col-md-12" style="text-align: end;">
+                            <button type="submit" class="btn btn-primary submit-btn" (click)="saveProfile()">Save
+                                Changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane" id="bottom-tab2" role="tabpanel">
+                <form>
+                    <!-- Bio Section -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Short Bio</label>
+                                <textarea class="form-control" rows="4" name="bio" [(ngModel)]="profile.bio"
+                                    placeholder="Write a short bio about yourself"></textarea>
+                            </div>
+                            <!-- Save Bio Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary" (click)="saveProfile()">Save Bio</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <form>
+                    <!-- Qualifications Section -->
+                    <div class="card">
+                        <div class="card-body">
+                            <!-- Upload Qualifications -->
+                            <div *ngIf="diplomaStatus === DiplomaStatus.NotSubmitted">
+                                <div class="mb-3">
+                                    <label class="form-label">Upload Qualification Documents</label>
+                                    <input type="file" class="form-control" (change)="onFileSelected($event)">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Document Descriptions</label>
+                                    <textarea class="form-control" rows="2"
+                                        placeholder="Provide details about your uploaded documents"></textarea>
+                                </div>
+                                <div class="text-end mt-3">
+                                    <button type="submit" class="btn btn-primary" (click)="submitDiploma()">Save
+                                        Qualifications</button>
+                                </div>
+                            </div>
+                            <!-- Display uploaded Qualifications -->
+                            <!-- <div *ngIf="diplomaStatus != DiplomaStatus.NotSubmitted">
+                                <h6>Uploaded Documents</h6>
+                                <div class="card card-table">
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-center mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Document</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <a href="invoice-view.html">#INV-0010</a>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <div class="actions">
+                                                                <a href="invoice-view.html"
+                                                                    class="btn btn-sm bg-info-light">
+                                                                    <i class="fa fa-download"></i> Download
+                                                                </a>
+                                                                <a data-bs-toggle="modal" href="#delete_modal"
+                                                                    class="btn btn-sm bg-danger-light">
+                                                                    <i class="fa fa-trash"></i> Delete
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div> -->
+                            <div *ngIf="diplomaStatus === DiplomaStatus.UnderReview" class="qualification-status">
+                                <p>Your diploma is currently under review.</p>
+                                <button class="btn under-review-btn" disabled>Under Review</button>
+                            </div>
+                            <div *ngIf="diplomaStatus === DiplomaStatus.Verified" class="qualification-status">
+                                <p>Your diploma has been verified.</p>
+                                <button class="btn verified-btn" disabled>Verified</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane" id="bottom-tab3" role="tabpanel">
+                <!-- Change Password Form -->
+                <form (submit)="changeOldPassword(); $event.preventDefault();">
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-control" placeholder="Enter current password"
+                            [(ngModel)]="changePasswordData.oldPassword" name="oldPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" placeholder="Enter new password"
+                            [(ngModel)]="changePasswordData.newPassword" name="newPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" placeholder="Confirm new password"
+                            [(ngModel)]="changePasswordData.confirmNewPassword" name="confirmNewPassword" required>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,99 @@
+<div class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Booking Form Section -->
+      <div class="col-md-7 col-lg-8">
+        <div class="card">
+          <div class="card-body">
+            <div *ngIf="loading; else bookingForm">
+              <p>Loading lesson details...</p>
+            </div>
+
+            <ng-template #bookingForm>
+              <div class="payment-widget">
+                <!-- Lesson Details -->
+                <h4>{{ listing.title }}</h4>
+                <p>Instructor: <strong>{{ listing.tutorName }}</strong></p>
+                <p>Category: <strong>{{ listing.lessonCategory }}</strong></p>
+                <p>Hourly Rate: <strong>{{ listing.rates.hourly | currency: 'USD' }}</strong></p>
+
+                <!-- Select Date and Time -->
+                <div class="form-group">
+                  <label for="lessonDate">Select Date</label>
+                  <input type="date" id="lessonDate" class="form-control" [(ngModel)]="selectedDate" [min]="minDate">
+                </div>
+
+                <div class="form-group">
+                  <label for="lessonTime">Select Time</label>
+                  <input type="time" id="lessonTime" class="form-control" [(ngModel)]="selectedTime">
+                </div>
+
+                <!-- Select Lesson Duration -->
+                <div class="form-group">
+                  <label for="lessonDuration">Duration (hours)</label>
+                  <select id="lessonDuration" class="form-control" [(ngModel)]="lessonDuration"
+                    (change)="updateTotalPrice()">
+                    <option *ngFor="let hours of [1, 2, 3, 4, 5]" [value]="hours">{{ hours }} hour(s)</option>
+                  </select>
+                </div>
+
+                <app-payment-method 
+                  [totalPrice]="totalPrice"
+                  [listingId]="listing.id"
+                  [(selectedCard)]="selectedCard"
+                  [returnUrl]="'/messages'"
+                  (paymentConfirmed)="payWithSelectedCard()"
+                  [onApproval]="handlePayment">
+                </app-payment-method>
+
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking Summary -->
+      <div class="col-md-5 col-lg-4">
+        <div class="card booking-card">
+          <div class="card-header">
+            <h4 class="card-title">Booking Summary</h4>
+          </div>
+          <div class="card-body">
+            <div class="booking-info">
+              <h5>Course Name:</h5>
+              <p>{{ listing.title }}</p>
+              <h5>Tutor Name:</h5>
+              <p>{{ listing.tutorName }}</p>
+            </div>
+
+            <!-- Booking Summary Details -->
+            <div class="booking-summary">
+              <div class="booking-item-wrap">
+                <ul class="booking-date">
+                  <li>Date: <span>{{ selectedDate || 'Not selected' }}</span></li>
+                  <li>Time: <span>{{ selectedTime || 'Not selected' }}</span></li>
+                  <li>Duration: <span>{{ lessonDuration }} hour(s)</span></li>
+                </ul>
+                <ul class="booking-fee">
+                  <li>Hourly Rate: <span>{{ listing.rates.hourly | currency: 'USD' }}</span></li>
+                  <li>Total Cost: <span>{{ totalPrice | currency: 'USD' }}</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Booking Total -->
+            <div class="booking-total">
+              <ul class="booking-total-list">
+                <li>
+                  <span>Total</span>
+                  <span class="total-cost">{{ totalPrice | currency: 'USD' }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /Booking Summary -->
+    </div>
+  </div>
+</div>

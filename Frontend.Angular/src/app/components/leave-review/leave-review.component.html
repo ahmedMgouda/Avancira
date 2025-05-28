@@ -1,0 +1,39 @@
+<div class="leave-review">
+  <h2>Leave a Review</h2>
+  <form #reviewForm="ngForm" (ngSubmit)="submitReview(reviewForm)">
+    <div class="form-group">
+      <label for="subject">Subject</label>
+      <input
+        type="text"
+        id="subject"
+        name="subject"
+        class="form-control"
+        [(ngModel)]="newReview.subject"
+        required
+        placeholder="Enter the subject of your review"
+      />
+    </div>
+    <div class="form-group">
+      <label for="feedback">Feedback</label>
+      <textarea
+        id="feedback"
+        name="feedback"
+        class="form-control"
+        [(ngModel)]="newReview.feedback"
+        rows="4"
+        required
+        placeholder="Share your thoughts about your experience"
+      ></textarea>
+    </div>
+
+    <div class="form-group star-rating">
+      <label>Rating</label>
+      <app-rating [(rating)]="newReview.rating"></app-rating>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Review</button>
+  </form>
+  <div *ngIf="responseMessage" class="response-message">
+    {{ responseMessage }}
+  </div>
+</div>

@@ -1,0 +1,51 @@
+<h3>Propose a Lesson</h3>
+<form *ngIf="paymentDetailsAvailable; else noPaymentDetails">
+  <div class="form-group">
+    <label for="lessonDate">Date:</label>
+    <input 
+      id="lessonDateTime" 
+      type="datetime-local" 
+      [(ngModel)]="lessonDateTime" 
+      name="lessonDateTime" 
+      required 
+      [min]="minDateTime"
+      title="Choose the date and time for the lesson"
+      placeholder="Select date and time"
+    />
+  </div>
+  <div class="form-group">
+    <label for="lessonDuration">Duration (hours):</label>
+    <input
+      id="lessonDuration"
+      type="number"
+      [(ngModel)]="lessonDuration"
+      name="lessonDuration"
+      required
+      (input)="updateLessonPrice()"
+    />
+  </div>
+  <div class="form-group">
+    <label for="lessonPrice">Price ($):</label>
+    <input id="lessonPrice" type="number" [(ngModel)]="lessonPrice" name="lessonPrice" readonly />
+  </div>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-primary" (click)="proposeLesson()">Propose Lesson</button>
+    <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+  </div>
+</form>
+
+<ng-template #noPaymentDetails>
+  <div class="no-payment-details-container">
+    <div class="icon-container">
+      <i class="fas fa-exclamation-circle"></i>
+    </div>
+    <p class="warning-message">
+      You need to add your payment details before proposing a lesson.
+    </p>
+    <button class="btn btn-primary add-payment-btn" (click)="navigateToProfile()">Add Payment Details</button>
+  </div>
+</ng-template>
+
+<p *ngIf="proposeSuccess" class="success-message">
+  Lesson proposed successfully!
+</p>

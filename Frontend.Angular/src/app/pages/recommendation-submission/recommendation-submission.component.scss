@@ -1,0 +1,105 @@
+@use 'colors';
+
+.recommendation-form {
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+
+  .form-header {
+    text-align: center;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .avatar {
+      margin-top: 15px;
+      display: inline-block;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #f3f3f3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      span {
+        font-size: 32px;
+        font-weight: bold;
+        color: #777;
+      }
+    }
+  }
+
+  form {
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        font-size: 16px;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 5px;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        transition: all 0.3s ease;
+
+        &:focus {
+          border-color: #3b82f6;
+          background-color: #fff;
+          outline: none;
+          box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+        }
+      }
+
+      textarea {
+        height: 120px;
+        resize: none;
+      }
+    }
+
+    .btn-submit {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #3b82f6;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background-color: #2563eb;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+      }
+    }
+  }
+}

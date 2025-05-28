@@ -1,0 +1,64 @@
+<!-- Placeholder when no contact is selected -->
+<div class="no-contact-placeholder" *ngIf="!selectedContact">
+  <h3>Please select a contact to start chatting.</h3>
+</div>
+
+<div class="chatSection" *ngIf="selectedContact" #chatSection>
+  <div class="chat-header">
+    <a id="back_user_list" href="javascript:void(0)" class="back-user-list">
+      <i class="material-icons">chevron_left</i>
+    </a>
+    <div class="media d-flex">
+      <div class="media-img-wrap flex-shrink-0">
+        <div class="avatar avatar-online">
+          <img [src]="selectedContact.profileImagePath" alt="User Image" class="avatar-img rounded-circle">
+        </div>
+      </div>
+      <div class="media-body flex-grow-1">
+        <div class="user-name">{{ selectedContact.name }}</div>
+        <div class="">{{ selectedContact.details }}</div>
+      </div>
+    </div>
+    <div class="chat-options">
+      <a href="javascript:void(0)" (click)="toggleSlider($event)">
+        <i class="material-icons">more_vert</i>
+      </a>
+    </div>
+  </div>
+  <div class="chat-body">
+    <div class="chat-scroll">
+      <ul class="list-unstyled">
+        <li *ngFor="let message of selectedContact.messages" [class.sent]="message.sentBy === 'me'"
+          [class.received]="message.sentBy !== 'me'" class="media">
+          <div class="media-body">
+            <div class="msg-box">
+              <div>
+                <p>{{ message.content }}</p>
+                <ul class="chat-msg-info">
+                  <li>
+                    <div class="chat-time">
+                      <span>{{ message.timestamp | timeAgo }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="chat-footer">
+    <div class="input-group">
+      <input type="text" class="input-msg-send form-control" placeholder="Type something" [(ngModel)]="newMessage"
+        (keydown.enter)="sendMessage()">
+      <button type="button" class="btn msg-send-btn" (click)="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slider -->
+<div #slider class="slider">
+  <!-- Your slider content here -->
+  <app-manage-lessons [selectedContact]="selectedContact"></app-manage-lessons>
+</div>

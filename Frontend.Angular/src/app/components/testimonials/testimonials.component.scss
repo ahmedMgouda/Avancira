@@ -1,0 +1,86 @@
+@use 'colors';
+
+.testimonials-section {
+    text-align: center;
+    padding: 50px;
+    background-color: colors.$secondary-color-light;
+  
+    h2 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      color: colors.$primary-color-dark;
+    }
+  
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      color: colors.$primary-color-dark;
+    }
+  
+    .testimonials-slider {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* Hide overflow to prevent the track from showing extra slides */
+      width: 100%;
+      max-width: 900px; /* Limit the slider width */
+      margin: 0 auto;
+    
+      .slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: colors.$background-white;
+        border: 1px solid colors.$text-color-muted;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+        color: colors.$primary-color-dark;
+        cursor: pointer;
+        box-shadow: colors.$shadow-small;
+        z-index: 10;
+    
+        &:hover {
+          background: colors.$primary-color-light;
+        }
+    
+        &.left {
+          left: 10px;
+        }
+    
+        &.right {
+          right: 10px;
+        }
+      }
+    
+      .testimonial-track {
+        display: flex;
+        transition: transform 0.5s ease-in-out;
+        width: 100%; /* Start with 100%, dynamically adjusted in JS */
+      }
+    
+      .testimonial {
+        flex: 0 0 100%; /* Each slide takes up the full width of the slider */
+        box-shadow: colors.$shadow-small;
+        padding: 20px;
+        margin: 10px;
+        background: colors.$background-white;
+        border-radius: 10px;
+        text-align: left;
+    
+        h4 {
+          font-size: 1.5rem;
+          margin-bottom: 8px;
+          color: colors.$primary-color-dark;
+        }
+    
+        p {
+          font-size: 1rem;
+          margin-bottom: 10px;
+          color: colors.$text-color-muted;
+        }
+      }
+    }
+  }

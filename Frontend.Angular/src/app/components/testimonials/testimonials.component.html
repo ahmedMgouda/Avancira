@@ -1,0 +1,16 @@
+<div class="testimonials-section">
+    <h2>The Perfect Match</h2>
+    <p>More than a million students have given a score of 5 stars to their tutor</p>
+    <div class="testimonials-slider">
+      <button class="slider-btn left" (click)="slideLeft()">←</button>
+      <div class="testimonial-track" #testimonialTrack>
+        <div class="testimonial" *ngFor="let testimonial of testimonialList">
+          <h4>{{ testimonial.name }}</h4>
+          <p>{{ testimonial.subject }} tutor</p>
+          <p>{{ testimonial.feedback }}</p>
+          <p>— {{ testimonial.reviewer }} ★★★★★</p>
+        </div>
+      </div>
+      <button class="slider-btn right" (click)="slideRight()">→</button>
+    </div>
+  </div>

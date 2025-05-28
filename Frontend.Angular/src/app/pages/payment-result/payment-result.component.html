@@ -1,0 +1,37 @@
+<div class="payment-result">
+  <!-- Icon Section -->
+  <div class="icon-container" [class.success]="success" [class.failure]="!success">
+    <span *ngIf="success" class="material-icons">check_circle</span>
+    <span *ngIf="!success" class="material-icons">cancel</span>
+  </div>
+
+  <!-- Heading Section -->
+  <h1 class="result-heading" [class.success]="success" [class.failure]="!success">
+    {{ success ? 'Payment Successful' : 'Payment Canceled' }}
+  </h1>
+
+  <!-- Message Section -->
+  <p class="result-message">
+    {{ success
+      ? 'Your subscription has been created successfully. Thank you for your purchase!'
+      : 'You have canceled the payment. Please try again if you wish to proceed.' }}
+  </p>
+
+  <!-- Retry Button -->
+  <button
+    *ngIf="!success"
+    class="retry-button"
+    (click)="retryPayment()"
+  >
+    Retry Payment
+  </button>
+
+  <!-- Success Button -->
+  <button
+    *ngIf="success"
+    class="proceed-button"
+    (click)="router.navigate(['/'])"
+  >
+    Go to Dashboard
+  </button>
+</div>

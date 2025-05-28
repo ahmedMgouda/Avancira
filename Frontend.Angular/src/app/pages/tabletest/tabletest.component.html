@@ -1,0 +1,23 @@
+<app-datatable 
+    [tableData]="tableData" 
+    [columns]="columns" 
+    (pageChanged)="onPageChanged($event)"
+    (searchEvent)="onSearch($event)" 
+    (sortingEvent)="onSorting($event)"
+    (pageLengthChanged)="onPageLengthChanged($event)" 
+    (addClicked)="onAdd()"
+    (editClicked)="onEdit($event)" 
+    (deleteClicked)="onDelete($event)">
+</app-datatable>
+
+<!-- Add Modal Content -->
+<ng-template #addModalContent>
+  <label>Name:</label>
+  <input type="text" class="form-control" placeholder="Enter item name">
+</ng-template>
+
+<!-- Edit Modal Content -->
+<ng-template #editModalContent>
+  <label>Name:</label>
+  <input type="text" class="form-control" value="Existing Item">
+</ng-template>

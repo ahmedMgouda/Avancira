@@ -1,0 +1,155 @@
+<header>
+    <button (click)="switchView('students')" [class.active]="currentView === 'students'">Students</button>
+    <button (click)="switchView('tutors')" [class.active]="currentView === 'tutors'">Tutors</button>
+</header>
+
+<div class="help-center">
+    <aside class="sidebar">
+        <h2>Help center</h2>
+        <ul>
+            <li *ngFor="let category of getCategories()">
+                <div class="category-title" [class.active]="category === expandedCategory"
+                    (click)="toggleCategory(category)">
+                    {{ category.title }}
+                </div>
+                <ul *ngIf="category === expandedCategory" class="subcategories">
+                    <li *ngFor="let subcategory of category.subcategories"
+                        [class.active]="subcategory === selectedSubcategory" (click)="selectSubcategory(subcategory)">
+                        {{ subcategory }}
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="content">
+        <ng-container *ngIf="currentView === 'students'" [ngSwitch]="selectedSubcategory">
+            <!-- Students -->
+            <!-- Find a Tutor -->
+            <app-help-find-a-tutor *ngSwitchCase="'Find a tutor'"></app-help-find-a-tutor>
+            <app-help-contact-a-tutor *ngSwitchCase="'Contact a tutor'"></app-help-contact-a-tutor>
+            <app-help-request-sent *ngSwitchCase="'Request sent'"></app-help-request-sent>
+
+            <!-- Manage My Requests -->
+            <app-help-request-accepted *ngSwitchCase="'Request accepted'"></app-help-request-accepted>
+            <app-help-request-refused *ngSwitchCase="'Request refused'"></app-help-request-refused>
+            <app-help-leave-a-review *ngSwitchCase="'Leave a review'"></app-help-leave-a-review>
+
+            <!-- Lesson Management -->
+            <app-help-first-lesson-free *ngSwitchCase="'1st lesson free'"></app-help-first-lesson-free>
+            <app-help-face-to-face-or-webcam-lessons
+                *ngSwitchCase="'Face-to-face or webcam lessons'"></app-help-face-to-face-or-webcam-lessons>
+            <app-help-start-a-video-class *ngSwitchCase="'Start a video class'"></app-help-start-a-video-class>
+            <app-help-video-lesson-technical-issues
+                *ngSwitchCase="'Video lesson technical issues'"></app-help-video-lesson-technical-issues>
+            <app-help-book-a-lesson *ngSwitchCase="'Book a lesson'"></app-help-book-a-lesson>
+            <app-help-edit-a-lesson *ngSwitchCase="'Edit a lesson'"></app-help-edit-a-lesson>
+            <app-help-cancel-a-lesson *ngSwitchCase="'Cancel a lesson'"></app-help-cancel-a-lesson>
+            <app-help-book-a-pack *ngSwitchCase="'Book a pack'"></app-help-book-a-pack>
+            <app-help-cancel-a-pack *ngSwitchCase="'Cancel a pack'"></app-help-cancel-a-pack>
+            <app-help-student-cancellation-policy
+                *ngSwitchCase="'Student cancellation policy'"></app-help-student-cancellation-policy>
+            <app-help-payment-for-lessons *ngSwitchCase="'Payment for lessons'"></app-help-payment-for-lessons>
+            <app-help-report-a-lesson *ngSwitchCase="'Report a lesson'"></app-help-report-a-lesson>
+
+            <!-- Payment -->
+            <app-help-method-of-payment *ngSwitchCase="'Method of payment'"></app-help-method-of-payment>
+            <app-help-change-my-payment-method
+                *ngSwitchCase="'Change my payment method'"></app-help-change-my-payment-method>
+            <app-help-refund *ngSwitchCase="'Refund'"></app-help-refund>
+            <app-help-invoices *ngSwitchCase="'Invoices'"></app-help-invoices>
+
+            <!-- My Account -->
+            <app-help-create-an-account *ngSwitchCase="'Create an account'"></app-help-create-an-account>
+            <app-help-change-or-reset-my-password
+                *ngSwitchCase="'Change or reset my password'"></app-help-change-or-reset-my-password>
+            <app-help-change-my-email-address
+                *ngSwitchCase="'Change my email address'"></app-help-change-my-email-address>
+            <app-help-add-or-modify-my-phone-number
+                *ngSwitchCase="'Add or modify my phone number'"></app-help-add-or-modify-my-phone-number>
+            <app-help-manage-my-notifications
+                *ngSwitchCase="'Manage my notifications'"></app-help-manage-my-notifications>
+
+            <!-- Student Pass Subscription -->
+            <app-help-subscribe-to-the-student-pass-to-contact-a-tutor
+                *ngSwitchCase="'Subscribe to the Student Pass to contact a tutor'"></app-help-subscribe-to-the-student-pass-to-contact-a-tutor>
+            <app-help-benefits-of-the-student-pass
+                *ngSwitchCase="'Benefits of the Student Pass'"></app-help-benefits-of-the-student-pass>
+            <app-help-manage-my-student-pass *ngSwitchCase="'Manage my Student Pass'"></app-help-manage-my-student-pass>
+            <app-help-delete-my-student-account
+                *ngSwitchCase="'Delete my student account'"></app-help-delete-my-student-account>
+
+            <!-- Default Content -->
+            <!-- ================== -->
+            <ng-container *ngSwitchDefault>
+                <p>Select a subcategory to view its content.</p>
+            </ng-container>
+        </ng-container>
+
+        <ng-container *ngIf="currentView === 'tutors'" [ngSwitch]="selectedSubcategory">
+            <!-- Tutors -->
+            <!-- Become a Avancira -->
+            <app-help-create-an-ad *ngSwitchCase="'Create an ad'"></app-help-create-an-ad>
+            <app-help-the-avancira-guidelines
+                *ngSwitchCase="'The Avancira Guidelines'"></app-help-the-avancira-guidelines>
+
+            <!-- Manage My Ad -->
+            <app-help-update-my-ad *ngSwitchCase="'Update my ad'"></app-help-update-my-ad>
+            <app-help-my-ads-visibility *ngSwitchCase="'My ad\'s visibility'"></app-help-my-ads-visibility>
+            <app-help-deactivate-or-reactivate-my-ad
+                *ngSwitchCase="'Deactivate or reactivate my ad'"></app-help-deactivate-or-reactivate-my-ad>
+
+            <!-- Manage My Lesson Requests -->
+            <app-help-accept-or-refuse-a-request
+                *ngSwitchCase="'Accept or refuse a request'"></app-help-accept-or-refuse-a-request>
+            <app-help-leave-or-request-a-review
+                *ngSwitchCase="'Leave or request a review'"></app-help-leave-or-request-a-review>
+            <app-help-receive-a-recommendation
+                *ngSwitchCase="'Receive a recommendation'"></app-help-receive-a-recommendation>
+            <app-help-report-a-student *ngSwitchCase="'Report a student'"></app-help-report-a-student>
+
+            <!-- Manage My Lessons -->
+            <app-help-tutors-first-lesson-free *ngSwitchCase="'1st lesson free'"></app-help-tutors-first-lesson-free>
+            <app-help-schedule-a-lesson-with-my-student
+                *ngSwitchCase="'Schedule a lesson with my student'"></app-help-schedule-a-lesson-with-my-student>
+            <app-help-schedule-a-pack *ngSwitchCase="'Schedule a pack'"></app-help-schedule-a-pack>
+            <app-help-cancelling-a-lesson-pack
+                *ngSwitchCase="'Cancelling a lesson pack'"></app-help-cancelling-a-lesson-pack>
+            <app-help-cancellation-policy *ngSwitchCase="'Cancellation Policy'"></app-help-cancellation-policy>
+            <app-help-tutors-report-a-lesson *ngSwitchCase="'Report a lesson'"></app-help-tutors-report-a-lesson>
+            <app-help-what-is-your-status-as-a-tutor
+                *ngSwitchCase="'What is your status as a tutor?'"></app-help-what-is-your-status-as-a-tutor>
+            <app-help-modify-or-cancel-a-lesson
+                *ngSwitchCase="'Modify or cancel a lesson'"></app-help-modify-or-cancel-a-lesson>
+            <app-help-organize-a-video-lesson
+                *ngSwitchCase="'Organize a video lesson'"></app-help-organize-a-video-lesson>
+
+            <!-- Tutor Payment -->
+            <app-help-how-to-get-paid *ngSwitchCase="'How to get paid?'"></app-help-how-to-get-paid>
+            <app-help-receive-my-payment *ngSwitchCase="'Receive my payment'"></app-help-receive-my-payment>
+            <app-help-change-my-payout-preference
+                *ngSwitchCase="'Change my payout preference'"></app-help-change-my-payout-preference>
+            <app-help-lesson-pack-payment-timelines
+                *ngSwitchCase="'Lesson / pack payment timelines'"></app-help-lesson-pack-payment-timelines>
+            <app-help-payment-receipts *ngSwitchCase="'Payment Receipts'"></app-help-payment-receipts>
+
+            <!-- Premium Subscription -->
+            <app-help-premium-club *ngSwitchCase="'Premium Club'"></app-help-premium-club>
+            <app-help-manage-my-subscription *ngSwitchCase="'Manage my subscription'"></app-help-manage-my-subscription>
+
+            <!-- Default Content -->
+            <!-- ================== -->
+            <ng-container *ngSwitchDefault>
+                <p>Select a subcategory to view its content.</p>
+            </ng-container>
+        </ng-container>
+        <div class="related-articles">
+            <h4>Related articles</h4>
+            <ul>
+                <li *ngFor="let article of getRelatedArticles()">
+                    {{ article }}
+                </li>
+            </ul>
+        </div>
+    </main>
+</div>

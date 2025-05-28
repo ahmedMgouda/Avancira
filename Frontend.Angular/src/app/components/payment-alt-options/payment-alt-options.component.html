@@ -1,0 +1,16 @@
+<div class="payment-section">
+    <h3>Payment Method</h3>
+    <div class="payment-options">
+        <button [class.selected]="paymentMethod === 'card'" (click)="onPaymentMethodChange('card')">
+            Card payment
+        </button>
+        <button [class.selected]="paymentMethod === 'paypal'" (click)="onPaymentMethodChange('paypal')">
+            PayPal payment
+        </button>
+    </div>
+    <div class="paypal-section" *ngIf="paymentMethod === 'paypal'">
+        <!-- <p>You will be redirected to PayPal to complete your purchase.</p> -->
+        <!-- <button class="paypal-button" (click)="onPay()">Pay with PayPal</button> -->
+        <div id="paypal-button-container"></div>
+    </div>
+</div>

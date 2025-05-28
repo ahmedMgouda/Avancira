@@ -1,0 +1,25 @@
+<div class="bank-details-section">
+    <h3>Add Bank Account</h3>
+  
+    <form (ngSubmit)="saveBankAccount($event)">
+      <div>
+        <label for="accountHolderName">Account Holder Name:</label>
+        <input
+          type="text"
+          id="accountHolderName"
+          [(ngModel)]="accountHolderName"
+          name="accountHolderName"
+          required
+        />
+      </div>
+      <div id="iban-element" class="stripe-element"></div>
+      <button type="submit">Save Bank Account</button>
+    </form>
+  
+    <ul *ngIf="savedBanks.length > 0">
+      <li *ngFor="let bank of savedBanks">
+        <span>{{ bank.accountHolderName }} (Ending in {{ bank.last4 }})</span>
+        <button (click)="removeBank(bank.id)">Remove</button>
+      </li>
+    </ul>
+  </div>

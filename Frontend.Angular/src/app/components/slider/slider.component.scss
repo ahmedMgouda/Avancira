@@ -1,0 +1,120 @@
+
+.slider-container {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+  }
+  
+  .slider {
+    display: flex;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  
+  .slider-track {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    font-size: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  
+    &:hover {
+      background: rgba(0, 0, 0, 0.7);
+    }
+  }
+  
+  .slider-btn.left {
+    left: 15px;
+  }
+  
+  .slider-btn.right {
+    right: 15px;
+  }
+  
+  .default-slide {
+    min-width: 300px;
+    max-width: 400px;
+    padding: 25px;
+    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    color: #ffffff;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  
+    &:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+  
+    h4 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      color: #ffd700;
+    }
+  
+    p {
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+  
+    p:last-child {
+      margin-top: 20px;
+      font-style: italic;
+      color: #8ecae6;
+    }
+  }
+  
+  // Responsive design
+  @media screen and (max-width: 768px) {
+    .slider-container {
+      width: 95%;
+    }
+  
+    .slider-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+  
+    .default-slide {
+      padding: 20px;
+      min-width: 250px;
+    }
+  }
+  
+  @media screen and (max-width: 480px) {
+    .slider-btn {
+      display: none;
+    }
+  
+    .default-slide {
+      padding: 15px;
+      min-width: 200px;
+    }
+  }
+  

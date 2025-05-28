@@ -1,0 +1,90 @@
+<div class="payment-method-section">
+  <!-- <h3>Payment method</h3>
+    <div class="payment-method-card">
+      <div class="method-details">
+        <img src="assets/paypal-logo.png" alt="PayPal Logo" class="method-icon" />
+        <p class="method-name">PayPal account</p>
+      </div>
+      <div class="method-status">
+        <span class="status-icon">✅</span>
+      </div>
+    </div>
+    <button class="replace-method-btn">Replace this payment method</button>
+    <div class="paypal-button-container" id="paypal-button-container"></div> -->
+
+  <h3>Default payment method</h3>
+  <div class="method-list">
+    <!-- <div 
+      *ngFor="let card of savedCards" 
+      [class.selected]="selectedCard?.id === card.id" 
+      (click)="selectCard(card)"
+      class="method-item"
+    >
+      <div class="method-details">
+        <i
+          [class.fa-cc-visa]="card.type === 'Visa'"
+          [class.fa-cc-mastercard]="card.type === 'Mastercard'"
+          [class.fa-cc-amex]="card.type === 'American Express'"
+          [class.fa-credit-card]="!['Visa', 'Mastercard', 'American Express'].includes(card.type)"
+          class="fa card-icon"
+        ></i>
+        <div>
+          <p class="method-name">{{ card.type }}</p>
+          <p class="method-info">**** **** **** {{ card.last4 }}</p>
+        </div>
+      </div>
+      <div class="method-actions">
+        <button class="favorite" [class.active]="card.isDefault" (click)="setAsDefault(card.id)">
+          ❤️
+        </button>
+        <button class="delete" (click)="removeCard(card.id)">🗑️</button>
+      </div>
+    </div> -->
+    <div class="saved-cards-section">
+      <h3><i class="fa-solid fa-wallet"></i> Saved Cards</h3>
+      <ul>
+        <li *ngFor="let card of savedCards" (click)="selectCard(card)" [class.selected]="selectedCard?.id === card.id">
+          <i class="fa-solid fa-credit-card card-icon"></i>
+          <span>Card ending in {{ card.last4 }}</span>
+        </li>
+      </ul>
+      <div class="add-card-btn-container">
+        <button class="add-card-btn" (click)="toggleAddCardSection()">
+          <i class="fa-solid fa-plus-circle"></i> Add a New Card
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <form [hidden]="!showAddCardSection" (submit)="saveCard($event)">
+    <label for="card-holder-name">Cardholder Name</label>
+    <input id="card-holder-name" [(ngModel)]="cardHolderName" name="cardHolderName" required />
+
+    <!-- <div id="card-element"></div> -->
+    <div class="card-input-wrapper">
+      <!-- Card Number Input -->
+      <div class="card-input">
+        <label for="card-number">Card Number</label>
+        <div id="card-number" class="input-container"></div>
+      </div>
+
+      <!-- Expiration Date Input -->
+      <div class="card-input small-input">
+        <label for="card-expiry">MM / YY</label>
+        <div id="card-expiry" class="input-container"></div>
+      </div>
+
+      <!-- CVC Input -->
+      <div class="card-input small-input">
+        <label for="card-cvc">CVC</label>
+        <div id="card-cvc" class="input-container"></div>
+      </div>
+    </div>
+
+    <!-- Error Display -->
+    <div id="card-errors" class="input-errors" role="alert"></div>
+
+    <button type="submit" [disabled]="loading" class="add-method-btn">Add a payment method</button>
+  </form>
+</div>

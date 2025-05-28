@@ -1,0 +1,37 @@
+.create-an-ad {
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+  
+    p {
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+  
+      .link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+  
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  
+    .info-box {
+      background-color: #e7f3ff;
+      border: 1px solid #cce5ff;
+      padding: 1rem;
+      border-radius: 5px;
+      font-size: 0.95rem;
+      color: #004085;
+      margin-top: 1rem;
+  
+      i.icon-info {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+  

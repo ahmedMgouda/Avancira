@@ -1,0 +1,40 @@
+@use 'colors';
+
+.nav-bar {
+  background-color: colors.$background-dark;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+
+  /* Sticky positioning */
+  position: sticky;
+  z-index: 999;
+
+  ul {
+    list-style: none;
+    display: flex;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    margin: 0 15px;
+
+    a {
+      text-decoration: none;
+      color: colors.$text-color-light;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.3s ease;
+
+      &:hover {
+        color: colors.$highlight-color;
+      }
+    }
+
+    &.active a {
+      color: colors.$highlight-color;
+      font-weight: bold;
+    }
+  }
+}

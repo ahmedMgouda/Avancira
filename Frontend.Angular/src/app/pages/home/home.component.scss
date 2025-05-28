@@ -1,0 +1,29 @@
+.description {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 3em;
+    line-height: 1.5em;
+}
+
+.title {
+    min-height: 3.35em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+.categories-img img {
+    max-width: 80px;
+}
+
+.course-tutor-img {
+    max-height: 284px;
+    max-width: 377px;
+}

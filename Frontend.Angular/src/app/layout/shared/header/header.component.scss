@@ -1,0 +1,39 @@
+@media (max-width: 991px) {
+    /* Hide sidebar menu and mobile menu button */
+    .main-menu-wrapper,
+    #mobile_btn {
+      display: none !important;
+    }
+  
+    /* Make the navbar take full width */
+    .navbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  
+    /* Ensure the logo is on the left */
+    .navbar-header {
+      display: flex;
+      align-items: center;
+    }
+  
+    /* Align the right menu items */
+    .header-navbar-rht {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      width: fit-content;
+    }
+    .navbar-header
+    {
+        width: fit-content;;
+    }
+  }
+
+  .user-header {
+    padding: 10px 10px;
+    align-items: center;
+}
+  
