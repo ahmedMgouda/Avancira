@@ -27,7 +27,7 @@ public class Listing : AuditableEntity
     public virtual ICollection<ListingPromoCode> ListingPromoCodes { get; set; }
 
     public bool IsVisible { get; private set; } = true; // User can hide the listing to stop students from seeing it to have a pause or holiday.
-    public Guid UserId { get; set; }
+    public string UserId { get; set; }
 
     public decimal AverageRating => ListingReviews.Any() ? ListingReviews.Average(r => r.RatingValue) : 0;
 
@@ -46,7 +46,8 @@ public class Listing : AuditableEntity
             Description = description,
             HourlyRate = hourlyRate,
             LocationType = locationType,
-            ApprovalStatus = ListingApprovalStatus.Pending
+            ApprovalStatus = ListingApprovalStatus.Pending,
+            UserId = createdById
         };
 
         listing.QueueDomainEvent(new ListingCreatedEvent(listing));

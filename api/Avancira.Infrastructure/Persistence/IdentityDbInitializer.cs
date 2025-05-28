@@ -93,6 +93,7 @@ internal sealed class IdentityDbInitializer(
         {
             adminUser = new User
             {
+                Id = Guid.NewGuid().ToString(),
                 FirstName = "System",
                 LastName = "Administrator",
                 Email = AppConstants.EmailAddress,

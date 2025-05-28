@@ -19,13 +19,14 @@ using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 
 namespace Avancira.Infrastructure.Persistence;
-public class AvanciraDbContext : IdentityDbContext<User,
-    Role, 
-    string, 
-    IdentityUserClaim<string>, 
-    IdentityUserRole<string>, 
-    IdentityUserLogin<string>, 
-    RoleClaim, 
+public class AvanciraDbContext : IdentityDbContext<
+    User,
+    Role,
+    string,
+    IdentityUserClaim<string>,
+    IdentityUserRole<string>,
+    IdentityUserLogin<string>,
+    RoleClaim,
     IdentityUserToken<string>>
 {
     private readonly IPublisher _publisher;

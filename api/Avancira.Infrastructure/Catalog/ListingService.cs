@@ -35,7 +35,7 @@ namespace Avancira.Infrastructure.Catalog
             _logger = logger;
         }
 
-        public async Task<PagedResult<ListingDto>> GetTutorListingsAsync(Guid userId, int page, int pageSize)
+        public async Task<PagedResult<ListingDto>> GetTutorListingsAsync(string userId, int page, int pageSize)
         {
             var query = _dbContext.Listings
                 .AsNoTracking()
@@ -56,7 +56,7 @@ namespace Avancira.Infrastructure.Catalog
             return new PagedResult<ListingDto>(listingDtos, totalRecords, page, pageSize);
         }
 
-        public async Task<ListingDto> CreateListingAsync(ListingRequestDto model, Guid userId)
+        public async Task<ListingDto> CreateListingAsync(ListingRequestDto model, string userId)
         {
             var existingCategoryIds = await _dbContext.ListingCategories
                 .Select(c => c.CategoryId)
@@ -84,7 +84,7 @@ namespace Avancira.Infrastructure.Catalog
 
         }
 
-        public async Task<ListingDto> UpdateListingAsync(ListingRequestDto model, Guid userId)
+        public async Task<ListingDto> UpdateListingAsync(ListingRequestDto model, string userId)
         {
             var listing = await _dbContext.Listings
                 .Include(l => l.ListingCategories)
@@ -122,7 +122,7 @@ namespace Avancira.Infrastructure.Catalog
             return listing == null ? new ListingDto() : MapToListingDto(listing);
         }
 
-        public async Task<PagedResult<ListingDto>> GetUserListingsAsync(Guid userId, int page, int pageSize)
+        public async Task<PagedResult<ListingDto>> GetUserListingsAsync(string userId, int page, int pageSize)
         {
             var queryable = _dbContext.Listings
                 .Include(l => l.ListingCategories).ThenInclude(l => l.Category)
@@ -159,7 +159,6 @@ namespace Avancira.Infrastructure.Catalog
 
             return listings.Select(l => MapToListingDto(l));
         }
-
         public IEnumerable<ListingDto> GetLandingPageTrendingListings()
         {
             var listings = _dbContext.Listings
@@ -167,9 +166,23 @@ namespace Avancira.Infrastructure.Catalog
                 .Where(l => l.IsActive && l.IsVisible)
                 .OrderBy(_ => Guid.NewGuid())
                 .Take(10)
+                .Select(l => new { Listing = l, l.UserId })
                 .ToList();
 
-            return listings.Select(l => MapToListingDto(l));
+            var userIds = listings.Select(x => x.UserId).Distinct().ToList();
+
+            var users = _dbContext.Users
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionary(u => u.Id, u => u.ImageUrl);
+
+            var dtos = listings.Select(x =>
+            {
+                var dto = MapToListingDto(x.Listing);
+                dto.ListingImagePath = users.TryGetValue(x.UserId, out var img) ? img?.ToString() : null;
+                return dto;
+            });
+
+            return dtos;
         }
 
         public PagedResult<ListingDto> SearchListings(string query, List<string> categories, int page, int pageSize, double? lat = null, double? lng = null, double radiusKm = 10)
@@ -231,7 +244,7 @@ namespace Avancira.Infrastructure.Catalog
             return stats;
         }
 
-        public async Task<bool> ModifyListingTitleAsync(Guid listingId, Guid userId, string newTitle)
+        public async Task<bool> ModifyListingTitleAsync(Guid listingId, string userId, string newTitle)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -246,7 +259,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ModifyListingImageAsync(Guid listingId, Guid userId, IFormFile newImage)
+        public async Task<bool> ModifyListingImageAsync(Guid listingId, string userId, IFormFile newImage)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -260,7 +273,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ModifyListingLocationsAsync(Guid listingId, Guid userId, List<string> newLocations)
+        public async Task<bool> ModifyListingLocationsAsync(Guid listingId, string userId, List<string> newLocations)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -286,7 +299,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ModifyListingDescriptionAsync(Guid listingId, Guid userId, string newAboutLesson, string newAboutYou)
+        public async Task<bool> ModifyListingDescriptionAsync(Guid listingId, string userId, string newAboutLesson, string newAboutYou)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -301,7 +314,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ModifyListingCategoryAsync(Guid listingId, Guid userId, Guid newCategoryId)
+        public async Task<bool> ModifyListingCategoryAsync(Guid listingId, string userId, Guid newCategoryId)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -322,7 +335,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ModifyListingRatesAsync(Guid listingId, Guid userId, RatesDto newRates)
+        public async Task<bool> ModifyListingRatesAsync(Guid listingId, string userId, RatesDto newRates)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -352,7 +365,7 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> DeleteListingAsync(Guid listingId, Guid userId)
+        public async Task<bool> DeleteListingAsync(Guid listingId, string userId)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
@@ -380,7 +393,7 @@ namespace Avancira.Infrastructure.Catalog
                 Reviews = 0,
                 //Category = listing.ListingCategories.FirstOrDefault()?.Category?.Name ?? "Unknown",
                 Title = listing.Name,
-                ListingImagePath = string.Empty,
+                //ListingImagePath = listing.UserId,
                 //Locations = Enum.GetValues(typeof(ListingLocationType))
                 //                .Cast<ListingLocationType>()
                 //                .Where(location => (listing.Locations & location) == location && location != ListingLocationType.None)

@@ -31,7 +31,7 @@ public class ListingsAPIController : BaseController
     [HttpGet("tutor-listings")]
     public async Task<IActionResult> GetTutorListings([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
 
         var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
 
@@ -60,7 +60,7 @@ public class ListingsAPIController : BaseController
             });
         }
 
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var listing = await _listingService.CreateListingAsync(model, userId);
 
         return CreatedAtAction(nameof(GetListingById), new { id = listing.Id },
@@ -77,7 +77,7 @@ public class ListingsAPIController : BaseController
     public async Task<IActionResult> Update(Guid id, [FromForm] ListingRequestDto model)
     {
         model.Id = id;
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var updatedListing = await _listingService.UpdateListingAsync(model, userId);
 
         return JsonOk(new
@@ -103,7 +103,7 @@ public class ListingsAPIController : BaseController
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
         return JsonOk(listings);
     }
@@ -138,7 +138,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-title")]
     public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleDto updateTitleDto)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingTitleAsync(id, userId, updateTitleDto.Title);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -150,7 +150,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-image")]
     public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingImageAsync(id, userId, image);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -162,7 +162,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-locations")]
     public async Task<IActionResult> UpdateLocations(Guid id, [FromBody] List<string> locations)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations);
 
         if (!success)
@@ -177,7 +177,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-description")]
     public async Task<IActionResult> UpdateDescription(Guid id, [FromBody] UpdateDescriptionDto updateDescriptionDto)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingDescriptionAsync(id, userId, updateDescriptionDto.AboutLesson, updateDescriptionDto.AboutYou);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -189,7 +189,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-rates")]
     public async Task<IActionResult> UpdateRates(Guid id, [FromBody] RatesDto ratesDto)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingRatesAsync(id, userId, ratesDto);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -201,7 +201,7 @@ public class ListingsAPIController : BaseController
     [HttpPut("{id:guid}/update-category")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto updateCategoryDto)
     {
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingCategoryAsync(id, userId, updateCategoryDto.LessonCategoryId);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -220,7 +220,7 @@ public class ListingsAPIController : BaseController
             return NotFound($"Listing with ID {id} not found.");
         }
 
-        var userId = Guid.Parse(GetUserId());
+        var userId = GetUserId();
         var success = await _listingService.DeleteListingAsync(id, userId);
         if (!success)
         {
