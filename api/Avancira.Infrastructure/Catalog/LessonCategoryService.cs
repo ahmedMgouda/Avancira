@@ -38,9 +38,9 @@ namespace Avancira.Infrastructure.Catalog
 
         public List<LessonCategoryDto> GetLandingPageCategories()
         {
-            return _dbContext.ListingCategories
+            return _dbContext.Categories
                 .OrderBy(_ => Guid.NewGuid())
-                //.Where(category => category.DisplayInLandingPage)
+                .Where(category => category.DisplayInLandingPage)
                 .Take(12)
                 .Select(category => MapToLessonCategoryDto(category, _dbContext.ListingCategories.Include(l => l.Listing).Count(l => true /*l.Listing.Active && l.Listing.IsVisible && l.LessonCategoryId == category.Id*/)))
                 .ToList();
@@ -56,13 +56,13 @@ namespace Avancira.Infrastructure.Catalog
             throw new NotImplementedException();
         }
 
-        private static LessonCategoryDto MapToLessonCategoryDto(ListingCategory category, int? courses = null)
+        private static LessonCategoryDto MapToLessonCategoryDto(Category category, int? courses = null)
         {
             return new LessonCategoryDto
             {
-                //Id = category.Id,
-                //Name = category.Name,
-                //Image = category.ImageUrl,
+                Id = category.Id,
+                Name = category.Name,
+                Image = category.ImageUrl?.ToString(),
                 Courses = courses ?? 0
             };
         }
