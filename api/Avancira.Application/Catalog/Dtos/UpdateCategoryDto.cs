@@ -1,4 +1,4 @@
 public class UpdateCategoryDto
 {
-    public int LessonCategoryId { get; set; }
+    public Guid LessonCategoryId { get; set; }
 }
