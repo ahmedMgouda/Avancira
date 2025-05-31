@@ -2,16 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
 import { firstValueFrom } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
-import { ConfigService } from '../../services/config.service';
 import { SpinnerService } from '../../services/spinner.service';
+import { SocialAuthService } from '../../services/social-auth.service';
 import { UserService } from '../../services/user.service';
-import { GoogleAuthService } from '../../services/google-auth.service';
 @Component({
   selector: 'app-signin',
   templateUrl: './signin.component.html',
@@ -20,21 +19,20 @@ import { GoogleAuthService } from '../../services/google-auth.service';
 })
 export class SigninComponent {
   loginForm!: FormGroup;
-  invalidLogin = false;
   returnUrl: string = '/';
+  showPassword = false;
+  errorMessage = '';
 
   constructor(
-    private fb: FacebookService, 
-    private form: FormBuilder, 
-    private route: ActivatedRoute, 
-    private router: Router, 
+    private socialAuth: SocialAuthService,
+    private form: FormBuilder,
+    private route: ActivatedRoute,
+    private router: Router,
     private authService: AuthService,
     private userService: UserService,
-    private configService: ConfigService, 
     private toastr: ToastrService,
     private spinner: SpinnerService,
-    private alertService: AlertService,
-    private googleAuthService: GoogleAuthService
+    private alertService: AlertService
   ) { }
 
   ngOnInit(): void {
@@ -55,24 +53,8 @@ export class SigninComponent {
       this.returnUrl = params['returnUrl'] || '/';
     });
 
-    // Initialize the Facebook SDK with your App ID
-    this.configService.loadConfig().subscribe({
-      next: async () => {
-
-        const initParams: InitParams = {
-          appId: this.configService.get('facebookAppId'),
-          cookie: true,
-          xfbml: true,
-          version: 'v21.0',
-        };
-        this.fb.init(initParams);
-
-        await this.googleAuthService.init(this.configService.get('googleClientId'));
-      },
-      error: (err) => {
-        console.error('Failed to load configuration:', err.message);
-      },
-    });
+    // Initialize external auth providers (Facebook/Google)
+    this.socialAuth.init();
   }
 
 
@@ -83,58 +65,53 @@ export class SigninComponent {
     }
 
     this.spinner.show();
-    this.authService.login(this.loginForm.value.email, this.loginForm.value.password).subscribe({
-      next: () => {
-        this.router.navigateByUrl(this.returnUrl);
-        this.spinner.hide();
-      },
-      error: (error) => {
-        console.error(error);
-        this.spinner.hide();
-        this.toastr.error('Invalid email or password.', 'Error');
-      },
-    });
+    this.authService
+      .login(this.loginForm.value.email, this.loginForm.value.password)
+      .pipe(finalize(() => this.spinner.hide()))
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl(this.returnUrl);
+        },
+        error: (error) => {
+          console.error(error);
+          this.errorMessage = 'Invalid email or password.';
+          this.toastr.error(this.errorMessage, 'Error');
+        },
+      });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   /** ✅ Facebook Login */
   loginWithFacebook(): void {
     this.spinner.show();
-    this.fb
-      .login({ scope: 'email,public_profile' })
-      .then(async (response: LoginResponse) => {
-        const accessToken = response.authResponse.accessToken;
-        console.log('✅ Facebook Login Success:', accessToken);
-        await this.handleSocialLogin('facebook', accessToken);
-      })
-      .catch((error) => {
+    this.socialAuth
+      .loginWithFacebook()
+      .then(token => this.handleSocialLogin('facebook', token))
+      .catch(error => {
         console.error('❌ Facebook login error:', error);
         this.toastr.error('Invalid email or password.', 'Error');
-        this.spinner.hide();
-      });
+      })
+      .finally(() => this.spinner.hide());
   }
 
   /** ✅ Google Login */
   async loginWithGoogle(): Promise<void> {
     try {
       this.spinner.show();
-      await this.googleAuthService.init(this.configService.get('googleClientId'));
-      const auth2 = this.googleAuthService.getAuthInstance();
-      if (!auth2) throw new Error('Google Auth instance not initialized');
-
-      const googleUser = await auth2.signIn();
-      const idToken = googleUser.getAuthResponse().id_token;
-      console.log('✅ Google Login Success:', idToken);
-
-      await this.handleSocialLogin('google', idToken);
+      const token = await this.socialAuth.loginWithGoogle();
+      await this.handleSocialLogin('google', token);
     } catch (error) {
-      this.spinner.hide();
       console.error('❌ Google Login Failed:', error);
+    } finally {
+      this.spinner.hide();
     }
   }
 
   /** ✅ Handle Social Login */
   async handleSocialLogin(provider: string, token: string): Promise<void> {
-    this.spinner.hide();
     try {
       const result = await firstValueFrom(
         this.authService.socialLogin(provider, token)
@@ -144,7 +121,8 @@ export class SigninComponent {
       this.router.navigateByUrl(this.returnUrl);
     } catch (error: any) {
       console.error(`❌ ${provider} login verification failed:`, error.message);
-      this.toastr.error('Invalid email or password.', 'Error');
+      this.errorMessage = 'Invalid email or password.';
+      this.toastr.error(this.errorMessage, 'Error');
     }
   }
 

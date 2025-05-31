@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
+import { LoginResponse } from 'ngx-facebook';
 
 import { AuthService } from '../../services/auth.service';
-import { ConfigService } from '../../services/config.service';
-import { GoogleAuthService } from '../../services/google-auth.service';
+import { SpinnerService } from '../../services/spinner.service';
+import { SocialAuthService } from '../../services/social-auth.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 import { firstValueFrom } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-signup',
@@ -21,15 +22,16 @@ export class SignupComponent implements OnInit {
   signupError = '';
   referralToken: string | null = null;
   returnUrl: string = '/';
+  showPassword = false;
+  showVerifyPassword = false;
 
   constructor(
-    private fb: FacebookService,
+    private socialAuth: SocialAuthService,
     private form: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService,
-    private configService: ConfigService,
-    private googleAuthService: GoogleAuthService
+    private spinner: SpinnerService
   ) { }
 
   ngOnInit(): void {
@@ -59,24 +61,8 @@ export class SignupComponent implements OnInit {
     });
 
 
-    // Initialize Google Authentication
-    this.configService.loadConfig().subscribe({
-      next: async () => {
-
-        const initParams: InitParams = {
-          appId: this.configService.get('facebookAppId'),
-          cookie: true,
-          xfbml: true,
-          version: 'v21.0',
-        };
-        this.fb.init(initParams);
-
-        await this.googleAuthService.init(this.configService.get('googleClientId'));
-      },
-      error: (err) => {
-        console.error('Failed to load configuration:', err.message);
-      },
-    });
+    // Initialize external auth providers (Facebook/Google)
+    this.socialAuth.init();
   }
 
   // Handle form submission
@@ -84,7 +70,7 @@ export class SignupComponent implements OnInit {
     if (this.signupForm.invalid) {
       return;
     }
-
+    this.spinner.show();
     this.authService
       .register(
         this.signupForm.value.email,
@@ -92,12 +78,13 @@ export class SignupComponent implements OnInit {
         this.signupForm.value.verifyPassword,
         this.referralToken
       )
+      .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: (errorMessage: string | null) => {
           if (!errorMessage) {
-            this.loginUser(); // Continue with login on successful registration
+            this.loginUser();
           } else {
-            this.signupError = errorMessage; // Handle registration error
+            this.signupError = errorMessage;
           }
         },
         error: (error: any) => {
@@ -119,35 +106,38 @@ export class SignupComponent implements OnInit {
     });
   }
 
+  togglePasswordVisibility(field: 'password' | 'verifyPassword'): void {
+    if (field === 'password') {
+      this.showPassword = !this.showPassword;
+    } else {
+      this.showVerifyPassword = !this.showVerifyPassword;
+    }
+  }
+
   /** ✅ Facebook Login */
   signupWithFacebook(): void {
-    this.fb
-      .login({ scope: 'email,public_profile' })
-      .then(async (response: LoginResponse) => {
-        const accessToken = response.authResponse.accessToken;
-        console.log('✅ Facebook Login Success:', accessToken);
-        await this.handleSocialSignup('facebook', accessToken);
-      })
-      .catch((error) => {
+    this.spinner.show();
+    this.socialAuth
+      .loginWithFacebook()
+      .then(token => this.handleSocialSignup('facebook', token))
+      .catch(error => {
         console.error('❌ Facebook login error:', error);
-      });
+        this.signupError = 'Facebook signup failed.';
+      })
+      .finally(() => this.spinner.hide());
   }
 
   /** ✅ Google Signup */
   async signupWithGoogle(): Promise<void> {
     try {
-      await this.googleAuthService.init(this.configService.get('googleClientId'));
-      const auth2 = this.googleAuthService.getAuthInstance();
-      if (!auth2) throw new Error('Google Auth instance not initialized');
-
-      const googleUser = await auth2.signIn();
-      const idToken = googleUser.getAuthResponse().id_token;
-      console.log('✅ Google Signup Success:', idToken);
-
-      await this.handleSocialSignup('google', idToken);
+      this.spinner.show();
+      const token = await this.socialAuth.loginWithGoogle();
+      await this.handleSocialSignup('google', token);
     } catch (error) {
       console.error('❌ Google Signup Failed:', error);
       this.signupError = 'Google signup failed. Please try again.';
+    } finally {
+      this.spinner.hide();
     }
   }
 

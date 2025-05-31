@@ -28,7 +28,7 @@
             <div class="form-group">
               <label class="form-control-label">Password</label>
               <div class="pass-group">
-                <input type="password" id="Input_Password" class="form-control" placeholder="Password"
+                <input [type]="showPassword ? 'text' : 'password'" id="Input_Password" class="form-control" placeholder="Password"
                   formControlName="password"
                   [ngClass]="{ 'is-invalid': loginForm.get('password')?.invalid && (loginForm.get('password')?.touched || loginForm.get('password')?.dirty) }"
                   autocomplete="current-password" />
@@ -36,12 +36,13 @@
                   *ngIf="loginForm.get('password')?.errors?.['required'] && (loginForm.get('password')?.touched || loginForm.get('password')?.dirty)">
                   Password is required.
                 </span>
-                <span class="fas fa-eye toggle-password"></span>
+                <span class="fas fa-eye toggle-password" (click)="togglePasswordVisibility()"></span>
               </div>
             </div>
             <div class="text-end">
               <a class="forgot-link" (click)="resetPassword()">Forgot Password ?</a>
             </div>
+            <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
             <button class="btn btn-primary login-btn" type="submit" [disabled]="loginForm.invalid">Login</button>
             <div class="login-or">
               <span class="or-line"></span>

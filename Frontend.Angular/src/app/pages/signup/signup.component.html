@@ -35,19 +35,25 @@
             </div>
             <div class="row">
               <div class="col-lg-6">
-                <div class="form-group">
+              <div class="form-group">
                   <label class="form-control-label">Password</label>
-                  <input type="password" id="Input_Password" class="form-control" placeholder="Password"
-                    formControlName="password" autocomplete="new-password"
-                    [ngClass]="{ 'is-invalid': signupForm.get('password')?.touched && signupForm.get('password')?.errors }" />
+                  <div class="pass-group">
+                    <input [type]="showPassword ? 'text' : 'password'" id="Input_Password" class="form-control" placeholder="Password"
+                      formControlName="password" autocomplete="new-password"
+                      [ngClass]="{ 'is-invalid': signupForm.get('password')?.touched && signupForm.get('password')?.errors }" />
+                    <span class="fas fa-eye toggle-password" (click)="togglePasswordVisibility('password')"></span>
+                  </div>
                 </div>
               </div>
               <div class="col-lg-6">
                 <div class="form-group">
                   <label class="form-control-label">Confirm Password</label>
-                  <input type="password" id="Input_VerifyPassword" class="form-control" placeholder="Verify password"
-                    formControlName="verifyPassword" autocomplete="new-password"
-                    [ngClass]="{ 'is-invalid': signupForm.get('verifyPassword')?.touched && signupForm.get('verifyPassword')?.errors }" />
+                  <div class="pass-group">
+                    <input [type]="showVerifyPassword ? 'text' : 'password'" id="Input_VerifyPassword" class="form-control" placeholder="Verify password"
+                      formControlName="verifyPassword" autocomplete="new-password"
+                      [ngClass]="{ 'is-invalid': signupForm.get('verifyPassword')?.touched && signupForm.get('verifyPassword')?.errors }" />
+                    <span class="fas fa-eye toggle-password" (click)="togglePasswordVisibility('verifyPassword')"></span>
+                  </div>
                 </div>
               </div>
             </div>
