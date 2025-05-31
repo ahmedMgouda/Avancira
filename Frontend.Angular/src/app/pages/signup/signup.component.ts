@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { gapi, loadGapiInsideDOM } from 'gapi-script';
 import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
+import { GoogleAuthService } from '../../services/google-auth.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -28,7 +28,8 @@ export class SignupComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private googleAuthService: GoogleAuthService
   ) { }
 
   ngOnInit(): void {
@@ -70,13 +71,7 @@ export class SignupComponent implements OnInit {
         };
         this.fb.init(initParams);
 
-        await loadGapiInsideDOM();
-        gapi.load('auth2', () => {
-          gapi.auth2.init({
-            client_id: this.configService.get('googleClientId'),
-            scope: 'profile email',
-          });
-        });
+        await this.googleAuthService.init(this.configService.get('googleClientId'));
       },
       error: (err) => {
         console.error('Failed to load configuration:', err.message);
@@ -141,7 +136,8 @@ export class SignupComponent implements OnInit {
   /** ✅ Google Signup */
   async signupWithGoogle(): Promise<void> {
     try {
-      const auth2 = gapi.auth2.getAuthInstance();
+      await this.googleAuthService.init(this.configService.get('googleClientId'));
+      const auth2 = this.googleAuthService.getAuthInstance();
       if (!auth2) throw new Error('Google Auth instance not initialized');
 
       const googleUser = await auth2.signIn();
