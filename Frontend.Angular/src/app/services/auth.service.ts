@@ -1,12 +1,13 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, Observable, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, switchMap, tap, throwError } from 'rxjs';
 
 import { NotificationService } from './notification.service';
 import { UserService } from './user.service';
 
 import { environment } from '../environments/environment';
 import { ApiResponse } from '../models/api-response';
+import { TokenResponse } from '../models/token-response';
 
 
 @Injectable({
@@ -14,6 +15,7 @@ import { ApiResponse } from '../models/api-response';
 })
 export class AuthService {
   private apiUrl = `${environment.apiUrl}/users`;
+  private authUrl = `${environment.apiUrl}/auth`;
 
   constructor(private http: HttpClient, private userService: UserService, private notificationService: NotificationService) { }
 
@@ -57,24 +59,42 @@ export class AuthService {
       );
   }
 
-  login(email: string, password: string): Observable<{ token: string; roles: string[] } | null> {
-    return this.http
-      .post<{ token: string; roles: string[] }>(`${this.apiUrl}/login`, { email, password })
-      .pipe(
-        tap(response => {
-          if (response) {
-            this.saveToken(response.token);
-            this.saveEmail(email);
-            this.saveRoles(response.roles);
-            this.userService.refreshCachedUser();
-          }
-        }),
-        map(response => response ?? null),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Login error:', error.message);
-          return throwError(() => new Error('Login failed. Please try again.'));
-        })
-      );
+  login(email: string, password: string): Observable<void> {
+    return this.generateToken(email, password).pipe(
+      switchMap(() => this.userService.getUser()),
+      switchMap(user => this.userService.getUserRoles(user.id)),
+      map(roleDetails =>
+        roleDetails
+          .filter(r => r.enabled)
+          .map(r => r.roleName ?? '')
+      ),
+      tap(roles => this.saveRoles(roles)),
+      map(() => void 0),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Login error:', error.message);
+        return throwError(() => new Error('Login failed. Please try again.'));
+      })
+    );
+  }
+
+  generateToken(email: string, password: string): Observable<TokenResponse> {
+    return this.http.post<TokenResponse>(`${this.authUrl}/token`, { email, password }).pipe(
+      tap(res => {
+        this.saveToken(res.token);
+        this.saveRefreshToken(res.refreshToken);
+        this.saveEmail(email);
+        this.userService.refreshCachedUser();
+      })
+    );
+  }
+
+  refreshAuthToken(token: string, refreshToken: string): Observable<TokenResponse> {
+    return this.http.post<TokenResponse>(`${this.authUrl}/refresh`, { token, refreshToken }).pipe(
+      tap(res => {
+        this.saveToken(res.token);
+        this.saveRefreshToken(res.refreshToken);
+      })
+    );
   }
 
   socialLogin(provider: string, token: string): Observable<{ token: string; roles: string[]; isRegistered: boolean }> {
@@ -108,6 +128,14 @@ export class AuthService {
     localStorage.setItem('currentRole', role);
   }
 
+  saveRefreshToken(refreshToken: string): void {
+    localStorage.setItem('refreshToken', refreshToken);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
+  }
+
   getToken(): string | null {
     return localStorage.getItem('token');
   }
@@ -126,6 +154,7 @@ export class AuthService {
     localStorage.removeItem('email');
     localStorage.removeItem('roles');
     localStorage.removeItem('currentRole');
+    localStorage.removeItem('refreshToken');
     this.userService.clearCachedUser();
     this.notificationService.stopConnection();
   }
