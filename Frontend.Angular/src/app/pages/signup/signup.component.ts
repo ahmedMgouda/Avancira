@@ -8,6 +8,7 @@ import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
 import { ValidatorService } from '../../validators/password-validator.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-signup',
@@ -155,22 +156,25 @@ export class SignupComponent implements OnInit {
   }
 
   /** ✅ Handle Social Signup */
-  private handleSocialSignup(provider: string, token: string): void {
-    this.authService.socialLogin(provider, token).subscribe({
-      next: (result) => {
-        this.authService.saveToken(result.token);
-        this.authService.saveRoles(result.roles);
+  private async handleSocialSignup(
+    provider: string,
+    token: string
+  ): Promise<void> {
+    try {
+      const result = await firstValueFrom(
+        this.authService.socialLogin(provider, token)
+      );
+      this.authService.saveToken(result.token);
+      this.authService.saveRoles(result.roles);
 
-        if (result.isRegistered) {
-          this.router.navigateByUrl(this.returnUrl);
-        } else {
-          this.router.navigate(['/complete-registration']);
-        }
-      },
-      error: (error) => {
-        console.error(`❌ ${provider} signup verification failed:`, error.message);
-        this.signupError = `Failed to sign up with ${provider}.`;
-      },
-    });
+      if (result.isRegistered) {
+        this.router.navigateByUrl(this.returnUrl);
+      } else {
+        this.router.navigate(['/complete-registration']);
+      }
+    } catch (error: any) {
+      console.error(`❌ ${provider} signup verification failed:`, error.message);
+      this.signupError = `Failed to sign up with ${provider}.`;
+    }
   }
 }

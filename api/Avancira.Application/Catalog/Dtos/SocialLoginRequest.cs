@@ -1,8 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 public class SocialLoginRequest
 {
-    //[Required]
+    [Required]
     public string Provider { get; set; } = string.Empty;
 
-    //[Required]
+    [Required]
     public string Token { get; set; } = string.Empty;
 }
