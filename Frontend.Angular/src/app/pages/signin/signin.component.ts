@@ -92,16 +92,8 @@ export class SigninComponent {
 
     this.spinner.show();
     this.authService.login(this.loginForm.value.email, this.loginForm.value.password).subscribe({
-      next: (result) => {
-        if (result) {
-          this.authService.saveToken(result.token);
-          this.authService.saveRoles(result.roles);
-          this.authService.saveEmail(this.loginForm.value.email);
-          // Redirect to returnUrl or dashboard
-          this.router.navigateByUrl(this.returnUrl);
-        } else {
-          this.toastr.error('Invalid email or password.', 'Error');
-        }
+      next: () => {
+        this.router.navigateByUrl(this.returnUrl);
         this.spinner.hide();
       },
       error: (error) => {

@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpEvent, HttpHandlerFn, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, map, Observable, throwError } from 'rxjs';
+import { catchError, map, Observable, switchMap, throwError } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 
@@ -37,13 +37,31 @@ export const httpInterceptorFn: HttpInterceptorFn = (
     catchError((error: HttpErrorResponse) => {
       console.error('HTTP Error:', error);
 
-      // Handle 401 Unauthorized
       if (error.status === 401) {
-        authService.logout();
-        router.navigate(['/signin']);
+        const refreshToken = authService.getRefreshToken();
+        const token = authService.getToken();
+        if (refreshToken && token) {
+          return authService.refreshAuthToken(token, refreshToken).pipe(
+            switchMap(res => {
+              authService.saveToken(res.token);
+              authService.saveRefreshToken(res.refreshToken);
+              const retryReq = req.clone({
+                setHeaders: { Authorization: `Bearer ${res.token}` },
+              });
+              return next(retryReq);
+            }),
+            catchError(refreshError => {
+              authService.logout();
+              router.navigate(['/signin']);
+              return throwError(() => refreshError);
+            })
+          );
+        } else {
+          authService.logout();
+          router.navigate(['/signin']);
+        }
       }
 
-      // Re-throw the error for further handling if needed
       return throwError(() => error);
     })
   );

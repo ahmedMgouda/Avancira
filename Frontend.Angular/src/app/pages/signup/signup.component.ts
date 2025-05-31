@@ -114,16 +114,8 @@ export class SignupComponent implements OnInit {
   // Handle user login after successful signup
   loginUser(): void {
     this.authService.login(this.signupForm.value.email, this.signupForm.value.password).subscribe({
-      next: (loginResult) => {
-        if (loginResult) {
-          this.authService.saveToken(loginResult.token);
-          this.authService.saveRoles(loginResult.roles);
-          this.authService.saveEmail(this.signupForm.value.email);
-
-          this.router.navigate(['/complete-registration']);
-        } else {
-          this.signupError = 'Signup succeeded, but automatic login failed.';
-        }
+      next: () => {
+        this.router.navigate(['/complete-registration']);
       },
       error: () => {
         this.signupError = 'Signup succeeded, but automatic login failed.';

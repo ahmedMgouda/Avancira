@@ -6,6 +6,7 @@ import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
 import { UserPaymentSchedule } from '../models/enums/user-payment-schedule';
 import { User } from '../models/user';
+import { UserRoleDetail } from '../models/user-role-detail';
 
 @Injectable({
   providedIn: 'root',
@@ -62,6 +63,10 @@ export class UserService {
   
   getUserByToken(recommendationToken: string): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/by-token/${recommendationToken}`);
+  }
+
+  getUserRoles(userId: string): Observable<UserRoleDetail[]> {
+    return this.http.get<UserRoleDetail[]>(`${this.apiUrl}/${userId}/roles`);
   }
 
   getDiplomaStatus(): Observable<{ status: UserDiplomaStatus }> {
