@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { loadGapiInsideDOM } from 'gapi-script';
 import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
 import { firstValueFrom } from 'rxjs';
@@ -10,12 +9,9 @@ import { firstValueFrom } from 'rxjs';
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
-import { SpinnerService } from '../../services/spinner.service'; 
+import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
-
-
-
-declare const gapi: any;
+import { GoogleAuthService } from '../../services/google-auth.service';
 @Component({
   selector: 'app-signin',
   templateUrl: './signin.component.html',
@@ -37,7 +33,8 @@ export class SigninComponent {
     private configService: ConfigService, 
     private toastr: ToastrService,
     private spinner: SpinnerService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private googleAuthService: GoogleAuthService
   ) { }
 
   ngOnInit(): void {
@@ -70,13 +67,7 @@ export class SigninComponent {
         };
         this.fb.init(initParams);
 
-        await loadGapiInsideDOM();
-        gapi.load('auth2', () => {
-          gapi.auth2.init({
-            client_id: this.configService.get('googleClientId'),
-            scope: 'profile email',
-          });
-        });
+        await this.googleAuthService.init(this.configService.get('googleClientId'));
       },
       error: (err) => {
         console.error('Failed to load configuration:', err.message);
@@ -126,7 +117,8 @@ export class SigninComponent {
   async loginWithGoogle(): Promise<void> {
     try {
       this.spinner.show();
-      const auth2 = gapi.auth2.getAuthInstance();
+      await this.googleAuthService.init(this.configService.get('googleClientId'));
+      const auth2 = this.googleAuthService.getAuthInstance();
       if (!auth2) throw new Error('Google Auth instance not initialized');
 
       const googleUser = await auth2.signIn();
