@@ -60,7 +60,7 @@ export class HeaderComponent {
   }
 
   isLoggedIn(): boolean {
-    return !!this.authService.getToken();
+    return this.authService.isLoggedIn();
   }
 
   logout() {

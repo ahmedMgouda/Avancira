@@ -10,6 +10,7 @@ import { AlertService } from '../../services/alert.service';
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
 
 import { Card } from '../../models/card';
 import { TransactionPaymentType } from '../../models/enums/transaction-payment-type';
@@ -47,11 +48,12 @@ export class PremiumSubscriptionComponent implements OnInit {
     private router: Router,
     private paymentService: PaymentService,
     private subscriptionService: SubscriptionService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token');
+    this.isLoggedIn = this.authService.isLoggedIn();
     this.stripePromise = loadStripe(this.configService.get('stripePublishableKey'));
   }
 

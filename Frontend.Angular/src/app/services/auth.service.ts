@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, Observable, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, map, Observable, switchMap, tap, throwError } from 'rxjs';
 
 import { NotificationService } from './notification.service';
 import { UserService } from './user.service';
@@ -16,6 +16,9 @@ import { TokenResponse } from '../models/token-response';
 export class AuthService {
   private apiUrl = `${environment.apiUrl}/users`;
   private authUrl = `${environment.apiUrl}/auth`;
+  private tokenSubject = new BehaviorSubject<string | null>(localStorage.getItem('token'));
+  token$ = this.tokenSubject.asObservable();
+  isLoggedIn$ = this.tokenSubject.asObservable().pipe(map(token => !!token));
 
   constructor(private http: HttpClient, private userService: UserService, private notificationService: NotificationService) { }
 
@@ -109,11 +112,13 @@ export class AuthService {
   }
 
   isLoggedIn() {
-    return !!localStorage.getItem('token');
+    const token = this.getToken();
+    return !!token && !this.isTokenExpired(token);
   }
 
   saveToken(token: string): void {
     localStorage.setItem('token', token);
+    this.tokenSubject.next(token);
   }
 
   saveEmail(email: string): void {
@@ -149,12 +154,26 @@ export class AuthService {
     return localStorage.getItem('currentRole');
   }
 
+  hasRole(role: string): boolean {
+    return this.getRoles().includes(role);
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
+  }
+
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('email');
     localStorage.removeItem('roles');
     localStorage.removeItem('currentRole');
     localStorage.removeItem('refreshToken');
+    this.tokenSubject.next(null);
     this.userService.clearCachedUser();
     this.notificationService.stopConnection();
   }

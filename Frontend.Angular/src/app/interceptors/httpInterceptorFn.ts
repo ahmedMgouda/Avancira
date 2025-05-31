@@ -15,7 +15,7 @@ export const httpInterceptorFn: HttpInterceptorFn = (
   const authService = inject(AuthService);
   
   // Add the Authorization header if the token exists
-  const token = localStorage.getItem('token');
+  const token = authService.getToken();
   if (token) {
     req = req.clone({
       setHeaders: {
