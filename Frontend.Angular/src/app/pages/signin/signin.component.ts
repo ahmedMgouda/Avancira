@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { loadGapiInsideDOM } from 'gapi-script';
 import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
+import { firstValueFrom } from 'rxjs';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
@@ -140,19 +141,19 @@ export class SigninComponent {
   }
 
   /** ✅ Handle Social Login */
-  handleSocialLogin(provider: string, token: string): void {
+  async handleSocialLogin(provider: string, token: string): Promise<void> {
     this.spinner.hide();
-    this.authService.socialLogin(provider, token).subscribe({
-      next: (result) => {
-        this.authService.saveToken(result.token);
-        this.authService.saveRoles(result.roles);
-        this.router.navigateByUrl(this.returnUrl);
-      },
-      error: (error) => {
-        console.error(`❌ ${provider} login verification failed:`, error.message);
-        this.toastr.error('Invalid email or password.', 'Error');
-      },
-    });
+    try {
+      const result = await firstValueFrom(
+        this.authService.socialLogin(provider, token)
+      );
+      this.authService.saveToken(result.token);
+      this.authService.saveRoles(result.roles);
+      this.router.navigateByUrl(this.returnUrl);
+    } catch (error: any) {
+      console.error(`❌ ${provider} login verification failed:`, error.message);
+      this.toastr.error('Invalid email or password.', 'Error');
+    }
   }
 
   async resetPassword() {
