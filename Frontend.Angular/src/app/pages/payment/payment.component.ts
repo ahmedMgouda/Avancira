@@ -7,6 +7,7 @@ import { PaymentMethodComponent } from "../../components/payment-method/payment-
 
 import { AlertService } from '../../services/alert.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
 
 import { Card } from '../../models/card';
 import { TransactionPaymentMethod } from '../../models/enums/transaction-payment-method';
@@ -30,13 +31,14 @@ export class PaymentComponent implements OnInit {
     private alertService: AlertService,
     private route: ActivatedRoute,
     private router: Router,
-    private subscriptionService: SubscriptionService
+    private subscriptionService: SubscriptionService,
+    private authService: AuthService
   ) {
     this.handlePayment = this.handlePayment.bind(this);
   }
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token');
+    this.isLoggedIn = this.authService.isLoggedIn();
 
     this.route.queryParams.subscribe((params) => {
       this.referrer = params['referrer'] || '/';

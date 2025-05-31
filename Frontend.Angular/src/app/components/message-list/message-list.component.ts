@@ -42,7 +42,7 @@ export class MessageListComponent implements OnInit {
   }
 
   isLoggedIn(): boolean {
-    return !!this.authService.getToken();
+    return this.authService.isLoggedIn();
   }
 
   logout() {
