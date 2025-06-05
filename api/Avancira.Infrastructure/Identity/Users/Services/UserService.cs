@@ -122,8 +122,8 @@ internal sealed partial class UserService(
             throw new AvanciraException("error while registering a new user", errors);
         }
 
-        // add basic role
-        await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
+        // add student role
+        await userManager.AddToRoleAsync(user, AvanciraRoles.Student);
 
         // send confirmation mail
         if (!string.IsNullOrEmpty(user.Email))

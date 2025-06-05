@@ -48,9 +48,9 @@ internal sealed class IdentityDbInitializer(
             }
 
             // Assign permissions
-            if (roleName == AvanciraRoles.Basic)
+            if (roleName == AvanciraRoles.Student)
             {
-                await AssignPermissionsToRoleAsync(context, AvanciraPermissions.Basic, role);
+                await AssignPermissionsToRoleAsync(context, AvanciraPermissions.Student, role);
             }
             else if (roleName == AvanciraRoles.Admin)
             {
