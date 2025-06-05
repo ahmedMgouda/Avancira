@@ -101,8 +101,8 @@ public record PermissionViewModel : AvanciraPermission
 {
     public bool Enabled { get; set; }
 
-    public PermissionViewModel(string Description, string Action, string Resource, bool IsBasic = false, bool IsRoot = false)
-        : base(Description, Action, Resource, IsBasic, IsRoot)
+    public PermissionViewModel(string Description, string Action, string Resource, bool IsStudent = false, bool IsRoot = false)
+        : base(Description, Action, Resource, IsStudent, IsRoot)
     {
     }
 }

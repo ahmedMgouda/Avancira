@@ -22,16 +22,16 @@ namespace Avancira.Shared.Authorization;
         new("Update RoleClaims", AvanciraActions.Update, AvanciraResources.RoleClaims),
         
         //products
-        new("View Products", AvanciraActions.View, AvanciraResources.Products, IsBasic: true),
-        new("Search Products", AvanciraActions.Search, AvanciraResources.Products, IsBasic: true),
+        new("View Products", AvanciraActions.View, AvanciraResources.Products, IsStudent: true),
+        new("Search Products", AvanciraActions.Search, AvanciraResources.Products, IsStudent: true),
         new("Create Products", AvanciraActions.Create, AvanciraResources.Products),
         new("Update Products", AvanciraActions.Update, AvanciraResources.Products),
         new("Delete Products", AvanciraActions.Delete, AvanciraResources.Products),
         new("Export Products", AvanciraActions.Export, AvanciraResources.Products),
 
         //categories
-        new("View Categories", AvanciraActions.View, AvanciraResources.Categories, IsBasic: true),
-        new("Search Categories", AvanciraActions.Search, AvanciraResources.Categories, IsBasic: true),
+        new("View Categories", AvanciraActions.View, AvanciraResources.Categories, IsStudent: true),
+        new("Search Categories", AvanciraActions.Search, AvanciraResources.Categories, IsStudent: true),
         new("Create Categories", AvanciraActions.Create, AvanciraResources.Categories),
         new("Update Categories", AvanciraActions.Update, AvanciraResources.Categories),
         new("Delete Categories", AvanciraActions.Delete, AvanciraResources.Categories),
@@ -48,9 +48,9 @@ namespace Avancira.Shared.Authorization;
     public static IReadOnlyList<AvanciraPermission> All { get; } = new ReadOnlyCollection<AvanciraPermission>(AllPermissions);
     public static IReadOnlyList<AvanciraPermission> Root { get; } = new ReadOnlyCollection<AvanciraPermission>(AllPermissions.Where(p => p.IsRoot).ToArray());
     public static IReadOnlyList<AvanciraPermission> Admin { get; } = new ReadOnlyCollection<AvanciraPermission>(AllPermissions.Where(p => !p.IsRoot).ToArray());
-    public static IReadOnlyList<AvanciraPermission> Basic { get; } = new ReadOnlyCollection<AvanciraPermission>(AllPermissions.Where(p => p.IsBasic).ToArray());
+    public static IReadOnlyList<AvanciraPermission> Student { get; } = new ReadOnlyCollection<AvanciraPermission>(AllPermissions.Where(p => p.IsStudent).ToArray());
 }
-public record AvanciraPermission(string Description, string Action, string Resource, bool IsBasic = false, bool IsRoot = false)
+public record AvanciraPermission(string Description, string Action, string Resource, bool IsStudent = false, bool IsRoot = false)
 {
     public string Name => NameFor(Action, Resource);
     public static string NameFor(string action, string resource)

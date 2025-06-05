@@ -534,7 +534,12 @@ public class UserSeeder
                 user.Id = Guid.NewGuid().ToString();
                 user.PasswordHash = password.HashPassword(user, AppConstants.DefaultPassword);
                 userManager.CreateAsync(user).GetAwaiter().GetResult();
-                userManager.AddToRoleAsync(user, AvanciraRoles.Basic).GetAwaiter().GetResult();
+
+                string role = user.UserName == "student@avancira.com"
+                    ? AvanciraRoles.Student
+                    : AvanciraRoles.Tutor;
+
+                userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
             }
         }
     }
