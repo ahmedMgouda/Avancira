@@ -11,7 +11,7 @@ import { Address } from "./user";
     tutorAddress: Address | null;
     // Lesson Details
     lessonCategory: string | null;
-    lessonCategoryId: number | null;
+    lessonCategoryId: string | null; // Changed from number to string to match API Guid
     title: string;
     aboutLesson: string;
     aboutYou: string;
@@ -31,4 +31,3 @@ import { Address } from "./user";
     contactedCount: number;
     rating: number | null;
   }
-  

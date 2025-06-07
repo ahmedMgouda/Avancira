@@ -25,7 +25,7 @@ export class EditListingComponent implements OnInit {
   @Output() onClose = new EventEmitter<void>();
   @Output() saveChanges = new EventEmitter<void>();
   lessonCategories: LessonCategory[] = [];
-  selectedLessonCategory: number | null = null;
+  selectedLessonCategory: string | null = null;
   selectedLocations: string[] = [];
   locationOptions: string[] = ['Webcam', 'TutorLocation', 'StudentLocation'];
 
@@ -57,7 +57,7 @@ export class EditListingComponent implements OnInit {
     });
   }
 
-  selectOption(selectedCategoryId: number): void {
+  selectOption(selectedCategoryId: string): void {
     this.selectedLessonCategory = selectedCategoryId;
     if (this.listing) {
       this.listing.lessonCategoryId = selectedCategoryId;

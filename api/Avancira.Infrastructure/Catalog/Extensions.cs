@@ -1,8 +1,10 @@
 ﻿using Avancira.Application.Audit;
+using Avancira.Application.Billing;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Auth;
+using Avancira.Infrastructure.Billing;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Identity.Tokens;
@@ -16,6 +18,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
+using Avancira.Application.Services.Category;
+using Backend.Interfaces;
 
 namespace Avancira.Infrastructure.Catalog
 {
@@ -28,6 +32,24 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<ILessonCategoryService, LessonCategoryService>();
             services.AddTransient<IListingService, ListingService>();
             services.AddTransient<IUserService, UserService>();
+            services.AddTransient<IPayPalAccountService, PayPalAccountService>();
+            services.AddTransient<IStripeAccountService, StripeAccountService>();
+            services.AddTransient<IStripeCardService, StripeCardService>();
+            services.AddTransient<IPaymentService, PaymentService>();
+            services.AddTransient<IEvaluationService, EvaluationService>();
+            services.AddTransient<IChatService, ChatService>();
+            services.AddTransient<ICategoryService, CategoryService>();
+            services.AddTransient<ISubscriptionService, SubscriptionService>();
+            services.AddTransient<INotificationService, NotificationService>();
+            services.AddTransient<IWalletService, WalletService>();
+            services.AddTransient<ILessonService, LessonService>();
+            services.AddTransient<IJwtTokenService, JwtTokenService>();
+            services.AddTransient<IGeolocationService, GeolocationService>();
+            services.AddTransient<IFileUploadService, FileUploadService>();
+            
+            // Register billing services
+            services.AddTransient<IPaymentGateway, DefaultPaymentGateway>();
+            services.AddTransient<IPaymentGatewayFactory, PaymentGatewayFactory>();
 
             return services;
         }

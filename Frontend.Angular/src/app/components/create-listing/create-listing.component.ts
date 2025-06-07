@@ -81,7 +81,7 @@ export class CreateListingComponent implements OnInit {
     });
   }
 
-  selectOption(selectedCategoryId: number): void {
+  selectOption(selectedCategoryId: string): void {
     this.createListingForm.get('lessonCategoryId')?.patchValue(selectedCategoryId);
   }
 

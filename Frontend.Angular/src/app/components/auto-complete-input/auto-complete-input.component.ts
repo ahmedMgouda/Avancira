@@ -11,14 +11,14 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   styleUrl: './auto-complete-input.component.scss'
 })
 export class AutoCompleteInputComponent implements OnChanges {
-  @Input() options: { id: number; name: string }[] = [];
-  @Output() selectedOption = new EventEmitter<number>();
+  @Input() options: { id: string; name: string }[] = [];
+  @Output() selectedOption = new EventEmitter<string>();
   @Output() searchTextChanged = new EventEmitter<string>();
   @Output() newOptionCreated = new EventEmitter<string>();
 
   searchText = '';
-  filteredOptions: { id: number; name: string }[] = [];
-  selectedOptionId: number | null = null;
+  filteredOptions: { id: string; name: string }[] = [];
+  selectedOptionId: string | null = null;
 
   // Subject for search text
   private searchTextSubject = new Subject<string>();
@@ -80,14 +80,14 @@ export class AutoCompleteInputComponent implements OnChanges {
   
   onOptionChange(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
-    const selectedId = Number(selectElement.value);
+    const selectedId = selectElement.value;
     const selectedOption = this.filteredOptions.find(option => option.id === selectedId);
     if (selectedOption) {
       this.selectOption(selectedOption);
     }
   }
 
-  selectOption(option: { id: number; name: string }): void {
+  selectOption(option: { id: string; name: string }): void {
     // this.searchText = option.name;
     this.selectedOptionId = option.id;
     this.selectedOption.emit(option.id);

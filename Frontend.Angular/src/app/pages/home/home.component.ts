@@ -152,7 +152,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
       next: (categories) => {
         this.categories = categories;
         this.courseCategories = [
-          { id: 0, name: 'All', courses: 0, image: '' },
+          { id: '0', name: 'All', courses: 0, image: '' },
           ...this.categories
         ];
       },

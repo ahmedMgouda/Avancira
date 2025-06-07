@@ -17,20 +17,22 @@ export class ListingService {
   createListing(newListing: Listing): Observable<Listing> {
     // Prepare FormData with the image and listing details
     const formData = new FormData();
-    formData.append('listingImage', newListing.listingImage as File);
-    formData.append('title', newListing.title || '');
-    formData.append('aboutLesson', newListing.aboutLesson || '');
-    formData.append('aboutYou', newListing.aboutYou || '');
+    
+    // Add image if present
+    if (newListing.listingImage) {
+      formData.append('listingImage', newListing.listingImage as File);
+    }
+    
+    // Map frontend fields to API expected fields
+    formData.append('Name', newListing.title || '');
+    formData.append('Description', `${newListing.aboutLesson || ''}\n\nAbout the tutor: ${newListing.aboutYou || ''}`);
+    formData.append('HourlyRate', String(newListing.rates?.hourly || 0));
+    
+    // Handle category - API expects CategoryIds as array of GUIDs
     if (newListing.lessonCategoryId !== null && newListing.lessonCategoryId !== undefined) {
-      formData.append('lessonCategoryId', String(newListing.lessonCategoryId));
+      // API expects CategoryIds as an array, so we append it as an array element
+      formData.append('CategoryIds[0]', String(newListing.lessonCategoryId));
     }
-    if (newListing.lessonCategory !== null && newListing.lessonCategory !== undefined) {
-      formData.append('lessonCategory', String(newListing.lessonCategory));
-    }
-    formData.append('locations', (newListing.locations || []).join(','));
-    formData.append('rates.hourly', String(newListing.rates?.hourly || 0));
-    formData.append('rates.fiveHours', String(newListing.rates?.fiveHours || 0));
-    formData.append('rates.tenHours', String(newListing.rates?.tenHours || 0));
 
     return this.http.post<Listing>(`${this.apiUrl}/create-listing`, formData);
   }
@@ -94,7 +96,7 @@ export class ListingService {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-rates`, rates);
   }
 
-  updateListingCategory(listingId: number, lessonCategoryId: number): Observable<void> {
+  updateListingCategory(listingId: number, lessonCategoryId: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-category`, { lessonCategoryId });
   }
 

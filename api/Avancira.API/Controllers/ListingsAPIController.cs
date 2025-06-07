@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Backend.Controllers;
 
+[AllowAnonymous]
 [Route("api/listings")]
 [ApiController]
 public class ListingsAPIController : BaseController

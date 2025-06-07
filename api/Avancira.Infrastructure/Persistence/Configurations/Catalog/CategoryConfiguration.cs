@@ -18,7 +18,12 @@ namespace Avancira.Infrastructure.Persistence.Configurations.Catalog
                 .IsRequired();
 
             builder.Property(c => c.ImageUrl)
-                .IsRequired();
+                .HasConversion(
+                    v => v != null ? v.ToString() : null,
+                    v => string.IsNullOrEmpty(v) ? null : 
+                         (Uri.IsWellFormedUriString(v, UriKind.Absolute) ? new Uri(v, UriKind.Absolute) :
+                          Uri.IsWellFormedUriString(v, UriKind.Relative) ? new Uri(v, UriKind.Relative) : null))
+                .IsRequired(false);
 
             builder.HasMany(c => c.ListingCategories)
                 .WithOne(lc => lc.Category)

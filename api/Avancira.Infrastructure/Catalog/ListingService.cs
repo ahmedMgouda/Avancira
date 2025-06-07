@@ -58,18 +58,20 @@ namespace Avancira.Infrastructure.Catalog
 
         public async Task<ListingDto> CreateListingAsync(ListingRequestDto model, string userId)
         {
-            var existingCategoryIds = await _dbContext.ListingCategories
-                .Select(c => c.CategoryId)
+            // Validate that the provided category IDs exist in the Categories table
+            var validCategoryIds = await _dbContext.Categories
+                .Where(c => model.CategoryIds.Contains(c.Id))
+                .Select(c => c.Id)
                 .ToListAsync();
 
-            if (!existingCategoryIds.Any())
+            if (!validCategoryIds.Any())
                 throw new BadRequestException("No valid categories were found.");
 
             var listing = model.Adapt<Listing>();
 
             listing.UserId = userId;
 
-            listing.ListingCategories = existingCategoryIds
+            listing.ListingCategories = validCategoryIds
                 .Select(categoryId => new ListingCategory
                 {
                     ListingId = listing.Id,
@@ -93,9 +95,9 @@ namespace Avancira.Infrastructure.Catalog
             if (listing is null)
                 throw new KeyNotFoundException("Listing not found or unauthorized.");
 
-            var validCategoryIds = await _dbContext.ListingCategories
-                .Where(c => model.CategoryIds.Contains(c.CategoryId))
-                .Select(c => c.CategoryId)
+            var validCategoryIds = await _dbContext.Categories
+                .Where(c => model.CategoryIds.Contains(c.Id))
+                .Select(c => c.Id)
                 .ToListAsync();
 
             if (!validCategoryIds.Any())
@@ -317,20 +319,23 @@ namespace Avancira.Infrastructure.Catalog
         public async Task<bool> ModifyListingCategoryAsync(Guid listingId, string userId, Guid newCategoryId)
         {
             var listing = await _dbContext.Listings
+                .Include(l => l.ListingCategories)
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
                 .FirstOrDefaultAsync();
 
             if (listing == null) return false;
 
-            var categoryExists = await _dbContext.ListingCategories.AnyAsync(c => c.CategoryId == newCategoryId);
+            var categoryExists = await _dbContext.Categories.AnyAsync(c => c.Id == newCategoryId);
             if (!categoryExists) return false;
 
-            listing.ListingCategories = new List<ListingCategory>
-            {
-                new ListingCategory { CategoryId = newCategoryId }
-            };
-            _dbContext.Listings.Update(listing);
+            listing.ListingCategories.Clear();
+            listing.ListingCategories.Add(new ListingCategory 
+            { 
+                ListingId = listingId,
+                CategoryId = newCategoryId 
+            });
+            
             await _dbContext.SaveChangesAsync();
             return true;
         }

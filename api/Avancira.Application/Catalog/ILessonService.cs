@@ -15,4 +15,3 @@ public interface ILessonService
     Task<LessonDto> UpdateLessonStatusAsync(int lessonId, bool accept, string userId);
     Task ProcessPastBookedLessons();
 }
-
