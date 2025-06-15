@@ -23,16 +23,48 @@ export class ConfigService {
 
   constructor(private http: HttpClient) { }
 
+  // Check if configuration is valid (all required keys are present and not all empty)
+  private isConfigValid(config: Config): boolean {
+    if (!config) {
+      return false;
+    }
+
+    // Define the required configuration keys that should be loaded from API
+    const requiredKeys = [
+      'stripePublishableKey',
+      'payPalClientId',
+      'googleMapsApiKey',
+      'googleClientId',
+      'googleClientSecret',
+      'facebookAppId'
+    ];
+
+    // Check if all required keys exist in the config object
+    const allKeysExist = requiredKeys.every(key => key in config);
+    
+    // Check if all values are empty strings (this should trigger a reload)
+    const allValuesEmpty = requiredKeys.every(key => config[key] === '');
+    
+    // Config is valid if all keys exist AND not all values are empty
+    return allKeysExist && !allValuesEmpty;
+  }
+
   // Load configuration from backend API
   loadConfig(): Observable<Config> {
-    if (this.config) {
+    // Check if we have a valid config with all required keys
+    if (this.config && this.isConfigValid(this.config)) {
       return of(this.config);
     }
 
     const storedConfig = localStorage.getItem('config');
     if (storedConfig) {
-      this.config = JSON.parse(storedConfig) as Config;
-      return of(this.config);
+      const parsedConfig = JSON.parse(storedConfig) as Config;
+      if (this.isConfigValid(parsedConfig)) {
+        this.config = parsedConfig;
+        return of(this.config);
+      }
+      // If stored config is invalid, remove it and fetch fresh
+      localStorage.removeItem('config');
     }
 
     return this.http.get<Config>(`${environment.apiUrl}/configs`)

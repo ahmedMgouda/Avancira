@@ -1,29 +1,31 @@
-﻿using FluentValidation;
+﻿using Avancira.Application;
+using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Auth.Jwt;
 using Avancira.Infrastructure.Caching;
+using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Cors;
 using Avancira.Infrastructure.Exceptions;
+using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Jobs;
+using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Mail;
+using Avancira.Infrastructure.OpenApi;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Infrastructure.Persistence.Repositories;
 using Avancira.Infrastructure.RateLimit;
 using Avancira.Infrastructure.SecurityHeaders;
+using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Storage.Files;
+using Avancira.ServiceDefaults;
+using FluentValidation;
+using Mapster;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Avancira.ServiceDefaults;
-using Avancira.Infrastructure.OpenApi;
-using Avancira.Infrastructure.Logging.Serilog;
-using Avancira.Infrastructure.Identity;
-using Avancira.Infrastructure.Storage;
-using Avancira.Infrastructure.Catalog;
-using Avancira.Infrastructure.Persistence.Repositories;
-using Avancira.Application;
-using Mapster;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -47,6 +49,21 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
+
+
+        builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));
+        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Avancira:Jwt"));
+        builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Avancira:Payments:Stripe"));
+        builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection("Avancira:Payments:PayPal"));
+        builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Avancira:Notifications:Email"));
+        builder.Services.Configure<GraphApiOptions>(builder.Configuration.GetSection("Avancira:Notifications:GraphApi"));
+        builder.Services.Configure<SmtpOpctions>(builder.Configuration.GetSection("Avancira:Notifications:Smtp"));
+        builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("Avancira:Notifications:SendGrid"));
+        builder.Services.Configure<TwilioOptions>(builder.Configuration.GetSection("Avancira:Notifications:Twilio"));
+        builder.Services.Configure<JitsiOptions>(builder.Configuration.GetSection("Avancira:Jitsi"));
+        builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Google"));
+        builder.Services.Configure<FacebookOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Facebook"));
+
 
         // Configure Mappings
         TypeAdapterConfig.GlobalSettings.Scan(typeof(IListingService).Assembly);
