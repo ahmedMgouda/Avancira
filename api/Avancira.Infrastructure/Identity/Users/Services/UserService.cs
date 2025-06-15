@@ -324,9 +324,9 @@ internal sealed partial class UserService(
         return new LoginResponseDto
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            Expiration = expires
+            Expiration = expires,
+            Roles = userRoles
         };
     }
 
 }
-

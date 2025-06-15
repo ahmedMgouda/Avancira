@@ -51,7 +51,7 @@ namespace Avancira.Infrastructure.Catalog
                 .Take(pageSize)
                 .ToListAsync();
 
-            var listingDtos = listings.Adapt<List<ListingDto>>();
+            var listingDtos = listings.Select(listing => MapToListingDto(listing)).ToList();
 
             return new PagedResult<ListingDto>(listingDtos, totalRecords, page, pageSize);
         }
@@ -82,7 +82,7 @@ namespace Avancira.Infrastructure.Catalog
             await _dbContext.Listings.AddAsync(listing);
             await _dbContext.SaveChangesAsync();
 
-            return listing.Adapt<ListingDto>();
+            return MapToListingDto(listing);
 
         }
 
@@ -112,7 +112,7 @@ namespace Avancira.Infrastructure.Catalog
 
             await _dbContext.SaveChangesAsync();
 
-            return listing.Adapt<ListingDto>();
+            return MapToListingDto(listing);
         }
 
         public ListingDto GetListingById(Guid id)

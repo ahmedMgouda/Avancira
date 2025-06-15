@@ -236,7 +236,7 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _userService.LoginAsync(request, cancellationToken);
-        return Ok(result);
+        return Ok(new { token = result.Token, roles = result.Roles });
     }
 
     [HttpGet("me")]
