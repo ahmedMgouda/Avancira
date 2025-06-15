@@ -76,7 +76,7 @@ export class PremiumSubscriptionComponent implements OnInit {
     }
 
     try {
-      this.paymentService.createPayment('Stripe', 0, this.subscription.price).subscribe({
+      this.paymentService.createPayment('Stripe', '', this.subscription.price).subscribe({
         next: (session: { paymentId: string; approvalUrl: string }) => {
           if (session.approvalUrl) {
             window.location.href = session.approvalUrl; // Redirect to Stripe
@@ -90,7 +90,7 @@ export class PremiumSubscriptionComponent implements OnInit {
   }
 
   handlePayPalPayment(): void {
-    this.paymentService.createPayment('PayPal', 0, this.subscription.price).subscribe({
+    this.paymentService.createPayment('PayPal', '', this.subscription.price).subscribe({
       next: (order) => {
         if (order && order.approvalUrl) {
           window.location.href = order.approvalUrl; // Redirect to PayPal
@@ -142,7 +142,7 @@ export class PremiumSubscriptionComponent implements OnInit {
         this.router.navigate(['/payment-result'], {
           queryParams: {
             success: true,
-            listingId: 0,
+            listingId: '',
             gateway: 'Stripe',
             paymentType: TransactionPaymentType.TutorMembership
           }
@@ -154,7 +154,7 @@ export class PremiumSubscriptionComponent implements OnInit {
         this.router.navigate(['/payment-result'], {
           queryParams: {
             success: false,
-            listingId: 0,
+            listingId: '',
             gateway: 'Stripe',
             paymentType: TransactionPaymentType.TutorMembership
           }

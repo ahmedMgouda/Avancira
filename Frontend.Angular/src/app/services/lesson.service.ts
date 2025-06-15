@@ -26,7 +26,7 @@ export class LessonService {
     return this.http.post<void>(`${this.apiUrl}/proposeLesson`, formattedLesson);
   }
 
-  getLessons(contactId: string, listingId: number): Observable<{ lessons: PagedResult<Lesson> }> {
+  getLessons(contactId: string, listingId: string): Observable<{ lessons: PagedResult<Lesson> }> {
     return this.http.get<{ lessons: PagedResult<Lesson> }>(`${this.apiUrl}/${contactId}/${listingId}`);
   }
 

@@ -220,7 +220,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/search-results'], { queryParams: { query: this.searchQuery } });
   }
 
-  navigateToListing(listingId: number): void {
+  navigateToListing(listingId: string): void {
     this.router.navigate(['/listing', listingId]);
   }
 

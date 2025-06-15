@@ -1,5 +1,5 @@
 export interface SendMessage {
-    listingId: number;
+    listingId: string;
     recipientId: string;
     content: string;
   }

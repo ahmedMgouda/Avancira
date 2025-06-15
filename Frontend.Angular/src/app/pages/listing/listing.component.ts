@@ -38,8 +38,8 @@ export class ListingComponent implements OnInit {
   ngOnInit(): void {
     // Fetch the tutor ID from route params
     this.route.paramMap.subscribe((params) => {
-      const listingId = Number(params.get('id'));
-      if (!isNaN(listingId)) {
+      const listingId = params.get('id');
+      if (listingId) {
         this.loadListing(listingId);
       } else {
         console.error('Tutor ID not found');
@@ -52,7 +52,7 @@ export class ListingComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
-  loadListing(listingId: number): void {
+  loadListing(listingId: string): void {
     this.listingService.getListing(listingId).subscribe({
       next: (listing) => {
         this.listing = listing;

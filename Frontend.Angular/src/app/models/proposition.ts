@@ -7,7 +7,6 @@ export interface Proposition {
     date: Date;
     duration: number; // "HH:mm:ss" format for TimeSpan
     price: number; // e.g., 30.00
-    listingId: number;
+    listingId: string;
     studentId: string | null;
   }
-  

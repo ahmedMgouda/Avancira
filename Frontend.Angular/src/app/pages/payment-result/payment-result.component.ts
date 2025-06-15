@@ -17,7 +17,7 @@ import { TransactionPaymentType } from '../../models/enums/transaction-payment-t
 })
 export class PaymentResultComponent implements OnInit {
   success: boolean = false;
-  listingId!: number;
+  listingId!: string;
   gateway!: string;
   paymentType!: number;
 
@@ -31,7 +31,7 @@ export class PaymentResultComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       this.success = params['success'] === 'true';
-      this.listingId = Number(params['listingId']);
+      this.listingId = params['listingId'];
       this.gateway = params['gateway'];
       this.paymentType = Number(params['paymentType']);
 

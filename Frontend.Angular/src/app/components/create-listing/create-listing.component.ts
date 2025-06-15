@@ -127,7 +127,7 @@ export class CreateListingComponent implements OnInit {
       },
       socialPlatforms: formValues.socialPlatforms || [],
 
-      id: -1,
+      id: '',
       isVisible: true,
       tutorId: "",
       tutorName: "",

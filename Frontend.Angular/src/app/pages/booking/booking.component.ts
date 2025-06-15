@@ -47,8 +47,8 @@ export class BookingComponent implements OnInit {
   ngOnInit(): void {
     // Fetch the listing ID from route parameters
     this.route.paramMap.subscribe((params) => {
-      const listingId = Number(params.get('id'));
-      if (!isNaN(listingId)) {
+      const listingId = params.get('id');
+      if (listingId) {
         this.loadListing(listingId);
       } else {
         console.error('Listing ID not found');
@@ -57,7 +57,7 @@ export class BookingComponent implements OnInit {
     });
   }
   
-  loadListing(listingId: number): void {
+  loadListing(listingId: string): void {
     this.listingService.getListing(listingId).subscribe({
       next: (listing) => {
         this.listing = listing;

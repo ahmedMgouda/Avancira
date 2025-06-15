@@ -10,7 +10,7 @@ namespace Avancira.Application.Catalog.Listings.Dtos
 {
     public class ListingDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string TutorId { get; set; }
         public string TutorName { get; set; }
         public string TutorBio { get; set; }

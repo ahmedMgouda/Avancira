@@ -1,7 +1,7 @@
 import { Address } from "./user";
 
-  export interface Listing {
-    id: number; //  | null
+export interface Listing {
+    id: string; //  | null
     isVisible: any;
     // Personal Details
     tutorId: string;

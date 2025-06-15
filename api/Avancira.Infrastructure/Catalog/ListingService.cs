@@ -392,7 +392,7 @@ namespace Avancira.Infrastructure.Catalog
         {
             return new ListingDto
             {
-                Id = listing.Id.GetHashCode(),
+                Id = listing.Id,
                 IsVisible = listing.IsVisible,
                 ContactedCount = contactedCount ?? 0,
                 Reviews = 0,

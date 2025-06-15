@@ -16,7 +16,7 @@ import { SubscriptionService } from '../../services/subscription.service';
   styleUrl: './payment-alt-options.component.scss'
 })
 export class PaymentAltOptionsComponent implements OnInit {
-  listingId!: number;
+  listingId!: string;
   isLoggedIn = false; // Check if the user is logged in
   paymentMethod: 'card' | 'paypal' = 'paypal';
   subscription = {
@@ -66,7 +66,7 @@ export class PaymentAltOptionsComponent implements OnInit {
     try {
       // Call backend to create a Stripe Checkout Session
       this.paymentService.createPayment("Stripe", this.listingId, this.subscription.price).subscribe({
-        next: (session: { id: string, approvalUrl: string }) => {
+        next: (session: { paymentId: string, approvalUrl: string }) => {
           if (session.approvalUrl) {
             // Redirect to the Stripe Checkout Session URL
             window.location.href = session.approvalUrl;

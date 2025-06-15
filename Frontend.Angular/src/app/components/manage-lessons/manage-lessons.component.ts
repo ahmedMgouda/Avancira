@@ -60,7 +60,7 @@ export class ManageLessonsComponent implements OnInit, OnChanges {
   }
 
 
-  loadPropositions(contactId: string, listingId: number): void {
+  loadPropositions(contactId: string, listingId: string): void {
     this.lessonService.getLessons(contactId, listingId).subscribe({
       next: (response) => {
         this.propositions = response.lessons.results.filter(lesson => lesson.type === LessonType.Proposition);
@@ -72,7 +72,7 @@ export class ManageLessonsComponent implements OnInit, OnChanges {
     });
   }
 
-  loadListing(listingId: number): void {
+  loadListing(listingId: string): void {
     this.listingService.getListing(listingId).subscribe({
       next: (listing) => {
         this.selectedListing = listing;

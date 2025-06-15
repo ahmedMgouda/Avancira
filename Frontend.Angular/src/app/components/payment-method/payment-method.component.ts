@@ -17,7 +17,7 @@ import { UserCardType } from '../../models/enums/user-card-type';
 })
 export class PaymentMethodComponent {
   @Input() totalPrice: number = 0;
-  @Input() listingId: number | null = null;
+  @Input() listingId: string | null = null;
   @Input() returnUrl: string = '/payment-result';
   @Input() onApproval!: (data: any) => void;
   @Output() paymentConfirmed = new EventEmitter<void>();
@@ -42,7 +42,7 @@ export class PaymentMethodComponent {
         return this.paymentService.renderPayPalButton(
           '#paypal-button-container',
           'PayPal',
-          this.listingId ?? 0,
+          this.listingId ?? '',
           this.totalPrice,
           '/messages',
           this.onApproval

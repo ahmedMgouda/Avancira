@@ -62,46 +62,46 @@ export class ListingService {
     return this.http.get<PagedResult<Listing>>(this.apiUrl, { params });
   }
 
-  getListing(listingId: number): Observable<Listing> {
+  getListing(listingId: string): Observable<Listing> {
     return this.http.get<Listing>(`${this.apiUrl}/${listingId}`);
   }
 
-  updateListingVisibility(listingId: number, isVisible: boolean): Observable<void> {
+  updateListingVisibility(listingId: string, isVisible: boolean): Observable<void> {
     const body = { isVisible };
 
     return this.http.put<void>(`${this.apiUrl}/${listingId}/toggle-visibility`, body);
   }
 
-  updateListingTitle(listingId: number, title: string): Observable<void> {
+  updateListingTitle(listingId: string, title: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-title`, { title });
   }
 
-  updateListingImage(listingId: number, imageFile: File): Observable<void> {
+  updateListingImage(listingId: string, imageFile: File): Observable<void> {
     const formData = new FormData();
     formData.append('image', imageFile);
 
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-image`, formData);
   }
 
-  updateListingLocations(listingId: number, locations: string[]): Observable<void> {
+  updateListingLocations(listingId: string, locations: string[]): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-locations`, locations);
   }
 
-  updateListingDescription(listingId: number, aboutLesson: string, aboutYou: string): Observable<void> {
+  updateListingDescription(listingId: string, aboutLesson: string, aboutYou: string): Observable<void> {
     const body = { aboutLesson, aboutYou };
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-description`, body);
   }
 
-  updateListingRates(listingId: number, rates: { hourly: number; fiveHours: number; tenHours: number }): Observable<void> {
+  updateListingRates(listingId: string, rates: { hourly: number; fiveHours: number; tenHours: number }): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-rates`, rates);
   }
 
-  updateListingCategory(listingId: number, lessonCategoryId: string): Observable<void> {
+  updateListingCategory(listingId: string, lessonCategoryId: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${listingId}/update-category`, { lessonCategoryId });
   }
 
   
-  deleteListing(listingId: number): Observable<void> {
+  deleteListing(listingId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${listingId}/delete`);
   }
 }

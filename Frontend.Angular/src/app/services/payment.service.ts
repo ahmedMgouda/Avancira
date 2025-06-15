@@ -26,7 +26,7 @@ export class PaymentService {
     return this.http.get<PaymentHistory>(`${this.apiUrl}/history`);
   }
 
-  createPayment(gateway: string, listingId: number | null, amount: number): Observable<{ paymentId: string; approvalUrl: string }> {
+  createPayment(gateway: string, listingId: string | null, amount: number): Observable<{ paymentId: string; approvalUrl: string }> {
     const returnUrl = `${environment.frontendUrl}/payment-result?success=true&listingId=${listingId}&gateway=${gateway}`;
     const cancelUrl = `${environment.frontendUrl}/payment-result?success=false&listingId=${listingId}&gateway=${gateway}`;
     const body = { gateway, amount, returnUrl, cancelUrl, listingId };
@@ -68,7 +68,7 @@ export class PaymentService {
   renderPayPalButton(
     containerId: string,
     paymentMethod: string,
-    listingId: number,
+    listingId: string,
     amount: number,
     returnUrl: string,
     onApprove: (data: any) => void | null
