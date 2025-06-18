@@ -59,76 +59,80 @@ namespace Avancira.Infrastructure.Catalog
             if (user == null)
                 throw new KeyNotFoundException("User not found.");
 
-            using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
-
-            try
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync(async () =>
             {
-                // Step 1: Fetch the user's wallet to validate balance
-                var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+                using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
 
-                if (wallet == null)
+                try
                 {
-                    _logger.LogWarning($"Wallet for User with ID {userId} not found.");
-                    throw new InvalidOperationException("Wallet not found.");
-                }
+                    // Step 1: Fetch the user's wallet to validate balance
+                    var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
 
-                // Step 2: Check if the wallet has sufficient funds
-                if (wallet.Balance < amount)
+                    if (wallet == null)
+                    {
+                        _logger.LogWarning($"Wallet for User with ID {userId} not found.");
+                        throw new InvalidOperationException("Wallet not found.");
+                    }
+
+                    // Step 2: Check if the wallet has sufficient funds
+                    if (wallet.Balance < amount)
+                    {
+                        _logger.LogWarning($"Insufficient balance for User ID {userId}. Requested: {amount}, Available: {wallet.Balance}");
+                        throw new InvalidOperationException("Insufficient wallet balance for payout.");
+                    }
+
+                    // Step 3: Proceed with payout using the payment gateway
+                    var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
+                    var recipientAccountId = (user.PaymentGateway == "PayPal") ? user.PayPalAccountId
+                        : user.StripeConnectedAccountId;
+                    var payoutResult = await gateway.CreatePayoutAsync(recipientAccountId ?? string.Empty, amount, currency);
+
+                    // Step 4: Use _walletService to update the wallet balance
+                    await _walletService.ModifyWalletBalanceAsync(
+                        userId,
+                        -amount,
+                        $"Payout of {amount:C} processed successfully."
+                    );
+
+                    // Commit the transaction
+                    await transactionScope.CommitAsync();
+
+                    _logger.LogInformation($"Payout of {amount:C} successfully processed for User ID {userId}.");
+
+                    //var eventData = new PayoutProcessedEvent
+                    //{
+                    //    UserId = userId,
+                    //    Amount = amount,
+                    //    Currency = currency,
+                    //    WalletBalance = wallet.Balance - amount,
+                    //    ProcessedAt = DateTime.UtcNow
+                    //};
+
+                    //await _notificationService.NotifyAsync(NotificationEvent.PayoutProcessed, eventData);
+
+                    return payoutResult;
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogWarning($"Insufficient balance for User ID {userId}. Requested: {amount}, Available: {wallet.Balance}");
-                    throw new InvalidOperationException("Insufficient wallet balance for payout.");
+                    // Rollback in case of any failure
+                    await transactionScope.RollbackAsync();
+
+                    _logger.LogError(ex, $"Failed to process payout for User ID {userId}.");
+
+                    //var eventData = new PayoutFailedEvent
+                    //{
+                    //    UserId = userId,
+                    //    Amount = amount,
+                    //    Currency = currency,
+                    //    ErrorMessage = ex.Message,
+                    //    AttemptedAt = DateTime.UtcNow
+                    //};
+
+                    //await _notificationService.NotifyAsync(NotificationEvent.PaymentFailed, eventData);
+                    throw new Exception("Payout processing failed. Please try again.");
                 }
-
-                // Step 3: Proceed with payout using the payment gateway
-                var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
-                var recipientAccountId = (user.PaymentGateway == "PayPal") ? user.PayPalAccountId
-                    : user.StripeConnectedAccountId;
-                var payoutResult = await gateway.CreatePayoutAsync(recipientAccountId ?? string.Empty, amount, currency);
-
-                // Step 4: Use _walletService to update the wallet balance
-                await _walletService.ModifyWalletBalanceAsync(
-                    userId,
-                    -amount,
-                    $"Payout of {amount:C} processed successfully."
-                );
-
-                // Commit the transaction
-                await transactionScope.CommitAsync();
-
-                _logger.LogInformation($"Payout of {amount:C} successfully processed for User ID {userId}.");
-
-                //var eventData = new PayoutProcessedEvent
-                //{
-                //    UserId = userId,
-                //    Amount = amount,
-                //    Currency = currency,
-                //    WalletBalance = wallet.Balance - amount,
-                //    ProcessedAt = DateTime.UtcNow
-                //};
-
-                //await _notificationService.NotifyAsync(NotificationEvent.PayoutProcessed, eventData);
-
-                return payoutResult;
-            }
-            catch (Exception ex)
-            {
-                // Rollback in case of any failure
-                await transactionScope.RollbackAsync();
-
-                _logger.LogError(ex, $"Failed to process payout for User ID {userId}.");
-
-                //var eventData = new PayoutFailedEvent
-                //{
-                //    UserId = userId,
-                //    Amount = amount,
-                //    Currency = currency,
-                //    ErrorMessage = ex.Message,
-                //    AttemptedAt = DateTime.UtcNow
-                //};
-
-                //await _notificationService.NotifyAsync(NotificationEvent.PaymentFailed, eventData);
-                throw new Exception("Payout processing failed. Please try again.");
-            }
+            });
         }
 
 
@@ -201,126 +205,149 @@ namespace Avancira.Infrastructure.Catalog
 
         public async Task<Transaction> CapturePaymentAsync(Guid transactionId, string gatewayName = "Stripe", string recipientId = "")
         {
-            using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
-
-            try
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync(async () =>
             {
-                // Step 1: Fetch the existing transaction
-                var transaction = await _dbContext.Transactions
-                    .AsTracking()
-                    .FirstOrDefaultAsync(t => t.Id == transactionId && t.Status == TransactionStatus.Created);
+                using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
 
-                if (transaction == null)
+                try
                 {
-                    throw new Exception($"Transaction {transactionId} not found or not in 'Created' status.");
-                }
+                    // Step 1: Fetch the existing transaction
+                    var transaction = await _dbContext.Transactions
+                        .AsTracking()
+                        .FirstOrDefaultAsync(t => t.Id == transactionId && t.Status == TransactionStatus.Created);
 
-                // Extract details from the transaction
-                var paymentId = transaction.PayPalPaymentId;
-                var netAmount = transaction.Amount + transaction.PlatformFee;
-                var customerId = transaction.StripeCustomerId;
-                var cardId = transaction.StripeCardId;
-                var paymentDescription = transaction.Description;
+                    if (transaction == null)
+                    {
+                        throw new Exception($"Transaction {transactionId} not found or not in 'Created' status.");
+                    }
 
-                if (string.IsNullOrEmpty(paymentId) && string.IsNullOrEmpty(customerId))
-                {
-                    throw new Exception($"Transaction {transactionId} is missing required payment details.");
-                }
+                    // Extract details from the transaction
+                    var paymentId = transaction.PayPalPaymentId;
+                    var netAmount = transaction.Amount + transaction.PlatformFee;
+                    var customerId = transaction.StripeCustomerId;
+                    var cardId = transaction.StripeCardId;
+                    var paymentDescription = transaction.Description;
 
-                // Step 2: Process the payment with the payment gateway
-                var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
-                var paymentResult = await gateway.CapturePaymentAsync(paymentId, customerId, cardId, netAmount, paymentDescription);
+                    // Check if we have valid payment details for either PayPal or Stripe
+                    bool hasPayPalDetails = !string.IsNullOrEmpty(paymentId);
+                    bool hasStripeDetails = !string.IsNullOrEmpty(customerId);
+                    
+                    if (!hasPayPalDetails && !hasStripeDetails)
+                    {
+                        throw new Exception($"Transaction {transactionId} is missing required payment details for both PayPal and Stripe.");
+                    }
+                    
+                    // Validate that we have the correct payment details for the selected gateway
+                    if (gatewayName.Equals("PayPal", StringComparison.OrdinalIgnoreCase) && !hasPayPalDetails)
+                    {
+                        throw new Exception($"Transaction {transactionId} is missing PayPal payment details.");
+                    }
+                    
+                    if (gatewayName.Equals("Stripe", StringComparison.OrdinalIgnoreCase) && !hasStripeDetails)
+                    {
+                        throw new Exception($"Transaction {transactionId} is missing Stripe payment details.");
+                    }
 
-                // Step 3: Update transaction status
-                transaction.UpdateStatus(paymentResult.Status == PaymentResultStatus.Completed
-                    ? TransactionStatus.Completed
-                    : TransactionStatus.Failed);
-
-                _dbContext.Transactions.Update(transaction);
-                await _dbContext.SaveChangesAsync();
-
-                // Step 3: Update recipient's wallet balance
-                if (!string.IsNullOrEmpty(recipientId))
-                {
-                    await _walletService.ModifyWalletBalanceAsync(recipientId, netAmount, $"Payment for transaction {transaction.Id}");
-                }
-
-                // Commit the transaction
-                await transactionScope.CommitAsync();
-
-                return transaction;
-            }
-            catch (Exception ex)
-            {
-                // Rollback in case of any failure
-                await transactionScope.RollbackAsync();
-
-                // Refund the payment if a failure occurred
-                var transaction = await _dbContext.Transactions.FirstOrDefaultAsync(t => t.Id == transactionId);
-                if (transaction != null && !string.IsNullOrEmpty(transaction.PayPalPaymentId))
-                {
+                    // Step 2: Process the payment with the payment gateway
                     var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
-                    await gateway.RefundPaymentAsync(transaction.PayPalPaymentId, transaction.Amount + transaction.PlatformFee);
-                    _logger.LogInformation($"Payment {transaction.PayPalPaymentId} successfully refunded after failure.");
-                }
+                    var paymentResult = await gateway.CapturePaymentAsync(paymentId, customerId, cardId, netAmount, paymentDescription);
 
-                _logger.LogError(ex, "Error capturing payment for transaction {TransactionId}", transactionId);
-                throw new Exception($"Payment capture failed for transaction {transactionId}.", ex);
-            }
+                    // Step 3: Update transaction status
+                    transaction.UpdateStatus(paymentResult.Status == PaymentResultStatus.Completed
+                        ? TransactionStatus.Completed
+                        : TransactionStatus.Failed);
+
+                    _dbContext.Transactions.Update(transaction);
+                    await _dbContext.SaveChangesAsync();
+
+                    // Step 3: Update recipient's wallet balance
+                    if (!string.IsNullOrEmpty(recipientId))
+                    {
+                        await _walletService.ModifyWalletBalanceAsync(recipientId, netAmount, $"Payment for transaction {transaction.Id}");
+                    }
+
+                    // Commit the transaction
+                    await transactionScope.CommitAsync();
+
+                    return transaction;
+                }
+                catch (Exception ex)
+                {
+                    // Rollback in case of any failure
+                    await transactionScope.RollbackAsync();
+
+                    // Refund the payment if a failure occurred
+                    var transaction = await _dbContext.Transactions.FirstOrDefaultAsync(t => t.Id == transactionId);
+                    if (transaction != null && !string.IsNullOrEmpty(transaction.PayPalPaymentId))
+                    {
+                        var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
+                        await gateway.RefundPaymentAsync(transaction.PayPalPaymentId, transaction.Amount + transaction.PlatformFee);
+                        _logger.LogInformation($"Payment {transaction.PayPalPaymentId} successfully refunded after failure.");
+                    }
+
+                    _logger.LogError(ex, "Error capturing payment for transaction {TransactionId}", transactionId);
+                    throw new Exception($"Payment capture failed for transaction {transactionId}.", ex);
+                }
+            });
         }
 
         public async Task<bool> RefundPaymentAsync(Guid transactionId, decimal refundAmount, decimal retainedAmount, string gatewayName = "Stripe")
         {
-            await using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
-
-            try
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            return await executionStrategy.ExecuteAsync(async () =>
             {
-                var transaction = await _dbContext.Transactions
-                    .AsTracking()
-                    .FirstOrDefaultAsync(t => t.Id == transactionId);
+                await using var transactionScope = await _dbContext.Database.BeginTransactionAsync();
 
-                if (transaction == null)
-                    throw new KeyNotFoundException("Transaction not found for the given ID.");
-
-                string? paymentId = gatewayName.ToLower() switch
+                try
                 {
-                    "paypal" => transaction.PayPalPaymentId,
-                    "stripe" => transaction.StripeCustomerId,
-                    _ => throw new InvalidOperationException("Unsupported payment gateway.")
-                };
+                    var transaction = await _dbContext.Transactions
+                        .AsTracking()
+                        .FirstOrDefaultAsync(t => t.Id == transactionId);
 
-                if (string.IsNullOrEmpty(paymentId))
-                    throw new InvalidOperationException("No valid payment ID found for this transaction.");
+                    if (transaction == null)
+                        throw new KeyNotFoundException("Transaction not found for the given ID.");
 
-                var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
-                await gateway.RefundPaymentAsync(paymentId, refundAmount);
+                    string? paymentId = gatewayName.ToLower() switch
+                    {
+                        "paypal" => transaction.PayPalPaymentId,
+                        "stripe" => transaction.StripeCustomerId,
+                        _ => throw new InvalidOperationException("Unsupported payment gateway.")
+                    };
 
-                transaction.ProcessRefund(refundAmount);
-                transaction.UpdateStatus(TransactionStatus.Refunded);
+                    if (string.IsNullOrEmpty(paymentId))
+                        throw new InvalidOperationException("No valid payment ID found for this transaction.");
 
-                _dbContext.Transactions.Update(transaction);
+                    var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
+                    await gateway.RefundPaymentAsync(paymentId, refundAmount);
 
-                if (!string.IsNullOrWhiteSpace(transaction.RecipientId))
-                {
-                    var refundNetAmount = refundAmount * (transaction.Amount / (transaction.Amount + transaction.PlatformFee));
-                    await _walletService.ModifyWalletBalanceAsync(
-                        transaction.RecipientId,
-                        -refundNetAmount,
-                        $"Refund for transaction {transactionId}");
+                    transaction.ProcessRefund(refundAmount);
+                    transaction.UpdateStatus(TransactionStatus.Refunded);
+
+                    _dbContext.Transactions.Update(transaction);
+
+                    if (!string.IsNullOrWhiteSpace(transaction.RecipientId))
+                    {
+                        var refundNetAmount = refundAmount * (transaction.Amount / (transaction.Amount + transaction.PlatformFee));
+                        await _walletService.ModifyWalletBalanceAsync(
+                            transaction.RecipientId,
+                            -refundNetAmount,
+                            $"Refund for transaction {transactionId}");
+                    }
+
+                    await _dbContext.SaveChangesAsync();
+                    await transactionScope.CommitAsync();
+
+                    _logger.LogInformation($"Refund of {refundAmount:C} processed successfully for transaction {transaction.Id}.");
+                    return true;
                 }
-
-                await _dbContext.SaveChangesAsync();
-                await transactionScope.CommitAsync();
-
-                _logger.LogInformation($"Refund of {refundAmount:C} processed successfully for transaction {transaction.Id}.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await transactionScope.RollbackAsync();
-                _logger.LogError(ex, $"Refund failed for transaction {transactionId}.");
-                throw;
-            }
+                catch (Exception ex)
+                {
+                    await transactionScope.RollbackAsync();
+                    _logger.LogError(ex, $"Refund failed for transaction {transactionId}.");
+                    throw;
+                }
+            });
         }
     }
 }

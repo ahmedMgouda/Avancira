@@ -12,8 +12,11 @@ import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
 
 import { Card } from '../../models/card';
+import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
+import { TransactionPaymentMethod } from '../../models/enums/transaction-payment-method';
 import { TransactionPaymentType } from '../../models/enums/transaction-payment-type';
 import { UserCardType } from '../../models/enums/user-card-type';
+import { SubscriptionRequest } from '../../models/subscription-request';
 
 @Component({
   selector: 'app-premium-subscription',
@@ -128,10 +131,12 @@ export class PremiumSubscriptionComponent implements OnInit {
       return;
     }
 
-    const subscriptionRequest = {
+    const subscriptionRequest: SubscriptionRequest = {
       amount: this.subscription.price, // Use the subscription price dynamically
-      paymentMethod: `Card ending in ${this.selectedCard.last4}`, // Describe the payment method,
-      paymentType: TransactionPaymentType.TutorMembership
+      paymentMethod: TransactionPaymentMethod.Stripe,
+      description: `Card ending in ${this.selectedCard.last4}`,
+      paymentType: TransactionPaymentType.TutorMembership,
+      billingFrequency: SubscriptionBillingFrequency.Monthly
     };
 
     // Call the subscription service to create a subscription

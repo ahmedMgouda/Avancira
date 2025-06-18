@@ -1,5 +1,6 @@
 ﻿using Avancira.Application;
 using Avancira.Application.Auth.Jwt;
+using Avancira.Application.Jobs;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Auth.Jwt;
@@ -35,14 +36,16 @@ public static class Extensions
         ArgumentNullException.ThrowIfNull(builder);
         builder.AddServiceDefaults();
         builder.ConfigureSerilog();
-        builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration);
         builder.Services.ConfigureFileStorage();
         builder.Services.ConfigureJwtAuth();
         builder.Services.ConfigureOpenApi();
-        builder.Services.ConfigureJobs(builder.Configuration);
+        // TODO: Re-enable Hangfire after Aspire integration is complete
+        // builder.Services.ConfigureJobs(builder.Configuration);
+        // Add stub job service for now
+        builder.Services.AddTransient<IJobService, StubJobService>();
         builder.Services.ConfigureMailing();
         builder.Services.ConfigureCaching(builder.Configuration);
         builder.Services.AddExceptionHandler<CustomExceptionHandler>();
@@ -102,7 +105,8 @@ public static class Extensions
         app.UseExceptionHandler();
         app.UseCorsPolicy();
         app.UseOpenApi();
-        app.UseJobDashboard(app.Configuration);
+        // TODO: Re-enable Hangfire dashboard after Aspire integration is complete
+        // app.UseJobDashboard(app.Configuration);
         app.UseRouting();
         app.UseStaticFiles();
         app.UseStaticFiles(new StaticFileOptions()

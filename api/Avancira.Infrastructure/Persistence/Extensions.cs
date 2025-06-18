@@ -61,8 +61,8 @@ public static class Extensions
         // Get the DbContext and check if there are any pending migrations
         var context = serviceScope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
 
-        context.Database.EnsureDeleted();
-        //context.Database.EnsureCreated();
+        // For Aspire, we don't delete the database, just ensure it exists and apply migrations
+        context.Database.EnsureCreated();
 
         // Check if there are pending migrations
         if (context.Database.GetPendingMigrations().Any())

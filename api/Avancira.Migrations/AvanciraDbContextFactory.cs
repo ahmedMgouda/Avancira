@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Persistence;
 using MediatR;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Avancira.Migrations
@@ -28,15 +27,9 @@ namespace Avancira.Migrations
             var optionsBuilder = new DbContextOptionsBuilder<AvanciraDbContext>();
             optionsBuilder.UseNpgsql(connectionString, b => b.MigrationsAssembly("Avancira.Migrations"));
 
-            var options = Options.Create(new DatabaseOptions
-            {
-                ConnectionString = connectionString,
-                Provider = DbProviders.PostgreSQL
-            });
-
             var publisher = new Mock<IPublisher>().Object;
 
-            return new AvanciraDbContext(optionsBuilder.Options, publisher, options);
+            return new AvanciraDbContext(optionsBuilder.Options, publisher);
         }
     }
 }

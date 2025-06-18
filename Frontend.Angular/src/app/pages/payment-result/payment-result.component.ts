@@ -6,7 +6,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
 
+import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
+import { TransactionPaymentMethod } from '../../models/enums/transaction-payment-method';
 import { TransactionPaymentType } from '../../models/enums/transaction-payment-type';
+import { SubscriptionRequest } from '../../models/subscription-request';
 
 
 @Component({
@@ -91,9 +94,12 @@ export class PaymentResultComponent implements OnInit {
   }
 
   createSubscription(): void {
-    const subscriptionRequest = {
+    const subscriptionRequest: SubscriptionRequest = {
       amount: 69, // Replace with dynamic amount if needed
-      paymentMethod: this.gateway
+      paymentMethod: this.gateway === 'PayPal' ? TransactionPaymentMethod.PayPal : TransactionPaymentMethod.Stripe,
+      paymentType: TransactionPaymentType.StudentMembership,
+      billingFrequency: SubscriptionBillingFrequency.Monthly,
+      description: `Payment via ${this.gateway}`
     };
 
     this.subscriptionService.createSubscription(subscriptionRequest).subscribe({

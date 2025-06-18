@@ -3,15 +3,17 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { PaymentMethodComponent } from "../../components/payment-method/payment-method.component";
+import { PaymentMethodComponent } from '../../components/payment-method/payment-method.component';
 
 import { AlertService } from '../../services/alert.service';
 import { SubscriptionService } from '../../services/subscription.service';
 
 import { Card } from '../../models/card';
+import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
 import { TransactionPaymentMethod } from '../../models/enums/transaction-payment-method';
 import { TransactionPaymentType } from '../../models/enums/transaction-payment-type';
 import { UserCardType } from '../../models/enums/user-card-type';
+import { SubscriptionRequest } from '../../models/subscription-request';
 
 @Component({
   selector: 'app-payment',
@@ -83,7 +85,7 @@ export class PaymentComponent implements OnInit {
   handlePayment(data: any) {
     console.log('PayPal Payment Approved!', data);
 
-    const subscriptionRequest = {
+    const subscriptionRequest: SubscriptionRequest = {
       payPalPaymentId: data ? data.paymentID : null,
       promoCode: this.promoCode,
       amount: this.totalPrice,
@@ -135,11 +137,11 @@ export class PaymentComponent implements OnInit {
   }
 
 
-  selectedPlan: 'Monthly' | 'Yearly' = 'Monthly';
+  selectedPlan: SubscriptionBillingFrequency = SubscriptionBillingFrequency.Monthly;
 
   planOptions = [
-    { key: 'Monthly', label: 'Monthly Plan', price: 69, period: 'month', description: 'Enjoy full access to our services with a monthly commitment.' },
-    { key: 'Yearly', label: '12-Month Plan', price: 69 * 12, period: 'year', description: 'Includes 3 extra months free! Pay for 12 months and get 15 months of access.' }
+    { key: SubscriptionBillingFrequency.Monthly, label: 'Monthly Plan', price: 69, period: 'month', description: 'Enjoy full access to our services with a monthly commitment.' },
+    { key: SubscriptionBillingFrequency.Yearly, label: '12-Month Plan', price: 69 * 12, period: 'year', description: 'Includes 3 extra months free! Pay for 12 months and get 15 months of access.' }
   ];
 
   promoCode: string = '';

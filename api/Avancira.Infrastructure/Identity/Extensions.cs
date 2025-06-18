@@ -28,7 +28,6 @@ internal static class Extensions
         services.AddTransient<Avancira.Application.Identity.Users.Abstractions.IUserService, UserService>();
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<IAuditService, AuditService>();
-        services.BindDbContext<AvanciraDbContext>();
         services.AddScoped<IDbInitializer, IdentityDbInitializer>();
 
         services.AddIdentity<User, Role>(options =>

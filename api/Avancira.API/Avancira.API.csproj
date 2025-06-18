@@ -10,10 +10,12 @@
     <ProjectReference Include="..\Avancira.Application\Avancira.Application.csproj" />
     <ProjectReference Include="..\Avancira.Infrastructure\Avancira.Infrastructure.csproj" />
     <ProjectReference Include="..\Avancira.Migrations\Avancira.Migrations.csproj" />
+    <ProjectReference Include="..\..\aspire\Avancira.ServiceDefaults\Avancira.ServiceDefaults.csproj" />
   </ItemGroup>
 
   
   <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
