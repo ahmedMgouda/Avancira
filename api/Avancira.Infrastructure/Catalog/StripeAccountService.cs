@@ -1,62 +1,86 @@
 using Avancira.Application.Catalog;
 using Avancira.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Stripe;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Avancira.Infrastructure.Catalog
 {
     public class StripeAccountService : IStripeAccountService
     {
+        private readonly AppOptions _appOptions;
+        private readonly StripeOptions _stripeOptions;
         private readonly AvanciraDbContext _dbContext;
         private readonly ILogger<StripeAccountService> _logger;
 
         public StripeAccountService(
+            IOptions<AppOptions> appOptions,
+            IOptions<StripeOptions> stripeOptions,
             AvanciraDbContext dbContext,
             ILogger<StripeAccountService> logger
         )
         {
+            _appOptions = appOptions.Value;
+            _stripeOptions = stripeOptions.Value;
             _dbContext = dbContext;
             _logger = logger;
         }
 
         public async Task<string> ConnectStripeAccountAsync(string userId)
         {
-            try
+            var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new KeyNotFoundException("User not found.");
+
+            var accountId = await CreateStripeAccountAsync(user.Email ?? string.Empty);
+
+            // Save the Account ID (account.Id) in your database
+            user.StripeConnectedAccountId = accountId;
+            _dbContext.Users.Update(user);
+            await _dbContext.SaveChangesAsync();
+
+            return await CreateOnboardingLinkAsync(accountId);
+        }
+
+        private async Task<string> CreateOnboardingLinkAsync(string accountId)
+        {
+            StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
+
+            var options = new AccountLinkCreateOptions
             {
-                if (string.IsNullOrEmpty(userId))
-                    throw new ArgumentException("User ID is required");
+                Account = accountId,
+                RefreshUrl = $"{_appOptions.FrontEndUrl}/profile?section=payments&detail=receiving",
+                ReturnUrl = $"{_appOptions.FrontEndUrl}/profile?section=payments&detail=receiving",
+                Type = "account_onboarding",
+            };
+            var service = new AccountLinkService();
+            var link = await service.CreateAsync(options);
+            return link.Url;
 
-                // Check if user exists
-                var user = await _dbContext.Users.FindAsync(userId);
-                if (user == null)
-                    throw new KeyNotFoundException("User not found");
+        }
 
-                // In a real implementation, you would:
-                // 1. Create a Stripe Connect account
-                // 2. Generate an account link for onboarding
-                // 3. Store the account ID in the user record
-                // 4. Return the onboarding URL
+        private async Task<string> CreateStripeAccountAsync(string email)
+        {
+            StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
 
-                // For now, we'll create a placeholder account ID and return a mock URL
-                var accountId = $"acct_{Guid.NewGuid():N}";
-                
-                // Update user with Stripe account ID (assuming there's a property for it)
-                // user.StripeConnectedAccountId = accountId;
-                // _dbContext.Users.Update(user);
-                // await _dbContext.SaveChangesAsync();
-
-                var onboardingUrl = $"https://connect.stripe.com/express/oauth/authorize?client_id=ca_placeholder&state={userId}";
-
-                _logger.LogInformation("Stripe account connection initiated for user {UserId}, account ID: {AccountId}", userId, accountId);
-                
-                return onboardingUrl;
-            }
-            catch (Exception ex)
+            var options = new AccountCreateOptions
             {
-                _logger.LogError(ex, "Error connecting Stripe account for user {UserId}", userId);
-                throw;
-            }
+                Type = "custom", // Use "custom" for full control over payouts
+                Email = email,
+                Capabilities = new AccountCapabilitiesOptions
+                {
+                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true },
+                },
+            };
+
+            var service = new AccountService();
+            var account = await service.CreateAsync(options);
+
+            return account.Id;
         }
     }
 }

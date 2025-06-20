@@ -3,6 +3,8 @@ using Avancira.Application.Catalog.Dtos;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Stripe;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,127 +14,118 @@ namespace Avancira.Infrastructure.Catalog
 {
     public class StripeCardService : IStripeCardService
     {
+        private readonly AppOptions _appOptions;
+        private readonly StripeOptions _stripeOptions;
         private readonly AvanciraDbContext _dbContext;
         private readonly ILogger<StripeCardService> _logger;
 
         public StripeCardService(
+            IOptions<AppOptions> appOptions,
+            IOptions<StripeOptions> stripeOptions,
             AvanciraDbContext dbContext,
             ILogger<StripeCardService> logger
         )
         {
+            _appOptions = appOptions.Value;
+            _stripeOptions = stripeOptions.Value;
             _dbContext = dbContext;
             _logger = logger;
         }
 
         public async Task<bool> AddUserCardAsync(string userId, SaveCardDto request)
         {
-            try
+            StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
+
+            var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) throw new KeyNotFoundException("User not found.");
+
+            if (string.IsNullOrEmpty(user.StripeCustomerId))
             {
-                // Validate input
-                if (string.IsNullOrEmpty(userId))
-                    throw new ArgumentException("User ID is required");
-
-                if (request == null)
-                    throw new ArgumentException("Card request is required");
-
-                // Check if user exists
-                var user = await _dbContext.Users.FindAsync(userId);
-                if (user == null)
-                    throw new KeyNotFoundException("User not found");
-
-                // In a real implementation, you would:
-                // 1. Create a payment method in Stripe
-                // 2. Attach it to the customer
-                // 3. Store the payment method ID in your database
-
-                // For now, we'll create a placeholder card record
-                var card = new Domain.UserCard.UserCard
+                var customerService = new CustomerService();
+                var customer = await customerService.CreateAsync(new CustomerCreateOptions
                 {
-                    UserId = userId,
-                    CardId = request.StripeToken,
-                    Last4 = "0000", // In real implementation, get from Stripe
-                    Brand = "visa", // In real implementation, get from Stripe
-                    ExpMonth = 12, // In real implementation, get from Stripe
-                    ExpYear = DateTime.Now.Year + 1, // In real implementation, get from Stripe
-                    Type = request.Purpose
-                };
+                    Email = user.Email,
+                    Name = $"{user.FirstName} {user.LastName}".Trim(),
+                });
 
-                await _dbContext.UserCards.AddAsync(card);
+                user.StripeCustomerId = customer.Id;
+                _dbContext.Users.Update(user);
                 await _dbContext.SaveChangesAsync();
+            }
 
-                _logger.LogInformation("Card added successfully for user {UserId}", userId);
-                return true;
-            }
-            catch (Exception ex)
+            var cardService = new CardService();
+            var card = await cardService.CreateAsync(user.StripeCustomerId, new CardCreateOptions
             {
-                _logger.LogError(ex, "Error adding card for user {UserId}", userId);
-                throw;
-            }
+                Source = request.StripeToken,
+            });
+
+            var userCard = new Domain.UserCard.UserCard
+            {
+                UserId = userId,
+                CardId = card.Id,
+                Last4 = card.Last4,
+                ExpMonth = card.ExpMonth,
+                ExpYear = card.ExpYear,
+                Brand = card.Brand ?? "unknown",
+                Type = request.Purpose,
+            };
+
+            _dbContext.UserCards.Add(userCard);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
         }
 
+        // TODO : Pagination
         public async Task<IEnumerable<CardDto>> GetUserCardsAsync(string userId)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(userId))
-                    throw new ArgumentException("User ID is required");
-
-                var cards = await _dbContext.UserCards
-                    .Where(c => c.UserId == userId)
-                    .OrderBy(c => c.Id)
-                    .Select(c => new CardDto
-                    {
-                        Id = c.Id,
-                        Last4 = c.Last4,
-                        Type = c.Brand ?? "visa",
-                        ExpMonth = c.ExpMonth,
-                        ExpYear = c.ExpYear,
-                        Purpose = c.Type
-                    })
-                    .ToListAsync();
-
-                _logger.LogInformation("Retrieved {Count} cards for user {UserId}", cards.Count, userId);
-                return cards;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cards for user {UserId}", userId);
-                throw;
-            }
+            return await _dbContext.UserCards
+                .Where(c => c.UserId == userId)
+                .Select(c => new CardDto
+                {
+                    Id = c.Id,
+                    Last4 = c.Last4,
+                    ExpMonth = c.ExpMonth,
+                    ExpYear = c.ExpYear,
+                    Type = c.Brand,
+                    Purpose = c.Type
+                })
+                .ToListAsync();
         }
 
         public async Task<bool> RemoveUserCardAsync(string userId, int cardId)
         {
-            try
+            StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
+
+            var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || string.IsNullOrEmpty(user.StripeCustomerId))
             {
-                if (string.IsNullOrEmpty(userId))
-                    throw new ArgumentException("User ID is required");
+                throw new KeyNotFoundException("User or Stripe customer not found.");
+            }
 
-                // Find the card by ID
-                var card = await _dbContext.UserCards
-                    .FirstOrDefaultAsync(c => c.UserId == userId && c.Id == cardId);
+            var card = await _dbContext.UserCards.FirstOrDefaultAsync(c => c.Id == cardId && c.UserId == userId);
+            if (card == null)
+            {
+                throw new KeyNotFoundException("Card not found.");
+            }
 
-                if (card == null)
-                {
-                    _logger.LogWarning("Card with ID {CardId} not found for user {UserId}", cardId, userId);
-                    return false;
-                }
+            var cardService = new CardService();
+            await cardService.DeleteAsync(user.StripeCustomerId, card.CardId);
 
-                // In a real implementation, you would also:
-                // 1. Detach the payment method from Stripe
-                // 2. Delete it from Stripe if needed
+            _dbContext.UserCards.Remove(card);
+            await _dbContext.SaveChangesAsync();
 
-                _dbContext.UserCards.Remove(card);
+            // Check if there are any remaining cards for the user
+            var remainingCards = _dbContext.UserCards.Any(c => c.UserId == userId);
+            if (!remainingCards)
+            {
+                // If no cards remain, clear the StripeCustomerId
+                user.StripeCustomerId = null;
+                _dbContext.Users.Update(user);
                 await _dbContext.SaveChangesAsync();
+            }
 
-                _logger.LogInformation("Card removed successfully for user {UserId}, card ID {CardId}", userId, cardId);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing card {CardId} for user {UserId}", cardId, userId);
-                throw;
-            }
+            return true;
         }
     }
 }
