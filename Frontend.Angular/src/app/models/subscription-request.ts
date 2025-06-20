@@ -7,7 +7,7 @@ export interface SubscriptionRequest {
   promoCode?: string | null;
   amount?: number | null;
   paymentMethod: TransactionPaymentMethod;
-  description?: string;
   paymentType: TransactionPaymentType;
   billingFrequency: SubscriptionBillingFrequency;
+  description?: string;
 }

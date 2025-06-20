@@ -1,4 +1,5 @@
-﻿using Avancira.Domain.Transactions;
+﻿using Avancira.Domain.Catalog.Enums;
+using Avancira.Domain.Transactions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,12 +14,7 @@ namespace Avancira.Application.Catalog.Dtos
         public decimal? Amount { get; set; }
         public TransactionPaymentMethod PaymentMethod { get; set; }
         public TransactionPaymentType PaymentType { get; set; }
-        public string BillingFrequency { get; set; }
+        public SubscriptionBillingFrequency BillingFrequency { get; set; }
         public string? PromoCode { get; set; }
-
-        public SubscriptionRequestDto()
-        {
-            BillingFrequency = string.Empty;
-        }
     }
 }

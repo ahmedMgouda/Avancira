@@ -17,14 +17,14 @@ export interface User {
   address: Address|null;
   timeZoneId: string;
   bio: string|null;
-  dateOfBirth: string;
+  dateOfBirth: Date | null;
   email: string;
   phoneNumber: string;
   skypeId: string;
   hangoutId: string;
   profileVerified: string[]; // An array of verification methods like Email, Mobile
-  lessonsCompleted: string; // Could be a duration string like '77h'
-  evaluations: number; // The number of evaluations
+  lessonsCompleted: number | null; // Number of lessons completed
+  evaluations: number | null; // The number of evaluations
   profileImagePath: string; // Path or URL to the profile image
   profileImage: File; // Path or URL to the profile image
   recommendationToken: string;

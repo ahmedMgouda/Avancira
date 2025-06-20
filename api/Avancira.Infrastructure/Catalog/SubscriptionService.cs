@@ -38,13 +38,8 @@ namespace Avancira.Infrastructure.Catalog
             var user = await _dbContext.Users.FindAsync(userId);
             if (user == null) throw new KeyNotFoundException("User not found.");
 
-            // Step 2: Determine Billing Frequency
-            var billingFrequency = SubscriptionBillingFrequency.Monthly;
-            if (!string.IsNullOrEmpty(request.BillingFrequency) &&
-                !Enum.TryParse(request.BillingFrequency, true, out billingFrequency))
-            {
-                billingFrequency = SubscriptionBillingFrequency.Monthly;
-            }
+            // Step 2: Get Billing Frequency from request
+            var billingFrequency = request.BillingFrequency;
 
 
             // Step 3: Define Subscription Prices
@@ -254,7 +249,7 @@ namespace Avancira.Infrastructure.Catalog
 
             return new SubscriptionDetailsDto
             {
-                BillingFrequency = subscription.BillingFrequency.ToString(),
+                BillingFrequency = subscription.BillingFrequency,
                 StartDate = subscription.StartDate,
                 NextBillingDate = subscription.NextBillingDate,
                 NextBillingAmount = subscription.Amount,
@@ -263,7 +258,7 @@ namespace Avancira.Infrastructure.Catalog
                 {
                     Action = GetActionDescription(h),
                     ChangeDate = h.ChangeDate,
-                    BillingFrequency = h.BillingFrequency.ToString(),
+                    BillingFrequency = h.BillingFrequency,
                     Amount = h.Amount,
                     Status = h.Status.ToString()
                 }).ToList()

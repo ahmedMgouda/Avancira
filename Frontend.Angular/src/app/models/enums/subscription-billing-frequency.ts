@@ -1,4 +1,4 @@
 export enum SubscriptionBillingFrequency {
-    Monthly = 'Monthly',
-    Yearly = 'Yearly'
-  }
+    Monthly = 0,
+    Yearly = 1
+}

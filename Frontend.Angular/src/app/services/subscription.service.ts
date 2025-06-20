@@ -3,7 +3,10 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../environments/environment';
+import { PromoCodeValidation } from '../models/promo-code-validation';
+import { SubscriptionDetails } from '../models/subscription-details';
 import { SubscriptionRequest } from '../models/subscription-request';
+import { SubscriptionStatusCheck } from '../models/subscription-status-check';
 
 @Injectable({
   providedIn: 'root'
@@ -17,24 +20,16 @@ export class SubscriptionService {
     return this.http.post<void>(`${this.apiUrl}/create`, request);
   }
 
-  checkActiveSubscription(): Observable<{ isActive: boolean }> {
-    return this.http.get<{ isActive: boolean }>(`${this.apiUrl}/check-active`);
+  checkActiveSubscription(): Observable<SubscriptionStatusCheck> {
+    return this.http.get<SubscriptionStatusCheck>(`${this.apiUrl}/check-active`);
   }
 
-  getSubscriptionDetails(): Observable<void> {
-    return this.http.get<void>(`${this.apiUrl}/details`);
+  getSubscriptionDetails(): Observable<SubscriptionDetails> {
+    return this.http.get<SubscriptionDetails>(`${this.apiUrl}/details`);
   }
   
-  validatePromoCode(promoCode: string): Observable<{
-    promoCode: string;
-    discountAmount: number;
-    discountPercentage: number;
-  }> {
-    return this.http.get<{
-      promoCode: string;
-      discountAmount: number;
-      discountPercentage: number;
-    }>(`${this.apiUrl}/validate-promo`, {
+  validatePromoCode(promoCode: string): Observable<PromoCodeValidation> {
+    return this.http.get<PromoCodeValidation>(`${this.apiUrl}/validate-promo`, {
       params: { promoCode }
     });
   }

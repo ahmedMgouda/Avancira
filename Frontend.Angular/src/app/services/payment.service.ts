@@ -9,6 +9,9 @@ import { environment } from '../environments/environment';
 import { Card } from '../models/card';
 import { UserCardType } from '../models/enums/user-card-type';
 import { PaymentHistory } from '../models/payment-history';
+import { PaymentResult } from '../models/payment-result';
+import { PayPalConnectionResult } from '../models/paypal-connection-result';
+import { StripeConnectionResult } from '../models/stripe-connection-result';
 
 @Injectable({
   providedIn: 'root',
@@ -26,12 +29,12 @@ export class PaymentService {
     return this.http.get<PaymentHistory>(`${this.apiUrl}/history`);
   }
 
-  createPayment(gateway: string, listingId: string | null, amount: number): Observable<{ paymentId: string; approvalUrl: string }> {
+  createPayment(gateway: string, listingId: string | null, amount: number): Observable<PaymentResult> {
     const returnUrl = `${environment.frontendUrl}/payment-result?success=true&listingId=${listingId}&gateway=${gateway}`;
     const cancelUrl = `${environment.frontendUrl}/payment-result?success=false&listingId=${listingId}&gateway=${gateway}`;
     const body = { gateway, amount, returnUrl, cancelUrl, listingId };
 
-    return this.http.post<{ paymentId: string; approvalUrl: string }>(`${this.apiUrl}/create-payment`, body);
+    return this.http.post<PaymentResult>(`${this.apiUrl}/create-payment`, body);
   }
 
   capturePayment(gateway: string, paymentId: string): Observable<void> {
@@ -118,9 +121,9 @@ export class PaymentService {
     }).render(containerId);
   }
 
-  connectPayPalAccount(authCode: string): Observable<{ success: boolean }> {
+  connectPayPalAccount(authCode: string): Observable<PayPalConnectionResult> {
     const body = { authCode };
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/connect-paypal-account`, body);
+    return this.http.post<PayPalConnectionResult>(`${this.apiUrl}/connect-paypal-account`, body);
   }
       
   /**
@@ -148,8 +151,8 @@ export class PaymentService {
     return this.http.delete<void>(`${this.apiUrl}/remove-card/${id}`);
   }
 
-  connectStripeAccount(): Observable<{ url: string }> {
-    return this.http.get<{ url: string }>(`${this.apiUrl}/connect-stripe-account`);
+  connectStripeAccount(): Observable<StripeConnectionResult> {
+    return this.http.get<StripeConnectionResult>(`${this.apiUrl}/connect-stripe-account`);
   }
 
   createPayout(amount: number, currency: string): Observable<void> {

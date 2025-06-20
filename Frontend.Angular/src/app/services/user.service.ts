@@ -81,7 +81,7 @@ export class UserService {
     if (user.lastName) formData.append('lastName', user.lastName);
     if (user.bio) formData.append('bio', user.bio);
     if (user.email) formData.append('email', user.email);
-    if (user.dateOfBirth) formData.append('dateOfBirth', user.dateOfBirth);
+    if (user.dateOfBirth) formData.append('dateOfBirth', user.dateOfBirth.toISOString());
     if (user.phoneNumber) formData.append('phoneNumber', user.phoneNumber);
     if (user.skypeId) formData.append('skypeId', user.skypeId);
     if (user.hangoutId) formData.append('hangoutId', user.hangoutId);
@@ -102,8 +102,8 @@ export class UserService {
       formData.append('profileVerified', user.profileVerified.join(','));
     }
 
-    if (user.lessonsCompleted) {
-      formData.append('lessonsCompleted', user.lessonsCompleted);
+    if (user.lessonsCompleted !== null && user.lessonsCompleted !== undefined) {
+      formData.append('lessonsCompleted', user.lessonsCompleted.toString());
     }
 
     if (user.evaluations !== undefined) {

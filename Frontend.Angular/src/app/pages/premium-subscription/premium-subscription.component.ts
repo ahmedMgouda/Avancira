@@ -16,6 +16,7 @@ import { SubscriptionBillingFrequency } from '../../models/enums/subscription-bi
 import { TransactionPaymentMethod } from '../../models/enums/transaction-payment-method';
 import { TransactionPaymentType } from '../../models/enums/transaction-payment-type';
 import { UserCardType } from '../../models/enums/user-card-type';
+import { SubscriptionPlan } from '../../models/subscription-plan';
 import { SubscriptionRequest } from '../../models/subscription-request';
 
 @Component({
@@ -25,7 +26,7 @@ import { SubscriptionRequest } from '../../models/subscription-request';
   styleUrl: './premium-subscription.component.scss'
 })
 export class PremiumSubscriptionComponent implements OnInit {
-  subscription = {
+  subscription: SubscriptionPlan = {
     title: 'Premium Subscription',
     subtitle: 'Unlock premium features and boost your performance!',
     price: 99,
@@ -80,7 +81,7 @@ export class PremiumSubscriptionComponent implements OnInit {
 
     try {
       this.paymentService.createPayment('Stripe', '', this.subscription.price).subscribe({
-        next: (session: { paymentId: string; approvalUrl: string }) => {
+        next: (session) => {
           if (session.approvalUrl) {
             window.location.href = session.approvalUrl; // Redirect to Stripe
           }

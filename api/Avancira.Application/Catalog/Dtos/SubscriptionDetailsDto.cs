@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Avancira.Domain.Catalog.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,8 +9,8 @@ namespace Avancira.Application.Catalog.Dtos
 {
     public class SubscriptionDetailsDto
     {
-        public string Plan { get { return BillingFrequency; } }
-        public string BillingFrequency { get; set; } = string.Empty;
+        public string Plan { get { return BillingFrequency.ToString(); } }
+        public SubscriptionBillingFrequency BillingFrequency { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime NextBillingDate { get; set; }
