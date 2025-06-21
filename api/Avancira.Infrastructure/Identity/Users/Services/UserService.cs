@@ -1,9 +1,12 @@
 ﻿using Avancira.Application.Caching;
+using Avancira.Application.Catalog;
+using Avancira.Application.Events;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Jobs;
 using Avancira.Application.Mail;
 using Avancira.Application.Storage;
 using Avancira.Application.Storage.File;
+using Avancira.Domain.Catalog.Enums;
 using Avancira.Infrastructure.Constants;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Persistence;
@@ -30,7 +33,7 @@ internal sealed partial class UserService(
     AvanciraDbContext db,
     ICacheService cache,
     IJobService jobService,
-    IMailService mailService,
+    INotificationService notificationService,
     IStorageService storageService,
     IOptions<JwtOptions> jwtOptions
     ) : Avancira.Application.Identity.Users.Abstractions.IUserService
@@ -130,11 +133,15 @@ internal sealed partial class UserService(
         if (!string.IsNullOrEmpty(user.Email))
         {
             string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
-            var mailRequest = new MailRequest(
-                new Collection<string> { user.Email },
-                "Confirm Registration",
-                emailVerificationUri);
-            jobService.Enqueue("email", () => mailService.SendAsync(mailRequest, CancellationToken.None));
+            var confirmEmailEvent = new ConfirmEmailEvent
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                ConfirmationLink = emailVerificationUri
+            };
+
+            // Use notification service to send email confirmation
+            await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
         }
 
         return new RegisterUserResponseDto(user.Id);

@@ -10,6 +10,7 @@ namespace Avancira.Domain.Catalog.Enums
     {
         // Authentication-related events
         ConfirmEmail,
+        ResetPassword,
         ChangePassword,
         LoginAttempt,
 

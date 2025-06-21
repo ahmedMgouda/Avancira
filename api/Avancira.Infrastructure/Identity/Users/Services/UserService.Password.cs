@@ -1,5 +1,7 @@
-﻿using Avancira.Application.Identity.Users.Dtos;
+﻿using Avancira.Application.Events;
+using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Mail;
+using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Collections.ObjectModel;
@@ -25,12 +27,15 @@ internal sealed partial class UserService
         token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
         var resetPasswordUri = $"{origin}/reset-password?token={token}&email={request.Email}";
-        var mailRequest = new MailRequest(
-            new Collection<string> { user.Email },
-            "Reset Password",
-            $"Please reset your password using the following link: {resetPasswordUri}");
+        var resetPasswordEvent = new ResetPasswordEvent
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            ResetPasswordLink = resetPasswordUri
+        };
 
-        jobService.Enqueue(() => mailService.SendAsync(mailRequest, CancellationToken.None));
+        // Use notification service to send password reset email
+        await notificationService.NotifyAsync(NotificationEvent.ResetPassword, resetPasswordEvent);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken)

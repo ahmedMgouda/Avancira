@@ -1,4 +1,5 @@
 using Avancira.Application.Catalog;
+using Avancira.Application.Events;
 using Avancira.Application.Mail;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Infrastructure.Persistence;
@@ -36,6 +37,12 @@ namespace Avancira.Infrastructure.Catalog
                 // Handle different notification events
                 switch (eventType)
                 {
+                    case NotificationEvent.ConfirmEmail:
+                        await HandleConfirmEmailAsync(eventData);
+                        break;
+                    case NotificationEvent.ResetPassword:
+                        await HandleResetPasswordAsync(eventData);
+                        break;
                     case NotificationEvent.BookingRequested:
                         await HandleBookingRequestedAsync(eventData);
                         break;
@@ -236,6 +243,84 @@ namespace Avancira.Infrastructure.Catalog
             _logger.LogInformation("Handling new review received notification");
             // Implementation for new review received notifications
             await Task.CompletedTask;
+        }
+
+        private async Task HandleConfirmEmailAsync<T>(T eventData)
+        {
+            _logger.LogInformation("Handling confirm email notification");
+            
+            // Cast eventData to the expected type
+            if (eventData is ConfirmEmailEvent confirmEmailData)
+            {
+                var subject = "Confirm Your Email Address";
+                var body = $@"
+                    <html>
+                    <body>
+                        <h2>Welcome to Avancira!</h2>
+                        <p>Thank you for registering with us. Please confirm your email address by clicking the link below:</p>
+                        <p><a href='{confirmEmailData.ConfirmationLink}' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Confirm Email</a></p>
+                        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                        <p>{confirmEmailData.ConfirmationLink}</p>
+                        <br>
+                        <p>Best regards,<br>The Avancira Team</p>
+                    </body>
+                    </html>";
+
+                // Send email directly using Graph API for better deliverability
+                await _emailService.SendEmailAsync(
+                    toEmail: confirmEmailData.Email,
+                    subject: subject,
+                    body: body,
+                    provider: "GraphApi",
+                    cancellationToken: CancellationToken.None
+                );
+
+                _logger.LogInformation("Email confirmation sent successfully to {Email}", confirmEmailData.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Invalid event data type for ConfirmEmail event: {EventDataType}", eventData?.GetType().Name);
+            }
+        }
+
+        private async Task HandleResetPasswordAsync<T>(T eventData)
+        {
+            _logger.LogInformation("Handling reset password notification");
+            
+            // Cast eventData to the expected type
+            if (eventData is ResetPasswordEvent resetPasswordData)
+            {
+                var subject = "Reset Your Password";
+                var body = $@"
+                    <html>
+                    <body>
+                        <h2>Password Reset Request</h2>
+                        <p>We received a request to reset your password. Click the link below to reset your password:</p>
+                        <p><a href='{resetPasswordData.ResetPasswordLink}' style='background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Reset Password</a></p>
+                        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                        <p>{resetPasswordData.ResetPasswordLink}</p>
+                        <p><strong>Note:</strong> This link will expire in 24 hours for security reasons.</p>
+                        <p>If you didn't request this password reset, please ignore this email.</p>
+                        <br>
+                        <p>Best regards,<br>The Avancira Team</p>
+                    </body>
+                    </html>";
+
+                // Send email directly using Graph API for better deliverability
+                await _emailService.SendEmailAsync(
+                    toEmail: resetPasswordData.Email,
+                    subject: subject,
+                    body: body,
+                    provider: "GraphApi",
+                    cancellationToken: CancellationToken.None
+                );
+
+                _logger.LogInformation("Password reset email sent successfully to {Email}", resetPasswordData.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Invalid event data type for ResetPassword event: {EventDataType}", eventData?.GetType().Name);
+            }
         }
 
         private async Task HandleProfileUpdatedAsync<T>(T eventData)
