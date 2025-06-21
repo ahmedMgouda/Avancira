@@ -8,6 +8,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Avancira.Infrastructure.Identity.Users;
 public class User : IdentityUser<string>
 {
+    public User()
+    {
+        Id = Guid.NewGuid().ToString();
+    }
+
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public Uri? ImageUrl { get; set; }

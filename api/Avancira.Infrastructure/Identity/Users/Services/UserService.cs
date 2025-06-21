@@ -109,6 +109,7 @@ internal sealed partial class UserService(
             LastName = request.LastName,
             UserName = request.UserName,
             PhoneNumber = request.PhoneNumber,
+            TimeZoneId = request.TimeZoneId,
             IsActive = true,
             EmailConfirmed = false,
             PhoneNumberConfirmed = false,

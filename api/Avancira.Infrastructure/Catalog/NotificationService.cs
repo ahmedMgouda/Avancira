@@ -1,8 +1,11 @@
 using Avancira.Application.Catalog;
+using Avancira.Application.Mail;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Avancira.Infrastructure.Catalog
@@ -10,14 +13,17 @@ namespace Avancira.Infrastructure.Catalog
     public class NotificationService : INotificationService
     {
         private readonly AvanciraDbContext _dbContext;
+        private readonly IEnhancedEmailService _emailService;
         private readonly ILogger<NotificationService> _logger;
 
         public NotificationService(
             AvanciraDbContext dbContext,
+            IEnhancedEmailService emailService,
             ILogger<NotificationService> logger
         )
         {
             _dbContext = dbContext;
+            _emailService = emailService;
             _logger = logger;
         }
 
@@ -84,26 +90,75 @@ namespace Avancira.Infrastructure.Catalog
             {
                 _logger.LogInformation("Sending notification to user {UserId}: {EventName} - {Message}", userId, eventName, message);
 
-                // Here you would typically:
-                // 1. Store the notification in the database
-                // 2. Send push notifications
-                // 3. Send email notifications
-                // 4. Send real-time notifications via SignalR
+                // Get user email from database
+                var user = await _dbContext.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.Email, u.FirstName, u.LastName })
+                    .FirstOrDefaultAsync();
 
-                // For now, we'll just log the notification
-                // In a real implementation, you might want to:
-                // - Save to a Notifications table
-                // - Send via email service
-                // - Send via push notification service
-                // - Send via SignalR hub
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    // Prepare email content
+                    var emailSubject = GetEmailSubject(eventName, data);
+                    var emailBody = GetEmailBody(eventName, message, user.FirstName, data);
 
-                await Task.CompletedTask;
+                    // Send email using your comprehensive SendEmailService
+                    await _emailService.SendEmailAsync(
+                        toEmail: user.Email,
+                        subject: emailSubject,
+                        body: emailBody,
+                        provider: "Smtp", // You can make this configurable
+                        cancellationToken: CancellationToken.None
+                    );
+
+                    _logger.LogInformation("Email notification sent successfully to {Email} for event {EventName}", user.Email, eventName);
+                }
+                else
+                {
+                    _logger.LogWarning("User {UserId} not found or has no email address", userId);
+                }
+
+                // TODO: Add other notification channels here:
+                // - Push notifications
+                // - SMS notifications
+                // - Real-time notifications via SignalR
+                // - Store in notifications table for in-app notifications
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending notification to user {UserId}", userId);
                 throw;
             }
+        }
+
+        private string GetEmailSubject(NotificationEvent eventName, object? data)
+        {
+            return eventName switch
+            {
+                NotificationEvent.BookingRequested => "New Booking Request",
+                NotificationEvent.BookingConfirmed => "Booking Confirmed",
+                NotificationEvent.BookingCancelled => "Booking Cancelled",
+                NotificationEvent.PaymentReceived => "Payment Received",
+                NotificationEvent.PaymentFailed => "Payment Failed",
+                NotificationEvent.NewMessage => "New Message",
+                NotificationEvent.NewReviewReceived => "New Review Received",
+                _ => $"Notification: {eventName}"
+            };
+        }
+
+        private string GetEmailBody(NotificationEvent eventName, string message, string? firstName, object? data)
+        {
+            var greeting = !string.IsNullOrEmpty(firstName) ? $"Hi {firstName}," : "Hello,";
+            
+            return $@"
+                <html>
+                <body>
+                    <p>{greeting}</p>
+                    <p>{message}</p>
+                    <br>
+                    <p>Best regards,<br>The Avancira Team</p>
+                </body>
+                </html>";
         }
 
         private async Task HandleBookingRequestedAsync<T>(T eventData)

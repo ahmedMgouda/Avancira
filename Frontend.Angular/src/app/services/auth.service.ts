@@ -23,10 +23,14 @@ export class AuthService {
     confirmPassword: string,
     referralToken: string | null
   ): Observable<string | null> {
+    const userName = email;
     const timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
+    
     return this.http.post<{ errors?: string[] }>(`${this.apiUrl}/register`, {
+      firstName: "User", // Default value since form doesn't collect this
+      lastName: "Account", // Default value since form doesn't collect this
       email,
+      userName,
       password,
       confirmPassword,
       referralToken,

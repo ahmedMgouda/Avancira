@@ -50,6 +50,7 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<ListingReview> Reviews { get; set; }
     public DbSet<Chat> Chats { get; set; }
     public DbSet<Message> Messages { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }

@@ -10,8 +10,9 @@ public class RegisterUserDto
     public string Password { get; set; } = default!;
     public string ConfirmPassword { get; set; } = default!;
     public string? PhoneNumber { get; set; }
+    public string? TimeZoneId { get; set; }
+    public string? ReferralToken { get; set; }
 
     [JsonIgnore]
     public string? Origin { get; set; }
 }
-
