@@ -1,4 +1,5 @@
 ﻿using Avancira.Application.Catalog.Categories;
+using Avancira.Application.Jobs;
 using Avancira.Application.Services.Category;
 using Microsoft.Extensions.DependencyInjection;
 

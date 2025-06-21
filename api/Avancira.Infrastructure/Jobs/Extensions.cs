@@ -3,11 +3,15 @@ using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Hangfire.SqlServer;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Avancira.Infrastructure.Common.Extensions;
 using Avancira.Domain.Common.Exceptions;
+using Microsoft.Extensions.Logging;
+using Avancira.Infrastructure.Jobs;
 
 namespace Avancira.Infrastructure.Jobs;
 
@@ -15,9 +19,9 @@ internal static class Extensions
 {
     internal static IServiceCollection ConfigureJobs(this IServiceCollection services, IConfiguration configuration)
     {
-        var dbOptions = configuration.GetSection(nameof(DatabaseOptions)).Get<DatabaseOptions>() ??
-            throw new AvanciraException("database options cannot be null");
-
+        // Check if we're running with Aspire (development) or traditional mode (production)
+        var isUsingAspire = configuration.GetConnectionString("avancira") != null;
+        
         services.AddHangfireServer(o =>
         {
             o.HeartbeatInterval = TimeSpan.FromSeconds(30);
@@ -26,45 +30,79 @@ internal static class Extensions
             o.SchedulePollingInterval = TimeSpan.FromSeconds(30);
         });
 
-        services.AddHangfire((provider, config) =>
+        if (isUsingAspire)
         {
-            switch (dbOptions.Provider.ToUpperInvariant())
+            // In Aspire mode, use the connection string provided by Aspire
+            services.AddHangfire((provider, config) =>
             {
-                case DbProviders.PostgreSQL:
-                    config.UsePostgreSqlStorage(o =>
-                    {
-                        o.UseNpgsqlConnection(dbOptions.ConnectionString.ExpandEnvironmentVariables());
-                    });
-                    break;
+                var connectionString = configuration.GetConnectionString("avancira");
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    throw new AvanciraException("Aspire connection string 'avancira' not found");
+                }
 
-                case DbProviders.MSSQL:
-                    config.UseSqlServerStorage(dbOptions.ConnectionString);
-                    break;
+                config.UsePostgreSqlStorage(o =>
+                {
+                    o.UseNpgsqlConnection(connectionString);
+                });
 
-                default:
-                    throw new AvanciraException($"hangfire storage provider {dbOptions.Provider} is not supported");
-            }
+                config.UseFilter(new AvanciraJobFilter(provider));
+                config.UseFilter(new LogJobFilter());
+            });
+        }
+        else
+        {
+            // Traditional mode - use DatabaseOptions
+            var dbOptions = configuration.GetSection(nameof(DatabaseOptions)).Get<DatabaseOptions>() ??
+                throw new AvanciraException("database options cannot be null");
 
-            config.UseFilter(new AvanciraJobFilter(provider));
-            config.UseFilter(new LogJobFilter());
-        });
+            services.AddHangfire((provider, config) =>
+            {
+                switch (dbOptions.Provider.ToUpperInvariant())
+                {
+                    case DbProviders.PostgreSQL:
+                        config.UsePostgreSqlStorage(o =>
+                        {
+                            o.UseNpgsqlConnection(dbOptions.ConnectionString.ExpandEnvironmentVariables());
+                        });
+                        break;
+
+                    case DbProviders.MSSQL:
+                        config.UseSqlServerStorage(dbOptions.ConnectionString);
+                        break;
+
+                    default:
+                        throw new AvanciraException($"hangfire storage provider {dbOptions.Provider} is not supported");
+                }
+
+                config.UseFilter(new AvanciraJobFilter(provider));
+                config.UseFilter(new LogJobFilter());
+            });
+        }
 
         services.AddTransient<IJobService, HangfireService>();
+        services.AddTransient<IPaymentJobService, PaymentJobImplementationService>();
+        services.AddHostedService<RecurringJobsService>();
         return services;
     }
 
     internal static IApplicationBuilder UseJobDashboard(this IApplicationBuilder app, IConfiguration config)
     {
         var hangfireOptions = config.GetSection(nameof(HangfireOptions)).Get<HangfireOptions>() ?? new HangfireOptions();
-        var dashboardOptions = new DashboardOptions();
-        dashboardOptions.AppPath = "https://fullstackhero.net/";
-        dashboardOptions.Authorization = new[]
+        
+        var dashboardOptions = new DashboardOptions
         {
-           new HangfireCustomBasicAuthenticationFilter
-           {
-                User = hangfireOptions.UserName!,
-                Pass = hangfireOptions.Password!
-           }
+            AppPath = "/",
+            DashboardTitle = "Avancira Jobs Dashboard",
+            StatsPollingInterval = 2000,
+            Authorization = new[]
+            {
+                new HangfireCustomBasicAuthenticationFilter
+                {
+                    User = hangfireOptions.UserName,
+                    Pass = hangfireOptions.Password
+                }
+            }
         };
 
         return app.UseHangfireDashboard(hangfireOptions.Route, dashboardOptions);
