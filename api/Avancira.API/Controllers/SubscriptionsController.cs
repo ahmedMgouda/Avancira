@@ -27,9 +27,7 @@ public class SubscriptionsController : BaseApiController
     {
         try
         {
-            // TODO: Implement proper user ID extraction from claims
-            // var userId = User.GetUserId();
-            var userId = "temp-user-id"; // Temporary placeholder
+            var userId = GetUserId();
             var (subscriptionId, transactionId) = await _subscriptionService.CreateSubscriptionAsync(request, userId);
             return Ok(new { SubscriptionId = subscriptionId, TransactionId = transactionId });
         }
@@ -48,9 +46,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("check-active")]
     public async Task<IActionResult> CheckActiveSubscription()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
         return Ok(new { IsActive = hasActiveSubscription });
     }
@@ -59,9 +55,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("")]
     public async Task<IActionResult> GetUserSubscriptions([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var subscriptions = await _subscriptionService.ListUserSubscriptionsAsync(userId, page, pageSize);
 
         if (subscriptions == null || subscriptions.TotalResults == 0)
@@ -93,9 +87,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("details")]
     public async Task<IActionResult> GetSubscriptionDetails()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var details = await _subscriptionService.FetchSubscriptionDetailsAsync(userId);
         if (details == null) return NotFound(new { Message = "No active subscription found." });
 
@@ -107,9 +99,7 @@ public class SubscriptionsController : BaseApiController
     [HttpPut("change-frequency")]
     public async Task<IActionResult> ChangeBillingFrequency([FromBody] ChangeFrequencyRequestDto request)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _subscriptionService.ChangeBillingFrequencyAsync(userId, request.NewFrequency);
 
         if (!success)
@@ -123,9 +113,7 @@ public class SubscriptionsController : BaseApiController
     [HttpDelete("cancel")]
     public async Task<IActionResult> CancelSubscription()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _subscriptionService.CancelSubscriptionAsync(userId);
 
         if (!success)

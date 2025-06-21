@@ -29,9 +29,7 @@ public class ChatsController : BaseApiController
     [HttpGet]
     public IActionResult GetUserChats()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var chats = _chatService.GetUserChats(userId);
         return Ok(chats);
     }
@@ -57,9 +55,7 @@ public class ChatsController : BaseApiController
         }
 
         // Check if a chat already exists
-        // TODO: Implement proper user ID extraction from claims
-        // var senderId = User.GetUserId();
-        var senderId = "temp-user-id"; // Temporary placeholder
+        var senderId = GetUserId();
 
         if (!_chatService.SendMessage(messageDto, senderId))
         {

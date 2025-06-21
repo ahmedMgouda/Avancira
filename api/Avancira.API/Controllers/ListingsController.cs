@@ -32,9 +32,7 @@ public class ListingsController : BaseApiController
     [HttpGet("tutor-listings")]
     public async Task<IActionResult> GetTutorListings([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
 
         var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
 
@@ -63,9 +61,7 @@ public class ListingsController : BaseApiController
             });
         }
 
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var listing = await _listingService.CreateListingAsync(model, userId);
 
         return CreatedAtAction(nameof(GetListingById), new { id = listing.Id },
@@ -82,9 +78,7 @@ public class ListingsController : BaseApiController
     public async Task<IActionResult> Update(Guid id, [FromForm] ListingRequestDto model)
     {
         model.Id = id;
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var updatedListing = await _listingService.UpdateListingAsync(model, userId);
 
         return Ok(new
@@ -110,9 +104,7 @@ public class ListingsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
         return Ok(listings);
     }
@@ -147,9 +139,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-title")]
     public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleDto updateTitleDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingTitleAsync(id, userId, updateTitleDto.Title);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -161,9 +151,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-image")]
     public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingImageAsync(id, userId, image);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -175,9 +163,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-locations")]
     public async Task<IActionResult> UpdateLocations(Guid id, [FromBody] List<string> locations)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations);
 
         if (!success)
@@ -192,9 +178,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-description")]
     public async Task<IActionResult> UpdateDescription(Guid id, [FromBody] UpdateDescriptionDto updateDescriptionDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingDescriptionAsync(id, userId, updateDescriptionDto.AboutLesson, updateDescriptionDto.AboutYou);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -206,9 +190,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-rates")]
     public async Task<IActionResult> UpdateRates(Guid id, [FromBody] RatesDto ratesDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingRatesAsync(id, userId, ratesDto);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -220,9 +202,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/update-category")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto updateCategoryDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.ModifyListingCategoryAsync(id, userId, updateCategoryDto.LessonCategoryId);
 
         if (!success) return NotFound("Listing not found or unauthorized.");
@@ -241,9 +221,7 @@ public class ListingsController : BaseApiController
             return NotFound($"Listing with ID {id} not found.");
         }
 
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var success = await _listingService.DeleteListingAsync(id, userId);
         if (!success)
         {

@@ -42,12 +42,9 @@ public class WalletsController : BaseApiController
     [HttpGet("balance")]
     public async Task<IActionResult> GetWalletBalance()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
-
         try
         {
+            var userId = GetUserId();
             var result = await _walletService.GetWalletBalanceAsync(userId);
             return Ok(new { Balance = result.Balance, LastUpdated = result.LastUpdated });
         }

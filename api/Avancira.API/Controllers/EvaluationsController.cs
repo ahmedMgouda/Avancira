@@ -27,9 +27,7 @@ public class EvaluationsController : BaseApiController
     [HttpPost("review")]
     public async Task<IActionResult> LeaveReviewAsync([FromBody] ReviewDto reviewDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
 
         // Validate the input
         if (reviewDto == null)
@@ -58,9 +56,7 @@ public class EvaluationsController : BaseApiController
     [HttpPost("recommendation")]
     public async Task<IActionResult> SubmitRecommendation([FromBody] ReviewDto dto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
 
         if (string.IsNullOrEmpty(dto.RevieweeId) || string.IsNullOrEmpty(dto.Feedback))
             return BadRequest("Invalid data.");
@@ -82,9 +78,7 @@ public class EvaluationsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetEvaluationsAsync()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
 
         // Identify pending reviews based on the user's role
         var pendingReviews = await _evaluationService.GetPendingReviewsAsync(userId);

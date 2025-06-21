@@ -30,9 +30,7 @@ public class LessonsController : BaseApiController
     [HttpPost("proposeLesson")]
     public async Task<IActionResult> ProposeLessonAsync([FromBody] LessonDto lessonDto)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var result = await _lessonService.ProposeLessonAsync(lessonDto, userId);
         return Ok(new { Message = "Lesson proposed successfully.", Lesson = result });
     }
@@ -42,12 +40,8 @@ public class LessonsController : BaseApiController
     [HttpGet("{contactId}/{listingId}")]
     public async Task<IActionResult> GetLessonsAsync(string contactId, int listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
-
+        var userId = GetUserId();
         var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
-
         return Ok(new { Lessons = lessons });
     }
 
@@ -60,21 +54,17 @@ public class LessonsController : BaseApiController
             return BadRequest("Invalid page or pageSize parameters.");
         }
 
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var lessons = await _lessonService.GetAllLessonsAsync(userId, filters);
-
         return Ok(new { Lessons = lessons });
     }
+    
     // Update
     [Authorize]
     [HttpPut("respondToProposition/{lessonId}")]
     public async Task<IActionResult> RespondToPropositionAsync(int lessonId, [FromBody] bool accept)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         LessonDto updatedLesson;
         try
         {
@@ -103,9 +93,7 @@ public class LessonsController : BaseApiController
     {
         try
         {
-            // TODO: Implement proper user ID extraction from claims
-            // var userId = User.GetUserId();
-            var userId = "temp-user-id"; // Temporary placeholder
+            var userId = GetUserId();
             var canceledLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, false, userId);
 
             return Ok(new

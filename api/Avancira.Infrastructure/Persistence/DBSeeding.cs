@@ -151,28 +151,28 @@ public class UserSeeder
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri($"https://robohash.org/{Guid.NewGuid()}?size=200x200&set=set1", UriKind.Absolute),
                 },
-                //new User
-                //{
-                //    FirstName = "Amr",
-                //    LastName = "Mostafa",
-                //    Bio = "A software engineer with a passion for technology, AI, and problem-solving. Constantly improving skills and exploring new advancements in the tech world.",
-                //    UserName = "Amr.Mostafa@live.com",
-                //    Email = "Amr.Mostafa@live.com",
-                //    Address = new Address
-                //    {
-                //        StreetAddress = "76 Bancroft Ave",
-                //        City = "Roseville",
-                //        State = "NSW",
-                //        Country = "Australia",
-                //        PostalCode = "2069",
-                //        Latitude = -33.7812,
-                //        Longitude = 151.1731,
-                //        FormattedAddress = "76 Bancroft Ave, Roseville NSW 2069, Australia"
-                //    },
-                //    CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
-                //    TimeZoneId = "Australia/Sydney",
-                //    ImageUrl = new Uri($"assets/img/mentor/amr_mostafa.jpg", UriKind.Relative),
-                //},
+                new User
+                {
+                    FirstName = "Amr",
+                    LastName = "Mostafa",
+                    Bio = "A software engineer with a passion for technology, AI, and problem-solving. Constantly improving skills and exploring new advancements in the tech world.",
+                    UserName = "Amr.Mostafa@live.com",
+                    Email = "Amr.Mostafa@live.com",
+                    Address = new Address
+                    {
+                        StreetAddress = "76 Bancroft Ave",
+                        City = "Roseville",
+                        State = "NSW",
+                        Country = "Australia",
+                        PostalCode = "2069",
+                        Latitude = -33.7812,
+                        Longitude = 151.1731,
+                        FormattedAddress = "76 Bancroft Ave, Roseville NSW 2069, Australia"
+                    },
+                    CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
+                    TimeZoneId = "Australia/Sydney",
+                    ImageUrl = new Uri($"assets/img/mentor/amr_mostafa.jpg", UriKind.Relative),
+                },
                 new User
                 {
                     FirstName = "Amir",
@@ -732,418 +732,418 @@ public class ListingSeeder
         {
             var listings = new List<Listing>
             {
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     hourlyRate: 50.0M,
-                //     name: "Advanced Programming Lessons (C++)",
-                //     description: "Master programming concepts with hands-on lessons in C++ for beginners to advanced levels.",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "C++"))?.Id ?? 0,
-                //     hourlyRate: 50.0M,
-                //     name: "Advanced Programming Lessons (C++)",
-                //     description: "Master programming concepts with hands-on lessons in C++ for beginners to advanced levels.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "My name is Amr, and I’m a software engineer with years of experience in developing complex systems.",
-                //     //AboutLesson = "Lessons focus on teaching C++ programming concepts with practical examples and projects.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "AWS"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "AWS and DevOps Fundamentals",
-                //     description: "Learn AWS services (EC2, S3, RDS) and DevOps pipelines with tools like Jenkins and Docker.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I have extensive experience in cloud infrastructure and DevOps engineering.",
-                //     //AboutLesson = "Lessons include setting up AWS services, CI/CD pipelines, and hands-on labs for deployment.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Machine Learning"))?.Id ?? 0,
-                //     hourlyRate: 70.0M,
-                //     //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
-                //     name: "Introduction to Machine Learning",
-                //     description: "Build foundational skills in machine learning, focusing on neural networks and deep learning with PyTorch.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amr, an experienced software engineer specializing in machine learning and AI technologies.",
-                //     //AboutLesson = "Lessons cover the basics of machine learning, algorithm development, and practical implementations.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Computer Science"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Computer Architecture Tutoring",
-                //     description: "Specialized lessons in computer architecture and FPGA design for students and professionals.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Amr, a computer engineer with experience in hardware design and low-level programming.",
-                //     //AboutLesson = "Lessons focus on understanding computer architecture, FPGA programming, and their applications.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Python"))?.Id ?? 0,
-                //     hourlyRate: 45.0M,
-                //     //Rates = new ListingRates() { Hourly = 45.0M, FiveHours = 45.0M * 5, TenHours = 45.0M * 10 ),
-                //     name: "Python for Data Science",
-                //     description: "Learn Python programming for data analysis, visualization, and machine learning.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I’m a software engineer with expertise in Python for data science and AI.",
-                //     //AboutLesson = "Lessons include Python basics, libraries like NumPy and Pandas, and practical data science projects.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Maths"))?.Id ?? 0,
-                //     hourlyRate: 40.0M,
-                //     //Rates = new ListingRates() { Hourly = 40.0M, FiveHours = 40.0M * 5, TenHours = 40.0M * 10 ),
-                //     name: "Mathematics Tutoring for All Levels",
-                //     description: "Enhance your math skills with personalized lessons in algebra, calculus, and geometry for all levels.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I’m passionate about teaching mathematics to help students achieve their academic goals.",
-                //     //AboutLesson = "Lessons cover fundamental to advanced mathematical concepts with real-world problem-solving techniques.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Java"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Java Programming Essentials",
-                //     description: "Learn Java programming from basics to advanced, focusing on object-oriented programming and real-world applications.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I have experience teaching Java to professionals and students alike.",
-                //     //AboutLesson = "Lessons cover Java syntax, OOP concepts, and building Java-based applications.",
-                // ),
-                // // Frontend Development - Angular
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Frontend Development"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Frontend Development with Angular",
-                //     description: "Learn how to build responsive web applications using Angular.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I specialize in frontend development using modern frameworks like Angular.",
-                //     //AboutLesson = "Lessons include TypeScript basics, Angular component architecture, and building real-world applications.",
-                // ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    hourlyRate: 50.0M,
+                    name: "Advanced Programming Lessons (C++)",
+                    description: "Master programming concepts with hands-on lessons in C++ for beginners to advanced levels.",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "C++"))?.Id ?? 0,
+                    hourlyRate: 50.0M,
+                    name: "Advanced Programming Lessons (C++)",
+                    description: "Master programming concepts with hands-on lessons in C++ for beginners to advanced levels.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "My name is Amr, and I’m a software engineer with years of experience in developing complex systems.",
+                    //AboutLesson = "Lessons focus on teaching C++ programming concepts with practical examples and projects.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "AWS"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "AWS and DevOps Fundamentals",
+                    description: "Learn AWS services (EC2, S3, RDS) and DevOps pipelines with tools like Jenkins and Docker.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I have extensive experience in cloud infrastructure and DevOps engineering.",
+                    //AboutLesson = "Lessons include setting up AWS services, CI/CD pipelines, and hands-on labs for deployment.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Machine Learning"))?.Id ?? 0,
+                    hourlyRate: 70.0M,
+                    //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
+                    name: "Introduction to Machine Learning",
+                    description: "Build foundational skills in machine learning, focusing on neural networks and deep learning with PyTorch.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amr, an experienced software engineer specializing in machine learning and AI technologies.",
+                    //AboutLesson = "Lessons cover the basics of machine learning, algorithm development, and practical implementations.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Computer Science"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Computer Architecture Tutoring",
+                    description: "Specialized lessons in computer architecture and FPGA design for students and professionals.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Amr, a computer engineer with experience in hardware design and low-level programming.",
+                    //AboutLesson = "Lessons focus on understanding computer architecture, FPGA programming, and their applications.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Python"))?.Id ?? 0,
+                    hourlyRate: 45.0M,
+                    //Rates = new ListingRates() { Hourly = 45.0M, FiveHours = 45.0M * 5, TenHours = 45.0M * 10 ),
+                    name: "Python for Data Science",
+                    description: "Learn Python programming for data analysis, visualization, and machine learning.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I’m a software engineer with expertise in Python for data science and AI.",
+                    //AboutLesson = "Lessons include Python basics, libraries like NumPy and Pandas, and practical data science projects.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Maths"))?.Id ?? 0,
+                    hourlyRate: 40.0M,
+                    //Rates = new ListingRates() { Hourly = 40.0M, FiveHours = 40.0M * 5, TenHours = 40.0M * 10 ),
+                    name: "Mathematics Tutoring for All Levels",
+                    description: "Enhance your math skills with personalized lessons in algebra, calculus, and geometry for all levels.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I’m passionate about teaching mathematics to help students achieve their academic goals.",
+                    //AboutLesson = "Lessons cover fundamental to advanced mathematical concepts with real-world problem-solving techniques.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Java"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Java Programming Essentials",
+                    description: "Learn Java programming from basics to advanced, focusing on object-oriented programming and real-world applications.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I have experience teaching Java to professionals and students alike.",
+                    //AboutLesson = "Lessons cover Java syntax, OOP concepts, and building Java-based applications.",
+                ),
+                // Frontend Development - Angular
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Frontend Development"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Frontend Development with Angular",
+                    description: "Learn how to build responsive web applications using Angular.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I specialize in frontend development using modern frameworks like Angular.",
+                    //AboutLesson = "Lessons include TypeScript basics, Angular component architecture, and building real-world applications.",
+                ),
 
-                // // Frontend Development - React
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Frontend Development"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Frontend Development with React",
-                //     description: "Learn how to create dynamic and interactive web applications using React.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I have extensive experience in building scalable React applications.",
-                //     //AboutLesson = "Lessons include React basics, state management with Redux, and deploying React apps.",
-                // ),
+                // Frontend Development - React
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Frontend Development"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Frontend Development with React",
+                    description: "Learn how to create dynamic and interactive web applications using React.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I have extensive experience in building scalable React applications.",
+                    //AboutLesson = "Lessons include React basics, state management with Redux, and deploying React apps.",
+                ),
 
-                // // Backend Development - .NET
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Backend Development"))?.Id ?? 0,
-                //     hourlyRate: 65.0M,
-                //     //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
-                //     name: "Backend Development with .NET",
-                //     description: "Master backend development using .NET and build robust APIs.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I have deep expertise in .NET for backend development.",
-                //     //AboutLesson = "Lessons include .NET Core basics, RESTful API design, and database integration with Entity Framework.",
-                // ),
+                // Backend Development - .NET
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Backend Development"))?.Id ?? 0,
+                    hourlyRate: 65.0M,
+                    //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
+                    name: "Backend Development with .NET",
+                    description: "Master backend development using .NET and build robust APIs.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I have deep expertise in .NET for backend development.",
+                    //AboutLesson = "Lessons include .NET Core basics, RESTful API design, and database integration with Entity Framework.",
+                ),
 
-                // // Backend Development - Advanced .NET
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Backend Development"))?.Id ?? 0,
-                //     hourlyRate: 75.0M,
-                //     //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
-                //     name: "Advanced Backend Development with .NET",
-                //     description: "Dive deeper into advanced .NET features and build enterprise-grade applications.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Amr, and I have years of experience building enterprise solutions using .NET technologies.",
-                //     //AboutLesson = "Lessons cover advanced .NET topics like dependency injection, authentication, and microservices architecture.",
-                // ),
-                // // Cloud Computing
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cloud Computing"))?.Id ?? 0,
-                //     hourlyRate: 70.0M,
-                //     //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
-                //     name: "AWS Solutions Architect Masterclass",
-                //     description: "Prepare for the AWS Solutions Architect certification with hands-on labs in EC2, S3, VPC, and networking.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amr, a cloud engineer with experience in AWS and DevOps.",
-                //     //AboutLesson = "Covers AWS design principles, cost optimization, security best practices, and case studies.",
-                // ),
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cloud Computing"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "Google Cloud Platform for Developers",
-                //     description: "Learn GCP services like Compute Engine, BigQuery, and Cloud Functions.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I specialize in cloud platforms like AWS, GCP, and Azure.",
-                //     //AboutLesson = "Includes hands-on experience in deploying applications on GCP.",
-                // ),
+                // Backend Development - Advanced .NET
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Backend Development"))?.Id ?? 0,
+                    hourlyRate: 75.0M,
+                    //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
+                    name: "Advanced Backend Development with .NET",
+                    description: "Dive deeper into advanced .NET features and build enterprise-grade applications.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Amr, and I have years of experience building enterprise solutions using .NET technologies.",
+                    //AboutLesson = "Lessons cover advanced .NET topics like dependency injection, authentication, and microservices architecture.",
+                ),
+                // Cloud Computing
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cloud Computing"))?.Id ?? 0,
+                    hourlyRate: 70.0M,
+                    //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
+                    name: "AWS Solutions Architect Masterclass",
+                    description: "Prepare for the AWS Solutions Architect certification with hands-on labs in EC2, S3, VPC, and networking.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amr, a cloud engineer with experience in AWS and DevOps.",
+                    //AboutLesson = "Covers AWS design principles, cost optimization, security best practices, and case studies.",
+                ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cloud Computing"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "Google Cloud Platform for Developers",
+                    description: "Learn GCP services like Compute Engine, BigQuery, and Cloud Functions.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I specialize in cloud platforms like AWS, GCP, and Azure.",
+                    //AboutLesson = "Includes hands-on experience in deploying applications on GCP.",
+                ),
 
-                // // Web Development
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Web Development"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "Full-Stack Web Development with MERN",
-                //     description: "Learn to build full-stack web applications using MongoDB, Express, React, and Node.js.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I specialize in full-stack web development.",
-                //     //AboutLesson = "Covers front-end and back-end development with RESTful APIs.",
-                // ),
+                // Web Development
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Web Development"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "Full-Stack Web Development with MERN",
+                    description: "Learn to build full-stack web applications using MongoDB, Express, React, and Node.js.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I specialize in full-stack web development.",
+                    //AboutLesson = "Covers front-end and back-end development with RESTful APIs.",
+                ),
 
-                // // Cybersecurity
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cybersecurity"))?.Id ?? 0,
-                //     hourlyRate: 75.0M,
-                //     //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
-                //     name: "Ethical Hacking with Kali Linux",
-                //     description: "Learn ethical hacking, penetration testing, and network security.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amr, a cybersecurity specialist with hands-on penetration testing experience.",
-                //     //AboutLesson = "Covers penetration testing, vulnerability scanning, and security frameworks.",
-                // ),
+                // Cybersecurity
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Cybersecurity"))?.Id ?? 0,
+                    hourlyRate: 75.0M,
+                    //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
+                    name: "Ethical Hacking with Kali Linux",
+                    description: "Learn ethical hacking, penetration testing, and network security.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amr, a cybersecurity specialist with hands-on penetration testing experience.",
+                    //AboutLesson = "Covers penetration testing, vulnerability scanning, and security frameworks.",
+                ),
 
-                // // Graphic Design
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Graphic Design"))?.Id ?? 0,
-                //     hourlyRate: 50.0M,
-                //     //Rates = new ListingRates() { Hourly = 50.0M, FiveHours = 50.0M * 5, TenHours = 50.0M * 10 ),
-                //     name: "Mastering Photoshop & Illustrator for Designers",
-                //     description: "Learn photo editing, vector graphics, and branding.",
-                //     //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amr, and I’m a professional designer with experience in Adobe Creative Suite.",
-                //     //AboutLesson = "Covers professional design techniques and real-world projects.",
-                // ),
-
-
+                // Graphic Design
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amr.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Graphic Design"))?.Id ?? 0,
+                    hourlyRate: 50.0M,
+                    //Rates = new ListingRates() { Hourly = 50.0M, FiveHours = 50.0M * 5, TenHours = 50.0M * 10 ),
+                    name: "Mastering Photoshop & Illustrator for Designers",
+                    description: "Learn photo editing, vector graphics, and branding.",
+                    //ListingImagePath = $"assets/img/mentor/amr_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amr, and I’m a professional designer with experience in Adobe Creative Suite.",
+                    //AboutLesson = "Covers professional design techniques and real-world projects.",
+                ),
 
 
 
 
-                // // =================== Business Listings for Amir.Salah ===================
-                // // Finance
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Finance"))?.Id ?? 0,
-                //     hourlyRate: 70.0M,
-                //     //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
-                //     name: "Financial Planning & Investment Strategies",
-                //     description: "Learn to manage personal and business finances, investment strategies, and risk assessment.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amir, a finance professional with years of experience in investment strategies.",
-                //     //AboutLesson = "Covers financial planning, stock market basics, and investment management.",
-                // ),
-
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Finance"))?.Id ?? 0,
-                //     hourlyRate: 75.0M,
-                //     //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
-                //     name: "Corporate Finance & Accounting",
-                //     description: "Learn how businesses manage financial decisions, budgeting, and cash flow.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Amir, an expert in corporate finance, accounting, and financial modeling.",
-                //     //AboutLesson = "Focuses on budgeting, cost management, and corporate financial strategies.",
-                // ),
-
-                // // Marketing
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Marketing"))?.Id ?? 0,
-                //     hourlyRate: 65.0M,
-                //     //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
-                //     name: "Digital Marketing & Social Media Strategy",
-                //     description: "Learn SEO, paid ads, social media growth, and digital branding.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amir, and I specialize in digital marketing and brand strategy.",
-                //     //AboutLesson = "Includes hands-on experience in running ad campaigns and optimizing content marketing.",
-                // ),
-
-                // // Business Analytics
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Business Analytics"))?.Id ?? 0,
-                //     hourlyRate: 80.0M,
-                //     //Rates = new ListingRates() { Hourly = 80.0M, FiveHours = 80.0M * 5, TenHours = 80.0M * 10 ),
-                //     name: "Business Analytics with Excel & Power BI",
-                //     description: "Learn how to analyze business data using Excel, SQL, and Power BI dashboards.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amir, a business analyst with experience in data visualization and analytics.",
-                //     //AboutLesson = "Covers business intelligence, dashboard creation, and data-driven decision making.",
-                // ),
-
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Business Analytics"))?.Id ?? 0,
-                //     hourlyRate: 85.0M,
-                //     //Rates = new ListingRates() { Hourly = 85.0M, FiveHours = 85.0M * 5, TenHours = 85.0M * 10 ),
-                //     name: "Data Science & Business Forecasting",
-                //     description: "Use predictive analytics and machine learning for business decision-making.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Amir, and I help businesses leverage data to drive growth.",
-                //     //AboutLesson = "Focuses on business forecasting, statistical modeling, and machine learning applications.",
-                // ),
-
-                // // Management
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Management"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "Leadership & Management Skills",
-                //     description: "Learn effective leadership, communication, and team management strategies.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Amir, an experienced business coach specializing in leadership and management.",
-                //     //AboutLesson = "Covers strategic leadership, decision-making, and organizational management.",
-                // ),
-
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Management"))?.Id ?? 0,
-                //     hourlyRate: 65.0M,
-                //     //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
-                //     name: "Project Management & Agile Methodologies",
-                //     description: "Learn project management principles and Agile methodologies like Scrum and Kanban.",
-                //     //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Amir, a certified project manager with extensive experience in Agile methodologies.",
-                //     //AboutLesson = "Covers project planning, Agile principles, and real-world case studies.",
-                // ),
 
 
+                // =================== Business Listings for Amir.Salah ===================
+                // Finance
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Finance"))?.Id ?? 0,
+                    hourlyRate: 70.0M,
+                    //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
+                    name: "Financial Planning & Investment Strategies",
+                    description: "Learn to manage personal and business finances, investment strategies, and risk assessment.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amir, a finance professional with years of experience in investment strategies.",
+                    //AboutLesson = "Covers financial planning, stock market basics, and investment management.",
+                ),
 
-                // // =================== Creative Listings for Ahmed.Mostafa ===================
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Finance"))?.Id ?? 0,
+                    hourlyRate: 75.0M,
+                    //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
+                    name: "Corporate Finance & Accounting",
+                    description: "Learn how businesses manage financial decisions, budgeting, and cash flow.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Amir, an expert in corporate finance, accounting, and financial modeling.",
+                    //AboutLesson = "Focuses on budgeting, cost management, and corporate financial strategies.",
+                ),
 
-                // // Photography
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Photography"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Photography Masterclass: From Beginner to Pro",
-                //     description: "Learn the fundamentals of photography, camera settings, lighting, and composition.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Ahmed, a professional photographer with years of experience in portrait and landscape photography.",
-                //     //AboutLesson = "Covers DSLR settings, lighting techniques, and post-processing skills in Adobe Lightroom.",
-                // ),
+                // Marketing
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Marketing"))?.Id ?? 0,
+                    hourlyRate: 65.0M,
+                    //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
+                    name: "Digital Marketing & Social Media Strategy",
+                    description: "Learn SEO, paid ads, social media growth, and digital branding.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amir, and I specialize in digital marketing and brand strategy.",
+                    //AboutLesson = "Includes hands-on experience in running ad campaigns and optimizing content marketing.",
+                ),
 
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Photography"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "Advanced Editing Techniques in Lightroom & Photoshop",
-                //     description: "Master professional photo editing and retouching using Lightroom and Photoshop.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Ahmed, an expert in digital editing with experience in magazine and commercial photography.",
-                //     //AboutLesson = "Covers retouching, color grading, and creating stunning visual effects.",
-                // ),
+                // Business Analytics
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Business Analytics"))?.Id ?? 0,
+                    hourlyRate: 80.0M,
+                    //Rates = new ListingRates() { Hourly = 80.0M, FiveHours = 80.0M * 5, TenHours = 80.0M * 10 ),
+                    name: "Business Analytics with Excel & Power BI",
+                    description: "Learn how to analyze business data using Excel, SQL, and Power BI dashboards.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amir, a business analyst with experience in data visualization and analytics.",
+                    //AboutLesson = "Covers business intelligence, dashboard creation, and data-driven decision making.",
+                ),
 
-                // // Writing & Content Creation
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Writing"))?.Id ?? 0,
-                //     hourlyRate: 50.0M,
-                //     //Rates = new ListingRates() { Hourly = 50.0M, FiveHours = 50.0M * 5, TenHours = 50.0M * 10 ),
-                //     name: "Creative Writing & Blogging Essentials",
-                //     description: "Learn how to craft compelling stories, blog posts, and engaging content.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "My name is Ahmed, and I’ve worked as a content writer for various online platforms.",
-                //     //AboutLesson = "Focuses on writing techniques, storytelling, and SEO-friendly content.",
-                // ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Business Analytics"))?.Id ?? 0,
+                    hourlyRate: 85.0M,
+                    //Rates = new ListingRates() { Hourly = 85.0M, FiveHours = 85.0M * 5, TenHours = 85.0M * 10 ),
+                    name: "Data Science & Business Forecasting",
+                    description: "Use predictive analytics and machine learning for business decision-making.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Amir, and I help businesses leverage data to drive growth.",
+                    //AboutLesson = "Focuses on business forecasting, statistical modeling, and machine learning applications.",
+                ),
 
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Writing"))?.Id ?? 0,
-                //     hourlyRate: 55.0M,
-                //     //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
-                //     name: "Freelance Writing & Monetizing Your Content",
-                //     description: "Learn how to make money writing articles, blogs, and ebooks.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "I’m Ahmed, and I help writers turn their passion into a career.",
-                //     //AboutLesson = "Includes platforms like Medium, Upwork, and strategies for passive income.",
-                // ),
+                // Management
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Management"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "Leadership & Management Skills",
+                    description: "Learn effective leadership, communication, and team management strategies.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Amir, an experienced business coach specializing in leadership and management.",
+                    //AboutLesson = "Covers strategic leadership, decision-making, and organizational management.",
+                ),
 
-                // // Graphic Design
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Graphic Design"))?.Id ?? 0,
-                //     hourlyRate: 60.0M,
-                //     //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
-                //     name: "Graphic Design with Adobe Illustrator & Photoshop",
-                //     description: "Learn how to design logos, branding materials, and social media graphics.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Ahmed, and I’m a professional graphic designer with experience in branding and visual identity.",
-                //     //AboutLesson = "Covers logo design, typography, and creating print-ready designs.",
-                // ),
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Amir.Salah@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Management"))?.Id ?? 0,
+                    hourlyRate: 65.0M,
+                    //Rates = new ListingRates() { Hourly = 65.0M, FiveHours = 65.0M * 5, TenHours = 65.0M * 10 ),
+                    name: "Project Management & Agile Methodologies",
+                    description: "Learn project management principles and Agile methodologies like Scrum and Kanban.",
+                    //ListingImagePath = $"assets/img/mentor/amir_salah.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Amir, a certified project manager with extensive experience in Agile methodologies.",
+                    //AboutLesson = "Covers project planning, Agile principles, and real-world case studies.",
+                ),
 
-                // // Video Editing
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Video Editing"))?.Id ?? 0,
-                //     hourlyRate: 70.0M,
-                //     //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
-                //     name: "Video Editing with Adobe Premiere Pro & After Effects",
-                //     description: "Learn how to create professional video edits and motion graphics.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
-                //     //AboutYou = "I’m Ahmed, a professional video editor with years of experience in motion graphics and storytelling.",
-                //     //AboutLesson = "Covers transitions, effects, animation, and cinematic color grading.",
-                // ),
 
-                // Listing.Create(
-                //     createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
-                //     // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Video Editing"))?.Id ?? 0,
-                //     hourlyRate: 75.0M,
-                //     //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
-                //     name: "YouTube Content Creation & Video Marketing",
-                //     description: "Learn how to create engaging YouTube videos and grow your channel.",
-                //     //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
-                //     locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
-                //     //AboutYou = "My name is Ahmed, and I help creators build successful YouTube channels.",
-                //     //AboutLesson = "Includes content strategy, video scripting, and audience growth techniques.",
-                // ),
+
+                // =================== Creative Listings for Ahmed.Mostafa ===================
+
+                // Photography
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Photography"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Photography Masterclass: From Beginner to Pro",
+                    description: "Learn the fundamentals of photography, camera settings, lighting, and composition.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Ahmed, a professional photographer with years of experience in portrait and landscape photography.",
+                    //AboutLesson = "Covers DSLR settings, lighting techniques, and post-processing skills in Adobe Lightroom.",
+                ),
+
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Photography"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "Advanced Editing Techniques in Lightroom & Photoshop",
+                    description: "Master professional photo editing and retouching using Lightroom and Photoshop.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Ahmed, an expert in digital editing with experience in magazine and commercial photography.",
+                    //AboutLesson = "Covers retouching, color grading, and creating stunning visual effects.",
+                ),
+
+                // Writing & Content Creation
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Writing"))?.Id ?? 0,
+                    hourlyRate: 50.0M,
+                    //Rates = new ListingRates() { Hourly = 50.0M, FiveHours = 50.0M * 5, TenHours = 50.0M * 10 ),
+                    name: "Creative Writing & Blogging Essentials",
+                    description: "Learn how to craft compelling stories, blog posts, and engaging content.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "My name is Ahmed, and I’ve worked as a content writer for various online platforms.",
+                    //AboutLesson = "Focuses on writing techniques, storytelling, and SEO-friendly content.",
+                ),
+
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Writing"))?.Id ?? 0,
+                    hourlyRate: 55.0M,
+                    //Rates = new ListingRates() { Hourly = 55.0M, FiveHours = 55.0M * 5, TenHours = 55.0M * 10 ),
+                    name: "Freelance Writing & Monetizing Your Content",
+                    description: "Learn how to make money writing articles, blogs, and ebooks.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "I’m Ahmed, and I help writers turn their passion into a career.",
+                    //AboutLesson = "Includes platforms like Medium, Upwork, and strategies for passive income.",
+                ),
+
+                // Graphic Design
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Graphic Design"))?.Id ?? 0,
+                    hourlyRate: 60.0M,
+                    //Rates = new ListingRates() { Hourly = 60.0M, FiveHours = 60.0M * 5, TenHours = 60.0M * 10 ),
+                    name: "Graphic Design with Adobe Illustrator & Photoshop",
+                    description: "Learn how to design logos, branding materials, and social media graphics.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Ahmed, and I’m a professional graphic designer with experience in branding and visual identity.",
+                    //AboutLesson = "Covers logo design, typography, and creating print-ready designs.",
+                ),
+
+                // Video Editing
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Video Editing"))?.Id ?? 0,
+                    hourlyRate: 70.0M,
+                    //Rates = new ListingRates() { Hourly = 70.0M, FiveHours = 70.0M * 5, TenHours = 70.0M * 10 ),
+                    name: "Video Editing with Adobe Premiere Pro & After Effects",
+                    description: "Learn how to create professional video edits and motion graphics.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.StudentLocation
+                    //AboutYou = "I’m Ahmed, a professional video editor with years of experience in motion graphics and storytelling.",
+                    //AboutLesson = "Covers transitions, effects, animation, and cinematic color grading.",
+                ),
+
+                Listing.Create(
+                    createdById: context.Users.FirstOrDefault(c => EF.Functions.Like(c.Email, "Ahmed.Mostafa@live.com"))?.Id ?? string.Empty,
+                    // CategoryId = context.Categories.FirstOrDefault(c => EF.Functions.Like(c.Name, "Video Editing"))?.Id ?? 0,
+                    hourlyRate: 75.0M,
+                    //Rates = new ListingRates() { Hourly = 75.0M, FiveHours = 75.0M * 5, TenHours = 75.0M * 10 ),
+                    name: "YouTube Content Creation & Video Marketing",
+                    description: "Learn how to create engaging YouTube videos and grow your channel.",
+                    //ListingImagePath = $"assets/img/mentor/ahmed_mostafa.jpg",
+                    locationType: ListingLocationType.Webcam | ListingLocationType.TutorLocation
+                    //AboutYou = "My name is Ahmed, and I help creators build successful YouTube channels.",
+                    //AboutLesson = "Includes content strategy, video scripting, and audience growth techniques.",
+                ),
 
 
 

@@ -53,12 +53,10 @@ public class PaymentsController : BaseApiController
     [HttpPost("create-payout")]
     public async Task<IActionResult> CreatePayout([FromBody] CreatePayoutRequest request)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
-        var userPaymentGateway = "Stripe"; // TODO: Get from user service
         try
         {
+            var userId = GetUserId();
+            var userPaymentGateway = "Stripe"; // TODO: Get from user service
             var payoutId = await _paymentService.CreatePayoutAsync(userId, request.Amount, request.Currency.ToLower(), userPaymentGateway);
 
             return Ok(new
@@ -79,26 +77,23 @@ public class PaymentsController : BaseApiController
     {
         try
         {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
-        var result = await _paymentService.CapturePaymentAsync(request.TransactionId, request.PaymentMethod.ToString());
+            var result = await _paymentService.CapturePaymentAsync(request.TransactionId, request.PaymentMethod.ToString());
 
-        if (result != null)
-        {
-            // Return success response
-            return Ok(new
+            if (result != null)
             {
-                success = true,
-                message = "Payment captured and subscription created successfully.",
-            });
-        }
+                // Return success response
+                return Ok(new
+                {
+                    success = true,
+                    message = "Payment captured and subscription created successfully.",
+                });
+            }
 
-        return BadRequest("Failed to capture payment.");
-    }
-    catch (Exception ex)
-    {
-        return BadRequest(ex.Message);
+            return BadRequest("Failed to capture payment.");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 
@@ -106,9 +101,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("history")]
     public async Task<IActionResult> HistoryAsync()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var paymentHistory = await _paymentService.GetPaymentHistoryAsync(userId);
         return Ok(paymentHistory);
     }
@@ -118,9 +111,7 @@ public class PaymentsController : BaseApiController
     [HttpPost("save-card")]
     public async Task<IActionResult> SaveCard([FromBody] SaveCardDto request)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         await _stripeCardService.AddUserCardAsync(userId, request);
         return Ok(new { success = true, message = "Card saved successfully." });
     }
@@ -129,9 +120,7 @@ public class PaymentsController : BaseApiController
     [HttpDelete("remove-card/{Id}")]
     public async Task<IActionResult> RemoveCard(int Id)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         await _stripeCardService.RemoveUserCardAsync(userId, Id);
         return Ok(new { success = true, message = "Card removed successfully." });
     }
@@ -140,9 +129,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("saved-cards")]
     public async Task<IActionResult> GetSavedCardsAsync()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         var cards = await _stripeCardService.GetUserCardsAsync(userId);
         return Ok(cards);
     }
@@ -153,12 +140,8 @@ public class PaymentsController : BaseApiController
     [HttpGet("connect-stripe-account")]
     public async Task<IActionResult> CreateStripeAccount()
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
-
+        var userId = GetUserId();
         var url = await _stripeAccountService.ConnectStripeAccountAsync(userId);
-
         return Ok(new { url });
     }
     #endregion
@@ -168,9 +151,7 @@ public class PaymentsController : BaseApiController
     [HttpPost("connect-paypal-account")]
     public async Task<IActionResult> CreatePayPalAccount([FromBody] PayPalAuthRequest request)
     {
-        // TODO: Implement proper user ID extraction from claims
-        // var userId = User.GetUserId();
-        var userId = "temp-user-id"; // Temporary placeholder
+        var userId = GetUserId();
         try
         {
             var success = await _payPalAccountService.ConnectPayPalAccountAsync(userId, request.AuthCode);
