@@ -1,4 +1,7 @@
-﻿using Avancira.Application.Catalog;
+﻿using Avancira.Application.Lessons;
+using Avancira.Application.Messaging;
+using Avancira.Application.Payments;
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;

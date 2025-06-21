@@ -1,5 +1,6 @@
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

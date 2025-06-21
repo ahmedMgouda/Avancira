@@ -1,5 +1,8 @@
 using Avancira.Application.Jobs;
 using Avancira.Application.Catalog;
+using Avancira.Application.Lessons;
+using Avancira.Application.Payments;
+using Avancira.Application.Subscriptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

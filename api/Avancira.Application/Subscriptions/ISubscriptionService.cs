@@ -4,6 +4,8 @@ using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
 using Avancira.Domain.PromoCodes;
 
+namespace Avancira.Application.Subscriptions;
+
 public interface ISubscriptionService
 {
     // Create

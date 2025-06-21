@@ -1,4 +1,6 @@
 ﻿using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Subscriptions;
+using Avancira.Application.Payments;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
 using Avancira.Domain.Transactions;

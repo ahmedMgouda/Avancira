@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 
+namespace Avancira.Application.Payments;
+
 public interface IWalletService
 {
     // Create
@@ -10,4 +12,3 @@ public interface IWalletService
     // Update
     Task ModifyWalletBalanceAsync(string userId, decimal amount, string reason);
 }
-

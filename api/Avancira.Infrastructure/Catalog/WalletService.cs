@@ -1,4 +1,5 @@
-﻿using Avancira.Domain.Wallets;
+﻿using Avancira.Application.Payments;
+using Avancira.Domain.Wallets;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

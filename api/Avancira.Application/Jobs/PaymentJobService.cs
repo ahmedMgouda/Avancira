@@ -1,4 +1,7 @@
 using Avancira.Application.Catalog;
+using Avancira.Application.Lessons;
+using Avancira.Application.Payments;
+using Avancira.Application.Subscriptions;
 
 namespace Avancira.Application.Jobs;
 

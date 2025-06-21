@@ -1,6 +1,8 @@
 using Avancira.Application.Catalog.Dtos;
 using System.Threading.Tasks;
 
+namespace Avancira.Application.Lessons;
+
 public interface ILessonService
 {
     // Create

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
+using Avancira.Application.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

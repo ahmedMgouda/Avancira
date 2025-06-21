@@ -3,6 +3,13 @@ using Avancira.Application.Billing;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
+using Avancira.Application.Catalog;
+using Avancira.Application.Services.Category;
+using Avancira.Application.Identity.Users.Abstractions;
+using Avancira.Application.Lessons;
+using Avancira.Application.Messaging;
+using Avancira.Application.Payments;
+using Avancira.Application.Subscriptions;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Billing;
 using Avancira.Infrastructure.Identity.Audit;
@@ -17,9 +24,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Avancira.Application.Catalog;
-using Avancira.Application.Services.Category;
-using Avancira.Application.Identity.Users.Abstractions;
 
 namespace Avancira.Infrastructure.Catalog
 {

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Avancira.Domain.Catalog;
 
-namespace Backend.Infrastructure.Persistence.Configurations.Catalog
+namespace Avancira.Infrastructure.Persistence.Configurations.Catalog
 {
     public class ListingCategoryConfiguration : IEntityTypeConfiguration<ListingCategory>
     {

@@ -2,6 +2,8 @@ using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Transactions;
 using System.Threading.Tasks;
 
+namespace Avancira.Application.Payments;
+
 public interface IPaymentService
 {
     // Create
@@ -18,4 +20,3 @@ public interface IPaymentService
     // Refunds & Deletions
     Task<bool> RefundPaymentAsync(Guid transactionId, decimal refundAmount, decimal retainedAmount, string gatewayName = "Stripe");
 }
-

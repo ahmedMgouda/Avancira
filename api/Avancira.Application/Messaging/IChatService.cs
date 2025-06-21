@@ -2,6 +2,8 @@ using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Messaging;
 using System.Collections.Generic;
 
+namespace Avancira.Application.Messaging;
+
 public interface IChatService
 {
     // Create
@@ -11,4 +13,3 @@ public interface IChatService
     // Update
     bool SendMessage(SendMessageDto messageDto, string senderId);
 }
-
