@@ -116,21 +116,37 @@ namespace Avancira.Infrastructure.Catalog
             _dbContext.SaveChanges();
 
 
-            // Retrieve sender's name
-            //var sender = _dbContext.Users.FirstOrDefault(u => u.Id == senderId);
-            //var senderName = sender?.FullName ?? "Someone";
-            //var eventData = new NewMessageEvent
-            //{
-            //    ChatId = chat.Id,
-            //    SenderId = senderId,
-            //    RecipientId = messageDto.RecipientId,
-            //    ListingId = messageDto.ListingId,
-            //    Content = messageDto.Content,
-            //    Timestamp = message.SentAt,
-            //    SenderName = senderName
-            //};
+            // Send notification to recipient about new message
+            if (!string.IsNullOrEmpty(messageDto.RecipientId))
+            {
+                var sender = _dbContext.Users.FirstOrDefault(u => u.Id == senderId);
+                var senderName = $"{sender?.FirstName} {sender?.LastName}".Trim();
+                if (string.IsNullOrEmpty(senderName)) senderName = "Someone";
 
-            //_notificationService.NotifyAsync(NotificationEvent.NewMessage, eventData);
+                var listing = _dbContext.Listings.FirstOrDefault(l => l.Id == messageDto.ListingId);
+                var lessonTitle = listing?.Name ?? "lesson";
+
+                var message = $"{senderName} sent you a message about '{lessonTitle}'";
+                
+                _notificationService.NotifyAsync(
+                    messageDto.RecipientId,
+                    Avancira.Domain.Catalog.Enums.NotificationEvent.NewMessage,
+                    message,
+                    new {
+                        ChatId = chat.Id,
+                        SenderId = senderId,
+                        SenderName = senderName,
+                        ListingId = messageDto.ListingId,
+                        LessonTitle = lessonTitle,
+                        MessagePreview = messageDto.Content?.Length > 50 
+                            ? messageDto.Content.Substring(0, 50) + "..." 
+                            : messageDto.Content
+                    }
+                ).ConfigureAwait(false);
+
+                _logger.LogInformation("Message sent from {SenderId} to {RecipientId}, notification sent", senderId, messageDto.RecipientId);
+            }
+
             return true;
         }
     }

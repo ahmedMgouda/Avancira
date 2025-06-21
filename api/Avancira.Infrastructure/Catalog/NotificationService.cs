@@ -1,12 +1,15 @@
 using Avancira.Application.Catalog;
 using Avancira.Application.Events;
 using Avancira.Application.Mail;
+using Avancira.Application.Messaging;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Avancira.Infrastructure.Catalog
@@ -15,16 +18,19 @@ namespace Avancira.Infrastructure.Catalog
     {
         private readonly AvanciraDbContext _dbContext;
         private readonly IEnhancedEmailService _emailService;
+        private readonly IEnumerable<INotificationChannel> _notificationChannels;
         private readonly ILogger<NotificationService> _logger;
 
         public NotificationService(
             AvanciraDbContext dbContext,
             IEnhancedEmailService emailService,
+            IEnumerable<INotificationChannel> notificationChannels,
             ILogger<NotificationService> logger
         )
         {
             _dbContext = dbContext;
             _emailService = emailService;
+            _notificationChannels = notificationChannels;
             _logger = logger;
         }
 
@@ -34,7 +40,17 @@ namespace Avancira.Infrastructure.Catalog
             {
                 _logger.LogInformation("Processing notification event: {EventType} with data: {@EventData}", eventType, eventData);
 
-                // Handle different notification events
+                // Extract userId from eventData for SignalR notifications
+                string? userId = ExtractUserIdFromEventData(eventData);
+                
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    // Send through all notification channels (including SignalR)
+                    string message = GetDefaultMessageForEvent(eventType);
+                    await SendNotificationToAllChannelsAsync(eventType.ToString(), message, eventData, userId);
+                }
+
+                // Handle specific notification events that need special processing (like email templates)
                 switch (eventType)
                 {
                     case NotificationEvent.ConfirmEmail:
@@ -43,44 +59,8 @@ namespace Avancira.Infrastructure.Catalog
                     case NotificationEvent.ResetPassword:
                         await HandleResetPasswordAsync(eventData);
                         break;
-                    case NotificationEvent.BookingRequested:
-                        await HandleBookingRequestedAsync(eventData);
-                        break;
-                    case NotificationEvent.PropositionResponded:
-                        await HandlePropositionRespondedAsync(eventData);
-                        break;
-                    case NotificationEvent.BookingConfirmed:
-                        await HandleBookingConfirmedAsync(eventData);
-                        break;
-                    case NotificationEvent.BookingCancelled:
-                        await HandleBookingCancelledAsync(eventData);
-                        break;
-                    case NotificationEvent.BookingReminder:
-                        await HandleBookingReminderAsync(eventData);
-                        break;
-                    case NotificationEvent.PaymentReceived:
-                        await HandlePaymentReceivedAsync(eventData);
-                        break;
-                    case NotificationEvent.PaymentFailed:
-                        await HandlePaymentFailedAsync(eventData);
-                        break;
-                    case NotificationEvent.RefundProcessed:
-                        await HandleRefundProcessedAsync(eventData);
-                        break;
-                    case NotificationEvent.NewMessage:
-                        await HandleNewMessageAsync(eventData);
-                        break;
-                    case NotificationEvent.PayoutProcessed:
-                        await HandlePayoutProcessedAsync(eventData);
-                        break;
-                    case NotificationEvent.NewReviewReceived:
-                        await HandleNewReviewReceivedAsync(eventData);
-                        break;
-                    case NotificationEvent.ProfileUpdated:
-                        await HandleProfileUpdatedAsync(eventData);
-                        break;
                     default:
-                        _logger.LogWarning("Unhandled notification event type: {EventType}", eventType);
+                        // All other events are handled by the generic notification channel system above
                         break;
                 }
             }
@@ -97,45 +77,147 @@ namespace Avancira.Infrastructure.Catalog
             {
                 _logger.LogInformation("Sending notification to user {UserId}: {EventName} - {Message}", userId, eventName, message);
 
-                // Get user email from database
-                var user = await _dbContext.Users
-                    .Where(u => u.Id == userId)
-                    .Select(u => new { u.Email, u.FirstName, u.LastName })
-                    .FirstOrDefaultAsync();
-
-                if (user != null && !string.IsNullOrEmpty(user.Email))
+                // Create notification entity
+                var notification = new Avancira.Domain.Messaging.Notification
                 {
-                    // Prepare email content
-                    var emailSubject = GetEmailSubject(eventName, data);
-                    var emailBody = GetEmailBody(eventName, message, user.FirstName, data);
+                    UserId = userId,
+                    EventName = eventName.ToString(),
+                    Message = message,
+                    Data = data != null ? JsonSerializer.Serialize(data) : null,
+                    IsRead = false,
+                    Created = DateTimeOffset.UtcNow
+                };
 
-                    // Send email using your comprehensive SendEmailService
-                    await _emailService.SendEmailAsync(
-                        toEmail: user.Email,
-                        subject: emailSubject,
-                        body: emailBody,
-                        provider: "Smtp", // You can make this configurable
-                        cancellationToken: CancellationToken.None
-                    );
+                // Store notification in database
+                _dbContext.Notifications.Add(notification);
+                await _dbContext.SaveChangesAsync();
 
-                    _logger.LogInformation("Email notification sent successfully to {Email} for event {EventName}", user.Email, eventName);
-                }
-                else
-                {
-                    _logger.LogWarning("User {UserId} not found or has no email address", userId);
-                }
+                // Send through all notification channels
+                var tasks = _notificationChannels.Select(channel => 
+                    SendThroughChannelAsync(channel, userId, notification));
+                
+                await Task.WhenAll(tasks);
 
-                // TODO: Add other notification channels here:
-                // - Push notifications
-                // - SMS notifications
-                // - Real-time notifications via SignalR
-                // - Store in notifications table for in-app notifications
+                _logger.LogInformation("Notification sent through all channels for user {UserId}, event {EventName}", userId, eventName);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending notification to user {UserId}", userId);
                 throw;
             }
+        }
+
+        private async Task SendThroughChannelAsync(INotificationChannel channel, string userId, Avancira.Domain.Messaging.Notification notification)
+        {
+            try
+            {
+                await channel.SendAsync(userId, notification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification through channel {ChannelType} for user {UserId}", 
+                    channel.GetType().Name, userId);
+                // Don't rethrow - we want other channels to still work
+            }
+        }
+
+        private async Task SendNotificationToAllChannelsAsync<T>(string eventName, string message, T eventData, string userId)
+        {
+            try
+            {
+                // Create notification entity
+                var notification = new Avancira.Domain.Messaging.Notification
+                {
+                    UserId = userId,
+                    EventName = eventName,
+                    Message = message,
+                    Data = eventData != null ? JsonSerializer.Serialize(eventData) : null,
+                    IsRead = false,
+                    Created = DateTimeOffset.UtcNow
+                };
+
+                // Store notification in database
+                _dbContext.Notifications.Add(notification);
+                await _dbContext.SaveChangesAsync();
+
+                // Send through all notification channels
+                var tasks = _notificationChannels.Select(channel => 
+                    SendThroughChannelAsync(channel, userId, notification));
+                
+                await Task.WhenAll(tasks);
+
+                _logger.LogInformation("Notification sent through all channels for user {UserId}, event {EventName}", userId, eventName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for event {EventName}", eventName);
+                throw;
+            }
+        }
+
+        private async Task SendNotificationToAllChannelsAsync<T>(string eventName, string message, T eventData)
+        {
+            try
+            {
+                // Extract userId from eventData - this will need to be customized based on your event data structure
+                string? userId = ExtractUserIdFromEventData(eventData);
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Could not extract userId from event data for event {EventName}", eventName);
+                    return;
+                }
+
+                await SendNotificationToAllChannelsAsync(eventName, message, eventData, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notification for event {EventName}", eventName);
+                throw;
+            }
+        }
+
+        private string GetDefaultMessageForEvent(NotificationEvent eventType)
+        {
+            return eventType switch
+            {
+                NotificationEvent.BookingRequested => "You have a new booking request",
+                NotificationEvent.PropositionResponded => "Someone responded to your proposition",
+                NotificationEvent.BookingConfirmed => "Your booking has been confirmed",
+                NotificationEvent.BookingCancelled => "A booking has been cancelled",
+                NotificationEvent.BookingReminder => "You have an upcoming booking",
+                NotificationEvent.PaymentReceived => "Payment has been received",
+                NotificationEvent.PaymentFailed => "Payment has failed",
+                NotificationEvent.RefundProcessed => "Your refund has been processed",
+                NotificationEvent.NewMessage => "You have a new message",
+                NotificationEvent.PayoutProcessed => "Your payout has been processed",
+                NotificationEvent.NewReviewReceived => "You have received a new review",
+                NotificationEvent.ProfileUpdated => "Your profile has been updated",
+                NotificationEvent.ConfirmEmail => "Please confirm your email address",
+                NotificationEvent.ResetPassword => "Password reset requested",
+                _ => $"You have a new {eventType} notification"
+            };
+        }
+
+        private string? ExtractUserIdFromEventData<T>(T eventData)
+        {
+            if (eventData == null) return null;
+
+            // Use reflection to try to find a UserId property
+            var eventType = eventData.GetType();
+            var userIdProperty = eventType.GetProperty("UserId") ?? 
+                                eventType.GetProperty("TargetUserId") ?? 
+                                eventType.GetProperty("RecipientId") ??
+                                eventType.GetProperty("ToUserId");
+
+            if (userIdProperty != null)
+            {
+                var value = userIdProperty.GetValue(eventData);
+                return value?.ToString();
+            }
+
+            _logger.LogWarning("Could not find UserId property in event data of type {EventType}", eventType.Name);
+            return null;
         }
 
         private string GetEmailSubject(NotificationEvent eventName, object? data)
@@ -168,82 +250,6 @@ namespace Avancira.Infrastructure.Catalog
                 </html>";
         }
 
-        private async Task HandleBookingRequestedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling booking requested notification");
-            // Implementation for booking requested notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandlePropositionRespondedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling proposition responded notification");
-            // Implementation for proposition responded notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleBookingConfirmedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling booking confirmed notification");
-            // Implementation for booking confirmed notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleBookingCancelledAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling booking cancelled notification");
-            // Implementation for booking cancelled notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleBookingReminderAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling booking reminder notification");
-            // Implementation for booking reminder notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandlePaymentReceivedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling payment received notification");
-            // Implementation for payment received notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandlePaymentFailedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling payment failed notification");
-            // Implementation for payment failed notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleRefundProcessedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling refund processed notification");
-            // Implementation for refund processed notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleNewMessageAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling new message notification");
-            // Implementation for new message notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandlePayoutProcessedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling payout processed notification");
-            // Implementation for payout processed notifications
-            await Task.CompletedTask;
-        }
-
-        private async Task HandleNewReviewReceivedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling new review received notification");
-            // Implementation for new review received notifications
-            await Task.CompletedTask;
-        }
 
         private async Task HandleConfirmEmailAsync<T>(T eventData)
         {
@@ -323,11 +329,5 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        private async Task HandleProfileUpdatedAsync<T>(T eventData)
-        {
-            _logger.LogInformation("Handling profile updated notification");
-            // Implementation for profile updated notifications
-            await Task.CompletedTask;
-        }
     }
 }

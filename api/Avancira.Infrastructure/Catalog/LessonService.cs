@@ -112,8 +112,24 @@ namespace Avancira.Infrastructure.Catalog
                     var studentName = $"{student?.FirstName} {student?.LastName}".Trim();
                     if (string.IsNullOrEmpty(studentName)) studentName = "Student";
 
-                    // Note: Notification events would need to be implemented
-                    _logger.LogInformation("Lesson proposed successfully. Lesson ID: {LessonId}", lesson.Id);
+                    // Send notification to tutor about new lesson proposal
+                    var lessonTitle = tutor?.Name ?? "Lesson";
+                    var message = $"{studentName} has proposed a lesson for '{lessonTitle}' on {lesson.Date:MMM dd, yyyy} at {lesson.Date:HH:mm}";
+                    
+                    await _notificationService.NotifyAsync(
+                        tutorId, 
+                        NotificationEvent.BookingRequested, 
+                        message,
+                        new { 
+                            LessonId = lesson.Id,
+                            StudentName = studentName,
+                            LessonTitle = lessonTitle,
+                            Date = lesson.Date,
+                            Price = lesson.ActualPrice
+                        }
+                    );
+
+                    _logger.LogInformation("Lesson proposed successfully. Lesson ID: {LessonId}, Tutor notified: {TutorId}", lesson.Id, tutorId);
                 }
 
                 return await MapToLessonDtoAsync(lesson, userId);
@@ -372,16 +388,56 @@ namespace Avancira.Infrastructure.Catalog
                 _dbContext.Lessons.Update(lesson);
                 await _dbContext.SaveChangesAsync();
 
-                // Notify the student
+                // Notify the student about the response
                 var studentId = lesson.StudentId;
 
                 if (!string.IsNullOrEmpty(studentId))
                 {
                     var tutor = await _dbContext.Users.FindAsync(listing?.UserId);
                     var tutorName = $"{tutor?.FirstName} {tutor?.LastName}".Trim();
+                    if (string.IsNullOrEmpty(tutorName)) tutorName = "Tutor";
+                    
                     var lessonTitle = listing?.Name ?? "the lesson";
                     
-                    _logger.LogInformation("Lesson status updated. Student: {StudentId}, Status: {Status}", studentId, lesson.Status);
+                    string message;
+                    NotificationEvent eventType;
+                    
+                    if (accept && lesson.Status == LessonStatus.Booked)
+                    {
+                        message = $"{tutorName} has accepted your lesson proposal for '{lessonTitle}' on {lesson.Date:MMM dd, yyyy} at {lesson.Date:HH:mm}";
+                        eventType = NotificationEvent.BookingConfirmed;
+                    }
+                    else if (!accept && lesson.Status == LessonStatus.Canceled)
+                    {
+                        message = $"{tutorName} has declined your lesson proposal for '{lessonTitle}'";
+                        eventType = NotificationEvent.PropositionResponded;
+                    }
+                    else if (lesson.Status == LessonStatus.Canceled)
+                    {
+                        message = $"Your lesson '{lessonTitle}' on {lesson.Date:MMM dd, yyyy} has been cancelled";
+                        eventType = NotificationEvent.BookingCancelled;
+                    }
+                    else
+                    {
+                        message = $"Your lesson proposal for '{lessonTitle}' has been updated";
+                        eventType = NotificationEvent.PropositionResponded;
+                    }
+
+                    await _notificationService.NotifyAsync(
+                        studentId,
+                        eventType,
+                        message,
+                        new {
+                            LessonId = lesson.Id,
+                            TutorName = tutorName,
+                            LessonTitle = lessonTitle,
+                            Date = lesson.Date,
+                            Status = lesson.Status.ToString(),
+                            Accepted = accept
+                        }
+                    );
+                    
+                    _logger.LogInformation("Lesson status updated. Student: {StudentId}, Status: {Status}, Student notified", studentId, lesson.Status);
                 }
 
                 return await MapToLessonDtoAsync(lesson, userId);

@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
-using System.Text;
-using Avancira.Application.Auth.Jwt;
+﻿using Avancira.Application.Auth.Jwt;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using System.Security.Claims;
+using System.Text;
 
 namespace Avancira.Infrastructure.Auth.Jwt;
 public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions>
@@ -46,6 +47,31 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
         };
         options.Events = new JwtBearerEvents
         {
+            OnAuthenticationFailed = context =>
+            {
+                Log.Debug("Authentication failed: " + context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                // Token validation succeeded
+                if (context != null && context.Principal != null && context.Principal.Identity != null)
+                    Log.Debug("Token validated: " + context.Principal.Identity.Name);
+                return Task.CompletedTask;
+            },
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notification"))
+                {
+                    context.Token = accessToken;
+                }
+
+                // Invoked when a WebSocket or Long Polling request is received.
+                Log.Debug("Message received: " + context.Token);
+                return Task.CompletedTask;
+            },
             OnChallenge = context =>
             {
                 context.HandleResponse();
@@ -56,20 +82,7 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
 
                 return Task.CompletedTask;
             },
-            OnForbidden = _ => throw new ForbiddenException(),
-            OnMessageReceived = context =>
-            {
-                var accessToken = context.Request.Query["access_token"];
-
-                if (!string.IsNullOrEmpty(accessToken) &&
-                    context.HttpContext.Request.Path.StartsWithSegments("/notifications", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Read the token out of the query string
-                    context.Token = accessToken;
-                }
-
-                return Task.CompletedTask;
-            }
+            OnForbidden = _ => throw new ForbiddenException()
         };
     }
 }

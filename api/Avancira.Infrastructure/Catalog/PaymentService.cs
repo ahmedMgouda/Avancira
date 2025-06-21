@@ -101,16 +101,19 @@ namespace Avancira.Infrastructure.Catalog
 
                     _logger.LogInformation($"Payout of {amount:C} successfully processed for User ID {userId}.");
 
-                    //var eventData = new PayoutProcessedEvent
-                    //{
-                    //    UserId = userId,
-                    //    Amount = amount,
-                    //    Currency = currency,
-                    //    WalletBalance = wallet.Balance - amount,
-                    //    ProcessedAt = DateTime.UtcNow
-                    //};
-
-                    //await _notificationService.NotifyAsync(NotificationEvent.PayoutProcessed, eventData);
+                    // Send notification about successful payout
+                    var message = $"Your payout of {amount:C} {currency} has been processed successfully";
+                    await _notificationService.NotifyAsync(
+                        userId,
+                        NotificationEvent.PayoutProcessed,
+                        message,
+                        new {
+                            Amount = amount,
+                            Currency = currency,
+                            WalletBalance = wallet.Balance - amount,
+                            ProcessedAt = DateTime.UtcNow
+                        }
+                    );
 
                     return payoutResult;
                 }
@@ -121,16 +124,20 @@ namespace Avancira.Infrastructure.Catalog
 
                     _logger.LogError(ex, $"Failed to process payout for User ID {userId}.");
 
-                    //var eventData = new PayoutFailedEvent
-                    //{
-                    //    UserId = userId,
-                    //    Amount = amount,
-                    //    Currency = currency,
-                    //    ErrorMessage = ex.Message,
-                    //    AttemptedAt = DateTime.UtcNow
-                    //};
+                    // Send notification about failed payout
+                    var message = $"Your payout of {amount:C} {currency} failed to process. Please try again or contact support.";
+                    await _notificationService.NotifyAsync(
+                        userId,
+                        NotificationEvent.PaymentFailed,
+                        message,
+                        new {
+                            Amount = amount,
+                            Currency = currency,
+                            ErrorMessage = ex.Message,
+                            AttemptedAt = DateTime.UtcNow
+                        }
+                    );
 
-                    //await _notificationService.NotifyAsync(NotificationEvent.PaymentFailed, eventData);
                     throw new Exception("Payout processing failed. Please try again.");
                 }
             });

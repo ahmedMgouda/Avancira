@@ -19,6 +19,7 @@ using Avancira.Infrastructure.RateLimit;
 using Avancira.Infrastructure.SecurityHeaders;
 using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Storage.Files;
+using Avancira.Infrastructure.Messaging;
 using Avancira.ServiceDefaults;
 using FluentValidation;
 using Mapster;
@@ -45,6 +46,7 @@ public static class Extensions
         builder.Services.ConfigureOpenApi();
         builder.Services.ConfigureJobs(builder.Configuration);
         builder.Services.ConfigureMailing();
+        builder.Services.ConfigureMessaging();
         builder.Services.ConfigureCaching(builder.Configuration);
         builder.Services.AddExceptionHandler<CustomExceptionHandler>();
         builder.Services.AddProblemDetails();
@@ -119,5 +121,17 @@ public static class Extensions
         app.UseMiddleware<CurrentUserMiddleware>();
 
         return app;
+    }
+
+    private static IServiceCollection ConfigureMessaging(this IServiceCollection services)
+    {
+        // Add SignalR
+        services.AddSignalR();
+        
+        // Register notification channels
+        services.AddScoped<Avancira.Application.Messaging.INotificationChannel, EmailNotificationChannel>();
+        services.AddScoped<Avancira.Application.Messaging.INotificationChannel, SignalRNotificationChannel>();
+        
+        return services;
     }
 }

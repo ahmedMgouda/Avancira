@@ -39,8 +39,10 @@ app.MapDefaultEndpoints();
 
 app.UseAvanciraFramework();
 
-
 app.UseHttpsRedirection();
+
+// Map SignalR hub
+app.MapHub<Avancira.Infrastructure.Messaging.NotificationHub>("/notification");
 
 app.MapControllers();
 
