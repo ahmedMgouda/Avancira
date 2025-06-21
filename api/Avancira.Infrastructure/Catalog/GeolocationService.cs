@@ -1,4 +1,4 @@
-﻿using Backend.Interfaces;
+﻿using Avancira.Application.Catalog;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;

@@ -1,4 +1,4 @@
-﻿using Backend.Domain.Lessons;
+﻿using Avancira.Domain.Lessons;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
 

@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.PromoCodes;
 
 public interface ISubscriptionService
 {

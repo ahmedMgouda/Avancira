@@ -3,7 +3,7 @@ using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;
 using Avancira.Infrastructure.Persistence;
-using Backend.Domain.Lessons;
+using Avancira.Domain.Lessons;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;

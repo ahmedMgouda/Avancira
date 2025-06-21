@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Backend.Interfaces
+namespace Avancira.Application.Catalog
 {
     public interface IGeolocationService
     {
@@ -8,4 +8,3 @@ namespace Backend.Interfaces
         Task<string?> GetCountryFromIpAsync(string ipAddress);
     }
 }
-

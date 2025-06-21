@@ -1,6 +1,7 @@
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog;
+using Avancira.Domain.Lessons;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -103,7 +104,7 @@ namespace Avancira.Infrastructure.Catalog
                                           join listing in _dbContext.Listings on lesson.ListingId equals listing.Id
                                           join tutor in _dbContext.Users on listing.UserId equals tutor.Id
                                           where lesson.StudentId == userId && 
-                                                lesson.Status == Backend.Domain.Lessons.LessonStatus.Completed &&
+                                                lesson.Status == LessonStatus.Completed &&
                                                 !_dbContext.Reviews.Any(r => r.ListingId == listing.Id && r.StudentId == userId)
                                           select new ReviewDto
                                           {

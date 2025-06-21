@@ -1,6 +1,6 @@
 ﻿using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;
-using Backend.Domain.Lessons;
+using Avancira.Domain.Lessons;
 using System;
 using System.Collections.Generic;
 using System.Linq;

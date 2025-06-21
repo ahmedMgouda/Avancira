@@ -2,8 +2,10 @@
 using Avancira.Domain.Common;
 using Avancira.Domain.Lessons.Events;
 using Avancira.Domain.Transactions;
-using Backend.Domain.Lessons;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.Lessons;
+using Avancira.Domain.PromoCodes;
+
+namespace Avancira.Domain.Lessons;
 
 public class Lesson : AuditableEntity
 {

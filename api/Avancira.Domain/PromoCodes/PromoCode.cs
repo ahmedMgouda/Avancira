@@ -1,7 +1,7 @@
 ﻿using Avancira.Domain.Common;
 using Avancira.Domain.PromoCodes.Events;
 
-namespace Backend.Domain.PromoCodes;
+namespace Avancira.Domain.PromoCodes;
 public class PromoCode : AuditableEntity
 {
     public PromoCode()
@@ -41,5 +41,3 @@ public class PromoCode : AuditableEntity
         }
     }
 }
-
-

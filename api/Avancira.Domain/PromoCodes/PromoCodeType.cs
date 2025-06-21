@@ -1,4 +1,4 @@
-﻿namespace Backend.Domain.PromoCodes
+﻿namespace Avancira.Domain.PromoCodes
 {
     public enum PromoCodeType
     {

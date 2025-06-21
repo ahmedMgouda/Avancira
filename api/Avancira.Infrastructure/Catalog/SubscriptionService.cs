@@ -3,7 +3,7 @@ using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
 using Avancira.Domain.Transactions;
 using Avancira.Infrastructure.Persistence;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.PromoCodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;

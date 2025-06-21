@@ -1,8 +1,8 @@
-﻿using Backend.Domain.PromoCodes;
+﻿using Avancira.Domain.PromoCodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Backend.Infrastructure.Persistence.Configurations.PromoCodes
+namespace Avancira.Infrastructure.Persistence.Configurations.PromoCodes
 {
     public class ListingPromoCodeConfiguration : IEntityTypeConfiguration<ListingPromoCode>
     {

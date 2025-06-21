@@ -1,7 +1,7 @@
 ﻿using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Catalog.Events;
 using Avancira.Domain.Common;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.PromoCodes;
 
 namespace Avancira.Domain.Catalog;
 public class Listing : AuditableEntity

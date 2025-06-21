@@ -2,7 +2,8 @@
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Messaging;
 using Avancira.Infrastructure.Identity.Users;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.PromoCodes;
+using Avancira.Domain.Lessons;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -1723,6 +1724,3 @@ public class MessageSeeder
         }
     }
 }
-
-
-

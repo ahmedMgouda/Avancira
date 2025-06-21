@@ -1,5 +1,5 @@
 ﻿using Avancira.Domain.Common.Events;
-using Backend.Domain.Lessons;
+using Avancira.Domain.Lessons;
 
 namespace Avancira.Domain.Lessons.Events
 {

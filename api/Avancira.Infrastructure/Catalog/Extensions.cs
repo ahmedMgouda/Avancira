@@ -19,7 +19,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
 using Avancira.Application.Services.Category;
-using Backend.Interfaces;
 using Avancira.Application.Identity.Users.Abstractions;
 
 namespace Avancira.Infrastructure.Catalog
@@ -32,7 +31,6 @@ namespace Avancira.Infrastructure.Catalog
 
             services.AddTransient<ILessonCategoryService, LessonCategoryService>();
             services.AddTransient<IListingService, ListingService>();
-            services.AddTransient<IUserService, UserService>();
             services.AddTransient<IPayPalAccountService, PayPalAccountService>();
             services.AddTransient<IStripeAccountService, StripeAccountService>();
             services.AddTransient<IStripeCardService, StripeCardService>();

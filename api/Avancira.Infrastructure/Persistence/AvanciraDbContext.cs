@@ -10,12 +10,13 @@ using System.Reflection;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Messaging;
-using Backend.Domain.PromoCodes;
+using Avancira.Domain.PromoCodes;
 using Avancira.Domain.Transactions;
 using Avancira.Domain.Wallets;
 using Avancira.Domain.UserCard;
 using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
+using Avancira.Domain.Lessons;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<

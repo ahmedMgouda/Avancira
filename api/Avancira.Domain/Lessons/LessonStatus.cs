@@ -1,4 +1,4 @@
-﻿namespace Backend.Domain.Lessons
+﻿namespace Avancira.Domain.Lessons
 {
     public enum LessonStatus
     {

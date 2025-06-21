@@ -1,6 +1,6 @@
 ﻿using Avancira.Domain.Catalog;
 
-namespace Backend.Domain.PromoCodes
+namespace Avancira.Domain.PromoCodes
 {
     public class ListingPromoCode
     {
