@@ -36,6 +36,7 @@ public static class Extensions
         ArgumentNullException.ThrowIfNull(builder);
         builder.AddServiceDefaults();
         builder.ConfigureSerilog();
+        builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration);

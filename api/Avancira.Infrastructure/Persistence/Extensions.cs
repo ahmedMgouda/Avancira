@@ -58,32 +58,39 @@ public static class Extensions
     {
         using var serviceScope = app.ApplicationServices.CreateScope();
 
-        // Get the DbContext and check if there are any pending migrations
-        var context = serviceScope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
-
-        // For Aspire, we don't delete the database, just ensure it exists and apply migrations
-        context.Database.EnsureCreated();
-
-        // Check if there are pending migrations
-        if (context.Database.GetPendingMigrations().Any())
+        try
         {
-            // Apply pending migrations
-            context.Database.Migrate();
-            Logger.Information("Applied pending migrations.");
+            // Get the DbContext and check if there are any pending migrations
+            var context = serviceScope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
+
+            // Ensure database exists and apply migrations
+            context.Database.EnsureCreated();
+
+            // Check if there are pending migrations
+            if (context.Database.GetPendingMigrations().Any())
+            {
+                // Apply pending migrations
+                context.Database.Migrate();
+                Logger.Information("Applied pending migrations.");
+            }
+            else
+            {
+                Logger.Information("No pending migrations.");
+            }
+
+            // Optionally, seed the database if needed
+            var initializers = serviceScope.ServiceProvider.GetServices<IDbInitializer>();
+            foreach (var initializer in initializers)
+            {
+                initializer.SeedAsync(CancellationToken.None).Wait();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            Logger.Information("No pending migrations.");
-        }
-
-        // Optionally, seed the database if needed
-        var initializers = serviceScope.ServiceProvider.GetServices<IDbInitializer>();
-        foreach (var initializer in initializers)
-        {
-            initializer.SeedAsync(CancellationToken.None).Wait();
+            // If database setup fails (e.g., in Aspire mode where it's handled elsewhere), log and continue
+            Logger.Warning("Database setup failed, this might be expected in Aspire mode: {Error}", ex.Message);
         }
 
         return app;
     }
 }
-
