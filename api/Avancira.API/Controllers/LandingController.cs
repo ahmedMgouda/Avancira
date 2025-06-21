@@ -2,31 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [AllowAnonymous]
 [Route("api/landing")]
-[ApiController]
-public class LandingAPIController : BaseController
+public class LandingController : BaseApiController
 {
     private readonly IListingService _listingService;
-    private readonly IUserService _userService;
     private readonly ILessonCategoryService _categoryService;
-    private readonly ILogger<LandingAPIController> _logger;
+    private readonly ILogger<LandingController> _logger;
 
-    public LandingAPIController(
+    public LandingController(
         IListingService listingService,
-        IUserService userService,
         ILessonCategoryService categoryService,
-        ILogger<LandingAPIController> logger
+        ILogger<LandingController> logger
     )
     {
         _listingService = listingService;
-        _userService = userService;
         _categoryService = categoryService;
         _logger = logger;
     }
@@ -35,14 +32,14 @@ public class LandingAPIController : BaseController
     public IActionResult GetCourseStats()
     {
         var stats = _listingService.GetListingStatistics();
-        return JsonOk(stats);
+        return Ok(stats);
     }
 
     [HttpGet("categories")]
     public IActionResult GetCategories()
     {
         var categories = _categoryService.GetLandingPageCategories();
-        return JsonOk(categories);
+        return Ok(categories);
     }
 
     [HttpGet("courses")]
@@ -64,7 +61,7 @@ public class LandingAPIController : BaseController
                 instructorImg = course.ListingImagePath ?? "default-instructor.jpg"
             }).ToList();
 
-        return JsonOk(listings);
+        return Ok(listings);
     }
 
     [HttpGet("trending-courses")]
@@ -86,9 +83,8 @@ public class LandingAPIController : BaseController
                 instructorImg = course.ListingImagePath ?? "default-instructor.jpg"
             }).ToList();
 
-        return JsonOk(listings);
+        return Ok(listings);
     }
-
 
     [HttpGet("instructors")]
     public IActionResult GetInstructors()
@@ -100,14 +96,20 @@ public class LandingAPIController : BaseController
             new { Img = "assets/img/mentor/ahmed_mostafa.jpg", Name = "Ahmed Mostafa", Designation = "Creative Director & Multimedia Specialist", Rating = 4.5, Reviews = 2500, Students = 850 }
         };
 
-        return JsonOk(instructors);
+        return Ok(instructors);
     }
 
     [HttpGet("job-locations")]
     public async Task<IActionResult> GetJobLocationsAsync()
     {
-        var jobLocations = await _userService.GetLandingPageUsersAsync();
-        return JsonOk(jobLocations);
+        // TODO: Implement proper user service for landing page data
+        var jobLocations = new List<object>
+        {
+            new { Img = "assets/img/city/city_sydney.jpg", City = "Sydney", Country = "Australia", Mentors = 0 },
+            new { Img = "assets/img/city/city_brisbane.jpg", City = "Brisbane", Country = "Australia", Mentors = 0 },
+            new { Img = "assets/img/city/city_perth.jpg", City = "Perth", Country = "Australia", Mentors = 0 }
+        };
+        return Ok(jobLocations);
     }
 
     [HttpGet("student-reviews")]
@@ -119,7 +121,6 @@ public class LandingAPIController : BaseController
             new { Img = "assets/img/user/user21.png", Name = "Anderson Saviour", Position = "IT Manager", Comment = "Very insightful lessons and great support.", Rating = 4 }
         };
 
-        return JsonOk(studentReviews);
+        return Ok(studentReviews);
     }
 }
-

@@ -1,21 +1,21 @@
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/evaluations")]
-[ApiController]
-public class EvaluationsAPIController : BaseController
+public class EvaluationsController : BaseApiController
 {
     private readonly IEvaluationService _evaluationService;
-    private readonly ILogger<EvaluationsAPIController> _logger;
+    private readonly ILogger<EvaluationsController> _logger;
 
-    public EvaluationsAPIController(
+    public EvaluationsController(
         IEvaluationService evaluationService,
-        ILogger<EvaluationsAPIController> logger
+        ILogger<EvaluationsController> logger
     )
     {
         _evaluationService = evaluationService;
@@ -27,25 +27,27 @@ public class EvaluationsAPIController : BaseController
     [HttpPost("review")]
     public async Task<IActionResult> LeaveReviewAsync([FromBody] ReviewDto reviewDto)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
 
         // Validate the input
         if (reviewDto == null)
         {
-            return JsonError("Review data is required.");
+            return BadRequest("Review data is required.");
         }
         if (string.IsNullOrEmpty(reviewDto.RevieweeId) || string.IsNullOrWhiteSpace(reviewDto.Subject) || string.IsNullOrWhiteSpace(reviewDto.Feedback))
         {
-            return JsonError("Invalid review details.");
+            return BadRequest("Invalid review details.");
         }
 
         // Check if the user is authorized to write this review (optional logic)
         if (!await _evaluationService.SubmitReviewAsync(reviewDto, userId))
         {
-            return JsonError("You are not authorized to leave this review.");
+            return BadRequest("You are not authorized to leave this review.");
         }
 
-        return JsonOk(new
+        return Ok(new
         {
             success = true,
             message = "Review submitted successfully."
@@ -56,17 +58,19 @@ public class EvaluationsAPIController : BaseController
     [HttpPost("recommendation")]
     public async Task<IActionResult> SubmitRecommendation([FromBody] ReviewDto dto)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
 
         if (string.IsNullOrEmpty(dto.RevieweeId) || string.IsNullOrEmpty(dto.Feedback))
-            return JsonError("Invalid data.");
+            return BadRequest("Invalid data.");
 
         if (!await _evaluationService.SubmitRecommendationAsync(dto, userId))
         {
-            return JsonError("Failed to submit recommendation.");
+            return BadRequest("Failed to submit recommendation.");
         }
 
-        return JsonOk(new
+        return Ok(new
         {
             success = true,
             message = "Recommendation submitted successfully."
@@ -78,7 +82,9 @@ public class EvaluationsAPIController : BaseController
     [HttpGet]
     public async Task<IActionResult> GetEvaluationsAsync()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
 
         // Identify pending reviews based on the user's role
         var pendingReviews = await _evaluationService.GetPendingReviewsAsync(userId);
@@ -86,7 +92,7 @@ public class EvaluationsAPIController : BaseController
         var sentReviews = await _evaluationService.GetSentReviewsAsync(userId);
         var recommendations = await _evaluationService.GetRecommendationsAsync(userId);
 
-        return JsonOk(new
+        return Ok(new
         {
             PendingReviews = pendingReviews,
             ReceivedReviews = receivedReviews,
@@ -96,5 +102,3 @@ public class EvaluationsAPIController : BaseController
 
     }
 }
-
-

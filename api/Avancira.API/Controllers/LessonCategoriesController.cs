@@ -1,18 +1,18 @@
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Avancira.Domain.Catalog;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/lesson/categories")]
-[ApiController]
-public class LessonCategoriesAPIController : BaseController
+public class LessonCategoriesController : BaseApiController
 {
     private readonly ILessonCategoryService _categoryService;
-    private readonly ILogger<LessonCategoriesAPIController> _logger;
+    private readonly ILogger<LessonCategoriesController> _logger;
 
-    public LessonCategoriesAPIController(ILessonCategoryService categoryService, ILogger<LessonCategoriesAPIController> logger)
+    public LessonCategoriesController(ILessonCategoryService categoryService, ILogger<LessonCategoriesController> logger)
     {
         _categoryService = categoryService;
         _logger = logger;
@@ -25,7 +25,7 @@ public class LessonCategoriesAPIController : BaseController
     {
         if (category == null)
         {
-            return JsonError();
+            return BadRequest("Category data is required.");
         }
 
         var createdCategory = _categoryService.CreateCategory(category);
@@ -37,7 +37,7 @@ public class LessonCategoriesAPIController : BaseController
     public async Task<IActionResult> GetCategories([FromQuery] string? query, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var categories = await _categoryService.SearchCategoriesAsync(query, page, pageSize);
-        return JsonOk(categories);
+        return Ok(categories);
     }
 
     // Update
@@ -50,7 +50,7 @@ public class LessonCategoriesAPIController : BaseController
             return NotFound();
         }
 
-        return JsonOk(category);
+        return Ok(category);
     }
 
     // Delete
@@ -66,5 +66,3 @@ public class LessonCategoriesAPIController : BaseController
         return NoContent();
     }
 }
-
-

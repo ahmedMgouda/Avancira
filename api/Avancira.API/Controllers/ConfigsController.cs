@@ -2,19 +2,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [AllowAnonymous]
 [Route("api/configs")]
-[ApiController]
-public class ConfigsAPIController : BaseController
+public class ConfigsController : BaseApiController
 {
     private readonly StripeOptions _stripeOptions;
     private readonly PayPalOptions _payPalOptions;
     private readonly GoogleOptions _googleOptions;
     private readonly FacebookOptions _facebookOptions;
 
-    public ConfigsAPIController(
+    public ConfigsController(
         IOptions<StripeOptions> stripeOptions,
         IOptions<PayPalOptions> payPalOptions,
         IOptions<GoogleOptions> googleOptions,
@@ -44,5 +43,3 @@ public class ConfigsAPIController : BaseController
         return Ok(config);
     }
 }
-
-

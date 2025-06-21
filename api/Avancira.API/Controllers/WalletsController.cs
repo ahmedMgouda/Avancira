@@ -1,17 +1,17 @@
 using System;
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/wallets")]
-[ApiController]
-public class WalletsAPIController : BaseController
+public class WalletsController : BaseApiController
 {
     private readonly IWalletService _walletService;
 
-    public WalletsAPIController(
+    public WalletsController(
         IWalletService walletService
     )
     {
@@ -41,18 +41,18 @@ public class WalletsAPIController : BaseController
     [HttpGet("balance")]
     public async Task<IActionResult> GetWalletBalance()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
 
         try
         {
             var result = await _walletService.GetWalletBalanceAsync(userId);
-            return JsonOk(new { Balance = result.Balance, LastUpdated = result.LastUpdated });
+            return Ok(new { Balance = result.Balance, LastUpdated = result.LastUpdated });
         }
         catch (Exception ex)
         {
-            return JsonError("Failed to fetch wallet balance.", ex.Message);
+            return BadRequest(new { Message = "Failed to fetch wallet balance.", Error = ex.Message });
         }
     }
 }
-
-

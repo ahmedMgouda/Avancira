@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Avancira.Application.Catalog;
 using Avancira.Application.Services.Category;
 using Backend.Interfaces;
+using Avancira.Application.Identity.Users.Abstractions;
 
 namespace Avancira.Infrastructure.Catalog
 {

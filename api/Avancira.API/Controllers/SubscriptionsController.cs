@@ -1,19 +1,18 @@
 using System;
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/subscriptions")]
-[ApiController]
-public class SubscriptionsAPIController : BaseController
+public class SubscriptionsController : BaseApiController
 {
-
     private readonly ISubscriptionService _subscriptionService;
 
-    public SubscriptionsAPIController(
+    public SubscriptionsController(
         ISubscriptionService subscriptionService
     )
     {
@@ -27,15 +26,17 @@ public class SubscriptionsAPIController : BaseController
     {
         try
         {
-            var userId = GetUserId();
+            // TODO: Implement proper user ID extraction from claims
+            // var userId = User.GetUserId();
+            var userId = "temp-user-id"; // Temporary placeholder
             var (subscriptionId, transactionId) = await _subscriptionService.CreateSubscriptionAsync(request, userId);
-            return JsonOk(new { SubscriptionId = subscriptionId, TransactionId = transactionId });
+            return Ok(new { SubscriptionId = subscriptionId, TransactionId = transactionId });
         }
         catch (Exception ex)
         {
             return BadRequest(new
             {
-                Message = "An error occurred while creating the listing.",
+                Message = "An error occurred while creating the subscription.",
                 Error = ex.Message
             });
         }
@@ -46,22 +47,26 @@ public class SubscriptionsAPIController : BaseController
     [HttpGet("check-active")]
     public async Task<IActionResult> CheckActiveSubscription()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
-        return JsonOk(new { IsActive = hasActiveSubscription });
+        return Ok(new { IsActive = hasActiveSubscription });
     }
 
     [Authorize]
     [HttpGet("")]
     public async Task<IActionResult> GetUserSubscriptions([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var subscriptions = await _subscriptionService.ListUserSubscriptionsAsync(userId, page, pageSize);
 
         if (subscriptions == null || subscriptions.TotalResults == 0)
             return NotFound("No subscriptions found.");
 
-        return JsonOk(subscriptions);
+        return Ok(subscriptions);
     }
 
     [Authorize]
@@ -75,7 +80,7 @@ public class SubscriptionsAPIController : BaseController
             return BadRequest(new { Message = "Invalid or expired promo code." });
         }
 
-        return JsonOk(new
+        return Ok(new
         {
             PromoCode = promo.Code,
             DiscountAmount = promo.DiscountAmount,
@@ -87,11 +92,13 @@ public class SubscriptionsAPIController : BaseController
     [HttpGet("details")]
     public async Task<IActionResult> GetSubscriptionDetails()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var details = await _subscriptionService.FetchSubscriptionDetailsAsync(userId);
         if (details == null) return NotFound(new { Message = "No active subscription found." });
 
-        return JsonOk(details);
+        return Ok(details);
     }
 
     // Update
@@ -99,13 +106,15 @@ public class SubscriptionsAPIController : BaseController
     [HttpPut("change-frequency")]
     public async Task<IActionResult> ChangeBillingFrequency([FromBody] ChangeFrequencyRequestDto request)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var success = await _subscriptionService.ChangeBillingFrequencyAsync(userId, request.NewFrequency);
 
         if (!success)
             return BadRequest(new { Message = "Failed to change billing frequency." });
 
-        return JsonOk(new { Message = "Billing frequency updated successfully." });
+        return Ok(new { Message = "Billing frequency updated successfully." });
     }
 
     // Delete
@@ -113,14 +122,14 @@ public class SubscriptionsAPIController : BaseController
     [HttpDelete("cancel")]
     public async Task<IActionResult> CancelSubscription()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var success = await _subscriptionService.CancelSubscriptionAsync(userId);
 
         if (!success)
             return BadRequest(new { Message = "Failed to cancel subscription." });
 
-        return JsonOk(new { Message = "Subscription cancelled successfully." });
+        return Ok(new { Message = "Subscription cancelled successfully." });
     }
 }
-
-

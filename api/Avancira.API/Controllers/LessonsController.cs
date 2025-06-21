@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/lessons")]
-[ApiController]
-public class LessonsAPIController : BaseController
+public class LessonsController : BaseApiController
 {
     private readonly ILessonService _lessonService;
-    private readonly ILogger<LessonsAPIController> _logger;
+    private readonly ILogger<LessonsController> _logger;
 
-    public LessonsAPIController(
+    public LessonsController(
         ILessonService lessonService,
-        ILogger<LessonsAPIController> logger
+        ILogger<LessonsController> logger
     )
     {
         _lessonService = lessonService;
@@ -29,22 +29,25 @@ public class LessonsAPIController : BaseController
     [HttpPost("proposeLesson")]
     public async Task<IActionResult> ProposeLessonAsync([FromBody] LessonDto lessonDto)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var result = await _lessonService.ProposeLessonAsync(lessonDto, userId);
-        return JsonOk(new { Message = "Lesson proposed successfully.", Lesson = result });
+        return Ok(new { Message = "Lesson proposed successfully.", Lesson = result });
     }
-
 
     // Read
     [Authorize]
     [HttpGet("{contactId}/{listingId}")]
     public async Task<IActionResult> GetLessonsAsync(string contactId, int listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
 
         var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
 
-        return JsonOk(new { Lessons = lessons });
+        return Ok(new { Lessons = lessons });
     }
 
     [Authorize]
@@ -56,17 +59,21 @@ public class LessonsAPIController : BaseController
             return BadRequest("Invalid page or pageSize parameters.");
         }
 
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var lessons = await _lessonService.GetAllLessonsAsync(userId, filters);
 
-        return JsonOk(new { Lessons = lessons });
+        return Ok(new { Lessons = lessons });
     }
     // Update
     [Authorize]
     [HttpPut("respondToProposition/{lessonId}")]
     public async Task<IActionResult> RespondToPropositionAsync(int lessonId, [FromBody] bool accept)
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         LessonDto updatedLesson;
         try
         {
@@ -81,7 +88,7 @@ public class LessonsAPIController : BaseController
             return StatusCode(500, new { Message = "An error occurred while responding to the proposition.", Details = ex.Message });
         }
 
-        return JsonOk(new
+        return Ok(new
         {
             Message = accept ? "Proposition accepted." : "Proposition refused.",
             Lesson = updatedLesson
@@ -95,10 +102,12 @@ public class LessonsAPIController : BaseController
     {
         try
         {
-            var userId = GetUserId(); // Extract user ID from the token
+            // TODO: Implement proper user ID extraction from claims
+            // var userId = User.GetUserId();
+            var userId = "temp-user-id"; // Temporary placeholder
             var canceledLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, false, userId);
 
-            return JsonOk(new
+            return Ok(new
             {
                 Message = "Lesson canceled successfully.",
                 Lesson = new
@@ -116,7 +125,7 @@ public class LessonsAPIController : BaseController
         }
         catch (InvalidOperationException ex)
         {
-            return JsonError(ex.Message);
+            return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
@@ -124,5 +133,3 @@ public class LessonsAPIController : BaseController
         }
     }
 }
-
-

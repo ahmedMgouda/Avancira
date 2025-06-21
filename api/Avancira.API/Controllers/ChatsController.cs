@@ -1,21 +1,21 @@
+using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Backend.Controllers;
+namespace Avancira.API.Controllers;
 
 [Route("api/chats")]
-[ApiController]
-public class ChatsAPIController : BaseController
+public class ChatsController : BaseApiController
 {
     private readonly IChatService _chatService;
     private readonly IListingService _listingService;
-    private readonly ILogger<ChatsAPIController> _logger;
+    private readonly ILogger<ChatsController> _logger;
 
-    public ChatsAPIController(
+    public ChatsController(
         IChatService chatService,
         IListingService listingService,
-        ILogger<ChatsAPIController> logger
+        ILogger<ChatsController> logger
     )
     {
         _chatService = chatService;
@@ -28,9 +28,11 @@ public class ChatsAPIController : BaseController
     [HttpGet]
     public IActionResult GetUserChats()
     {
-        var userId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var userId = User.GetUserId();
+        var userId = "temp-user-id"; // Temporary placeholder
         var chats = _chatService.GetUserChats(userId);
-        return JsonOk(chats);
+        return Ok(chats);
     }
 
     // Update
@@ -44,24 +46,25 @@ public class ChatsAPIController : BaseController
             var listing = _listingService.GetListingById(messageDto.ListingId);
             if (listing == null)
             {
-                return JsonError("Invalid listing ID.");
+                return BadRequest("Invalid listing ID.");
             }
             messageDto.RecipientId = listing.TutorId;
         }
         if (messageDto == null || string.IsNullOrWhiteSpace(messageDto.Content) || string.IsNullOrEmpty(messageDto.RecipientId))
         {
-            return JsonError("Invalid message data.");
+            return BadRequest("Invalid message data.");
         }
 
         // Check if a chat already exists
-        var senderId = GetUserId();
+        // TODO: Implement proper user ID extraction from claims
+        // var senderId = User.GetUserId();
+        var senderId = "temp-user-id"; // Temporary placeholder
 
         if (!_chatService.SendMessage(messageDto, senderId))
         {
-            return JsonError("Failed to send the message.");
+            return BadRequest("Failed to send the message.");
         }
 
-        return JsonOk(new { success = true, message = "Message sent successfully." });
+        return Ok(new { success = true, message = "Message sent successfully." });
     }
 }
-
