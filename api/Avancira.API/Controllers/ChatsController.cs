@@ -34,6 +34,20 @@ public class ChatsController : BaseApiController
         return Ok(chats);
     }
 
+    [Authorize]
+    [HttpGet("{id:guid}")]
+    public IActionResult GetChatById(Guid id)
+    {
+        var userId = GetUserId();
+        var chat = _chatService.GetChat(id, userId);
+        if (chat.Id == Guid.Empty)
+        {
+            return NotFound();
+        }
+
+        return Ok(chat);
+    }
+
     // Update
     [Authorize]
     [HttpPut("send")]
