@@ -1,4 +1,4 @@
-using Avancira.API.Hubs;
+using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
