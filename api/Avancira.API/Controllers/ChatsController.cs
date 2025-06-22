@@ -47,11 +47,9 @@ public class ChatsController : BaseApiController
 
         return Ok(chat);
     }
-
-    // Update
     [Authorize]
     [HttpPut("send")]
-    public IActionResult SendMessage([FromBody] SendMessageDto messageDto)
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto messageDto)
     {
         // Validate the messageDto
         if (messageDto.RecipientId == null || string.IsNullOrEmpty(messageDto.RecipientId))
@@ -71,7 +69,7 @@ public class ChatsController : BaseApiController
         // Check if a chat already exists
         var senderId = GetUserId();
 
-        if (!_chatService.SendMessage(messageDto, senderId))
+        if (!await _chatService.SendMessageAsync(messageDto, senderId))
         {
             return BadRequest("Failed to send the message.");
         }

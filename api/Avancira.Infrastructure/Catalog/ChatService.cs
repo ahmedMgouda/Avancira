@@ -171,7 +171,7 @@ namespace Avancira.Infrastructure.Catalog
                 MyRole = isStudent ? UserRole.Student : UserRole.Tutor
             };
         }
-        public bool SendMessage(SendMessageDto messageDto, string senderId)
+        public async Task<bool> SendMessageAsync(SendMessageDto messageDto, string senderId)
         {
             var listing = _dbContext.Listings.FirstOrDefault(l => l.Id == messageDto.ListingId);
             if (listing == null)
@@ -189,7 +189,7 @@ namespace Avancira.Infrastructure.Catalog
             chat.AddMessage(senderId, recipientId, messageDto.Content ?? string.Empty);
 
             _dbContext.Chats.Update(chat);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
 
             // Send notification to recipient about new message
@@ -199,12 +199,12 @@ namespace Avancira.Infrastructure.Catalog
                 var senderName = $"{sender?.FirstName} {sender?.LastName}".Trim();
                 if (string.IsNullOrEmpty(senderName)) senderName = "Someone";
 
-                var listing = _dbContext.Listings.FirstOrDefault(l => l.Id == messageDto.ListingId);
+                listing = _dbContext.Listings.FirstOrDefault(l => l.Id == messageDto.ListingId);
                 var lessonTitle = listing?.Name ?? "lesson";
 
                 var message = $"{senderName} sent you a message about '{lessonTitle}'";
                 
-                _notificationService.NotifyAsync(
+               await _notificationService.NotifyAsync(
                     messageDto.RecipientId,
                     Avancira.Domain.Catalog.Enums.NotificationEvent.NewMessage,
                     message,
@@ -218,7 +218,7 @@ namespace Avancira.Infrastructure.Catalog
                             ? messageDto.Content.Substring(0, 50) + "..." 
                             : messageDto.Content
                     }
-                ).ConfigureAwait(false);
+                );
 
                 _logger.LogInformation("Message sent from {SenderId} to {RecipientId}, notification sent", senderId, messageDto.RecipientId);
             }
