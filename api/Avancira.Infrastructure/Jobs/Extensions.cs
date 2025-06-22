@@ -46,6 +46,9 @@ internal static class Extensions
                     o.UseNpgsqlConnection(connectionString);
                 });
 
+                // Configure the job activator to handle dependency injection
+                config.UseActivator(new AvanciraJobActivator(provider.GetRequiredService<IServiceScopeFactory>()));
+                
                 config.UseFilter(new AvanciraJobFilter(provider));
                 config.UseFilter(new LogJobFilter());
             });
@@ -75,6 +78,9 @@ internal static class Extensions
                         throw new AvanciraException($"hangfire storage provider {dbOptions.Provider} is not supported");
                 }
 
+                // Configure the job activator to handle dependency injection
+                config.UseActivator(new AvanciraJobActivator(provider.GetRequiredService<IServiceScopeFactory>()));
+                
                 config.UseFilter(new AvanciraJobFilter(provider));
                 config.UseFilter(new LogJobFilter());
             });

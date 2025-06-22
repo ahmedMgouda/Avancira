@@ -99,7 +99,7 @@
 
         <div class="row align-items-center">
             <div class="col-md-12 most-trend-two owl-carousel owl-loaded owl-drag">
-                <owl-carousel-o [options]="customOptions">
+                <owl-carousel-o [options]="customOptions" *ngIf="trendingCourses && trendingCourses.length > 0">
                     <ng-container *ngFor="let course of trendingCourses">
                         <ng-template carouselSlide>
                             <div class="course-box aos-init aos-animate" data-aos="fade-up">
@@ -107,7 +107,7 @@
                                     <div class="product-img trend-course">
                                         <a [href]="'/listing/' + course.listingId">
                                             <img class="img-fluid course-tutor-img" [src]="course.img"
-                                                [alt]="course.title" width="600" height="300">
+                                                [alt]="course.title" width="600" height="300" loading="lazy">
                                         </a>
                                     </div>
                                     <div class="product-content">
@@ -138,6 +138,9 @@
                         </ng-template>
                     </ng-container>
                 </owl-carousel-o>
+                <div *ngIf="!trendingCourses || trendingCourses.length === 0" class="text-center p-4">
+                    <p>No trending courses available at the moment.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -203,7 +206,7 @@
             <div class="tab-pane fade show active">
                 <div class="row align-items-center">
                     <div class="col-md-12 most-trend-two">
-                        <owl-carousel-o [options]="customOptions">
+                        <owl-carousel-o [options]="customOptions" *ngIf="filteredCourses && filteredCourses.length > 0">
                             <ng-container *ngFor="let course of filteredCourses">
                                 <ng-template carouselSlide>
                                     <div class="course-box">
@@ -211,7 +214,7 @@
                                             <div class="product-img trend-course">
                                                 <a [href]="'/listing/' + course.listingId">
                                                     <img class="img-fluid course-tutor-img" [src]="course.img"
-                                                        [alt]="course.title" width="600" height="300">
+                                                        [alt]="course.title" width="600" height="300" loading="lazy">
                                                 </a>
                                             </div>
                                             <div class="product-content">
@@ -242,6 +245,9 @@
                                 </ng-template>
                             </ng-container>
                         </owl-carousel-o>
+                        <div *ngIf="!filteredCourses || filteredCourses.length === 0" class="text-center p-4">
+                            <p>No courses available for the selected category.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -267,7 +273,7 @@
         <div class="featured-instructor-head aos " data-aos="fade-up">
             <div class="row">
                 <div class="col-md-12">
-                    <owl-carousel-o [options]="customOptions">
+                    <owl-carousel-o [options]="customOptions" *ngIf="instructors && instructors.length > 0">
                         <ng-container *ngFor="let instructor of instructors">
                             <ng-template carouselSlide>
                                 <div class="large-team">
@@ -292,6 +298,9 @@
                             </ng-template>
                         </ng-container>
                     </owl-carousel-o>
+                    <div *ngIf="!instructors || instructors.length === 0" class="text-center p-4">
+                        <p>No instructors available at the moment.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -316,7 +325,7 @@
         </div>
         <div class="row">
             <div class="col-md-12">
-                <owl-carousel-o [options]="customOptions">
+                <owl-carousel-o [options]="customOptions" *ngIf="jobLocations && jobLocations.length > 0">
                     <ng-container *ngFor="let location of jobLocations">
                         <ng-template carouselSlide>
                             <div class="job-area-card">
@@ -332,6 +341,9 @@
                         </ng-template>
                     </ng-container>
                 </owl-carousel-o>
+                <div *ngIf="!jobLocations || jobLocations.length === 0" class="text-center p-4">
+                    <p>No job locations available at the moment.</p>
+                </div>
             </div>
         </div>
     </div>

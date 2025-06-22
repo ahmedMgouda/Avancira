@@ -51,6 +51,7 @@ public static class Extensions
         builder.Services.AddExceptionHandler<CustomExceptionHandler>();
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
+        builder.Services.AddHttpContextAccessor();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
 

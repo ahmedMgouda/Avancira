@@ -21,7 +21,7 @@ export class GoogleMapsService {
     return this.configService.loadConfig().pipe(
       switchMap(() => new Observable<void>((observer) => {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.configService.get('googleMapsApiKey')}&libraries=places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.configService.get('googleMapsApiKey')}&libraries=places&loading=async`;
         script.async = true;
         script.defer = true;
 

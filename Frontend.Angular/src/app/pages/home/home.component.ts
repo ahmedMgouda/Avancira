@@ -120,21 +120,50 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
   initializeAutocomplete(): void {
     const input = document.getElementById('city-search') as HTMLInputElement;
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-      types: ['(regions)'],
-      componentRestrictions: { country: 'AU' }
-    });
-
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
-        this.selectedLocation = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        };
-        console.log('Selected location:', this.selectedLocation);
+    
+    // Check if Google Maps API is loaded and PlaceAutocompleteElement is available
+    if (typeof google !== 'undefined' && google.maps && google.maps.places && google.maps.places.PlaceAutocompleteElement) {
+      // Use the new PlaceAutocompleteElement
+      const autocompleteElement = new google.maps.places.PlaceAutocompleteElement({
+        types: ['(regions)'],
+        componentRestrictions: { country: 'AU' }
+      });
+      
+      // Replace the input with the new element
+      if (input && input.parentNode) {
+        input.parentNode.replaceChild(autocompleteElement, input);
       }
-    });
+      
+      autocompleteElement.addEventListener('gmp-placeselect', (event: any) => {
+        const place = event.place;
+        if (place.geometry && place.geometry.location) {
+          this.selectedLocation = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          console.log('Selected location:', this.selectedLocation);
+        }
+      });
+    } else if (typeof google !== 'undefined' && google.maps && google.maps.places && google.maps.places.Autocomplete) {
+      // Fallback to the legacy Autocomplete
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        types: ['(regions)'],
+        componentRestrictions: { country: 'AU' }
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          this.selectedLocation = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          console.log('Selected location:', this.selectedLocation);
+        }
+      });
+    } else {
+      console.warn('Google Maps API not fully loaded or Places library not available');
+    }
   }
 
   loadCourseCounts(): void {

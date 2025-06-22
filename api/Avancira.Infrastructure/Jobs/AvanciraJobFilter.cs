@@ -28,11 +28,25 @@ public class AvanciraJobFilter : IClientFilter
         using var scope = _services.CreateScope();
 
         var httpContext = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
-        _ = httpContext ?? throw new InvalidOperationException("Can't create a Job without HttpContext.");
-
-        // Removed multi-tenancy logic (tenant info handling)
-        string? userId = httpContext.User.GetUserId();
-        context.SetJobParameter(QueryStringKeys.UserId, userId);
+        
+        // For background/recurring jobs, HttpContext might not be available
+        if (httpContext != null)
+        {
+            // Removed multi-tenancy logic (tenant info handling)
+            string? userId = httpContext.User.GetUserId();
+            context.SetJobParameter(QueryStringKeys.UserId, userId);
+        }
+        else
+        {
+            // For background jobs without HttpContext, we can either:
+            // 1. Set a system user ID if needed
+            // 2. Or just log that this is a system job
+            Logger.InfoFormat("Creating system job {0}.{1} without HttpContext", 
+                context.Job.Method.ReflectedType?.FullName, context.Job.Method.Name);
+            
+            // Optionally set a system user ID for background jobs
+            // context.SetJobParameter(QueryStringKeys.UserId, "system");
+        }
     }
 
     public void OnCreated(CreatedContext context) =>
@@ -40,4 +54,3 @@ public class AvanciraJobFilter : IClientFilter
             "Job created with parameters {0}",
             context.Parameters.Select(x => x.Key + "=" + x.Value).Aggregate((s1, s2) => s1 + ";" + s2));
 }
-
