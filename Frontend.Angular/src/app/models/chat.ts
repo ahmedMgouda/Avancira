@@ -2,7 +2,7 @@ import { UserRole } from "./enums/user-role";
 
 export interface Chat {
     id: number;
-    listingId: string;
+    listingId: number;
     studentId: string;
     recipientId: string;
     name: string;

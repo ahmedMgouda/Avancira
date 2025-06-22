@@ -12,6 +12,10 @@ export class NotificationService {
 
   // Start SignalR connection with token
   startConnection(token: string): void {
+    if (!environment.useSignalR) {
+      console.warn('SignalR connection disabled via environment.');
+      return;
+    }
     if (this.hubConnection) {
       console.warn('SignalR connection is already started.');
       return;
@@ -39,4 +43,7 @@ export class NotificationService {
     this.hubConnection?.stop().then(() => console.log('SignalR Disconnected'));
   }
 
+  isConnected(): boolean {
+    return this.hubConnection?.state === signalR.HubConnectionState.Connected;
+  }
 }
