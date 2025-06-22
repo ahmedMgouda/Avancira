@@ -18,7 +18,7 @@ import { User } from '../../models/user';
   selector: 'app-message-list',
   imports: [CommonModule, FormsModule, ImageFallbackDirective, TimeAgoPipe],
   templateUrl: './message-list.component.html',
-  styleUrl: './message-list.component.scss'
+  styleUrls: ['./message-list.component.scss']
 })
 export class MessageListComponent implements OnInit {
   loading = true;
@@ -81,7 +81,7 @@ export class MessageListComponent implements OnInit {
   }
 
   // Reload a specific contact by ID
-  selectContactById(contactId: number): void {
+  selectContactById(contactId: string): void {
     const contact = this.contacts.find((c) => c.id === contactId);
     if (contact) {
       this.selectedContact = contact;
@@ -89,7 +89,7 @@ export class MessageListComponent implements OnInit {
     }
   }
 
-  onContactSelected(contactId: number): void {
+  onContactSelected(contactId: string): void {
     const contact = this.contacts.find((c) => c.id === contactId);
     if (contact) {
       this.selectedContact = contact;

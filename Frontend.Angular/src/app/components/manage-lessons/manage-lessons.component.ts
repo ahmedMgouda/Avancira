@@ -22,7 +22,7 @@ import { Listing } from '../../models/listing';
   selector: 'app-manage-lessons',
   imports: [CommonModule, FormsModule, ModalComponent, ProposeLessonComponent],
   templateUrl: './manage-lessons.component.html',
-  styleUrl: './manage-lessons.component.scss'
+  styleUrls: ['./manage-lessons.component.scss']
 })
 export class ManageLessonsComponent implements OnInit, OnChanges {
   LessonStatus = LessonStatus;

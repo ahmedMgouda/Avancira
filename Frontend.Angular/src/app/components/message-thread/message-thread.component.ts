@@ -145,7 +145,7 @@ export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges,
 
   private refreshChat(): void {
     if (this.selectedContact) {
-      this.chatService.getChat(this.selectedContact.id.toString()).subscribe({
+      this.chatService.getChat(this.selectedContact.id).subscribe({
         next: (chat) => {
           this.selectedContact!.messages = chat.messages;
           this.scrollToBottom();
