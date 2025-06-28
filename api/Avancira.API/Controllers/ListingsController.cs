@@ -126,10 +126,11 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/toggle-visibility")]
     public async Task<IActionResult> ToggleVisibility(Guid id)
     {
-        var success = await _listingService.ToggleListingVisibilityAsync(id);
+        var userId = GetUserId();
+        var success = await _listingService.ToggleListingVisibilityAsync(id, userId);
         if (!success)
         {
-            return NotFound($"Listing with ID {id} not found.");
+            return NotFound($"Listing with ID {id} not found or unauthorized.");
         }
 
         return Ok(new { success = true, message = "Visibility updated successfully." });

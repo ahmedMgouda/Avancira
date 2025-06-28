@@ -355,10 +355,10 @@ namespace Avancira.Infrastructure.Catalog
             return true;
         }
 
-        public async Task<bool> ToggleListingVisibilityAsync(Guid id)
+        public async Task<bool> ToggleListingVisibilityAsync(Guid id, string userId)
         {
             var listing = await _dbContext.Listings
-                .Where(l => l.Id == id)
+                .Where(l => l.Id == id && l.UserId == userId)
                 .AsTracking()
                 .FirstOrDefaultAsync();
 

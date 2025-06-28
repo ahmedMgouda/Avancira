@@ -25,9 +25,8 @@ public interface IListingService
     Task<bool> ModifyListingDescriptionAsync(Guid listingId, string userId, string newAboutLesson, string newAboutYou);
     Task<bool> ModifyListingCategoryAsync(Guid listingId, string userId, Guid newCategoryId);
     Task<bool> ModifyListingRatesAsync(Guid listingId, string userId, RatesDto newRates);
-    Task<bool> ToggleListingVisibilityAsync(Guid id);
+    Task<bool> ToggleListingVisibilityAsync(Guid id, string userId);
 
     // Delete
     Task<bool> DeleteListingAsync(Guid listingId, string userId);
 }
-
