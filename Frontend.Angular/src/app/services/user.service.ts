@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable, of, tap } from 'rxjs';
+import { map, Observable, of, switchMap, tap } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
@@ -53,8 +53,19 @@ export class UserService {
     localStorage.setItem('user', JSON.stringify(user));
   }
   refreshCachedUser(): void {
+    this.clearCachedUser();
     this.getUser().subscribe();
-  }  
+  }
+
+  forceRefreshUser(): Observable<User> {
+    this.clearCachedUser();
+    return this.http.get<User>(`${this.apiUrl}/me`).pipe(
+      tap(user => {
+        this.cachedUser = user;
+        localStorage.setItem('user', JSON.stringify(user));
+      })
+    );
+  }
   clearCachedUser(): void {
     this.cachedUser = null;
     localStorage.removeItem('user');
@@ -68,60 +79,93 @@ export class UserService {
     return this.http.get<{ status: UserDiplomaStatus }>(`${this.apiUrl}/diploma-status`);
   }
 
-
   updateUser(user: Partial<User>, imageFile?: File): Observable<void> {
-    // Prepare FormData
-    const formData = new FormData();
+    return this.getUser().pipe(
+      switchMap(currentUser => {
+        // Prepare FormData to match UpdateUserDto
+        const formData = new FormData();
 
-    if (imageFile) {
-      formData.append('profileImage', imageFile);
-    }
+        // Add the user ID - this is required by UpdateUserDto
+        // Use the provided user.id or fall back to the current user's id
+        const userId = user.id || currentUser.id;
+        if (userId) {
+          formData.append('Id', userId);
+        }
 
-    if (user.firstName) formData.append('firstName', user.firstName);
-    if (user.lastName) formData.append('lastName', user.lastName);
-    if (user.bio) formData.append('bio', user.bio);
-    if (user.email) formData.append('email', user.email);
-    if (user.dateOfBirth) {
-      const dateValue = user.dateOfBirth instanceof Date ? user.dateOfBirth : new Date(user.dateOfBirth);
-      formData.append('dateOfBirth', dateValue.toISOString());
-    }
-    if (user.phoneNumber) formData.append('phoneNumber', user.phoneNumber);
-    if (user.skypeId) formData.append('skypeId', user.skypeId);
-    if (user.hangoutId) formData.append('hangoutId', user.hangoutId);
-    if (user.timeZoneId) formData.append('timeZoneId', user.timeZoneId);
+        // Map frontend fields to backend DTO fields
+        if (imageFile) {
+          formData.append('Image', imageFile);  // Backend expects 'Image', not 'profileImage'
+        }
 
-    if (user.address) {
-      if (user.address.formattedAddress) formData.append('address.formattedAddress', user.address.formattedAddress);
-      if (user.address.streetAddress) formData.append('address.streetAddress', user.address.streetAddress);
-      if (user.address.city) formData.append('address.city', user.address.city);
-      if (user.address.state) formData.append('address.state', user.address.state);
-      if (user.address.country) formData.append('address.country', user.address.country);
-      if (user.address.postalCode) formData.append('address.postalCode', user.address.postalCode);
-      if (user.address.latitude) formData.append('address.latitude', user.address.latitude.toString());
-      if (user.address.longitude) formData.append('address.longitude', user.address.longitude.toString());
-    }
+        if (user.firstName) formData.append('FirstName', user.firstName);
+        if (user.lastName) formData.append('LastName', user.lastName);
+        if (user.email) formData.append('Email', user.email);
+        if (user.phoneNumber) formData.append('PhoneNumber', user.phoneNumber);
+        if (user.skypeId) formData.append('SkypeId', user.skypeId);
+        if (user.hangoutId) formData.append('HangoutId', user.hangoutId);
+        if (user.bio) formData.append('Bio', user.bio);
+        if (user.timeZoneId) formData.append('TimeZoneId', user.timeZoneId);
+        
+        if (user.dateOfBirth) {
+          // Since dateOfBirth is now a string, just pass it directly
+          formData.append('DateOfBirth', user.dateOfBirth);
+        }
 
-    if (user.profileVerified) {
-      formData.append('profileVerified', user.profileVerified.join(','));
-    }
+        // Address fields
+        if (user.address) {
+          if (user.address.formattedAddress) formData.append('AddressFormattedAddress', user.address.formattedAddress);
+          if (user.address.streetAddress) formData.append('AddressStreetAddress', user.address.streetAddress);
+          if (user.address.city) formData.append('AddressCity', user.address.city);
+          if (user.address.state) formData.append('AddressState', user.address.state);
+          if (user.address.country) formData.append('AddressCountry', user.address.country);
+          if (user.address.postalCode) formData.append('AddressPostalCode', user.address.postalCode);
+          if (user.address.latitude) formData.append('AddressLatitude', user.address.latitude.toString());
+          if (user.address.longitude) formData.append('AddressLongitude', user.address.longitude.toString());
+        }
 
-    if (user.lessonsCompleted !== null && user.lessonsCompleted !== undefined) {
-      formData.append('lessonsCompleted', user.lessonsCompleted.toString());
-    }
+        // Profile verification and stats
+        if (user.profileVerified) {
+          formData.append('ProfileVerified', user.profileVerified.join(','));
+        }
 
-    if (user.evaluations !== undefined) {
-      formData.append('evaluations', String(user.evaluations));
-    }
+        if (user.lessonsCompleted !== null && user.lessonsCompleted !== undefined) {
+          formData.append('LessonsCompleted', user.lessonsCompleted.toString());
+        }
 
-    if (user.recommendationToken) {
-      formData.append('recommendationToken', user.recommendationToken);
-    }
+        if (user.evaluations !== undefined) {
+          formData.append('Evaluations', String(user.evaluations));
+        }
 
-    if (user.isStripeConnected !== undefined) {
-      formData.append('isStripeConnected', String(user.isStripeConnected));
-    }
+        if (user.recommendationToken) {
+          formData.append('RecommendationToken', user.recommendationToken);
+        }
 
-    return this.http.put<void>(`${this.apiUrl}/profile`, formData);
+        if (user.isStripeConnected !== undefined) {
+          formData.append('IsStripeConnected', String(user.isStripeConnected));
+        }
+
+        // Add DeleteCurrentImage flag if needed
+        formData.append('DeleteCurrentImage', 'false');
+
+        return this.http.put<void>(`${this.apiUrl}/profile`, formData).pipe(
+          tap(() => {
+            // Clear cached user data after successful update
+            this.clearCachedUser();
+          }),
+          switchMap(() => {
+            // Fetch fresh user data from the server
+            return this.http.get<User>(`${this.apiUrl}/me`).pipe(
+              tap(updatedUser => {
+                // Update the cache with fresh data
+                this.cachedUser = updatedUser;
+                localStorage.setItem('user', JSON.stringify(this.cachedUser));
+              }),
+              map(() => void 0) // Convert to void to match return type
+            );
+          })
+        );
+      })
+    );
   }
 
   getCompensationPercentage(): Observable<number> {
@@ -165,7 +209,6 @@ export class UserService {
 
     return this.http.put<void>(`${this.apiUrl}/submit-diploma`, formData);
   }
-
 
   deleteAccount(): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/me`);

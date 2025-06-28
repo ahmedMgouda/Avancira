@@ -13,6 +13,25 @@ public class UpdateUserDto
     public string? DateOfBirth { get; set; }
     public string? SkypeId { get; set; }
     public string? HangoutId { get; set; }
+    public string? Bio { get; set; }
+    public string? TimeZoneId { get; set; }
     public IFormFile? Image { get; set; }
     public bool DeleteCurrentImage { get; set; }
+    
+    // Address fields
+    public string? AddressFormattedAddress { get; set; }
+    public string? AddressStreetAddress { get; set; }
+    public string? AddressCity { get; set; }
+    public string? AddressState { get; set; }
+    public string? AddressCountry { get; set; }
+    public string? AddressPostalCode { get; set; }
+    public double? AddressLatitude { get; set; }
+    public double? AddressLongitude { get; set; }
+    
+    // Profile verification and stats
+    public string? ProfileVerified { get; set; } // Comma-separated string
+    public int? LessonsCompleted { get; set; }
+    public int? Evaluations { get; set; }
+    public string? RecommendationToken { get; set; }
+    public bool? IsStripeConnected { get; set; }
 }

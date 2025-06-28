@@ -80,6 +80,8 @@ internal sealed partial class UserService(
     public async Task<UserDetailDto> GetAsync(string userId, CancellationToken cancellationToken)
     {
         var user = await userManager.Users
+            .Include(u => u.Address)
+            .Include(u => u.Country)
             .AsNoTracking()
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync(cancellationToken);
@@ -167,10 +169,13 @@ internal sealed partial class UserService(
 
     public async Task UpdateAsync(UpdateUserDto request, string userId)
     {
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await userManager.Users
+            .Include(u => u.Address)
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         _ = user ?? throw new NotFoundException("user not found");
 
+        // Handle image upload/deletion
         Uri imageUri = user.ImageUrl ?? null!;
         if (request.Image != null || request.DeleteCurrentImage)
         {
@@ -197,26 +202,72 @@ internal sealed partial class UserService(
             }
         }
 
-        user.FirstName = request.FirstName;
-        user.LastName = request.LastName;
+        // Update basic user fields
+        if (!string.IsNullOrEmpty(request.FirstName)) user.FirstName = request.FirstName;
+        if (!string.IsNullOrEmpty(request.LastName)) user.LastName = request.LastName;
+        if (!string.IsNullOrEmpty(request.Bio)) user.Bio = request.Bio;
+        if (!string.IsNullOrEmpty(request.TimeZoneId)) user.TimeZoneId = request.TimeZoneId;
         
         // Parse DateOfBirth from string
         if (!string.IsNullOrEmpty(request.DateOfBirth))
         {
-            if (DateTime.TryParse(request.DateOfBirth, out var dateOfBirth))
+            if (DateOnly.TryParse(request.DateOfBirth, out var dateOfBirth))
             {
                 user.DateOfBirth = dateOfBirth;
             }
         }
         
-        user.SkypeId = request.SkypeId;
-        user.HangoutId = request.HangoutId;
-        user.PhoneNumber = request.PhoneNumber;
-        string? phoneNumber = await userManager.GetPhoneNumberAsync(user);
-        if (request.PhoneNumber != phoneNumber)
+        if (!string.IsNullOrEmpty(request.SkypeId)) user.SkypeId = request.SkypeId;
+        if (!string.IsNullOrEmpty(request.HangoutId)) user.HangoutId = request.HangoutId;
+        
+        // Handle phone number update
+        if (!string.IsNullOrEmpty(request.PhoneNumber))
         {
-            await userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
+            user.PhoneNumber = request.PhoneNumber;
+            string? phoneNumber = await userManager.GetPhoneNumberAsync(user);
+            if (request.PhoneNumber != phoneNumber)
+            {
+                await userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
+            }
         }
+
+        // Handle address fields - Check if address exists to avoid unique constraint violation
+        var existingAddress = await db.Addresses.FirstOrDefaultAsync(a => a.UserId == userId);
+        
+        if (existingAddress == null)
+        {
+            // Create new address only if it doesn't exist
+            user.Address = new Avancira.Infrastructure.Catalog.Address
+            {
+                UserId = userId
+            };
+        }
+        else
+        {
+            // Use existing address
+            user.Address = existingAddress;
+        }
+
+        // Update address fields
+        if (!string.IsNullOrEmpty(request.AddressFormattedAddress)) user.Address.FormattedAddress = request.AddressFormattedAddress;
+        if (!string.IsNullOrEmpty(request.AddressStreetAddress)) user.Address.StreetAddress = request.AddressStreetAddress;
+        if (!string.IsNullOrEmpty(request.AddressCity)) user.Address.City = request.AddressCity;
+        if (!string.IsNullOrEmpty(request.AddressState)) user.Address.State = request.AddressState;
+        if (!string.IsNullOrEmpty(request.AddressCountry)) user.Address.Country = request.AddressCountry;
+        if (!string.IsNullOrEmpty(request.AddressPostalCode)) user.Address.PostalCode = request.AddressPostalCode;
+        if (request.AddressLatitude.HasValue) user.Address.Latitude = request.AddressLatitude.Value;
+        if (request.AddressLongitude.HasValue) user.Address.Longitude = request.AddressLongitude.Value;
+
+        // Note: The following fields don't exist on the User entity, so we'll skip them for now
+        // If you need these fields, you'll need to add them to the User entity first:
+        // - ProfileVerified, LessonsCompleted, Evaluations, RecommendationToken, IsStripeConnected
+        
+        // You can add these to the User entity if needed:
+        // if (!string.IsNullOrEmpty(request.ProfileVerified)) user.ProfileVerified = request.ProfileVerified;
+        // if (request.LessonsCompleted.HasValue) user.LessonsCompleted = request.LessonsCompleted.Value;
+        // if (request.Evaluations.HasValue) user.Evaluations = request.Evaluations.Value;
+        // if (!string.IsNullOrEmpty(request.RecommendationToken)) user.RecommendationToken = request.RecommendationToken;
+        // if (request.IsStripeConnected.HasValue) user.IsStripeConnected = request.IsStripeConnected.Value;
 
         var result = await userManager.UpdateAsync(user);
         await signInManager.RefreshSignInAsync(user);

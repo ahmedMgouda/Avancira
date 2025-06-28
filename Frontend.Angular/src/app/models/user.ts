@@ -17,7 +17,7 @@ export interface User {
   address: Address|null;
   timeZoneId: string;
   bio: string|null;
-  dateOfBirth: Date | null;
+  dateOfBirth: string | null;
   email: string;
   phoneNumber: string;
   skypeId: string;

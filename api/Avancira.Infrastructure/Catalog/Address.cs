@@ -38,7 +38,7 @@ namespace Avancira.Infrastructure.Catalog
         public double Longitude { get; set; }
 
         public string UserId { get; set; }
-        [ForeignKey(nameof(Listing.UserId))]
+        [ForeignKey(nameof(UserId))]
         public User? User { get; set; }
 
         public Address()

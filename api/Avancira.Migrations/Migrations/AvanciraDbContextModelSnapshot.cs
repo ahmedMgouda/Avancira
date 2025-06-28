@@ -1042,8 +1042,8 @@ namespace Avancira.Migrations.Migrations
                     b.Property<int?>("CountryId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -1509,8 +1509,7 @@ namespace Avancira.Migrations.Migrations
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
                 {
-                    b.Navigation("Address")
-                        .IsRequired();
+                    b.Navigation("Address");
                 });
 #pragma warning restore 612, 618
         }

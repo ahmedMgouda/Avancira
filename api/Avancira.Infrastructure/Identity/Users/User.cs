@@ -15,7 +15,7 @@ public class User : IdentityUser<string>
 
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public DateTime? DateOfBirth { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
     public Uri? ImageUrl { get; set; }
     public bool IsActive { get; set; }
     public string? TimeZoneId { get; set; }
@@ -27,7 +27,7 @@ public class User : IdentityUser<string>
 
     [MaxLength(500)]
     public string? Bio { get; set; }
-    public Address Address { get; set; }
+    public Address? Address { get; set; }
     public int? CountryId { get; set; }
     [ForeignKey(nameof(User.CountryId))]
     public virtual Country? Country { get; set; }
