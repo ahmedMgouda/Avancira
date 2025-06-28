@@ -40,7 +40,6 @@ public class UsersController : BaseApiController
     }
 
     [HttpGet("profile")]
-    [RequiredPermission("Permissions.Users.View")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetUserProfile")]
     public async Task<IActionResult> GetUserProfile(CancellationToken cancellationToken)
@@ -188,7 +187,6 @@ public class UsersController : BaseApiController
     }
 
     [HttpPut("profile")]
-    [RequiredPermission("Permissions.Users.Update")]
     [SwaggerOperation(OperationId = "UpdateUserProfile")]
     public async Task<IActionResult> UpdateUserProfile([FromBody] UpdateUserDto request)
     {

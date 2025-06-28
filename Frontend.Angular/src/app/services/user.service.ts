@@ -118,7 +118,7 @@ export class UserService {
       formData.append('isStripeConnected', String(user.isStripeConnected));
     }
 
-    return this.http.put<void>(`${this.apiUrl}/me`, formData);
+    return this.http.put<void>(`${this.apiUrl}/profile`, formData);
   }
 
   getCompensationPercentage(): Observable<number> {
@@ -141,10 +141,10 @@ export class UserService {
   }
 
   changePassword(oldPassword: string, newPassword: string, confirmNewPassword: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/change-password`, {
-      oldPassword,
-      newPassword,
-      confirmNewPassword
+    return this.http.post<void>(`${this.apiUrl}/change-password`, {
+      Password: oldPassword,
+      NewPassword: newPassword,
+      ConfirmNewPassword: confirmNewPassword
     });
   }
 
