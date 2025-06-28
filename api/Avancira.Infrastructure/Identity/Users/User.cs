@@ -15,6 +15,7 @@ public class User : IdentityUser<string>
 
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public DateTime? DateOfBirth { get; set; }
     public Uri? ImageUrl { get; set; }
     public bool IsActive { get; set; }
     public string? TimeZoneId { get; set; }

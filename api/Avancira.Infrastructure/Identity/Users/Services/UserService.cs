@@ -6,6 +6,7 @@ using Avancira.Application.Jobs;
 using Avancira.Application.Mail;
 using Avancira.Application.Storage;
 using Avancira.Application.Storage.File;
+using Avancira.Application.Storage.File.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Infrastructure.Constants;
 using Avancira.Infrastructure.Identity.Roles;
@@ -173,7 +174,23 @@ internal sealed partial class UserService(
         Uri imageUri = user.ImageUrl ?? null!;
         if (request.Image != null || request.DeleteCurrentImage)
         {
-            user.ImageUrl = await storageService.UploadAsync<User>(request.Image, FileType.Image);
+            FileUploadDto? fileUploadDto = null;
+            if (request.Image != null)
+            {
+                using var memoryStream = new MemoryStream();
+                await request.Image.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+                var base64String = Convert.ToBase64String(fileBytes);
+                
+                fileUploadDto = new FileUploadDto
+                {
+                    Name = request.Image.FileName,
+                    Extension = Path.GetExtension(request.Image.FileName),
+                    Data = base64String
+                };
+            }
+            
+            user.ImageUrl = await storageService.UploadAsync<User>(fileUploadDto, FileType.Image);
             if (request.DeleteCurrentImage && imageUri != null)
             {
                 storageService.Remove(imageUri);
@@ -182,6 +199,18 @@ internal sealed partial class UserService(
 
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
+        
+        // Parse DateOfBirth from string
+        if (!string.IsNullOrEmpty(request.DateOfBirth))
+        {
+            if (DateTime.TryParse(request.DateOfBirth, out var dateOfBirth))
+            {
+                user.DateOfBirth = dateOfBirth;
+            }
+        }
+        
+        user.SkypeId = request.SkypeId;
+        user.HangoutId = request.HangoutId;
         user.PhoneNumber = request.PhoneNumber;
         string? phoneNumber = await userManager.GetPhoneNumberAsync(user);
         if (request.PhoneNumber != phoneNumber)

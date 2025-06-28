@@ -188,7 +188,7 @@ public class UsersController : BaseApiController
 
     [HttpPut("profile")]
     [SwaggerOperation(OperationId = "UpdateUserProfile")]
-    public async Task<IActionResult> UpdateUserProfile([FromBody] UpdateUserDto request)
+    public async Task<IActionResult> UpdateUserProfile([FromForm] UpdateUserDto request)
     {
         var userId = User.GetUserId();
 
