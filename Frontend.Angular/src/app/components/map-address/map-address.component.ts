@@ -28,7 +28,19 @@ export class MapAddressComponent implements AfterViewInit {
   }
   
   initMap(): void {
-    const map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
+    // Check if Google Maps is available
+    if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
+      console.error('Google Maps API not loaded properly');
+      return;
+    }
+
+    const mapElement = document.getElementById('map') as HTMLElement;
+    if (!mapElement) {
+      console.error('Map element not found');
+      return;
+    }
+
+    const map = new google.maps.Map(mapElement, {
       center: { lat: -33.8688, lng: 151.2093 }, // Default to Sydney
       zoom: 13,
     });

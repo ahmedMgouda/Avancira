@@ -81,7 +81,10 @@ export class UserService {
     if (user.lastName) formData.append('lastName', user.lastName);
     if (user.bio) formData.append('bio', user.bio);
     if (user.email) formData.append('email', user.email);
-    if (user.dateOfBirth) formData.append('dateOfBirth', user.dateOfBirth.toISOString());
+    if (user.dateOfBirth) {
+      const dateValue = user.dateOfBirth instanceof Date ? user.dateOfBirth : new Date(user.dateOfBirth);
+      formData.append('dateOfBirth', dateValue.toISOString());
+    }
     if (user.phoneNumber) formData.append('phoneNumber', user.phoneNumber);
     if (user.skypeId) formData.append('skypeId', user.skypeId);
     if (user.hangoutId) formData.append('hangoutId', user.hangoutId);
