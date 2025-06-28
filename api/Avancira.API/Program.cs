@@ -1,3 +1,4 @@
+using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
@@ -33,6 +34,8 @@ builder.Services.AddControllers(options =>
 
 // Register your dependencies with Aspire
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -41,8 +44,7 @@ app.UseAvanciraFramework();
 
 app.UseHttpsRedirection();
 
-// Map SignalR hub
-app.MapHub<Avancira.Infrastructure.Messaging.NotificationHub>("/notification");
+app.MapHub<NotificationHub>("/notification");
 
 app.MapControllers();
 

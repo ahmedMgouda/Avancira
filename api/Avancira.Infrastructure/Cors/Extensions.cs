@@ -1,48 +1,61 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Avancira.Infrastructure.Cors;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
+using Microsoft.Extensions.Hosting;
 
-namespace Avancira.Infrastructure.Cors;
 public static class Extensions
 {
-    private const string CorsPolicy = nameof(CorsPolicy);
-    internal static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration config)
+    private const string CorsPolicyName = nameof(CorsPolicyName);
+
+    internal static IServiceCollection AddCorsPolicy(
+        this IServiceCollection services,
+        IConfiguration config,
+        IWebHostEnvironment env)
     {
-        var corsOptions = config.GetSection(nameof(CorsOptions)).Get<CorsOptions>();
-        if (corsOptions == null) { return services; }
-        
-        return services.AddCors(opt =>
-        opt.AddPolicy(CorsPolicy, policy =>
+        var corsOptions = config
+            .GetSection(nameof(CorsOptions))
+            .Get<CorsOptions>();
+
+        if (corsOptions == null)
         {
-            policy.AllowAnyHeader()
-                  .AllowAnyMethod();
-            
-            // For SignalR to work with authentication, we need to allow credentials
-            // and specify exact origins (not wildcard)
-            if (corsOptions.AllowedOrigins.Any())
+            throw new InvalidOperationException("Missing CORS configuration in app settings.");
+        }
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy(CorsPolicyName, policy =>
             {
-                policy.AllowCredentials()
-                      .WithOrigins(corsOptions.AllowedOrigins.ToArray());
-            }
-            else
-            {
-                // Fallback for development - allow common development origins
-                policy.AllowCredentials()
-                      .WithOrigins(
-                          "https://localhost:4200",
-                          "http://localhost:4200",
-                          "https://10.5.0.2:4200",
-                          "http://10.5.0.2:4200",
-                          "https://localhost:3000",
-                          "http://localhost:3000"
-                      );
-            }
-        }));
+                policy.AllowAnyMethod()
+                      .AllowAnyHeader();
+
+                if (env.IsDevelopment())
+                {
+                    policy.SetIsOriginAllowed(_ => true)
+                          .AllowCredentials();
+                }
+                else
+                {
+                    if (corsOptions.AllowedOrigins?.Any() != true)
+                    {
+                        throw new InvalidOperationException(
+                            "CORS is enabled but no AllowedOrigins are configured for production.");
+                    }
+
+                    // Use only configured origins in production with credentials
+                    policy.WithOrigins(corsOptions.AllowedOrigins.ToArray())
+                          .AllowCredentials();
+                }
+            });
+        });
+
+        return services;
     }
 
     internal static IApplicationBuilder UseCorsPolicy(this IApplicationBuilder app)
     {
-        return app.UseCors(CorsPolicy);
+        return app.UseCors(CorsPolicyName);
     }
 }
+

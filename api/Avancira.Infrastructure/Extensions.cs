@@ -40,7 +40,7 @@ public static class Extensions
         builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
         builder.Services.ConfigureCatalog();
-        builder.Services.AddCorsPolicy(builder.Configuration);
+        builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();
         builder.Services.ConfigureJwtAuth();
         builder.Services.ConfigureOpenApi();

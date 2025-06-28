@@ -10,6 +10,7 @@ public interface IChatService
     Chat GetOrCreateChat(string studentId, string tutorId, Guid listingId);
     // Read
     List<ChatDto> GetUserChats(string userId);
+    ChatDto GetChat(Guid chatId, string userId);
     // Update
-    bool SendMessage(SendMessageDto messageDto, string senderId);
+    Task<bool> SendMessageAsync(SendMessageDto messageDto, string senderId);
 }

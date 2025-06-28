@@ -18,18 +18,19 @@ export class ChatService {
     return this.http.get<Chat[]>(this.apiUrl);
   }
 
+  getChat(id: string): Observable<Chat> {
+    return this.http.get<Chat>(`${this.apiUrl}/${id}`);
+  }
+
   getChatsLastMessage(): Observable<Message[]> {
     return this.getChats()
       .pipe(
         map((chats) =>
-          chats.map((chat) => {
-            const lastMessage = chat.messages[chat.messages.length - 1]; // Get the last message
-            return {
-              senderName: chat.name,
-              content: lastMessage?.content || 'No messages yet', // Fallback if no messages
-              timestamp: lastMessage?.timestamp || 'N/A', // Fallback if no timestamp
-            } as Message;
-          })
+            chats.map((chat) => ({
+            senderName: chat.name,
+            content: chat.lastMessage || 'No messages yet',
+            timestamp: chat.timestamp || 'N/A',
+          } as Message))
         )
       );
   }

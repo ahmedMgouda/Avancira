@@ -34,10 +34,22 @@ public class ChatsController : BaseApiController
         return Ok(chats);
     }
 
-    // Update
+    [Authorize]
+    [HttpGet("{id:guid}")]
+    public IActionResult GetChatById(Guid id)
+    {
+        var userId = GetUserId();
+        var chat = _chatService.GetChat(id, userId);
+        if (chat.Id == Guid.Empty)
+        {
+            return NotFound();
+        }
+
+        return Ok(chat);
+    }
     [Authorize]
     [HttpPut("send")]
-    public IActionResult SendMessage([FromBody] SendMessageDto messageDto)
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto messageDto)
     {
         // Validate the messageDto
         if (messageDto.RecipientId == null || string.IsNullOrEmpty(messageDto.RecipientId))
@@ -57,7 +69,7 @@ public class ChatsController : BaseApiController
         // Check if a chat already exists
         var senderId = GetUserId();
 
-        if (!_chatService.SendMessage(messageDto, senderId))
+        if (!await _chatService.SendMessageAsync(messageDto, senderId))
         {
             return BadRequest("Failed to send the message.");
         }

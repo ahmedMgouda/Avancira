@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener,Input, OnChanges, OnInit, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ManageLessonsComponent } from '../manage-lessons/manage-lessons.component';
@@ -9,6 +9,7 @@ import { NotificationService } from '../../services/notification.service';
 
 import { TimeAgoPipe } from "../../pipes/time-ago.pipe";
 
+import { environment } from '../../environments/environment';
 import { Chat } from '../../models/chat';
 
 @Component({
@@ -17,13 +18,15 @@ import { Chat } from '../../models/chat';
   templateUrl: './message-thread.component.html',
   styleUrls: ['./message-thread.component.scss']
 })
-export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges {
+export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges, OnDestroy {
   @Input() selectedContact: Chat | null = null;
   @Output() messageSent = new EventEmitter<void>();
   @ViewChild('chatMessages', { static: false }) chatMessagesContainer!: ElementRef;
   @ViewChild('slider') slider: ElementRef | undefined;
   newMessage: string = '';
   messageSuccess: boolean = false;
+  private pollingId: any;
+
 
   constructor(
     private chatService: ChatService,
@@ -47,16 +50,28 @@ export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges 
         this.scrollToBottom();
       }
     });
+    if (!environment.useSignalR) {
+      this.startPolling();
+    } else {
+      setTimeout(() => {
+        if (!this.notificationService.isConnected()) {
+          this.startPolling();
+        }
+      }, 3000);
+    }
   }
 
   ngAfterViewInit(): void {
     this.scrollToBottom();
   }
 
-  
+
   ngOnChanges(): void {
     if (this.selectedContact) {
       this.scrollToBottom();
+      if (this.pollingId) {
+        this.startPolling();
+      }
     }
   }
 
@@ -114,5 +129,33 @@ export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges 
       const element = this.chatMessagesContainer.nativeElement;
       element.scrollTop = element.scrollHeight;
     }
+  }
+
+  private startPolling(): void {
+    this.stopPolling();
+    this.pollingId = setInterval(() => this.refreshChat(), 5000);
+  }
+
+  private stopPolling(): void {
+    if (this.pollingId) {
+      clearInterval(this.pollingId);
+      this.pollingId = null;
+    }
+  }
+
+  private refreshChat(): void {
+    if (this.selectedContact) {
+      this.chatService.getChat(this.selectedContact.id).subscribe({
+        next: (chat) => {
+          this.selectedContact!.messages = chat.messages;
+          this.scrollToBottom();
+        },
+        error: (err) => console.error('Failed to refresh chat:', err),
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
   }
 }
