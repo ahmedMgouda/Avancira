@@ -82,6 +82,8 @@ namespace Avancira.Infrastructure.Catalog
 
                 transaction.AssignRecipient(tutorId);
                 transaction.AssignPayPalPaymentId(lessonDto.PayPalPaymentId);
+                // Assign Stripe customer ID for Stripe payments (similar to subscription service)
+                transaction.AssignStripeCustomer(user.StripeCustomerId);
 
                 await _dbContext.Transactions.AddAsync(transaction);
                 await _dbContext.SaveChangesAsync();
