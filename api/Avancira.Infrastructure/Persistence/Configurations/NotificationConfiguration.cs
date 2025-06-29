@@ -1,4 +1,4 @@
-using Avancira.Domain.Messaging;
+using Avancira.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -4,7 +4,7 @@ using Avancira.Application.Payments.Dtos;
 using System;
 using System.Threading.Tasks;
 
-namespace Avancira.Infrastructure.Billing
+namespace Avancira.Infrastructure.Payments
 {
     public class DefaultPaymentGateway : IPaymentGateway
     {

@@ -1,6 +1,7 @@
-﻿using Avancira.Domain.Common.Events;
+﻿using Avancira.Domain.Catalog;
+using Avancira.Domain.Common.Events;
 
-namespace Avancira.Domain.Catalog.Events
+namespace Avancira.Domain.Listings.Events
 {
     public record ListingCreatedEvent(Listing Listing) : DomainEvent;
 

@@ -1,6 +1,6 @@
 ﻿using Avancira.Domain.Catalog.Enums;
-using Avancira.Domain.Catalog.Events;
 using Avancira.Domain.Common;
+using Avancira.Domain.Listings.Events;
 using Avancira.Domain.PromoCodes;
 
 namespace Avancira.Domain.Catalog;

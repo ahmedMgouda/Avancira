@@ -3,6 +3,7 @@ using Avancira.Application.Events;
 using Avancira.Application.Mail;
 using Avancira.Application.Messaging;
 using Avancira.Domain.Catalog.Enums;
+using Avancira.Domain.Notifications;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -78,7 +79,7 @@ namespace Avancira.Infrastructure.Catalog
                 _logger.LogInformation("Sending notification to user {UserId}: {EventName} - {Message}", userId, eventName, message);
 
                 // Create notification entity
-                var notification = new Avancira.Domain.Messaging.Notification
+                var notification = new Notification
                 {
                     UserId = userId,
                     EventName = eventName.ToString(),
@@ -107,7 +108,7 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        private async Task SendThroughChannelAsync(INotificationChannel channel, string userId, Avancira.Domain.Messaging.Notification notification)
+        private async Task SendThroughChannelAsync(INotificationChannel channel, string userId, Notification notification)
         {
             try
             {
@@ -126,7 +127,7 @@ namespace Avancira.Infrastructure.Catalog
             try
             {
                 // Create notification entity
-                var notification = new Avancira.Domain.Messaging.Notification
+                var notification = new Notification
                 {
                     UserId = userId,
                     EventName = eventName,

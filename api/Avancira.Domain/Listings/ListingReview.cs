@@ -1,5 +1,5 @@
-﻿using Avancira.Domain.Catalog.Events;
-using Avancira.Domain.Common;
+﻿using Avancira.Domain.Common;
+using Avancira.Domain.Listings.Events;
 
 namespace Avancira.Domain.Catalog;
 

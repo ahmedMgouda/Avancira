@@ -1,4 +1,4 @@
-using Avancira.Domain.Messaging;
+using Avancira.Domain.Notifications;
 
 namespace Avancira.Application.Messaging;
 

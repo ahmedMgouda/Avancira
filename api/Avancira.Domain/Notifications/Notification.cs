@@ -1,7 +1,7 @@
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
 
-namespace Avancira.Domain.Messaging;
+namespace Avancira.Domain.Notifications;
 
 public class Notification : AuditableEntity, IAggregateRoot
 {

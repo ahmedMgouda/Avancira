@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Categories;
+using Avancira.Infrastructure.Payments;
 
 namespace Avancira.Infrastructure.Catalog
 {

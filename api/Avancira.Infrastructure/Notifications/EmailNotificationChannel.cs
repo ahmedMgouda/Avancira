@@ -2,7 +2,7 @@ using System.Linq;
 using System.Text.Json;
 using Avancira.Application.Mail;
 using Avancira.Application.Messaging;
-using Avancira.Domain.Messaging;
+using Avancira.Domain.Notifications;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

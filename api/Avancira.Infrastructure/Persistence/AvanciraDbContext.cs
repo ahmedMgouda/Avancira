@@ -17,6 +17,7 @@ using Avancira.Domain.UserCard;
 using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
+using Avancira.Domain.Notifications;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<
