@@ -1,6 +1,6 @@
-﻿using Avancira.Application.Catalog.Categories.Dtos;
+﻿using Avancira.Application.Categories.Dtos;
 
-namespace Avancira.Application.Services.Category
+namespace Avancira.Application.Categories
 {
     public interface ICategoryService
     {

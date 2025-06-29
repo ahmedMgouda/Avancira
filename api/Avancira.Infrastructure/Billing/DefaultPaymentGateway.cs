@@ -1,5 +1,6 @@
 using Avancira.Application.Billing;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Payments.Dtos;
 using System;
 using System.Threading.Tasks;
 

@@ -1,13 +1,8 @@
 ﻿using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;
 using Avancira.Domain.Lessons;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Avancira.Application.Catalog.Dtos
+namespace Avancira.Application.Lessons.Dtos
 {
     public class LessonDto
     {

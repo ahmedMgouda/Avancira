@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog.Dtos;
-using Avancira.Application.Catalog.Listings.Dtos;
+using Avancira.Application.Lessons.Dtos;
+using Avancira.Application.Listings.Dtos;
 using Microsoft.AspNetCore.Http;
 
 public interface IListingService

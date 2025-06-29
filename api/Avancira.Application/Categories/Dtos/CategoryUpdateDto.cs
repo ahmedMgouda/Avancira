@@ -1,6 +1,6 @@
 ﻿using Avancira.Application.Storage.File.Dtos;
 
-namespace Avancira.Application.Catalog.Categories.Dtos
+namespace Avancira.Application.Categories.Dtos
 {
     public class CategoryUpdateDto
     {

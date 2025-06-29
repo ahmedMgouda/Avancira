@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
-using Avancira.Application.Catalog.Listings.Dtos;
+using Avancira.Application.Listings.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

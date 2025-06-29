@@ -1,5 +1,6 @@
 ﻿using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Lessons.Dtos;
 using Avancira.Domain.Catalog;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

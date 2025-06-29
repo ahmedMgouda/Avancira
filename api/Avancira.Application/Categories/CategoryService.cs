@@ -1,13 +1,12 @@
-﻿using Avancira.Application.Services.Category;
-using Avancira.Domain.Catalog;
-using Avancira.Application.Catalog.Categories.Dtos;
+﻿using Avancira.Domain.Catalog;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Application.Persistence;
 using Mapster;
 using Avancira.Application.Storage.File;
 using Avancira.Application.Storage;
+using Avancira.Application.Categories.Dtos;
 
-namespace Avancira.Application.Catalog.Categories
+namespace Avancira.Application.Categories
 {
     public class CategoryService : ICategoryService
     {
@@ -98,4 +97,3 @@ namespace Avancira.Application.Catalog.Categories
         }
     }
 }
-

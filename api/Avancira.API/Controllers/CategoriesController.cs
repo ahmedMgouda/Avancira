@@ -1,8 +1,8 @@
-﻿using Avancira.Application.Catalog.Categories.Dtos;
-using Avancira.Application.Services.Category;
-using Avancira.Infrastructure.Auth.Policy;
+﻿using Avancira.Infrastructure.Auth.Policy;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using Avancira.Application.Categories;
+using Avancira.Application.Categories.Dtos;
 
 namespace Avancira.API.Controllers;
 

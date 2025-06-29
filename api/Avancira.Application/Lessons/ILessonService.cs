@@ -1,4 +1,4 @@
-using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Lessons.Dtos;
 using System.Threading.Tasks;
 
 namespace Avancira.Application.Lessons;

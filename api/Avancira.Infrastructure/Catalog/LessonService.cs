@@ -2,7 +2,7 @@
 using Avancira.Application.Messaging;
 using Avancira.Application.Payments;
 using Avancira.Application.Catalog;
-using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Lessons.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;
 using Avancira.Infrastructure.Persistence;

@@ -14,7 +14,8 @@ using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Avancira.Domain.Common.Exceptions;
 using Mapster;
-using Avancira.Application.Catalog.Listings.Dtos;
+using Avancira.Application.Listings.Dtos;
+using Avancira.Application.Lessons.Dtos;
 
 namespace Avancira.Infrastructure.Catalog
 {

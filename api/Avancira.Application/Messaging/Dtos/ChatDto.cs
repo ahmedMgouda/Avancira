@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Avancira.Application.Catalog.Dtos
+namespace Avancira.Application.Messaging.Dtos
 {
     public class ChatDto
     {

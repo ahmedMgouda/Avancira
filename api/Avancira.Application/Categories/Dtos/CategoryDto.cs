@@ -1,4 +1,4 @@
-﻿namespace Avancira.Application.Catalog.Categories.Dtos
+﻿namespace Avancira.Application.Categories.Dtos
 {
     public class CategoryDto
     {

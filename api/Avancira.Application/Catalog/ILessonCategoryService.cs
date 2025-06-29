@@ -1,4 +1,5 @@
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Lessons.Dtos;
 using Avancira.Domain.Catalog;
 using System.Collections.Generic;
 using System.Threading.Tasks;

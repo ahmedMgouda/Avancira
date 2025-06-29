@@ -1,4 +1,5 @@
 ﻿using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Payments.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;

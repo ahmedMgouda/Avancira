@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Avancira.Application.Catalog.Listings.Dtos
+namespace Avancira.Application.Listings.Dtos
 {
     public class ListingDto
     {

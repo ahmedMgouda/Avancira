@@ -1,8 +1,8 @@
-﻿using Avancira.Application.Catalog.Categories.Dtos;
+﻿using Avancira.Application.Categories.Dtos;
 using Avancira.Application.Storage.File.Validators;
 using FluentValidation;
 
-namespace Avancira.Application.Catalog.Categories.Validators
+namespace Avancira.Application.Categories.Validators
 {
     public class CategoryUpdateDtoValidator : AbstractValidator<CategoryUpdateDto>
     {

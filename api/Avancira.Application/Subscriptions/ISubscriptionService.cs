@@ -3,6 +3,7 @@ using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
 using Avancira.Domain.PromoCodes;
+using Avancira.Application.Lessons.Dtos;
 
 namespace Avancira.Application.Subscriptions;
 

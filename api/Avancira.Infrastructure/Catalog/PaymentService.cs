@@ -1,6 +1,7 @@
 ﻿using Avancira.Application.Billing;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Application.Payments;
+using Avancira.Application.Payments.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Transactions;
 using Avancira.Infrastructure.Persistence;

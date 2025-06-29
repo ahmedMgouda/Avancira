@@ -1,5 +1,5 @@
 ﻿using Avancira.Application.Catalog.Dtos;
-using Avancira.Application.Catalog.Listings.Dtos;
+using Avancira.Application.Listings.Dtos;
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Catalog.Enums;
 using Mapster;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Avancira.Application.Catalog.Listings.Mappers
+namespace Avancira.Application.Listings.Mappers
 {
     public class ListingMappingConfig : IRegister
     {

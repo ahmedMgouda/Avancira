@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Avancira.Application.Lessons.Dtos;
 
 namespace Avancira.Infrastructure.Catalog
 {

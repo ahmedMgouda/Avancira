@@ -1,6 +1,5 @@
-﻿using Avancira.Application.Catalog.Categories;
+﻿using Avancira.Application.Categories;
 using Avancira.Application.Jobs;
-using Avancira.Application.Services.Category;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
