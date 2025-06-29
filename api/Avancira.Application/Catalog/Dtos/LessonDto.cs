@@ -11,7 +11,7 @@ namespace Avancira.Application.Catalog.Dtos
 {
     public class LessonDto
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
         public string? Topic { get; set; }
         public DateTime Date { get; set; }
         public TimeSpan Duration { get; set; }

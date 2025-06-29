@@ -38,7 +38,7 @@ public class LessonsController : BaseApiController
     // Read
     [Authorize]
     [HttpGet("{contactId}/{listingId}")]
-    public async Task<IActionResult> GetLessonsAsync(string contactId, int listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetLessonsAsync(string contactId, Guid listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var userId = GetUserId();
         var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
@@ -62,7 +62,7 @@ public class LessonsController : BaseApiController
     // Update
     [Authorize]
     [HttpPut("respondToProposition/{lessonId}")]
-    public async Task<IActionResult> RespondToPropositionAsync(int lessonId, [FromBody] bool accept)
+    public async Task<IActionResult> RespondToPropositionAsync(Guid lessonId, [FromBody] bool accept)
     {
         var userId = GetUserId();
         LessonDto updatedLesson;
@@ -89,7 +89,7 @@ public class LessonsController : BaseApiController
     // Delete
     [Authorize]
     [HttpDelete("{lessonId}/cancel")]
-    public async Task<IActionResult> CancelLessonAsync(int lessonId)
+    public async Task<IActionResult> CancelLessonAsync(Guid lessonId)
     {
         try
         {

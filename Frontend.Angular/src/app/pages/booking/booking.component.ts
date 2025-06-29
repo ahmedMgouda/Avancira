@@ -94,6 +94,7 @@ export class BookingComponent implements OnInit {
 
     // Navigate to payment page with listing ID
     const proposition: Proposition = {
+      id: '', // Empty for new lesson proposals - backend will generate
       paymentMethod: data ? TransactionPaymentMethod.PayPal : TransactionPaymentMethod.Stripe,
       payPalPaymentId: data ? data.paymentID : null,
       date: new Date(`${this.selectedDate}T${this.selectedTime}:00`),

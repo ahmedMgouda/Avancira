@@ -141,14 +141,12 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        public async Task<PagedResult<LessonDto>> GetLessonsAsync(string contactId, string userId, int listingId, int page, int pageSize)
+        public async Task<PagedResult<LessonDto>> GetLessonsAsync(string contactId, string userId, Guid listingId, int page, int pageSize)
         {
             try
             {
-                var listingGuid = new Guid(listingId.ToString().PadLeft(32, '0'));
-                
                 var queryable = _dbContext.Lessons
-                    .Where(p => p.ListingId == listingGuid)
+                    .Where(p => p.ListingId == listingId)
                     .Where(p => (p.StudentId == contactId) || (p.StudentId == userId))
                     .OrderByDescending(p => p.Date);
 
@@ -281,13 +279,13 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        public async Task<LessonDto> UpdateLessonStatusAsync(int lessonId, bool accept, string userId)
+        public async Task<LessonDto> UpdateLessonStatusAsync(Guid lessonId, bool accept, string userId)
         {
             try
             {
                 var lesson = await _dbContext.Lessons
                     .AsTracking()
-                    .FirstOrDefaultAsync(l => l.Id.GetHashCode() == lessonId);
+                    .FirstOrDefaultAsync(l => l.Id == lessonId);
 
                 if (lesson == null)
                 {
@@ -510,7 +508,7 @@ namespace Avancira.Infrastructure.Catalog
 
             return new LessonDto
             {
-                Id = lesson.Id.GetHashCode(), // Convert Guid to int for compatibility
+                Id = lesson.Id.ToString(), // Send Guid as string instead of hash
                 Date = lesson.Date,
                 Duration = lesson.Duration,
                 Price = lesson.ActualPrice,

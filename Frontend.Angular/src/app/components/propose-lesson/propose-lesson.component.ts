@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -17,7 +17,7 @@ import { Proposition } from '../../models/proposition';
   templateUrl: './propose-lesson.component.html',
   styleUrl: './propose-lesson.component.scss'
 })
-export class ProposeLessonComponent {
+export class ProposeLessonComponent implements OnInit {
   @Input() listing!: Listing;
   @Input() studentId: string | null = null;
   @Output() onPropose = new EventEmitter<{ date: Date; duration: number; price: number }>();
@@ -52,11 +52,26 @@ export class ProposeLessonComponent {
   checkPaymentDetails(): void {
     this.userService.getUser().subscribe({
       next: (user) => {
-        this.paymentDetailsAvailable = user.isStripeConnected;
+        // Check if user has Stripe connected by checking if StripeConnectedAccountId or StripeCustomerId exists
+        // The backend returns these properties, but the frontend model expects isStripeConnected
+        const hasStripeConnected = !!(user as any).stripeConnectedAccountId || !!(user as any).stripeCustomerId;
+        const hasPayPalConnected = !!(user as any).payPalAccountId;
+        
+        // User has payment details if they have either Stripe or PayPal connected
+        this.paymentDetailsAvailable = hasStripeConnected || hasPayPalConnected || user.isStripeConnected || user.isPayPalConnected;
+        
+        console.log('Payment details check:', {
+          stripeConnectedAccountId: (user as any).stripeConnectedAccountId,
+          stripeCustomerId: (user as any).stripeCustomerId,
+          payPalAccountId: (user as any).payPalAccountId,
+          isStripeConnected: user.isStripeConnected,
+          isPayPalConnected: user.isPayPalConnected,
+          paymentDetailsAvailable: this.paymentDetailsAvailable
+        });
       },
       error: (err) => {
         console.error('Failed to check payment details:', err);
-        this.paymentDetailsAvailable = false;
+        this.paymentDetailsAvailable = false; // Default to false on error
       },
     });
   }
@@ -78,6 +93,7 @@ export class ProposeLessonComponent {
 
     if (this.lessonDateTime && this.lessonDuration && this.lessonPrice !== null) {
       const proposition: Proposition = {
+        id: '', // Empty for new lesson proposals - backend will generate
         paymentMethod: TransactionPaymentMethod.Card,
         payPalPaymentId: null,
         date: this.lessonDateTime,
@@ -115,7 +131,7 @@ export class ProposeLessonComponent {
    * Navigate to the profile page to add payment details.
    */
   navigateToProfile(): void {
-    this.router.navigate(['/profile'], { queryParams: { section: 'payments', detail: 'method' } });
+    this.router.navigate(['/dashboard/profile'], { queryParams: { section: 'payments', detail: 'method' } });
   }
 
   

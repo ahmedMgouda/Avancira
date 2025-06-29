@@ -1,7 +1,7 @@
 import { TransactionPaymentMethod } from "./enums/transaction-payment-method";
 
 export interface Proposition {
-    // id: number;
+    id?: string; // Optional for new lesson proposals
     paymentMethod: TransactionPaymentMethod
     payPalPaymentId: number|null;
     date: Date;

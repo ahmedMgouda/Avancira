@@ -12,7 +12,7 @@
     <!-- Propositions Section -->
     <div class="propositions" *ngIf="activeTab === 'propositions'">
       <div class="propose-buttons">
-        <button class="btn propose-pack" *ngIf="selectedContact?.myRole === Role.Student">
+        <button class="btn propose-pack" *ngIf="selectedContact?.myRole === Role.Student" (click)="openPackModal()">
           <span>📦 Propose a Pack</span>
         </button>
         <button class="btn propose-lesson" *ngIf="selectedContact?.myRole === Role.Student" (click)="openModal()">

@@ -204,4 +204,9 @@ export class ManageLessonsComponent implements OnInit, OnChanges {
     //   this.selectContact(this.selectedContact);
     // }
   }
+
+  openPackModal(): void {
+    // TODO: Implement pack proposal functionality
+    this.alertService.infoAlert('Pack proposal functionality is coming soon!', 'Info');
+  }
 }

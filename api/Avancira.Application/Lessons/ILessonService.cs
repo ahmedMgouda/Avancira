@@ -9,11 +9,11 @@ public interface ILessonService
     Task<LessonDto> ProposeLessonAsync(LessonDto lessonDto, string userId);
 
     // Read
-    Task<PagedResult<LessonDto>> GetLessonsAsync(string contactId, string userId, int listingId, int page, int pageSize);
+    Task<PagedResult<LessonDto>> GetLessonsAsync(string contactId, string userId, Guid listingId, int page, int pageSize);
     Task<PagedResult<LessonDto>> GetAllLessonsAsync(string userId, int page, int pageSize);
     Task<PagedResult<LessonDto>> GetAllLessonsAsync(string userId, LessonFilter filters);
 
     // Update
-    Task<LessonDto> UpdateLessonStatusAsync(int lessonId, bool accept, string userId);
+    Task<LessonDto> UpdateLessonStatusAsync(Guid lessonId, bool accept, string userId);
     Task ProcessPastBookedLessons();
 }
