@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -13,8 +13,7 @@ import { UserService } from '../../services/user.service';
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
 import { UserDiplomaStatus } from '../../models/enums/user-diploma-status';
-import { UserPaymentSchedule } from '../../models/enums/user-payment-schedule';
-import { PaymentHistory } from '../../models/payment-history';
+
 import { Address, User } from '../../models/user';
 
 
@@ -22,10 +21,10 @@ import { Address, User } from '../../models/user';
   selector: 'app-profile',
   imports: [CommonModule, FormsModule, MapAddressComponent, ImageFallbackDirective],
   templateUrl: './profile.component.html',
-  styleUrl: './profile.component.scss'
+  styleUrl: './profile.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProfileComponent implements OnInit {
-  @ViewChild('inputFile') inputFile!: ElementRef<HTMLInputElement>;
   timezones: { id: string; label: string }[] = [];
 
   // Enums and Data Models
@@ -33,7 +32,6 @@ export class ProfileComponent implements OnInit {
 
   // States
   profile: User = {} as User;
-  payment: PaymentHistory | null = null;
 
   // Notifications
   notifications = {
@@ -46,10 +44,6 @@ export class ProfileComponent implements OnInit {
     ],
   };
 
-  // Payment
-  paypalAccountAdded: boolean = false;
-  paymentPreference: UserPaymentSchedule = UserPaymentSchedule.PerLesson;
-  compensationPercentage: number = 50;
 
   // Diploma
   diplomaStatus: UserDiplomaStatus = UserDiplomaStatus.NotSubmitted;
@@ -155,24 +149,36 @@ export class ProfileComponent implements OnInit {
 
   onProfilePictureUpload(event: Event): void {
     if (!this.profile) return;
-  
+
     const input = event.target as HTMLInputElement;
     if (input?.files?.length) {
       const file = input.files[0];
-      
+
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+      if (!allowedTypes.includes(file.type) || file.size > 2 * 1024 * 1024) {
+        this.alertService.warningAlert('Image must be PNG, JPG or GIF and less than 2MB.');
+        input.value = '';
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         if (this.profile) {
           // Set the image URL on the profile object
           this.profile.imageUrl = reader.result as string;
         }
-  
+
         // Send the image file to the server
+        this.spinnerService.show();
         this.userService.updateUser(this.profile!, file).subscribe({
-          error: (err) => console.error('Error updating profile picture:', err)
+          next: () => this.spinnerService.hide(),
+          error: (err) => {
+            console.error('Error updating profile picture:', err);
+            this.spinnerService.hide();
+          }
         });
       };
-  
+
       reader.readAsDataURL(file);
     }
   }

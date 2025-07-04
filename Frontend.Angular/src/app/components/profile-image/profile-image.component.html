@@ -4,6 +4,7 @@
     *ngIf="showImage"
     [src]="imageUrl"
     alt="Profile Photo"
+    loading="lazy"
     [class]="'pro-avatar profile-photo ' + (customClass || '')"
     (error)="isImageError = true"
   />
