@@ -13,6 +13,7 @@ public class UpdateUserDto
     public string? DateOfBirth { get; set; }
     public string? SkypeId { get; set; }
     public string? HangoutId { get; set; }
+    [MaxLength(500)]
     public string? Bio { get; set; }
     public string? TimeZoneId { get; set; }
     public IFormFile? Image { get; set; }

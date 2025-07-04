@@ -2,8 +2,9 @@
   <!-- Display the image if available and no error -->
   <img
     *ngIf="showImage"
-    [src]="profileImagePath"
+    [src]="imageUrl"
     alt="Profile Photo"
+    loading="lazy"
     [class]="'pro-avatar profile-photo ' + (customClass || '')"
     (error)="isImageError = true"
   />

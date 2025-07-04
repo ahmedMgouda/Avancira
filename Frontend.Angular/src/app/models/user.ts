@@ -25,8 +25,9 @@ export interface User {
   profileVerified: string[]; // An array of verification methods like Email, Mobile
   lessonsCompleted: number | null; // Number of lessons completed
   evaluations: number | null; // The number of evaluations
-  profileImagePath: string; // Path or URL to the profile image
-  profileImage: File; // Path or URL to the profile image
+  /** URL to the user's profile image */
+  imageUrl?: string;
+  profileImage?: File;
   recommendationToken: string;
   isStripeConnected: boolean;
   isPayPalConnected: boolean;

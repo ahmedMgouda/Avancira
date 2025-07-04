@@ -12,20 +12,20 @@
         <div class="tab-content">
             <div class="tab-pane show active" id="bottom-tab1" role="tabpanel">
                 <!-- Basic Information Form -->
-                <form>
+                <form (ngSubmit)="saveProfile()" #profileForm="ngForm" novalidate enctype="multipart/form-data">
 
                     <div class="row form-row">
                         <div class="col-12 col-md-12">
                             <div class="form-group">
                                 <div class="change-avatar">
                                     <div class="profile-img">
-                                        <img [src]="profile.profileImagePath" alt="User Image"
+                                        <img [src]="profile.imageUrl" alt="User Image"
                                             [imageFallback]="profile.firstName + ' ' + profile.lastName">
                                     </div>
                                     <div class="upload-img">
                                         <div class="change-photo-btn">
-                                            <span><i class="fa fa-upload"></i> Upload Photo</span>
-                                            <input type="file" class="upload" (change)="onProfilePictureUpload($event)">
+                                            <span><i class="fa fa-upload"></i> Choose Photo</span>
+                                            <input type="file" accept="image/*" class="upload" (change)="onProfilePictureUpload($event)">
                                         </div>
                                         <small class="form-text text-muted">Allowed JPG, GIF or PNG. Max size of
                                             2MB</small>
@@ -94,7 +94,7 @@
                             </div>
                         </div>
                         <div class="col-md-12" style="text-align: end;">
-                            <button type="submit" class="btn btn-primary submit-btn" (click)="saveProfile()">Save
+                            <button type="submit" class="btn btn-primary submit-btn">Save
                                 Changes</button>
                         </div>
                     </div>
@@ -102,24 +102,25 @@
             </div>
 
             <div class="tab-pane" id="bottom-tab2" role="tabpanel">
-                <form>
+                <form (ngSubmit)="saveProfile()" #bioForm="ngForm" novalidate>
                     <!-- Bio Section -->
                     <div class="card mb-4">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label">Short Bio</label>
-                                <textarea class="form-control" rows="4" name="bio" [(ngModel)]="profile.bio"
-                                    placeholder="Write a short bio about yourself"></textarea>
+                                <label class="form-label">About You <small class="text-muted">(max 500 characters)</small></label>
+                                <textarea class="form-control" rows="4" name="bio" [(ngModel)]="profile.bio" maxlength="500"
+                                    placeholder="Tell us about yourself"></textarea>
+                                <small class="text-muted">{{ (profile.bio?.length || 0) }}/500</small>
                             </div>
                             <!-- Save Bio Button -->
                             <div class="text-center">
-                                <button type="submit" class="btn btn-primary" (click)="saveProfile()">Save Bio</button>
+                                <button type="submit" class="btn btn-primary">Save Bio</button>
                             </div>
                         </div>
                     </div>
                 </form>
 
-                <form>
+                <form (ngSubmit)="submitDiploma()" #diplomaForm="ngForm" novalidate enctype="multipart/form-data">
                     <!-- Qualifications Section -->
                     <div class="card">
                         <div class="card-body">
@@ -127,7 +128,7 @@
                             <div *ngIf="diplomaStatus === DiplomaStatus.NotSubmitted">
                                 <div class="mb-3">
                                     <label class="form-label">Upload Qualification Documents</label>
-                                    <input type="file" class="form-control" (change)="onFileSelected($event)">
+                                    <input type="file" accept="application/pdf,image/*" class="form-control" (change)="onFileSelected($event)">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Document Descriptions</label>
@@ -135,7 +136,7 @@
                                         placeholder="Provide details about your uploaded documents"></textarea>
                                 </div>
                                 <div class="text-end mt-3">
-                                    <button type="submit" class="btn btn-primary" (click)="submitDiploma()">Save
+                                    <button type="submit" class="btn btn-primary">Save
                                         Qualifications</button>
                                 </div>
                             </div>
@@ -191,7 +192,7 @@
 
             <div class="tab-pane" id="bottom-tab3" role="tabpanel">
                 <!-- Change Password Form -->
-                <form (submit)="changeOldPassword(); $event.preventDefault();">
+                <form (ngSubmit)="changeOldPassword()" #passwordForm="ngForm" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
                         <input type="password" class="form-control" placeholder="Enter current password"

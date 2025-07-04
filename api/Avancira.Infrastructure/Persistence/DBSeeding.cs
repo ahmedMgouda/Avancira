@@ -103,7 +103,7 @@ public class UserSeeder
 {
     public static void Seed(AvanciraDbContext context, UserManager<User> userManager)
     {
-        //if (!context.Users.Any())
+        if (context.Users.Count() <= 1)
         {
             var users = new List<User>
             {
@@ -529,12 +529,10 @@ public class UserSeeder
 
             };
 
-            var password = new PasswordHasher<User>();
             foreach (var user in users)
             {
                 user.Id = Guid.NewGuid().ToString();
-                user.PasswordHash = password.HashPassword(user, AppConstants.DefaultPassword);
-                userManager.CreateAsync(user).GetAwaiter().GetResult();
+                userManager.CreateAsync(user, AppConstants.DefaultPassword).GetAwaiter().GetResult();
                 userManager.AddToRoleAsync(user, AvanciraRoles.Basic).GetAwaiter().GetResult();
             }
         }

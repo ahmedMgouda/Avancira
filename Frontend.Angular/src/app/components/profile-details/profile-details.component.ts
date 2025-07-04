@@ -102,7 +102,7 @@ export class ProfileDetailsComponent implements OnInit {
       if (file) {
         const reader = new FileReader();
         reader.onload = () => {
-          if (this.profile) this.profile.profileImagePath = reader.result as string;
+          if (this.profile) this.profile.imageUrl = reader.result as string;
 
           this.userService.updateUser(this.profile!, file).subscribe({
             error: (err) => console.error('Error updating profile picture:', err)

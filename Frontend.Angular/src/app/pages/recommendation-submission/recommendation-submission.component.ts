@@ -51,7 +51,7 @@ export class RecommendationSubmissionComponent implements OnInit {
       next: (user) => {
         this.recommendation.revieweeId = user.id;
         this.recommendation.name = user.fullName;
-        this.recommendation.avatar = user.profileImagePath || null;
+        this.recommendation.avatar = user.imageUrl || null;
       },
       error: (err) => {
         console.error('Error fetching user details:', err);

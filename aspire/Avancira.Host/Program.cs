@@ -25,7 +25,10 @@ var grafana = builder.AddContainer("grafana", "grafana/grafana:latest")
 
 // PostgreSQL
 var postgresPassword = builder.AddParameter("postgres-password", "Avancira@2025", secret: true);
-var postgresql = builder.AddPostgres("postgresql", password: postgresPassword);
+// Replace the line causing the error with the following code:
+var postgresql = builder.AddPostgres("postgresql", password: postgresPassword)
+   // Persist database files across runs so tokens remain valid
+   .WithBindMount("pgdata", "/var/lib/postgresql/data");
 
 var postgresDb = postgresql.AddDatabase("avancira");
 
