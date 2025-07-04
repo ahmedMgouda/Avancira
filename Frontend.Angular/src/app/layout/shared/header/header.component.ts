@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
@@ -8,6 +8,7 @@ import { UserService } from '../../../services/user.service';
 import { ImageFallbackDirective } from '../../../directives/image-fallback.directive';
 
 import { User } from '../../../models/user';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -15,11 +16,13 @@ import { User } from '../../../models/user';
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'
 })
-export class HeaderComponent {
+
+export class HeaderComponent implements OnInit, OnDestroy {
   isMenuOpen = false;
   roles: string[] = [];
   currentRole: 'student' | 'tutor' = 'student';
   user!: User;
+  private userSub?: Subscription;
 
 
   constructor(
@@ -31,6 +34,9 @@ export class HeaderComponent {
 
   ngOnInit(): void {
     if (this.isLoggedIn()) {
+      this.userSub = this.userService.user$.subscribe(user => {
+        if (user) this.user = user;
+      });
       this.fetchUserInfo();
     }
     this.roles = this.authService.getRoles();
@@ -42,6 +48,10 @@ export class HeaderComponent {
       this.currentRole = this.roles[0] as 'student' | 'tutor';
       this.authService.saveCurrentRole(this.currentRole);
     }
+  }
+
+  ngOnDestroy(): void {
+    this.userSub?.unsubscribe();
   }
 
   switchRole(role: 'student' | 'tutor'): void {

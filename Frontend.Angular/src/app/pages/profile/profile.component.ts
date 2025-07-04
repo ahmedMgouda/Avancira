@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -32,6 +32,7 @@ export class ProfileComponent implements OnInit {
 
   // States
   profile: User = {} as User;
+  profileImageFile: File | null = null;
 
   // Notifications
   notifications = {
@@ -57,7 +58,8 @@ export class ProfileComponent implements OnInit {
     private authService: AuthService,
     private userService: UserService,
     private spinnerService: SpinnerService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
   }
 
@@ -117,12 +119,13 @@ export class ProfileComponent implements OnInit {
 
   saveProfile(): void {
     if (!this.profile) return;
-  
+
     this.spinnerService.show();
-  
-    this.userService.updateUser(this.profile).subscribe({
+
+    this.userService.updateUser(this.profile, this.profileImageFile || undefined).subscribe({
       next: () => {
         this.alertService.successAlert('Profile updated successfully.', 'Success');
+        this.profileImageFile = null;
         this.spinnerService.hide();
       },
       error: (err) => {
@@ -165,18 +168,10 @@ export class ProfileComponent implements OnInit {
       reader.onload = () => {
         if (this.profile) {
           // Set the image URL on the profile object
-          this.profile.imageUrl = reader.result as string;
+          this.profile = { ...this.profile, imageUrl: reader.result as string };
+          this.cdr.markForCheck();
         }
-
-        // Send the image file to the server
-        this.spinnerService.show();
-        this.userService.updateUser(this.profile!, file).subscribe({
-          next: () => this.spinnerService.hide(),
-          error: (err) => {
-            console.error('Error updating profile picture:', err);
-            this.spinnerService.hide();
-          }
-        });
+        this.profileImageFile = file;
       };
 
       reader.readAsDataURL(file);
