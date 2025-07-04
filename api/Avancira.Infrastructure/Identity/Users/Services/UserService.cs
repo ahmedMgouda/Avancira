@@ -185,8 +185,9 @@ internal sealed partial class UserService(
                 using var memoryStream = new MemoryStream();
                 await request.Image.CopyToAsync(memoryStream);
                 var fileBytes = memoryStream.ToArray();
-                var base64String = Convert.ToBase64String(fileBytes);
-                
+                var base64Data = Convert.ToBase64String(fileBytes);
+                var base64String = $"data:{request.Image.ContentType};base64,{base64Data}";
+
                 fileUploadDto = new FileUploadDto
                 {
                     Name = request.Image.FileName,
