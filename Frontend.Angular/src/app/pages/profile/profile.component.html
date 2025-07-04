@@ -107,9 +107,10 @@
                     <div class="card mb-4">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label">Short Bio</label>
-                                <textarea class="form-control" rows="4" name="bio" [(ngModel)]="profile.bio"
-                                    placeholder="Write a short bio about yourself"></textarea>
+                                <label class="form-label">About You <small class="text-muted">(max 500 characters)</small></label>
+                                <textarea class="form-control" rows="4" name="bio" [(ngModel)]="profile.bio" maxlength="500"
+                                    placeholder="Tell us about yourself"></textarea>
+                                <small class="text-muted">{{ (profile.bio?.length || 0) }}/500</small>
                             </div>
                             <!-- Save Bio Button -->
                             <div class="text-center">
