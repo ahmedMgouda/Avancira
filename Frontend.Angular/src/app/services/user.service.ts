@@ -32,6 +32,7 @@ export class UserService {
     // Fetch from backend if not found locally
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap(user => {
+        this.mapProfileImage(user);
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
       })
@@ -61,6 +62,7 @@ export class UserService {
     this.clearCachedUser();
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap(user => {
+        this.mapProfileImage(user);
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
       })
@@ -154,12 +156,13 @@ export class UserService {
           }),
           switchMap(() => {
             // Fetch fresh user data from the server
-            return this.http.get<User>(`${this.apiUrl}/me`).pipe(
-              tap(updatedUser => {
-                // Update the cache with fresh data
-                this.cachedUser = updatedUser;
-                localStorage.setItem('user', JSON.stringify(this.cachedUser));
-              }),
+          return this.http.get<User>(`${this.apiUrl}/me`).pipe(
+            tap(updatedUser => {
+              // Update the cache with fresh data
+              this.mapProfileImage(updatedUser);
+              this.cachedUser = updatedUser;
+              localStorage.setItem('user', JSON.stringify(this.cachedUser));
+            }),
               map(() => void 0) // Convert to void to match return type
             );
           })
@@ -212,5 +215,11 @@ export class UserService {
 
   deleteAccount(): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/me`);
+  }
+
+  private mapProfileImage(user: any): void {
+    if (user && !user.profileImagePath && user.imageUrl) {
+      user.profileImagePath = user.imageUrl;
+    }
   }
 }
