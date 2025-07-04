@@ -25,6 +25,9 @@ export class UserService {
     if (storedUser) {
       this.cachedUser = JSON.parse(storedUser);
       if (this.cachedUser) {
+        if ((this.cachedUser as any).profileImagePath && !(this.cachedUser as any).imageUrl) {
+          (this.cachedUser as any).imageUrl = (this.cachedUser as any).profileImagePath;
+        }
         return of(this.cachedUser);
       }
     }
@@ -32,7 +35,6 @@ export class UserService {
     // Fetch from backend if not found locally
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap(user => {
-        this.mapProfileImage(user);
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
       })
@@ -62,7 +64,6 @@ export class UserService {
     this.clearCachedUser();
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap(user => {
-        this.mapProfileImage(user);
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
       })
@@ -159,7 +160,6 @@ export class UserService {
           return this.http.get<User>(`${this.apiUrl}/me`).pipe(
             tap(updatedUser => {
               // Update the cache with fresh data
-              this.mapProfileImage(updatedUser);
               this.cachedUser = updatedUser;
               localStorage.setItem('user', JSON.stringify(this.cachedUser));
             }),
@@ -217,9 +217,4 @@ export class UserService {
     return this.http.delete<void>(`${this.apiUrl}/me`);
   }
 
-  private mapProfileImage(user: any): void {
-    if (user && !user.profileImagePath && user.imageUrl) {
-      user.profileImagePath = user.imageUrl;
-    }
-  }
 }

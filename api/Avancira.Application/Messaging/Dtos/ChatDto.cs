@@ -15,7 +15,8 @@ namespace Avancira.Application.Messaging.Dtos
         public string StudentId { get; set; }
         public string RecipientId { get; set; }
         public string Name { get; set; }
-        public string ProfileImagePath { get; set; }
+        // URL for the profile image of the chat participant
+        public string ImageUrl { get; set; }
         public string LastMessage { get; set; }
         public DateTime Timestamp { get; set; }
         public string Details { get; set; }
@@ -25,7 +26,7 @@ namespace Avancira.Application.Messaging.Dtos
         public ChatDto()
         {
             Name = string.Empty;
-            ProfileImagePath = string.Empty;
+            ImageUrl = string.Empty;
             TutorId = string.Empty;
             StudentId = string.Empty;
             RecipientId = string.Empty;

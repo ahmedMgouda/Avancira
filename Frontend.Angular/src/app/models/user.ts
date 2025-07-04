@@ -25,9 +25,8 @@ export interface User {
   profileVerified: string[]; // An array of verification methods like Email, Mobile
   lessonsCompleted: number | null; // Number of lessons completed
   evaluations: number | null; // The number of evaluations
-  // Backend returns the image URL as `imageUrl`. Map it to `profileImagePath` for existing components.
-  profileImagePath?: string; // Path or URL to the profile image
-  imageUrl?: string;          // Raw field from backend
+  /** URL to the user's profile image */
+  imageUrl?: string;
   profileImage?: File;
   recommendationToken: string;
   isStripeConnected: boolean;
