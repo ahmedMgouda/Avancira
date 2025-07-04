@@ -6,7 +6,7 @@ export interface Chat {
     studentId: string;
     recipientId: string;
     name: string;
-    profileImagePath: string;
+    imageUrl: string;
     lastMessage: string;
     timestamp: Date;
     details: string;

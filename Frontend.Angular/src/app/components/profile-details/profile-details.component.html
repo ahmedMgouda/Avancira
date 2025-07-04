@@ -51,7 +51,7 @@
     <!-- Profile Photo -->
     <div class="profile-section">
         <h4>Profile Photo 📸</h4>
-        <app-profile-image [profileImagePath]="profile.profileImagePath" [firstName]="profile.firstName"
+        <app-profile-image [imageUrl]="profile.imageUrl" [firstName]="profile.firstName"
             [lastName]="profile.lastName" sizeClass="large"></app-profile-image>
 
         <button class="upload-btn" (click)="onProfilePictureUpload()">📤</button>

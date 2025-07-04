@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './profile-image.component.scss'
 })
 export class ProfileImageComponent {
-  @Input() profileImagePath?: string; // Profile image path
+  @Input() imageUrl?: string; // Profile image URL
   @Input() firstName?: string;    // User's first name
   @Input() lastName?: string;     // User's last name
   @Input() sizeClass: string = 'large'; // Default size is 'medium'
@@ -23,7 +23,7 @@ export class ProfileImageComponent {
   }
 
   get showImage(): boolean {
-    // Show the image only if profileImage is defined, non-empty, and no error occurred
-    return !!this.profileImagePath && !this.isImageError;
+    // Show the image only if imageUrl is defined, non-empty, and no error occurred
+    return !!this.imageUrl && !this.isImageError;
   }
 }

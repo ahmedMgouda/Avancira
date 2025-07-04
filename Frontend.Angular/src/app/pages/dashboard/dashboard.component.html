@@ -113,7 +113,7 @@
                 <ul class="list-group">
                   <li class="list-group-item" *ngFor="let listing of listings | slice:0:5">
                     <div class="d-flex align-items-center">
-                      <app-profile-image [profileImagePath]="listing.listingImagePath" [firstName]="listing.tutorName" [lastName]=""></app-profile-image>
+                      <app-profile-image [imageUrl]="listing.listingImagePath" [firstName]="listing.tutorName" [lastName]=""></app-profile-image>
                       <div class="ml-3">
                         <h4>{{ listing.title }}</h4>
                         <p>{{ listing.lessonCategory }}</p>

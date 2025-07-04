@@ -1,6 +1,6 @@
 <form class="chat-search d-flex align-items-center">
   <div class="avatar avatar-online me-3">
-    <img [src]="user.profileImagePath" alt="User Image" class="avatar-img rounded-circle" [imageFallback]="user.firstName + ' ' + user.lastName">
+    <img [src]="user.imageUrl" alt="User Image" class="avatar-img rounded-circle" [imageFallback]="user.firstName + ' ' + user.lastName">
   </div>
   <div class="input-group">
     <div class="input-group-prepend">
@@ -19,7 +19,7 @@
       [class.active]="contact.id === selectedContact?.id" (click)="selectContact(contact)">
       <div class="media-img-wrap flex-shrink-0">
         <div class="avatar avatar-online">
-          <img [src]="contact.profileImagePath" alt="User Image" class="avatar-img rounded-circle">
+          <img [src]="contact.imageUrl" alt="User Image" class="avatar-img rounded-circle">
         </div>
       </div>
       <div class="media-body flex-grow-1">

@@ -87,7 +87,7 @@ namespace Avancira.Infrastructure.Catalog
                             ? $"{x.CategoryName} {(isStudent ? "Tutor" : "Student")}"
                             : "No lesson category",
                         Name = $"{recipient.FirstName} {recipient.LastName}",
-                        ProfileImagePath = recipient.ImageUrl?.ToString() ?? "",
+                        ImageUrl = recipient.ImageUrl?.ToString() ?? "",
                         LastMessage = latestMessage?.Content ?? "No messages yet",
                         Timestamp = latestMessage?.SentAt.DateTime ?? x.Chat.CreatedAt.DateTime,
                         Messages = messages.Select(m => new MessageDto
@@ -158,7 +158,7 @@ namespace Avancira.Infrastructure.Catalog
                     ? $"{x.CategoryName} {(isStudent ? "Tutor" : "Student")}"
                     : "No lesson category",
                 Name = $"{recipient.FirstName} {recipient.LastName}",
-                ProfileImagePath = recipient.ImageUrl?.ToString() ?? string.Empty,
+                ImageUrl = recipient.ImageUrl?.ToString() ?? string.Empty,
                 LastMessage = latestMessage?.Content ?? "No messages yet",
                 Timestamp = latestMessage?.SentAt.DateTime ?? x.Chat.CreatedAt.DateTime,
                 Messages = messages.Select(m => new MessageDto
