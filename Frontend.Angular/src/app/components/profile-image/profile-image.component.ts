@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-profile-image',
   imports: [CommonModule, FormsModule],
   templateUrl: './profile-image.component.html',
-  styleUrl: './profile-image.component.scss'
+  styleUrl: './profile-image.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProfileImageComponent {
   @Input() imageUrl?: string; // Profile image path
