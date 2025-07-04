@@ -103,7 +103,8 @@ public class UserSeeder
 {
     public static void Seed(AvanciraDbContext context, UserManager<User> userManager)
     {
-        if (!context.Users.Any())
+        // skip if more than one user already exists (admin user is seeded earlier)
+        if (context.Users.Count() <= 1)
         {
             var users = new List<User>
             {
