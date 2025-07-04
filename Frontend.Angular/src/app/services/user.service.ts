@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable, of, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, of, switchMap, tap } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
@@ -13,11 +13,14 @@ import { User } from '../models/user';
 export class UserService {
   private apiUrl = `${environment.apiUrl}/users`;
   private cachedUser: User | null = null;
+  private userSubject = new BehaviorSubject<User | null>(null);
+  user$ = this.userSubject.asObservable();
 
   constructor(private http: HttpClient) { }
 
   getUser(): Observable<User> {
     if (this.cachedUser) {
+      this.userSubject.next(this.cachedUser);
       return of(this.cachedUser);
     }
 
@@ -28,6 +31,7 @@ export class UserService {
         if ((this.cachedUser as any).profileImagePath && !(this.cachedUser as any).imageUrl) {
           (this.cachedUser as any).imageUrl = (this.cachedUser as any).profileImagePath;
         }
+        this.userSubject.next(this.cachedUser);
         return of(this.cachedUser);
       }
     }
@@ -37,6 +41,7 @@ export class UserService {
       tap(user => {
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
+        this.userSubject.next(user);
       })
     );
   }
@@ -54,6 +59,7 @@ export class UserService {
   setUser(user: User): void {
     this.cachedUser = user;
     localStorage.setItem('user', JSON.stringify(user));
+    this.userSubject.next(user);
   }
   refreshCachedUser(): void {
     this.clearCachedUser();
@@ -66,12 +72,14 @@ export class UserService {
       tap(user => {
         this.cachedUser = user;
         localStorage.setItem('user', JSON.stringify(user));
+        this.userSubject.next(user);
       })
     );
   }
   clearCachedUser(): void {
     this.cachedUser = null;
     localStorage.removeItem('user');
+    this.userSubject.next(null);
   }
   
   getUserByToken(recommendationToken: string): Observable<User> {
@@ -162,6 +170,7 @@ export class UserService {
               // Update the cache with fresh data
               this.cachedUser = updatedUser;
               localStorage.setItem('user', JSON.stringify(this.cachedUser));
+              this.userSubject.next(updatedUser);
             }),
               map(() => void 0) // Convert to void to match return type
             );
