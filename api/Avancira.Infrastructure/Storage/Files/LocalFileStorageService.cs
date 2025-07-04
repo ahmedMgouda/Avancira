@@ -39,7 +39,7 @@ public class LocalFileStorageService(IOptions<OriginOptions> originSettings) : I
                 FileType.Image => Path.Combine("assets", "images", folder),
                 _ => Path.Combine("assets", "others", folder),
             };
-            string pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+            string pathToSave = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
             Directory.CreateDirectory(pathToSave);
 
             string fileName = request.Name.Trim('"');
