@@ -163,8 +163,8 @@ export class ProfileComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = () => {
         if (this.profile) {
-          // Set the image path on the profile object
-          this.profile.profileImagePath = reader.result as string;
+          // Set the image URL on the profile object
+          this.profile.imageUrl = reader.result as string;
         }
   
         // Send the image file to the server

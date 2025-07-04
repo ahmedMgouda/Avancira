@@ -17,7 +17,8 @@ namespace Avancira.Application.Catalog.Dtos
         public string? Email { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? ProfileImagePath { get; set; }
+        // URL pointing to the user's profile image
+        public string? ImageUrl { get; set; }
         public IFormFile? ProfileImage { get; set; }
         public AddressDto? Address { get; set; }
         public string? TimeZoneId { get; set; } = "Austarlia/Sydney";
