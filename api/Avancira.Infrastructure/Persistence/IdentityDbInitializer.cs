@@ -107,9 +107,7 @@ internal sealed class IdentityDbInitializer(
             };
 
             logger.LogInformation("Seeding default Admin user");
-            var password = new PasswordHasher<User>();
-            adminUser.PasswordHash = password.HashPassword(adminUser, AppConstants.DefaultPassword);
-            await userManager.CreateAsync(adminUser);
+            await userManager.CreateAsync(adminUser, AppConstants.DefaultPassword);
         }
 
         if (!await userManager.IsInRoleAsync(adminUser, AvanciraRoles.Admin))
