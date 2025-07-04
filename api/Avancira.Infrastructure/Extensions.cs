@@ -111,7 +111,7 @@ public static class Extensions
         app.UseStaticFiles();
         app.UseStaticFiles(new StaticFileOptions()
         {
-            FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "assets")),
+            FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets")),
             RequestPath = new PathString("/assets")
         });
         app.UseStaticFilesUploads();

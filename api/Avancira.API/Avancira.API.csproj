@@ -27,7 +27,7 @@
 
   
   <ItemGroup>
-    <None Update="assets\defaults\profile-picture.webp">
+    <None Update="wwwroot\assets\defaults\profile-picture.webp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
