@@ -103,7 +103,7 @@ public class UserSeeder
 {
     public static void Seed(AvanciraDbContext context, UserManager<User> userManager)
     {
-        //if (!context.Users.Any())
+        if (!context.Users.Any())
         {
             var users = new List<User>
             {
