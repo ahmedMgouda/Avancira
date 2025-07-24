@@ -56,7 +56,7 @@ public class LocalFileStorageService(IOptions<OriginOptions> originSettings) : I
 
             using var stream = new FileStream(fullPath, FileMode.Create);
             await streamData.CopyToAsync(stream, cancellationToken);
-            var path = dbPath.Replace("\\", "/", StringComparison.Ordinal);
+            var path = Path.Combine("api", dbPath).Replace("\\", "/", StringComparison.Ordinal);
             var imageUri = new Uri(originSettings.Value.OriginUrl!, path);
             return imageUri;
         }
