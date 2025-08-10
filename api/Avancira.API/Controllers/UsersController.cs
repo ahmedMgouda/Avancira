@@ -131,6 +131,8 @@ public class UsersController : BaseApiController
         return Ok(result);
     }
 
+
+
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -147,7 +149,9 @@ public class UsersController : BaseApiController
     [SwaggerOperation(OperationId = "ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto command, CancellationToken cancellationToken)
     {
-        return Ok("Password reset email sent.");
+        var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
+        await _userService.ForgotPasswordAsync(command, origin, cancellationToken);
+        return Ok("If an account with that email exists, a password reset link has been sent.");
     }
 
     [HttpPost("change-password")]
