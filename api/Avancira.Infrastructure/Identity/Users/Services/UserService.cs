@@ -1,9 +1,7 @@
 ﻿using Avancira.Application.Caching;
-using Avancira.Application.Catalog;
 using Avancira.Application.Events;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Jobs;
-using Avancira.Application.Mail;
 using Avancira.Application.Storage;
 using Avancira.Application.Storage.File;
 using Avancira.Application.Storage.File.Dtos;
@@ -16,7 +14,6 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.ObjectModel;
 using System.Security.Claims;
 using System.Text;
 using Avancira.Domain.Common.Exceptions;
@@ -97,22 +94,22 @@ internal sealed partial class UserService(
             .Include(u => u.Address)
             .Include(u => u.Country)
             .AsNoTracking()
-            .Where(u => u.Id == userId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         _ = user ?? throw new NotFoundException("user not found");
 
         return user.Adapt<UserDetailDto>();
     }
 
-    public Task<int> GetCountAsync(CancellationToken cancellationToken) =>
-        userManager.Users.AsNoTracking().CountAsync(cancellationToken);
+    public Task<int> GetCountAsync(CancellationToken cancellationToken)
+     => userManager.Users.AsNoTracking().CountAsync(cancellationToken);
 
     public async Task<List<UserDetailDto>> GetListAsync(CancellationToken cancellationToken)
     {
         var users = await userManager.Users.AsNoTracking().ToListAsync(cancellationToken);
         return users.Adapt<List<UserDetailDto>>();
     }
+
 
     public Task<string> GetOrCreateFromPrincipalAsync(ClaimsPrincipal principal)
     {
@@ -166,18 +163,14 @@ internal sealed partial class UserService(
 
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
     {
-        var user = await userManager.Users.Where(u => u.Id == request.UserId).FirstOrDefaultAsync(cancellationToken);
-
+        var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         _ = user ?? throw new NotFoundException("User Not Found.");
 
         bool isAdmin = await userManager.IsInRoleAsync(user, AvanciraRoles.Admin);
         if (isAdmin)
-        {
             throw new AvanciraException("Administrators Profile's Status cannot be toggled");
-        }
 
         user.IsActive = request.ActivateUser;
-
         await userManager.UpdateAsync(user);
     }
 

@@ -1,16 +1,9 @@
-﻿using Avancira.Application.Catalog;
-using Avancira.Application.Catalog.Dtos;
+﻿using Avancira.Application.Catalog.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Catalog;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Avancira.Domain.Common.Exceptions;
 using Mapster;
@@ -36,40 +29,36 @@ namespace Avancira.Infrastructure.Catalog
             _logger = logger;
         }
 
-        public async Task<PagedResult<ListingDto>> GetTutorListingsAsync(string userId, int page, int pageSize)
+        public async Task<PagedResult<ListingDto>> GetTutorListingsAsync(string userId, int page, int pageSize, CancellationToken ct = default)
         {
-            var query = _dbContext.Listings
+            var baseQuery = _dbContext.Listings
                 .AsNoTracking()
                 .Where(l => l.UserId == userId)
-                .Include(l => l.ListingCategories)
-                    .ThenInclude(llc => llc.Category);
+                .Include(l => l.ListingCategories).ThenInclude(lc => lc.Category);
 
-            var totalRecords = await query.CountAsync();
+            var total = await baseQuery.CountAsync(ct);
 
-            var listings = await query
+            var items = await baseQuery
                 .OrderByDescending(l => l.Created)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(ct);
 
-            var listingDtos = listings.Select(listing => MapToListingDto(listing)).ToList();
-
-            return new PagedResult<ListingDto>(listingDtos, totalRecords, page, pageSize);
+            var dtos = items.Select(listing => MapToListingDto(listing)).ToList();
+            return new PagedResult<ListingDto>(dtos, total, page, pageSize);
         }
 
-        public async Task<ListingDto> CreateListingAsync(ListingRequestDto model, string userId)
+        public async Task<ListingDto> CreateListingAsync(ListingRequestDto model, string userId, CancellationToken ct = default)
         {
-            // Validate that the provided category IDs exist in the Categories table
             var validCategoryIds = await _dbContext.Categories
                 .Where(c => model.CategoryIds.Contains(c.Id))
                 .Select(c => c.Id)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             if (!validCategoryIds.Any())
                 throw new BadRequestException("No valid categories were found.");
 
             var listing = model.Adapt<Listing>();
-
             listing.UserId = userId;
 
             listing.ListingCategories = validCategoryIds
@@ -80,18 +69,17 @@ namespace Avancira.Infrastructure.Catalog
                 })
                 .ToList();
 
-            await _dbContext.Listings.AddAsync(listing);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.Listings.AddAsync(listing, ct);
+            await _dbContext.SaveChangesAsync(ct);
 
             return MapToListingDto(listing);
-
         }
 
-        public async Task<ListingDto> UpdateListingAsync(ListingRequestDto model, string userId)
+        public async Task<ListingDto> UpdateListingAsync(ListingRequestDto model, string userId, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Include(l => l.ListingCategories)
-                .FirstOrDefaultAsync(l => l.Id == model.Id && l.UserId == userId);
+                .FirstOrDefaultAsync(l => l.Id == model.Id && l.UserId == userId, ct);
 
             if (listing is null)
                 throw new KeyNotFoundException("Listing not found or unauthorized.");
@@ -99,56 +87,49 @@ namespace Avancira.Infrastructure.Catalog
             var validCategoryIds = await _dbContext.Categories
                 .Where(c => model.CategoryIds.Contains(c.Id))
                 .Select(c => c.Id)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             if (!validCategoryIds.Any())
                 throw new ArgumentException("No valid categories found.");
+
+            model.Adapt(listing);
 
             listing.ListingCategories.Clear();
             listing.ListingCategories = validCategoryIds
                 .Select(id => new ListingCategory { ListingId = listing.Id, CategoryId = id })
                 .ToList();
 
-            listing = model.Adapt<Listing>();
-
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
 
             return MapToListingDto(listing);
         }
 
-        public ListingDto GetListingById(Guid id)
+        public async Task<ListingDto> GetListingByIdAsync(Guid id, CancellationToken ct = default)
         {
-            var listing = _dbContext.Listings
+            var listing = await _dbContext.Listings
+                .AsNoTracking()
                 .Include(l => l.ListingCategories).ThenInclude(l => l.Category)
-                .FirstOrDefault(l => l.Id == id);
+                .FirstOrDefaultAsync(l => l.Id == id, ct);
 
-            return listing == null ? new ListingDto() : MapToListingDto(listing);
+            return listing is null ? new ListingDto() : MapToListingDto(listing);
         }
 
-        public async Task<PagedResult<ListingDto>> GetUserListingsAsync(string userId, int page, int pageSize)
+        public async Task<PagedResult<ListingDto>> GetUserListingsAsync(string userId, int page, int pageSize, CancellationToken ct = default)
         {
             var queryable = _dbContext.Listings
                 .Include(l => l.ListingCategories).ThenInclude(l => l.Category)
                 .Where(l => l.IsActive && l.UserId == userId);
 
-            // Get total count before pagination
-            var totalResults = await queryable.CountAsync();
+            var totalResults = await queryable.CountAsync(ct);
 
-            // Apply pagination
             var lessons = await queryable
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             var results = lessons.Select(listing => MapToListingDto(listing)).ToList();
 
-            return new PagedResult<ListingDto>
-            (
-               results: results,
-               totalResults: totalResults,
-               page: page,
-               pageSize: pageSize
-            );
+            return new PagedResult<ListingDto>(results, totalResults, page, pageSize);
         }
 
         public IEnumerable<ListingDto> GetLandingPageListings()
@@ -160,8 +141,9 @@ namespace Avancira.Infrastructure.Catalog
                 .Take(50)
                 .ToList();
 
-            return listings.Select(l => MapToListingDto(l));
+            return listings.Select(listing => MapToListingDto(listing));
         }
+
         public IEnumerable<ListingDto> GetLandingPageTrendingListings()
         {
             var listings = _dbContext.Listings
@@ -188,22 +170,37 @@ namespace Avancira.Infrastructure.Catalog
             return dtos;
         }
 
-        public PagedResult<ListingDto> SearchListings(string query, List<string> categories, int page, int pageSize, double? lat = null, double? lng = null, double radiusKm = 10)
+        public async Task<PagedResult<ListingDto>> SearchListingsAsync(
+        string? query,
+        List<string>? categories,
+        int page,
+        int pageSize,
+        double? lat = null,
+        double? lng = null,
+        double radiusKm = 10,
+        CancellationToken ct = default)
         {
-            var queryable = _dbContext.Listings
-                .Include(l => l.ListingCategories).ThenInclude(l => l.Category)
-                .Where(l => EF.Functions.Like(l.Name, $"%{query}%") ||
-                            EF.Functions.Like(l.Description, $"%{query}%"));
-            // Apply category filtering if categories are selected
-            if (categories.Any())
+            var q = _dbContext.Listings
+                .AsNoTracking()
+                .Include(l => l.ListingCategories).ThenInclude(lc => lc.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query))
             {
-                queryable = queryable.Where(l => l.ListingCategories.Any(j => categories.Contains(j.Category.Name)));
+                var lowered = query.ToLower();
+                q = q.Where(l =>
+                    l.Name.ToLower().Contains(lowered) ||
+                    l.Description.ToLower().Contains(lowered));
+            }
+
+            if (categories != null && categories.Count > 0)
+            {
+                q = q.Where(l => l.ListingCategories.Any(j => categories.Contains(j.Category.Name)));
             }
 
             if (lat.HasValue && lng.HasValue)
             {
-                // Haversine formula to calculate distance in KM
-                queryable = queryable.Where(l =>
+                q = q.Where(l =>
                     (6371 * Math.Acos(
                         Math.Cos(Math.PI * lat.Value / 180) * Math.Cos(Math.PI * 0 / 180) *
                         Math.Cos(Math.PI * (lng.Value - 0) / 180) +
@@ -211,22 +208,19 @@ namespace Avancira.Infrastructure.Catalog
                     )) <= radiusKm);
             }
 
-            var totalResults = queryable.Count();
-            var listings = queryable
+            q = q.OrderByDescending(l => l.Created).ThenBy(l => l.Id);
+
+            var total = await q.CountAsync(ct);
+
+            var items = await q
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ProjectToType<ListingDto>()
+                .ToListAsync(ct);
 
-            var results = listings.Select(l => MapToListingDto(l));
-
-            return new PagedResult<ListingDto>(
-                results: results,
-                totalResults: totalResults,
-                page: page,
-                pageSize: pageSize
-            );
+            return new PagedResult<ListingDto>(items, total, page, pageSize);
         }
-
+        
         public ListingStatisticsDto GetListingStatistics()
         {
             var today = DateTime.UtcNow.Date;
@@ -247,41 +241,42 @@ namespace Avancira.Infrastructure.Catalog
             return stats;
         }
 
-        public async Task<bool> ModifyListingTitleAsync(Guid listingId, string userId, string newTitle)
+        public async Task<bool> ModifyListingTitleAsync(Guid listingId, string userId, string newTitle, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
             listing.UpdateTitle(newTitle);
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ModifyListingImageAsync(Guid listingId, string userId, IFormFile newImage)
+        public async Task<bool> ModifyListingImageAsync(Guid listingId, string userId, IFormFile newImage, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
+            // TODO: use _fileUploadService with ct if it supports it, then update listing image fields.
             _dbContext.Listings.Update(listing);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ModifyListingLocationsAsync(Guid listingId, string userId, List<string> newLocations)
+        public async Task<bool> ModifyListingLocationsAsync(Guid listingId, string userId, List<string> newLocations, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
@@ -298,85 +293,86 @@ namespace Avancira.Infrastructure.Catalog
 
             listing.UpdateLocations(updatedLocations);
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ModifyListingDescriptionAsync(Guid listingId, string userId, string newAboutLesson, string newAboutYou)
+        public async Task<bool> ModifyListingDescriptionAsync(Guid listingId, string userId, string newAboutLesson, string newAboutYou, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
             listing.UpdateDescription(newAboutLesson);
+            // If you later persist AboutYou, do it here.
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ModifyListingCategoryAsync(Guid listingId, string userId, Guid newCategoryId)
+        public async Task<bool> ModifyListingCategoryAsync(Guid listingId, string userId, Guid newCategoryId, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Include(l => l.ListingCategories)
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
-            var categoryExists = await _dbContext.Categories.AnyAsync(c => c.Id == newCategoryId);
+            var categoryExists = await _dbContext.Categories.AnyAsync(c => c.Id == newCategoryId, ct);
             if (!categoryExists) return false;
 
             listing.ListingCategories.Clear();
-            listing.ListingCategories.Add(new ListingCategory 
-            { 
+            listing.ListingCategories.Add(new ListingCategory
+            {
                 ListingId = listingId,
-                CategoryId = newCategoryId 
+                CategoryId = newCategoryId
             });
-            
-            await _dbContext.SaveChangesAsync();
+
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ModifyListingRatesAsync(Guid listingId, string userId, RatesDto newRates)
+        public async Task<bool> ModifyListingRatesAsync(Guid listingId, string userId, RatesDto newRates, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
             listing.UpdateHourlyRate(newRates.Hourly);
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> ToggleListingVisibilityAsync(Guid id, string userId)
+        public async Task<bool> ToggleListingVisibilityAsync(Guid id, string userId, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == id && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null) return false;
 
             listing.ToggleVisibility();
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
-        public async Task<bool> DeleteListingAsync(Guid listingId, string userId)
+        public async Task<bool> DeleteListingAsync(Guid listingId, string userId, CancellationToken ct = default)
         {
             var listing = await _dbContext.Listings
                 .Where(l => l.Id == listingId && l.UserId == userId)
                 .AsTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (listing == null || !listing.IsActive)
             {
@@ -385,7 +381,7 @@ namespace Avancira.Infrastructure.Catalog
 
             listing.Delete();
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
             return true;
         }
 
@@ -397,14 +393,7 @@ namespace Avancira.Infrastructure.Catalog
                 IsVisible = listing.IsVisible,
                 ContactedCount = contactedCount ?? 0,
                 Reviews = 0,
-                //Category = listing.ListingCategories.FirstOrDefault()?.Category?.Name ?? "Unknown",
                 Title = listing.Name,
-                //ListingImagePath = listing.UserId,
-                //Locations = Enum.GetValues(typeof(ListingLocationType))
-                //                .Cast<ListingLocationType>()
-                //                .Where(location => (listing.Locations & location) == location && location != ListingLocationType.None)
-                //                .Select(location => location.ToString())
-                //                .ToList(),
                 AboutLesson = listing.Description,
                 AboutYou = string.Empty,
                 Rate = $"{listing.HourlyRate}/h",
