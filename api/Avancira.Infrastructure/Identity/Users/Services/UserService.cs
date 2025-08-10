@@ -47,15 +47,28 @@ internal sealed partial class UserService(
             .Where(u => u.Id == userId && !u.EmailConfirmed)
             .FirstOrDefaultAsync(cancellationToken);
 
-        _ = user ?? throw new AvanciraException("An error occurred while confirming E-Mail.");
+        _ = user ?? throw new AvanciraException("Invalid email confirmation request.");
 
-        code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
-        var result = await userManager.ConfirmEmailAsync(user, code);
+        string decoded;
+        try
+        {
+            decoded = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+        }
+        catch
+        {
+            throw new AvanciraException("Invalid email confirmation token.");
+        }
 
-        return result.Succeeded
-            ? string.Format("Account Confirmed for E-Mail {0}. You can now use the /api/tokens endpoint to generate JWT.", user.Email)
-            : throw new AvanciraException(string.Format("An error occurred while confirming {0}", user.Email));
+        var result = await userManager.ConfirmEmailAsync(user, decoded);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            throw new AvanciraException("Error confirming email.", errors);
+        }
+
+        return $"Account confirmed for {user.Email}.";
     }
+
 
     public Task<string> ConfirmPhoneNumberAsync(string userId, string code)
     {
@@ -64,7 +77,8 @@ internal sealed partial class UserService(
 
     public async Task<bool> ExistsWithEmailAsync(string email, string? exceptId = null)
     {
-        return await userManager.FindByEmailAsync(email.Normalize()) is User user && user.Id != exceptId;
+        var u = await userManager.FindByEmailAsync(email);
+        return u is User user && user.Id != exceptId;
     }
 
     public async Task<bool> ExistsWithNameAsync(string name)

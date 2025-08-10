@@ -38,9 +38,31 @@ internal static class Extensions
             options.Password.RequireNonAlphanumeric = false;
             options.Password.RequireUppercase = false;
             options.User.RequireUniqueEmail = true;
+            options.Tokens.PasswordResetTokenProvider = "PasswordReset";
+            options.Tokens.EmailConfirmationTokenProvider = "EmailConfirmation";
         })
            .AddEntityFrameworkStores<AvanciraDbContext>()
-           .AddDefaultTokenProviders();
+           .AddDefaultTokenProviders()
+            .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
+            .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
+
+
+        // Token lifetimes
+        services.Configure<DataProtectionTokenProviderOptions>(o =>
+        {
+            o.TokenLifespan = TimeSpan.FromHours(2);
+        });
+
+        services.Configure<DataProtectionTokenProviderOptions>("EmailConfirmation", o =>
+        {
+            o.TokenLifespan = TimeSpan.FromDays(1);
+        });
+
+        services.Configure<DataProtectionTokenProviderOptions>("PasswordReset", o =>
+        {
+            o.TokenLifespan = TimeSpan.FromHours(2);
+        });
+
         return services;
     }
 }
