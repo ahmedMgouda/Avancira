@@ -28,7 +28,8 @@ var postgresPassword = builder.AddParameter("postgres-password", "Avancira@2025"
 // Replace the line causing the error with the following code:
 var postgresql = builder.AddPostgres("postgresql", password: postgresPassword)
    // Persist database files across runs so tokens remain valid
-   .WithBindMount("pgdata", "/var/lib/postgresql/data");
+   .WithBindMount("pgdata", "/var/lib/postgresql/data")
+   .WithPgAdmin();
 
 var postgresDb = postgresql.AddDatabase("avancira");
 
@@ -65,9 +66,9 @@ builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
     // Notifications Configuration
     .WithEnvironment("Avancira__Notifications__Email__From", Environment.GetEnvironmentVariable("Avancira__Notifications__Email__From") ?? string.Empty)
     .WithEnvironment("Avancira__Notifications__Email__FromName", Environment.GetEnvironmentVariable("Avancira__Notifications__Email__FromName") ?? string.Empty)
-    .WithEnvironment("Avancira__Notifications__Graph__ClientId", Environment.GetEnvironmentVariable("Avancira__Notifications__Graph__ClientId") ?? string.Empty)
-    .WithEnvironment("Avancira__Notifications__Graph__ClientSecret", Environment.GetEnvironmentVariable("Avancira__Notifications__Graph__ClientSecret") ?? string.Empty)
-    .WithEnvironment("Avancira__Notifications__Graph__TenantId", Environment.GetEnvironmentVariable("Avancira__Notifications__Graph__TenantId") ?? string.Empty)
+    .WithEnvironment("Avancira__Notifications__GraphApi__ClientId", Environment.GetEnvironmentVariable("Avancira__Notifications__GraphApi__ClientId") ?? string.Empty)
+    .WithEnvironment("Avancira__Notifications__GraphApi__ClientSecret", Environment.GetEnvironmentVariable("Avancira__Notifications__GraphApi__ClientSecret") ?? string.Empty)
+    .WithEnvironment("Avancira__Notifications__GraphApi__TenantId", Environment.GetEnvironmentVariable("Avancira__Notifications__GraphApi__TenantId") ?? string.Empty)
     .WithEnvironment("Avancira__Notifications__SendGrid__ApiKey", Environment.GetEnvironmentVariable("Avancira__Notifications__SendGrid__ApiKey") ?? string.Empty)
     .WithEnvironment("Avancira__Notifications__Smtp__Host", Environment.GetEnvironmentVariable("Avancira__Notifications__Smtp__Host") ?? string.Empty)
     .WithEnvironment("Avancira__Notifications__Smtp__Port", Environment.GetEnvironmentVariable("Avancira__Notifications__Smtp__Port") ?? string.Empty)
