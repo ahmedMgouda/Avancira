@@ -55,7 +55,7 @@ public class ChatsController : BaseApiController
         // Validate the messageDto
         if (messageDto.RecipientId == null || string.IsNullOrEmpty(messageDto.RecipientId))
         {
-            var listing = _listingService.GetListingById(messageDto.ListingId);
+            var listing = await _listingService.GetListingByIdAsync(messageDto.ListingId);
             if (listing == null)
             {
                 return BadRequest("Invalid listing ID.");

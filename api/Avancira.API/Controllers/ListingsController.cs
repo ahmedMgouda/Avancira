@@ -1,28 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
 using Avancira.Application.Listings.Dtos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Avancira.API.Controllers;
 
-[AllowAnonymous]
+[ApiController]
 [Route("api/listings")]
+[Produces("application/json")]
 public class ListingsController : BaseApiController
 {
     private readonly IListingService _listingService;
     private readonly ILogger<ListingsController> _logger;
 
-    public ListingsController(
-        IListingService listingService,
-        ILogger<ListingsController> logger
-    )
+    public ListingsController(IListingService listingService, ILogger<ListingsController> logger)
     {
         _listingService = listingService;
         _logger = logger;
@@ -30,11 +21,16 @@ public class ListingsController : BaseApiController
 
     [Authorize]
     [HttpGet("tutor-listings")]
-    public async Task<IActionResult> GetTutorListings([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetTutorListings(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var userId = GetUserId();
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
+        var userId = GetUserId();
+        var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
 
         return Ok(new
         {
@@ -46,7 +42,8 @@ public class ListingsController : BaseApiController
 
     [Authorize]
     [HttpPost("create-listing")]
-    public async Task<IActionResult> Create([FromForm] ListingRequestDto model)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Create([FromForm] ListingRequestDto model, CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
         {
@@ -54,32 +51,29 @@ public class ListingsController : BaseApiController
                 .Where(e => e.Value?.Errors.Any() ?? false)
                 .ToDictionary(e => e.Key, e => e.Value!.Errors.Select(err => err.ErrorMessage).ToList());
 
-            return BadRequest(new
-            {
-                success = false,
-                errors = errors
-            });
+            return BadRequest(new { success = false, errors });
         }
 
         var userId = GetUserId();
-        var listing = await _listingService.CreateListingAsync(model, userId);
+        var listing = await _listingService.CreateListingAsync(model, userId, ct);
 
-        return CreatedAtAction(nameof(GetListingById), new { id = listing.Id },
-            new
-            {
-                success = true,
-                message = "Listing created successfully.",
-                data = listing
-            });
+        return CreatedAtAction(nameof(GetListingById), new { id = listing.Id }, new
+        {
+            success = true,
+            message = "Listing created successfully.",
+            data = listing
+        });
     }
 
     [Authorize]
     [HttpPut("update-listing/{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromForm] ListingRequestDto model)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Update(Guid id, [FromForm] ListingRequestDto model, CancellationToken ct = default)
     {
         model.Id = id;
+
         var userId = GetUserId();
-        var updatedListing = await _listingService.UpdateListingAsync(model, userId);
+        var updatedListing = await _listingService.UpdateListingAsync(model, userId, ct);
 
         return Ok(new
         {
@@ -89,146 +83,168 @@ public class ListingsController : BaseApiController
         });
     }
 
-    // Read
+    [AllowAnonymous]
     [HttpGet("search")]
-    public IActionResult Search([FromQuery] string? query = null, [FromQuery] string? categories = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> Search(
+        [FromQuery] string? query = null,
+        [FromQuery] string? categories = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var categoryList = string.IsNullOrWhiteSpace(categories)
             ? new List<string>()
-            : categories.Split(',').Select(c => c.Trim()).ToList();
+            : categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-        var results = _listingService.SearchListings(query!, categoryList, page, pageSize);
+        var results = await _listingService.SearchListingsAsync(query, categoryList, page, pageSize, null, null , 10 , ct);
         return Ok(results);
     }
 
+    [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> Get(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var userId = GetUserId();
-        var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize);
+        var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
         return Ok(listings);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
-    public IActionResult GetListingById(Guid id)
+    public async Task<IActionResult> GetListingById(Guid id, CancellationToken ct = default)
     {
-        var listing = _listingService.GetListingById(id);
+        var listing = await _listingService.GetListingByIdAsync(id, ct);
         if (listing == null)
-        {
             return NotFound($"Listing with ID {id} not found.");
-        }
 
         return Ok(listing);
     }
 
-    // Update
     [Authorize]
     [HttpPut("{id:guid}/toggle-visibility")]
-    public async Task<IActionResult> ToggleVisibility(Guid id)
+    public async Task<IActionResult> ToggleVisibility(Guid id, CancellationToken ct = default)
     {
         var userId = GetUserId();
-        var success = await _listingService.ToggleListingVisibilityAsync(id, userId);
+        var success = await _listingService.ToggleListingVisibilityAsync(id, userId, ct);
         if (!success)
-        {
             return NotFound($"Listing with ID {id} not found or unauthorized.");
-        }
 
         return Ok(new { success = true, message = "Visibility updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-title")]
-    public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleDto updateTitleDto)
+    public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleDto dto, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingTitleAsync(id, userId, updateTitleDto.Title);
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Title))
+            return BadRequest("Title is required.");
 
-        if (!success) return NotFound("Listing not found or unauthorized.");
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingTitleAsync(id, userId, dto.Title.Trim(), ct);
+        if (!success)
+            return NotFound("Listing not found or unauthorized.");
 
         return Ok(new { success = true, message = "Title updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-image")]
-    public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingImageAsync(id, userId, image);
+        if (image == null || image.Length == 0)
+            return BadRequest("Image file is required.");
 
-        if (!success) return NotFound("Listing not found or unauthorized.");
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingImageAsync(id, userId, image, ct);
+        if (!success)
+            return NotFound("Listing not found or unauthorized.");
 
         return Ok(new { success = true, message = "Image updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-locations")]
-    public async Task<IActionResult> UpdateLocations(Guid id, [FromBody] List<string> locations)
+    public async Task<IActionResult> UpdateLocations(Guid id, [FromBody] List<string> locations, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations);
+        if (locations == null || locations.Count == 0)
+            return BadRequest("At least one location is required.");
 
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations, ct);
         if (!success)
-        {
             return BadRequest("Failed to update locations.");
-        }
 
         return Ok(new { success = true, message = "Locations updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-description")]
-    public async Task<IActionResult> UpdateDescription(Guid id, [FromBody] UpdateDescriptionDto updateDescriptionDto)
+    public async Task<IActionResult> UpdateDescription(Guid id, [FromBody] UpdateDescriptionDto dto, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingDescriptionAsync(id, userId, updateDescriptionDto.AboutLesson, updateDescriptionDto.AboutYou);
+        if (dto == null)
+            return BadRequest("Payload is required.");
 
-        if (!success) return NotFound("Listing not found or unauthorized.");
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingDescriptionAsync(id, userId, dto.AboutLesson, dto.AboutYou, ct);
+        if (!success)
+            return NotFound("Listing not found or unauthorized.");
 
         return Ok(new { success = true, message = "Description updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-rates")]
-    public async Task<IActionResult> UpdateRates(Guid id, [FromBody] RatesDto ratesDto)
+    public async Task<IActionResult> UpdateRates(Guid id, [FromBody] RatesDto dto, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingRatesAsync(id, userId, ratesDto);
+        if (dto == null)
+            return BadRequest("Payload is required.");
 
-        if (!success) return NotFound("Listing not found or unauthorized.");
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingRatesAsync(id, userId, dto, ct);
+        if (!success)
+            return NotFound("Listing not found or unauthorized.");
 
         return Ok(new { success = true, message = "Rates updated successfully." });
     }
 
     [Authorize]
     [HttpPut("{id:guid}/update-category")]
-    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto updateCategoryDto)
+    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto dto, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingCategoryAsync(id, userId, updateCategoryDto.LessonCategoryId);
+        if (dto == null || dto.LessonCategoryId == Guid.Empty)
+            return BadRequest("Valid category is required.");
 
-        if (!success) return NotFound("Listing not found or unauthorized.");
+        var userId = GetUserId();
+        var success = await _listingService.ModifyListingCategoryAsync(id, userId, dto.LessonCategoryId, ct);
+        if (!success)
+            return NotFound("Listing not found or unauthorized.");
 
         return Ok(new { success = true, message = "Category updated successfully." });
     }
 
-    // Delete
     [Authorize]
     [HttpDelete("{id:guid}/delete")]
-    public async Task<IActionResult> DeleteListing(Guid id)
+    public async Task<IActionResult> DeleteListing(Guid id, CancellationToken ct = default)
     {
-        var listing = _listingService.GetListingById(id);
+        var listing = await _listingService.GetListingByIdAsync(id, ct);
         if (listing == null)
-        {
             return NotFound($"Listing with ID {id} not found.");
-        }
 
         var userId = GetUserId();
-        var success = await _listingService.DeleteListingAsync(id, userId);
+        var success = await _listingService.DeleteListingAsync(id, userId, ct);
         if (!success)
-        {
             return BadRequest("Failed to delete listing.");
-        }
 
-        return Ok(new { success = true, message = "Listing deleted successfully." });
+        return NoContent();
     }
 }

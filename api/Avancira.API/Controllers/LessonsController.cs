@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Avancira.Application.Catalog;
 using Avancira.Application.Lessons.Dtos;
 using Avancira.Application.Lessons;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Avancira.API.Controllers;
 
