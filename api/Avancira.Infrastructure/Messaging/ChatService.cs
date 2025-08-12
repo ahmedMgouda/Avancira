@@ -63,7 +63,7 @@ namespace Avancira.Infrastructure.Catalog
                 {
                     var messages = _dbContext.Messages
                         .Where(m => m.ChatId == x.Chat.Id)
-                        .OrderByDescending(m => m.SentAt)
+                        .OrderBy(m => m.SentAt)
                         .ToList();
 
                     var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
@@ -72,7 +72,7 @@ namespace Avancira.Infrastructure.Catalog
                         .Where(u => senderIds.Contains(u.Id))
                         .ToDictionary(u => u.Id, u => u);
 
-                    var latestMessage = messages.FirstOrDefault();
+                    var latestMessage = messages.LastOrDefault();
                     var isStudent = x.Chat.StudentId == userId;
                     var recipient = isStudent ? x.Tutor : x.Student;
 
@@ -134,7 +134,7 @@ namespace Avancira.Infrastructure.Catalog
 
             var messages = _dbContext.Messages
                 .Where(m => m.ChatId == x.Chat.Id)
-                .OrderByDescending(m => m.SentAt)
+                .OrderBy(m => m.SentAt)
                 .ToList();
 
             var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
@@ -143,7 +143,7 @@ namespace Avancira.Infrastructure.Catalog
                 .Where(u => senderIds.Contains(u.Id))
                 .ToDictionary(u => u.Id, u => u);
 
-            var latestMessage = messages.FirstOrDefault();
+            var latestMessage = messages.LastOrDefault();
             var isStudent = x.Chat.StudentId == userId;
             var recipient = isStudent ? x.Tutor : x.Student;
 
@@ -217,7 +217,8 @@ namespace Avancira.Infrastructure.Catalog
                         LessonTitle = lessonTitle,
                         MessagePreview = messageDto.Content?.Length > 50 
                             ? messageDto.Content.Substring(0, 50) + "..." 
-                            : messageDto.Content
+                            : messageDto.Content,
+                        Timestamp = DateTimeOffset.UtcNow
                     }
                 );
 

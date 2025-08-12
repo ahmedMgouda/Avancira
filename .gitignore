@@ -362,3 +362,26 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 Web/*
+
+# .NET Aspire
+**/aspire-manifest.json
+**/manifest.json
+.aspire/
+
+# Aspire generated data directories
+**/pgdata/
+**/pgadmin-data/
+**/grafana/
+**/loki/
+**/prometheus-data/
+**/redis-data/
+**/elasticsearch-data/
+**/kibana-data/
+**/seq-data/
+**/jaeger-data/
+**/zipkin-data/
+
+# Aspire logs and temporary files
+**/aspire-logs/
+**/.aspire-logs/
+**/aspire.*.log

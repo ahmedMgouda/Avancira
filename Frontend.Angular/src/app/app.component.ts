@@ -7,6 +7,7 @@ import { ConfirmationDialogComponent } from "./components/confirmation-dialog/co
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
 import { NotificationService } from './services/notification.service';
+import { NotificationEvent } from './models/enums/notification-event';
 
 @Component({
   selector: 'app-root',
@@ -44,17 +45,16 @@ export class AppComponent implements OnInit {
 
       // Listen for notifications
       this.notificationService.onReceiveNotification((notification) => {
-        this.toastr.info(notification.data.content, notification.message);
-        // if (notification.eventName === NotificationEvent.NewMessage) {
-
-        //   // Reload messages if the current route is the messages page
-        //   if (this.currentRoute === '/messages') {
-        //     this.reloadMessages(notification.data.recipientId);
-        //   }
-        //   else {
-        //     this.toastr.info(notification.data.content, notification.message);
-        //   }
-        // }
+        if (notification.eventName === NotificationEvent.NewMessage) {
+          // Only show toast notification for messages if NOT on the messages page
+          // The message-thread component will handle displaying messages when on the messages page
+          if (this.currentRoute !== '/messages') {
+            this.toastr.info(notification.data.content, notification.message);
+          }
+        } else {
+          // For all other notification types, show the toast
+          this.toastr.info(notification.data.content, notification.message);
+        }
       });
     }
   }

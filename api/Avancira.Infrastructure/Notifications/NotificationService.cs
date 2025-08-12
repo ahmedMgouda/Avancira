@@ -48,7 +48,7 @@ namespace Avancira.Infrastructure.Catalog
                 {
                     // Send through all notification channels (including SignalR)
                     string message = GetDefaultMessageForEvent(eventType);
-                    await SendNotificationToAllChannelsAsync(eventType.ToString(), message, eventData, userId);
+                    await SendNotificationToAllChannelsAsync(eventType, message, eventData, userId);
                 }
 
                 // Handle specific notification events that need special processing (like email templates)
@@ -82,7 +82,7 @@ namespace Avancira.Infrastructure.Catalog
                 var notification = new Notification
                 {
                     UserId = userId,
-                    EventName = eventName.ToString(),
+                    EventName = eventName,
                     Message = message,
                     Data = data != null ? JsonSerializer.Serialize(data) : null,
                     IsRead = false,
@@ -122,7 +122,7 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        private async Task SendNotificationToAllChannelsAsync<T>(string eventName, string message, T eventData, string userId)
+        private async Task SendNotificationToAllChannelsAsync<T>(NotificationEvent eventName, string message, T eventData, string userId)
         {
             try
             {
@@ -156,7 +156,7 @@ namespace Avancira.Infrastructure.Catalog
             }
         }
 
-        private async Task SendNotificationToAllChannelsAsync<T>(string eventName, string message, T eventData)
+        private async Task SendNotificationToAllChannelsAsync<T>(NotificationEvent eventName, string message, T eventData)
         {
             try
             {

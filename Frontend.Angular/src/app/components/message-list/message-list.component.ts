@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
+import { NotificationService } from '../../services/notification.service';
 import { UserService } from '../../services/user.service';
 
 import { TimeAgoPipe } from "../../pipes/time-ago.pipe";
@@ -13,6 +14,7 @@ import { ImageFallbackDirective } from '../../directives/image-fallback.directiv
 
 import { Chat } from '../../models/chat';
 import { User } from '../../models/user';
+import { NotificationEvent } from '../../models/enums/notification-event';
 
 @Component({
   selector: 'app-message-list',
@@ -20,7 +22,7 @@ import { User } from '../../models/user';
   templateUrl: './message-list.component.html',
   styleUrls: ['./message-list.component.scss']
 })
-export class MessageListComponent implements OnInit {
+export class MessageListComponent implements OnInit, OnDestroy {
   loading = true;
   contacts: Chat[] = [];
   @Input() selectedContact: Chat | null = null;
@@ -31,7 +33,8 @@ export class MessageListComponent implements OnInit {
     private router: Router,
     private userService: UserService,
     private authService: AuthService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private notificationService: NotificationService
   ) { }
 
   ngOnInit(): void {
@@ -39,6 +42,18 @@ export class MessageListComponent implements OnInit {
       this.fetchUserInfo();
     }
     this.loadContacts();
+    
+    // Listen for new message notifications to refresh the contact list
+    this.notificationService.onReceiveNotification((notification) => {
+      if (notification.eventName === NotificationEvent.NewMessage) {
+        // Refresh the contacts list to show updated last message and timestamp
+        this.loadContacts();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup if needed
   }
 
   isLoggedIn(): boolean {

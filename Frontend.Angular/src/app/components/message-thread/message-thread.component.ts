@@ -11,6 +11,7 @@ import { TimeAgoPipe } from "../../pipes/time-ago.pipe";
 
 import { environment } from '../../environments/environment';
 import { Chat } from '../../models/chat';
+import { NotificationEvent } from '../../models/enums/notification-event';
 
 @Component({
   selector: 'app-message-thread',
@@ -37,17 +38,37 @@ export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges,
   ngOnInit(): void {
     // Listen for notifications
     this.notificationService.onReceiveNotification((notification) => {
-      if (this.selectedContact && notification.data.listingId === this.selectedContact.listingId && notification.data.senderId === this.selectedContact.recipientId) {
-        this.selectedContact.messages.push({
-          sentBy: 'contact',
-          senderId: '',
-          senderName: '',
-          content: notification.data.content,
-          timestamp: notification.data.timestamp,
-        });
+      if (notification.eventName === NotificationEvent.NewMessage) {
+        // Parse the notification data if it's a string
+        let notificationData = notification.data;
+        if (typeof notification.data === 'string') {
+          try {
+            notificationData = JSON.parse(notification.data);
+          } catch (e) {
+            console.error('Failed to parse notification data:', e);
+            return;
+          }
+        }
+        
+        // If we have a selected contact and the message is for this contact, add it to the chat
+        if (this.selectedContact && 
+            notificationData.ListingId === this.selectedContact.listingId && 
+            notificationData.SenderId === this.selectedContact.recipientId) {
+          
+          this.selectedContact.messages.push({
+            sentBy: 'contact',
+            senderId: notificationData.SenderId,
+            senderName: notificationData.SenderName || 'Contact',
+            content: notificationData.MessagePreview || notificationData.Content,
+            timestamp: notificationData.Timestamp ? new Date(notificationData.Timestamp) : new Date(),
+          });
 
-        // Scroll to the bottom to display the new message
-        this.scrollToBottom();
+          // Trigger change detection and scroll to the bottom
+          this.cdr.detectChanges();
+          this.scrollToBottom();
+        }
+        // If no contact is selected or message is from a different contact,
+        // the message will still be handled by the polling mechanism or when the user selects that contact
       }
     });
     if (!environment.useSignalR) {
@@ -125,10 +146,12 @@ export class MessageThreadComponent implements AfterViewInit, OnInit, OnChanges,
 
   private scrollToBottom(): void {
     this.cdr.detectChanges();
-    if (this.chatMessagesContainer) {
-      const element = this.chatMessagesContainer.nativeElement;
-      element.scrollTop = element.scrollHeight;
-    }
+    setTimeout(() => {
+      if (this.chatMessagesContainer) {
+        const element = this.chatMessagesContainer.nativeElement;
+        element.scrollTop = element.scrollHeight;
+      }
+    }, 0);
   }
 
   private startPolling(): void {
