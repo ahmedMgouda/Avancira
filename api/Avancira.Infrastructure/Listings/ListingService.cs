@@ -215,10 +215,11 @@ namespace Avancira.Infrastructure.Catalog
             var items = await q
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ProjectToType<ListingDto>()
                 .ToListAsync(ct);
 
-            return new PagedResult<ListingDto>(items, total, page, pageSize);
+            var dtos = items.Select(listing => MapToListingDto(listing)).ToList();
+
+            return new PagedResult<ListingDto>(dtos, total, page, pageSize);
         }
         
         public ListingStatisticsDto GetListingStatistics()
