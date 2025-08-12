@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Microsoft.Extensions.Options;
@@ -57,38 +58,48 @@ public static class Extensions
     public static IApplicationBuilder SetupDatabases(this IApplicationBuilder app)
     {
         using var serviceScope = app.ApplicationServices.CreateScope();
+        var configuration = serviceScope.ServiceProvider.GetRequiredService<IConfiguration>();
+        
+        // Aspire-controlled flags with production-safe defaults
+        var dropDatabase = configuration.GetValue<bool>("ASPIRE_DROP_DATABASE", false);
+        var runSeeding = configuration.GetValue<bool>("ASPIRE_RUN_SEEDING", false);
 
         try
         {
-            // Get the DbContext and check if there are any pending migrations
             var context = serviceScope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
 
-            // Ensure database exists and apply migrations
+            // Handle database drop/recreation
+            if (dropDatabase)
+            {
+                context.Database.EnsureDeleted();
+                Logger.Information("Database dropped");
+            }
+
+            // Ensure database exists
             context.Database.EnsureCreated();
 
-            // Check if there are pending migrations
+            // migrations
             if (context.Database.GetPendingMigrations().Any())
             {
-                // Apply pending migrations
                 context.Database.Migrate();
-                Logger.Information("Applied pending migrations.");
-            }
-            else
-            {
-                Logger.Information("No pending migrations.");
+                Logger.Information("Migrations applied");
             }
 
-            // Optionally, seed the database if needed
-            var initializers = serviceScope.ServiceProvider.GetServices<IDbInitializer>();
-            foreach (var initializer in initializers)
+            // Handle seeding only if Aspire allows it
+            if (runSeeding)
             {
-                initializer.SeedAsync(CancellationToken.None).Wait();
+                var initializers = serviceScope.ServiceProvider.GetServices<IDbInitializer>();
+                foreach (var initializer in initializers)
+                {
+                    initializer.SeedAsync(CancellationToken.None).Wait();
+                }
+                Logger.Information("Database seeded");
             }
         }
         catch (Exception ex)
         {
-            // If database setup fails (e.g., in Aspire mode where it's handled elsewhere), log and continue
-            Logger.Warning("Database setup failed, this might be expected in Aspire mode: {Error}", ex.Message);
+            Logger.Error(ex, "Database setup failed: {Error}", ex.Message);
+            throw;
         }
 
         return app;

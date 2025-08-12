@@ -25,9 +25,10 @@ var grafana = builder.AddContainer("grafana", "grafana/grafana:latest")
 
 // PostgreSQL
 var postgresPassword = builder.AddParameter("postgres-password", "Avancira@2025", secret: true);
-// Replace the line causing the error with the following code:
+var dropDatabase = builder.AddParameter("drop-database", "false", secret: false);
+var runSeeding = builder.AddParameter("run-seeding", "false", secret: false);
+
 var postgresql = builder.AddPostgres("postgresql", password: postgresPassword)
-   // Persist database files across runs so tokens remain valid
    .WithBindMount("pgdata", "/var/lib/postgresql/data")
    .WithPgAdmin();
 
@@ -36,6 +37,8 @@ var postgresDb = postgresql.AddDatabase("avancira");
 // Backend
 builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
     .WithReference(postgresDb)
+    .WithEnvironment("ASPIRE_DROP_DATABASE", dropDatabase.Resource.Value)
+    .WithEnvironment("ASPIRE_RUN_SEEDING", runSeeding.Resource.Value)
     // Database Configuration - Use actual values instead of string.Empty to ensure they're set
     .WithEnvironment("Avancira__Database__Host", Environment.GetEnvironmentVariable("Avancira__Database__Host") ?? "localhost")
     .WithEnvironment("Avancira__Database__Port", Environment.GetEnvironmentVariable("Avancira__Database__Port") ?? "5432")
