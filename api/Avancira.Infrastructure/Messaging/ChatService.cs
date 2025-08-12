@@ -96,7 +96,7 @@ namespace Avancira.Infrastructure.Catalog
                             SenderId = m.SenderId,
                             SenderName = senders.TryGetValue(m.SenderId, out var s) ? $"{s.FirstName} {s.LastName}" : "",
                             Content = m.Content,
-                            Timestamp = m.SentAt.DateTime,
+                            Timestamp = m.SentAt.UtcDateTime,
                         }).ToList(),
                         MyRole = isStudent ? UserRole.Student : UserRole.Tutor
                     };
@@ -167,7 +167,7 @@ namespace Avancira.Infrastructure.Catalog
                     SenderId = m.SenderId,
                     SenderName = senders.TryGetValue(m.SenderId, out var s) ? $"{s.FirstName} {s.LastName}" : string.Empty,
                     Content = m.Content,
-                    Timestamp = m.SentAt.DateTime,
+                    Timestamp = m.SentAt.UtcDateTime,
                 }).ToList(),
                 MyRole = isStudent ? UserRole.Student : UserRole.Tutor
             };
