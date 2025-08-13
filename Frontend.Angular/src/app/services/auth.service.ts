@@ -88,7 +88,13 @@ export class AuthService implements OnDestroy {
             Token: token,
             RefreshToken: refreshToken
         }).pipe(
-            tap(res => res?.token && this.applyTokens(res, false)),
+            tap(res => {
+                if (res?.token) {
+                    this.applyTokens(res, false);
+                    const { exp } = this.decodeToken(res.token);
+                    if (exp) this.scheduleRefresh(exp);
+                }
+            }),
             catchError(err => {
                 this.logout();
                 return this.handleError(err);
