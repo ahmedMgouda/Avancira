@@ -156,21 +156,21 @@ public class ListingsController : BaseApiController
         return Ok(new { success = true, message = "Title updated successfully." });
     }
 
-    [Authorize]
-    [HttpPut("{id:guid}/update-image")]
-    [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image, CancellationToken ct = default)
-    {
-        if (image == null || image.Length == 0)
-            return BadRequest("Image file is required.");
+    //[Authorize]
+    //[HttpPut("{id:guid}/update-image")]
+    //[Consumes("multipart/form-data")]
+    //public async Task<IActionResult> UpdateImage(Guid id, [FromForm] IFormFile image, CancellationToken ct = default)
+    //{
+    //    if (image == null || image.Length == 0)
+    //        return BadRequest("Image file is required.");
 
-        var userId = GetUserId();
-        var success = await _listingService.ModifyListingImageAsync(id, userId, image, ct);
-        if (!success)
-            return NotFound("Listing not found or unauthorized.");
+    //    var userId = GetUserId();
+    //    var success = await _listingService.ModifyListingImageAsync(id, userId, image, ct);
+    //    if (!success)
+    //        return NotFound("Listing not found or unauthorized.");
 
-        return Ok(new { success = true, message = "Image updated successfully." });
-    }
+    //    return Ok(new { success = true, message = "Image updated successfully." });
+    //}
 
     [Authorize]
     [HttpPut("{id:guid}/update-locations")]

@@ -255,6 +255,30 @@ public class UsersController : BaseApiController
         return Ok(user);
     }
 
+    // todo: review later
+    [Authorize]
+    [HttpGet("profile-image")]
+    public async Task<IActionResult> GetProfileImage(CancellationToken cancellationToken)
+    {
+        var currentUserId = User.GetUserId();
+
+        if (string.IsNullOrWhiteSpace(currentUserId))
+            throw new UnauthorizedException();
+
+        var user = await _userService.GetAsync(currentUserId, cancellationToken);
+        if (user == null)
+            throw new UnauthorizedException();
+
+        var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "UserImages", $"{currentUserId}.jpg");
+
+        if (!System.IO.File.Exists(imagePath))
+            return NotFound("Profile image not found.");
+
+        var imageBytes = await System.IO.File.ReadAllBytesAsync(imagePath, cancellationToken);
+        return File(imageBytes, "image/jpeg");
+    }
+
+
     //// Read
     //[Authorize]
     //[HttpGet("me")]

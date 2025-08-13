@@ -37,15 +37,15 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException();
         }
 
-        if (!user.IsActive)
-        {
-            throw new UnauthorizedException("user is deactivated");
-        }
+        //if (!user.IsActive)
+        //{
+        //    throw new UnauthorizedException("user is deactivated");
+        //}
 
-        if (!user.EmailConfirmed)
-        {
-            throw new UnauthorizedException("email not confirmed");
-        }
+        //if (!user.EmailConfirmed)
+        //{
+        //    throw new UnauthorizedException("email not confirmed");
+        //}
 
         return await GenerateTokensAndUpdateUser(user, ipAddress);
     }
@@ -70,7 +70,7 @@ public sealed class TokenService : ITokenService
 
     private async Task<TokenResponse> GenerateTokensAndUpdateUser(User user, string ipAddress)
     {
-        string token = GenerateJwt(user, ipAddress);
+        string token = await GenerateJwt(user, ipAddress);
 
         user.RefreshToken = GenerateRefreshToken();
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
@@ -92,8 +92,8 @@ public sealed class TokenService : ITokenService
         return new TokenResponse(token, user.RefreshToken, user.RefreshTokenExpiryTime);
     }
 
-    private string GenerateJwt(User user, string ipAddress) =>
-        GenerateEncryptedToken(GetSigningCredentials(), GetClaims(user, ipAddress));
+    private async Task<string> GenerateJwt(User user, string ipAddress) =>
+        GenerateEncryptedToken(GetSigningCredentials(), await GetClaimsAsync(user, ipAddress));
 
     private SigningCredentials GetSigningCredentials()
     {
@@ -114,8 +114,9 @@ public sealed class TokenService : ITokenService
         return tokenHandler.WriteToken(token);
     }
 
-    private List<Claim> GetClaims(User user, string ipAddress) =>
-        new List<Claim>
+    private async Task<List<Claim>> GetClaimsAsync(User user, string ipAddress)
+    {
+        var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, user.Id),
@@ -128,6 +129,12 @@ public sealed class TokenService : ITokenService
             new(AvanciraClaims.IpAddress, ipAddress),
             new(AvanciraClaims.ImageUrl, user.ImageUrl == null ? string.Empty : user.ImageUrl.ToString())
         };
+
+        var roles = await _userManager.GetRolesAsync(user);
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        return claims;
+    }
 
     private static string GenerateRefreshToken()
     {
