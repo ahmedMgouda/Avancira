@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FacebookService, InitParams } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
+import { finalize } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
@@ -71,13 +72,18 @@ export class SigninComponent implements OnInit {
     const { email, password } = this.loginForm.value;
     this.spinner.show();
 
-    this.authService.login(email, password).subscribe({
-      next: () => {
-        this.router.navigateByUrl(this.returnUrl);
-      },
-      error: () => this.toastr.error('Invalid credentials', 'Login Failed'),
-      complete: () => this.spinner.hide(),
-    });
+    this.authService
+      .login(email, password)
+      .pipe(finalize(() => this.spinner.hide()))
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl(this.returnUrl);
+        },
+        error: () => {
+          this.toastr.error('Invalid credentials', 'Login Failed');
+          this.spinner.hide();
+        },
+      });
   }
 
   /** Google login using Identity Services */
