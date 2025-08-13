@@ -67,7 +67,11 @@ export class AuthService implements OnDestroy {
     isAuthenticated(): boolean {
         return !!(
             (this.accessToken && this.tokenExpiryMs(this.accessToken) > Date.now()) ||
-            (this.getStorage(this.REFRESH_EXPIRY_KEY) && Date.parse(this.getStorage(this.REFRESH_EXPIRY_KEY)!) > Date.now())
+            (
+                this.getStorage(this.REFRESH_TOKEN_KEY) &&
+                this.getStorage(this.REFRESH_EXPIRY_KEY) &&
+                Date.parse(this.getStorage(this.REFRESH_EXPIRY_KEY)!) > Date.now()
+            )
         );
     }
 
