@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy,OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
@@ -8,7 +9,6 @@ import { UserService } from '../../../services/user.service';
 import { ImageFallbackDirective } from '../../../directives/image-fallback.directive';
 
 import { User } from '../../../models/user';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -39,15 +39,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
       });
       this.fetchUserInfo();
     }
-    this.roles = this.authService.getRoles();
+    // this.roles = this.authService.getRoles();
 
-    const savedRole = this.authService.getCurrentRole();
-    if (savedRole && this.roles.includes(savedRole)) {
-      this.currentRole = savedRole as 'student' | 'tutor';
-    } else if (this.roles.length > 0) {
-      this.currentRole = this.roles[0] as 'student' | 'tutor';
-      this.authService.saveCurrentRole(this.currentRole);
-    }
+    // const savedRole = this.authService.getCurrentRole();
+    // if (savedRole && this.roles.includes(savedRole)) {
+    //   this.currentRole = savedRole as 'student' | 'tutor';
+    // } else if (this.roles.length > 0) {
+    //   this.currentRole = this.roles[0] as 'student' | 'tutor';
+    //   // this.authService.saveCurrentRole(this.currentRole);
+    // }
   }
 
   ngOnDestroy(): void {
@@ -57,7 +57,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   switchRole(role: 'student' | 'tutor'): void {
     if (this.currentRole !== role) {
       this.currentRole = role;
-      this.authService.saveCurrentRole(role);
+      // this.authService.saveCurrentRole(role);
     }
   }
 
@@ -70,7 +70,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   isLoggedIn(): boolean {
-    return !!this.authService.getToken();
+    return this.authService.isAuthenticated();
   }
 
   logout() {

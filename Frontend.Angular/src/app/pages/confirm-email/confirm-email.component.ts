@@ -42,26 +42,26 @@ export class ConfirmEmailComponent {
   }
 
   verifyEmail(userId: string, token: string): void {
-    this.authService.confirmEmail(userId, token).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (response) => {
-        if (response && response.success) { // Check if the response is successful
-          this.verificationSuccess = true;
-          timer(5000).pipe(takeUntil(this.destroy$)).subscribe(() => {
-            this.router.navigate(['/dashboard']);
-          });
-        } else {
-          this.verificationError = true;
-          this.errorMessage = response?.message || "Email verification failed.";
-        }
-        this.isLoading = false;
-      },
-      error: (error: HttpErrorResponse) => {
-        this.isLoading = false;
-        this.verificationError = true;
-        this.errorMessage = error.error?.message || "An error occurred during email verification.";
-        console.error("Email verification error:", error); // Log the full error
-      }
-    });
+    // this.authService.confirmEmail(userId, token).pipe(takeUntil(this.destroy$)).subscribe({
+    //   next: (response: any) => {
+    //     if (response && response.success) { // Check if the response is successful
+    //       this.verificationSuccess = true;
+    //       timer(5000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+    //         this.router.navigate(['/dashboard']);
+    //       });
+    //     } else {
+    //       this.verificationError = true;
+    //       this.errorMessage = response?.message || "Email verification failed.";
+    //     }
+    //     this.isLoading = false;
+    //   },
+    //   error: (error: HttpErrorResponse) => {
+    //     this.isLoading = false;
+    //     this.verificationError = true;
+    //     this.errorMessage = error.error?.message || "An error occurred during email verification.";
+    //     console.error("Email verification error:", error); // Log the full error
+    //   }
+    // });
   }
 
   ngOnDestroy(): void {

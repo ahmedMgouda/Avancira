@@ -26,7 +26,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     // Check if the user is logged in
-    if (this.authService.isLoggedIn()) {
+    if (this.authService.isAuthenticated()) {
       // Payment
       this.configService.loadConfig().subscribe({
         next: () => console.log('Config loaded:', this.configService.get('apiUrl')),
@@ -41,7 +41,7 @@ export class AppComponent implements OnInit {
       });
 
       // Start the notification service
-      this.notificationService.startConnection(this.authService.getToken() ?? "");
+      this.notificationService.startConnection(this.authService.getAccessToken() ?? "");
 
       // Listen for notifications
       this.notificationService.onReceiveNotification((notification) => {

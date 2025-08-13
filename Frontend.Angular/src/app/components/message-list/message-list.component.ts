@@ -57,7 +57,7 @@ export class MessageListComponent implements OnInit, OnDestroy {
   }
 
   isLoggedIn(): boolean {
-    return !!this.authService.getToken();
+    return !!this.authService.isAuthenticated();
   }
 
   logout() {

@@ -5,8 +5,8 @@ import { provideRouter } from '@angular/router';
 import { provideToastr } from 'ngx-toastr';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './interceptors/auth.interceptor';
 import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
-import { httpInterceptorFn } from './interceptors/httpInterceptorFn';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,7 +18,7 @@ export const appConfig: ApplicationConfig = {
 
     // HTTP client and interceptors
     provideHttpClient(
-      withInterceptors([httpInterceptorFn, dateInterceptorFn])
+      withInterceptors([authInterceptor, dateInterceptorFn])
     ),
 
     // Toastr configuration

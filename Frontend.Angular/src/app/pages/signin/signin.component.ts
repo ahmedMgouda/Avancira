@@ -1,186 +1,147 @@
+// src/app/auth/signin/signin.component.ts
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { loadGapiInsideDOM } from 'gapi-script';
-import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
+import { FacebookService, InitParams } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
-import { SpinnerService } from '../../services/spinner.service'; 
+import { GoogleAuthService } from '../../services/google-auth.service';
+import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 
-
-
-declare const gapi: any;
 @Component({
   selector: 'app-signin',
   templateUrl: './signin.component.html',
   styleUrls: ['./signin.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
-export class SigninComponent {
+export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
-  invalidLogin = false;
-  returnUrl: string = '/';
+  returnUrl = '/';
 
   constructor(
-    private fb: FacebookService, 
-    private form: FormBuilder, 
-    private route: ActivatedRoute, 
-    private router: Router, 
+    private fb: FormBuilder,
+    private router: Router,
+    private route: ActivatedRoute,
     private authService: AuthService,
-    private userService: UserService,
-    private configService: ConfigService, 
-    private toastr: ToastrService,
+    private config: ConfigService,
     private spinner: SpinnerService,
-    private alertService: AlertService
-  ) { }
+    private toastr: ToastrService,
+    private alert: AlertService,
+    private user: UserService,
+    private google: GoogleAuthService,
+    private facebook: FacebookService
+  ) {}
 
   ngOnInit(): void {
-    // Initialize the form with Reactive Forms
-    this.loginForm = this.form.group({
-      email: [
-        '',
-        [
-          Validators.required,
-          Validators.email,
-        ],
-      ],
-      password: ['', [Validators.required]],
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', Validators.required],
     });
 
-    // Get the returnUrl from query params or use the default '/'
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.returnUrl = params['returnUrl'] || '/';
     });
 
-    // Initialize the Facebook SDK with your App ID
-    this.configService.loadConfig().subscribe({
-      next: async () => {
-
-        const initParams: InitParams = {
-          appId: this.configService.get('facebookAppId'),
+    // Initialize Facebook SDK
+    this.config.loadConfig().subscribe({
+      next: () => {
+        const params: InitParams = {
+          appId: this.config.get('facebookAppId'),
           cookie: true,
           xfbml: true,
           version: 'v21.0',
         };
-        this.fb.init(initParams);
-
-        await loadGapiInsideDOM();
-        gapi.load('auth2', () => {
-          gapi.auth2.init({
-            client_id: this.configService.get('googleClientId'),
-            scope: 'profile email',
-          });
-        });
+        this.facebook.init(params);
       },
       error: (err) => {
-        console.error('Failed to load configuration:', err.message);
+        console.error('Config load error:', err);
       },
     });
   }
 
-
-  // Handle the login form submission
+  /** Regular login */
   onLogin(): void {
-    if (this.loginForm.invalid) {
-      return;
-    }
+    if (this.loginForm.invalid) return;
 
+    const { email, password } = this.loginForm.value;
     this.spinner.show();
-    this.authService.login(this.loginForm.value.email, this.loginForm.value.password).subscribe({
-      next: (result) => {
-        if (result) {
-          this.authService.saveToken(result.token);
-          this.authService.saveRoles(result.roles);
-          this.authService.saveEmail(this.loginForm.value.email);
-          // Redirect to returnUrl or dashboard
-          this.router.navigateByUrl(this.returnUrl);
-        } else {
-          this.toastr.error('Invalid email or password.', 'Error');
-        }
-        this.spinner.hide();
+
+    this.authService.login(email, password).subscribe({
+      next: () => {
+        this.router.navigateByUrl(this.returnUrl);
       },
-      error: (error) => {
-        console.error(error);
-        this.spinner.hide();
-        this.toastr.error('Invalid email or password.', 'Error');
-      },
+      error: () => this.toastr.error('Invalid credentials', 'Login Failed'),
+      complete: () => this.spinner.hide(),
     });
   }
 
-  /** ✅ Facebook Login */
+  /** Google login using Identity Services */
+  async loginWithGoogle(): Promise<void> {
+    try {
+      this.spinner.show();
+      const clientId = this.config.get('googleClientId');
+      await this.google.init(clientId);
+      const idToken = await this.google.signIn();
+      await this.handleSocialLogin('google', idToken);
+    } catch (err) {
+      console.error('Google login error:', err);
+      this.toastr.error('Google login failed. Try again.', 'Error');
+    } finally {
+      this.spinner.hide();
+    }
+  }
+
+  /** Facebook login */
   loginWithFacebook(): void {
     this.spinner.show();
-    this.fb
+    this.facebook
       .login({ scope: 'email,public_profile' })
-      .then(async (response: LoginResponse) => {
-        const accessToken = response.authResponse.accessToken;
-        console.log('✅ Facebook Login Success:', accessToken);
-        await this.handleSocialLogin('facebook', accessToken);
+      .then(async (res) => {
+        const token = res.authResponse.accessToken;
+        await this.handleSocialLogin('facebook', token);
       })
-      .catch((error) => {
-        console.error('❌ Facebook login error:', error);
-        this.toastr.error('Invalid email or password.', 'Error');
+      .catch((err) => {
+        console.error('Facebook login failed:', err);
+        this.toastr.error('Facebook login failed.', 'Error');
         this.spinner.hide();
       });
   }
 
-  /** ✅ Google Login */
-  async loginWithGoogle(): Promise<void> {
-    try {
-      this.spinner.show();
-      const auth2 = gapi.auth2.getAuthInstance();
-      if (!auth2) throw new Error('Google Auth instance not initialized');
-
-      const googleUser = await auth2.signIn();
-      const idToken = googleUser.getAuthResponse().id_token;
-      console.log('✅ Google Login Success:', idToken);
-
-      await this.handleSocialLogin('google', idToken);
-    } catch (error) {
-      this.spinner.hide();
-      console.error('❌ Google Login Failed:', error);
-    }
-  }
-
-  /** ✅ Handle Social Login */
+  /** Common handler for social login */
   handleSocialLogin(provider: string, token: string): void {
-    this.spinner.hide();
-    this.authService.socialLogin(provider, token).subscribe({
-      next: (result) => {
-        this.authService.saveToken(result.token);
-        this.authService.saveRoles(result.roles);
-        this.router.navigateByUrl(this.returnUrl);
-      },
-      error: (error) => {
-        console.error(`❌ ${provider} login verification failed:`, error.message);
-        this.toastr.error('Invalid email or password.', 'Error');
-      },
-    });
+    // this.authService.socialLogin(provider, token).subscribe({
+    //   next: () => {
+    //     this.router.navigateByUrl(this.returnUrl);
+    //   },
+    //   error: (err : any) => {
+    //     console.error(`${provider} login error:`, err);
+    //     this.toastr.error(`${provider} login failed.`, 'Error');
+    //   },
+    // });
   }
 
-  async resetPassword() {
-    const email = await this.alertService.promptForInput(
-      'Reset my password',
-      'To retrieve your password, please enter the e-mail address associated with your account below.',
+  /** Password reset prompt */
+  async resetPassword(): Promise<void> {
+    const email = await this.alert.promptForInput(
+      'Reset Password',
+      'Enter your email to reset your password.',
       'email',
-      'Enter your email',
+      'Enter email',
       'Send'
     );
 
     if (email) {
-      this.userService.requestPasswordReset(email).subscribe();
-
-      this.alertService.successAlert(
-        'Check your email',
-        "An email with instructions on how to reset your password has been sent to you. If you don't receive this email, please check your spam folder.",
-        'Return to Sign-in'
+      this.user.requestPasswordReset(email).subscribe();
+      this.alert.successAlert(
+        'Check your inbox',
+        'We’ve sent a reset link to your email.',
+        'Return to login'
       );
     }
-
   }
 }
