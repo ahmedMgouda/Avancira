@@ -6,6 +6,7 @@ import { ConfigService } from '../../services/config.service';
 import { ListingService } from '../../services/listing.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
 
 
 
@@ -36,12 +37,13 @@ export class PaymentAltOptionsComponent implements OnInit {
     private listingService: ListingService,
     private paymentService: PaymentService,
     private subscriptionService: SubscriptionService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private authService: AuthService
   ) { }
 
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token'); // Check if token exists
+    this.isLoggedIn = this.authService.isAuthenticated(); // Check if token exists
     this.stripePromise = loadStripe(this.configService.get('stripePublishableKey'));
 
     this.paymentService.loadPayPalScript().then(() => {
