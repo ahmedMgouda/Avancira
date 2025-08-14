@@ -41,15 +41,15 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException();
         }
 
-        //if (!user.IsActive)
-        //{
-        //    throw new UnauthorizedException("user is deactivated");
-        //}
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException("user is deactivated");
+        }
 
-        //if (!user.EmailConfirmed)
-        //{
-        //    throw new UnauthorizedException("email not confirmed");
-        //}
+        if (!user.EmailConfirmed)
+        {
+            throw new UnauthorizedException("email not confirmed");
+        }
 
         return await GenerateTokens(user, ipAddress);
     }

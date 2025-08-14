@@ -128,6 +128,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri($"https://robohash.org/{Guid.NewGuid()}?size=200x200&set=set1", UriKind.Absolute),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -150,6 +152,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri($"https://robohash.org/{Guid.NewGuid()}?size=200x200&set=set1", UriKind.Absolute),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -172,6 +176,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri($"assets/img/mentor/amr_mostafa.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -194,6 +200,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri($"assets/img/mentor/amir_salah.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
 
                 new User
@@ -217,6 +225,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Melbourne",
                     ImageUrl = new Uri($"assets/img/mentor/ahmed_mostafa.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -239,6 +249,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Perth",
                     ImageUrl = new Uri("assets/img/mentor/olivia_brown.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -261,6 +273,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Brisbane",
                     ImageUrl = new Uri("assets/img/mentor/ethan_clark.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -283,6 +297,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/sophia_williams.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -305,6 +321,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/liam_johnson.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -327,6 +345,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Brisbane",
                     ImageUrl = new Uri("assets/img/mentor/ava_smith.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -349,6 +369,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Perth",
                     ImageUrl = new Uri("assets/img/mentor/noah_davis.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -371,6 +393,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/isabella_martinez.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -393,6 +417,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Brisbane",
                     ImageUrl = new Uri("assets/img/mentor/james_wilson.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -415,6 +441,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Perth",
                     ImageUrl = new Uri("assets/img/mentor/charlotte_anderson.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -437,6 +465,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/ethan_brown.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -459,6 +489,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Brisbane",
                     ImageUrl = new Uri("assets/img/mentor/emma_taylor.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -481,6 +513,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Perth",
                     ImageUrl = new Uri("assets/img/mentor/michael_harris.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -503,6 +537,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/sophia_white.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 },
                 new User
                 {
@@ -525,6 +561,8 @@ public class UserSeeder
                     CountryId = context.Countries.FirstOrDefault(c => EF.Functions.Like(c.Code, "AU"))?.Id ?? null,
                     TimeZoneId = "Australia/Sydney",
                     ImageUrl = new Uri("assets/img/mentor/mei_wong.jpg", UriKind.Relative),
+                    IsActive = true,
+                    EmailConfirmed = true
                 }
 
             };
