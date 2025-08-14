@@ -51,7 +51,7 @@ function handle401Error(
         return next(addToken(request, newToken));
       }),
       catchError(err => {
-        authService.refreshFailed();
+        authService.refreshFailed(err);
         authService.logout();
         return throwError(() => err);
       })
@@ -60,7 +60,8 @@ function handle401Error(
   } else {
     // Wait until refresh completes and retry original request
     return authService.waitForRefresh().pipe(
-      switchMap(token => next(addToken(request, token)))
+      switchMap(token => next(addToken(request, token))),
+      catchError(err => throwError(() => err))
     );
   }
 }

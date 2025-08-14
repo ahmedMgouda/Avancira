@@ -50,9 +50,12 @@ export class AuthService implements OnDestroy {
         this.refreshTokenSubject.next(token);
     }
 
-    refreshFailed(): void {
+    refreshFailed(error?: any): void {
         this.isRefreshing = false;
-        this.refreshTokenSubject.next(null);
+        // Notify all waiters that refresh has failed to avoid hanging requests
+        this.refreshTokenSubject.error(error ?? new Error('Token refresh failed'));
+        // Reset subject so future refresh attempts can be awaited again
+        this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
     }
 
     waitForRefresh(): Observable<string> {

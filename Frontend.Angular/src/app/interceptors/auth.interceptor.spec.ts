@@ -75,5 +75,64 @@ describe('authInterceptor', () => {
     expect(refreshSpy).toHaveBeenCalledTimes(1);
     expect(error?.status).toBe(401);
   });
+
+  it('should retry concurrent requests with new token after refresh', () => {
+    const refreshSpy = spyOn(authService, 'refreshToken').and.callThrough();
+    authService['accessToken'] = 'a';
+    localStorage.setItem('refresh_token', 'r');
+    localStorage.setItem('refresh_token_expiry', new Date(Date.now() + 10000).toISOString());
+
+    let resp1: any;
+    let resp2: any;
+
+    http.get('/data1').subscribe(r => resp1 = r);
+    http.get('/data2').subscribe(r => resp2 = r);
+
+    const req1 = httpMock.expectOne('/data1');
+    const req2 = httpMock.expectOne('/data2');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const refresh = httpMock.expectOne(`${environment.apiUrl}/auth/refresh`);
+    refresh.flush({ token: 'new', refreshToken: 'rr', refreshTokenExpiryTime: new Date(Date.now() + 10000).toISOString() });
+
+    const retry1 = httpMock.expectOne('/data1');
+    const retry2 = httpMock.expectOne('/data2');
+    expect(retry1.request.headers.get('Authorization')).toBe('Bearer new');
+    expect(retry2.request.headers.get('Authorization')).toBe('Bearer new');
+    retry1.flush({ data: 1 });
+    retry2.flush({ data: 2 });
+
+    expect(resp1).toEqual({ data: 1 });
+    expect(resp2).toEqual({ data: 2 });
+    httpMock.expectNone(`${environment.apiUrl}/auth/refresh`);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fail concurrent requests when refresh fails', () => {
+    const refreshSpy = spyOn(authService, 'refreshToken').and.callThrough();
+    authService['accessToken'] = 'a';
+    localStorage.setItem('refresh_token', 'r');
+    localStorage.setItem('refresh_token_expiry', new Date(Date.now() + 10000).toISOString());
+
+    let error1: HttpErrorResponse | undefined;
+    let error2: HttpErrorResponse | undefined;
+
+    http.get('/data1').subscribe({ error: e => error1 = e });
+    http.get('/data2').subscribe({ error: e => error2 = e });
+
+    const req1 = httpMock.expectOne('/data1');
+    const req2 = httpMock.expectOne('/data2');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const refresh = httpMock.expectOne(`${environment.apiUrl}/auth/refresh`);
+    refresh.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    expect(error1?.status).toBe(401);
+    expect(error2?.status).toBe(401);
+    httpMock.expectNone(`${environment.apiUrl}/auth/refresh`);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+  });
 });
 
