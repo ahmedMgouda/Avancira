@@ -28,6 +28,7 @@ export class AuthService implements OnDestroy {
     private refreshTimerSub: Subscription | null = null;
     private profileSubject = new BehaviorSubject<UserProfile | null>(null);
     profile$ = this.profileSubject.asObservable();
+    private memoryStorage = new Map<string, string>();
 
     private isRefreshing = false;
     private refreshTokenSubject = new BehaviorSubject<string | null>(null);
@@ -108,7 +109,7 @@ export class AuthService implements OnDestroy {
     }
 
     getAccessToken(): string | null {
-        return this.accessToken || localStorage.getItem('access_token');
+        return this.accessToken || this.getStorage(this.ACCESS_TOKEN_KEY);
     }
 
     refreshToken(): Observable<TokenResponse> {
@@ -191,7 +192,7 @@ export class AuthService implements OnDestroy {
                 this.profileSubject.next(profile);
                 if (profile.exp) this.scheduleRefresh(profile.exp);
             } catch {
-                localStorage.removeItem(this.PROFILE_KEY);
+                this.removeStorage(this.PROFILE_KEY);
             }
         }
     }
@@ -255,11 +256,21 @@ export class AuthService implements OnDestroy {
     }
 
     private getStorage(key: string): string | null {
-        return localStorage.getItem(key);
+        const inMemory = this.memoryStorage.get(key);
+        if (inMemory !== undefined) return inMemory;
+        const sessionValue = sessionStorage.getItem(key);
+        if (sessionValue) this.memoryStorage.set(key, sessionValue);
+        return sessionValue;
     }
 
     private setStorage(key: string, value: string): void {
-        localStorage.setItem(key, value);
+        this.memoryStorage.set(key, value);
+        sessionStorage.setItem(key, value);
+    }
+
+    private removeStorage(key: string): void {
+        this.memoryStorage.delete(key);
+        sessionStorage.removeItem(key);
     }
 
     private clearSession() {
@@ -270,7 +281,7 @@ export class AuthService implements OnDestroy {
             this.REFRESH_TOKEN_KEY,
             this.REFRESH_EXPIRY_KEY,
             this.ACCESS_TOKEN_KEY // ✅ clear persisted token
-        ].forEach(k => localStorage.removeItem(k));
+        ].forEach(k => this.removeStorage(k));
         this.cancelRefresh();
         this.notificationService.stopConnection();
     }
