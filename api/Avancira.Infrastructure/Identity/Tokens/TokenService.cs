@@ -51,7 +51,7 @@ public sealed class TokenService : ITokenService
         //    throw new UnauthorizedException("email not confirmed");
         //}
 
-        return await GenerateTokensAndUpdateUser(user, ipAddress);
+        return await GenerateTokens(user, ipAddress);
     }
 
     public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string ipAddress, CancellationToken cancellationToken)
@@ -75,21 +75,16 @@ public sealed class TokenService : ITokenService
         _dbContext.RefreshTokens.Remove(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokensAndUpdateUser(user, ipAddress);
+        return await GenerateTokens(user, ipAddress);
     }
 
-    private async Task<TokenResponse> GenerateTokensAndUpdateUser(User user, string ipAddress)
+    private async Task<TokenResponse> GenerateTokens(User user, string ipAddress)
     {
         string token = await GenerateJwt(user, ipAddress);
 
         var refreshToken = GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshToken);
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
-
-        user.RefreshToken = refreshTokenHash;
-        user.RefreshTokenExpiryTime = refreshTokenExpiryTime;
-
-        await _userManager.UpdateAsync(user);
 
         var oldTokens = await _dbContext.RefreshTokens
             .Where(t => t.UserId == user.Id && t.Device == ipAddress)
