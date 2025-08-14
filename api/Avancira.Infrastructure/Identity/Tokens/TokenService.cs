@@ -5,9 +5,11 @@ using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Auth.Jwt;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Users;
+using Avancira.Infrastructure.Persistence;
 using Avancira.Shared.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,12 +23,14 @@ public sealed class TokenService : ITokenService
     private readonly UserManager<User> _userManager;
     private readonly JwtOptions _jwtOptions;
     private readonly IPublisher _publisher;
+    private readonly AvanciraDbContext _dbContext;
 
-    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher)
+    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher, AvanciraDbContext dbContext)
     {
         _jwtOptions = jwtOptions.Value;
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _publisher = publisher;
+        _dbContext = dbContext;
     }
 
     public async Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string ipAddress, CancellationToken cancellationToken)
@@ -60,10 +64,16 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException();
         }
 
-        if (user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        var hashedRequestToken = HashToken(request.RefreshToken);
+        var refreshToken = await _dbContext.RefreshTokens
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == ipAddress && t.TokenHash == hashedRequestToken, cancellationToken);
+        if (refreshToken is null || refreshToken.Expiry <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
+
+        _dbContext.RefreshTokens.Remove(refreshToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return await GenerateTokensAndUpdateUser(user, ipAddress);
     }
@@ -72,10 +82,33 @@ public sealed class TokenService : ITokenService
     {
         string token = await GenerateJwt(user, ipAddress);
 
-        user.RefreshToken = GenerateRefreshToken();
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
+        var refreshToken = GenerateRefreshToken();
+        var refreshTokenHash = HashToken(refreshToken);
+        var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
+
+        user.RefreshToken = refreshTokenHash;
+        user.RefreshTokenExpiryTime = refreshTokenExpiryTime;
 
         await _userManager.UpdateAsync(user);
+
+        var oldTokens = await _dbContext.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.Device == ipAddress)
+            .ToListAsync();
+        if (oldTokens.Count > 0)
+        {
+            _dbContext.RefreshTokens.RemoveRange(oldTokens);
+        }
+
+        _dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = refreshTokenHash,
+            Device = ipAddress,
+            Expiry = refreshTokenExpiryTime
+        });
+
+        await _dbContext.SaveChangesAsync();
 
         await _publisher.Publish(new AuditPublishedEvent(new()
         {
@@ -89,7 +122,7 @@ public sealed class TokenService : ITokenService
             }
         }));
 
-        return new TokenResponse(token, user.RefreshToken, user.RefreshTokenExpiryTime);
+        return new TokenResponse(token, refreshToken, refreshTokenExpiryTime);
     }
 
     private async Task<string> GenerateJwt(User user, string ipAddress) =>
@@ -142,6 +175,14 @@ public sealed class TokenService : ITokenService
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+
+    private static string HashToken(string token)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(token);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
     }
 
     private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
