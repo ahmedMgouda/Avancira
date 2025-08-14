@@ -97,14 +97,18 @@ export class AuthService implements OnDestroy {
     }
 
     isAuthenticated(): boolean {
-        return !!(
-            (this.accessToken && this.tokenExpiryMs(this.accessToken) > Date.now()) ||
-            (
-                this.getStorage(this.REFRESH_TOKEN_KEY) &&
-                this.getStorage(this.REFRESH_EXPIRY_KEY) &&
-                Date.parse(this.getStorage(this.REFRESH_EXPIRY_KEY)!) > Date.now()
-            )
-        );
+        const token = this.accessToken || this.getStorage(this.ACCESS_TOKEN_KEY);
+        const refreshToken = this.getStorage(this.REFRESH_TOKEN_KEY);
+        const refreshExpiry = this.getStorage(this.REFRESH_EXPIRY_KEY);
+
+        const accessValid = !!(token && this.tokenExpiryMs(token) > Date.now());
+        const refreshValid = !!(refreshToken && refreshExpiry && Date.parse(refreshExpiry) > Date.now());
+
+        if (!accessValid && !refreshValid && (token || refreshToken || this.profileSubject.value)) {
+            this.clearSession();
+        }
+
+        return accessValid || refreshValid;
     }
 
     getAccessToken(): string | null {
@@ -179,12 +183,21 @@ export class AuthService implements OnDestroy {
     }
 
     private restoreProfile(): void {
-        const storedProfile = this.getStorage(this.PROFILE_KEY);
-        const storedToken = this.getStorage(this.ACCESS_TOKEN_KEY); // ✅ restore token
-        if (storedToken) {
-            this.accessToken = storedToken;
+        const storedToken = this.getStorage(this.ACCESS_TOKEN_KEY);
+        const refreshExpiry = this.getStorage(this.REFRESH_EXPIRY_KEY);
+        const refreshToken = this.getStorage(this.REFRESH_TOKEN_KEY);
+
+        const accessExpired = !storedToken || this.tokenExpiryMs(storedToken) <= Date.now();
+        const refreshExpired = !refreshToken || !refreshExpiry || Date.parse(refreshExpiry) <= Date.now();
+
+        if (accessExpired || refreshExpired) {
+            this.clearSession();
+            return;
         }
 
+        this.accessToken = storedToken;
+
+        const storedProfile = this.getStorage(this.PROFILE_KEY);
         if (storedProfile) {
             try {
                 const profile: UserProfile = JSON.parse(storedProfile);
