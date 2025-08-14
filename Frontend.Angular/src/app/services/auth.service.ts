@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, filter, take } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 
 import { NotificationService } from './notification.service';
@@ -29,12 +29,41 @@ export class AuthService implements OnDestroy {
     private profileSubject = new BehaviorSubject<UserProfile | null>(null);
     profile$ = this.profileSubject.asObservable();
 
+    private isRefreshing = false;
+    private refreshTokenSubject = new BehaviorSubject<string | null>(null);
+
     constructor(
         private http: HttpClient,
         private router: Router,
         private notificationService: NotificationService
     ) {
         this.restoreProfile();
+    }
+
+    beginRefresh(): void {
+        this.isRefreshing = true;
+        this.refreshTokenSubject.next(null);
+    }
+
+    endRefresh(token: string): void {
+        this.isRefreshing = false;
+        this.refreshTokenSubject.next(token);
+    }
+
+    refreshFailed(): void {
+        this.isRefreshing = false;
+        this.refreshTokenSubject.next(null);
+    }
+
+    waitForRefresh(): Observable<string> {
+        return this.refreshTokenSubject.pipe(
+            filter((token): token is string => token !== null),
+            take(1)
+        );
+    }
+
+    get refreshing(): boolean {
+        return this.isRefreshing;
     }
 
     /** ----------- PUBLIC API ----------- **/

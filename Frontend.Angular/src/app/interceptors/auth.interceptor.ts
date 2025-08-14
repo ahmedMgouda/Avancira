@@ -5,13 +5,10 @@ import {
   HttpRequest
 } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { catchError, filter, retry,switchMap, take } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, retry, switchMap } from 'rxjs/operators';
 
 import { AuthService, TokenResponse } from '../services/auth.service';
-
-let isRefreshing = false;
-const refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
 export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> {
   const authService = inject(AuthService);
@@ -22,6 +19,9 @@ export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Obs
   return next(authReq).pipe(
     catchError(error => {
       if (error instanceof HttpErrorResponse && error.status === 401) {
+        if (req.url.includes('/auth/token') || req.url.includes('/auth/refresh')) {
+          return throwError(() => error);
+        }
         return handle401Error(authReq, next, authService);
       }
       return throwError(() => error);
@@ -40,21 +40,18 @@ function handle401Error(
   next: HttpHandlerFn,
   authService: AuthService
 ): Observable<HttpEvent<any>> {
-  if (!isRefreshing) {
-    isRefreshing = true; // set immediately to prevent race conditions
-    refreshTokenSubject.next(null);
+  if (!authService.refreshing) {
+    authService.beginRefresh();
 
     return authService.refreshToken().pipe(
       retry(1), // retry once on network errors
       switchMap((response: TokenResponse) => {
         const newToken = response.token;
-        isRefreshing = false;
-        refreshTokenSubject.next(newToken);
+        authService.endRefresh(newToken);
         return next(addToken(request, newToken));
       }),
       catchError(err => {
-        isRefreshing = false;
-        refreshTokenSubject.next(null); // clear subject so waiting requests don't proceed
+        authService.refreshFailed();
         authService.logout();
         return throwError(() => err);
       })
@@ -62,9 +59,7 @@ function handle401Error(
 
   } else {
     // Wait until refresh completes and retry original request
-    return refreshTokenSubject.pipe(
-      filter((token): token is string => token !== null),
-      take(1),
+    return authService.waitForRefresh().pipe(
       switchMap(token => next(addToken(request, token)))
     );
   }
