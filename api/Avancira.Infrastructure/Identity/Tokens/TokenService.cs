@@ -33,7 +33,7 @@ public sealed class TokenService : ITokenService
         _dbContext = dbContext;
     }
 
-    public async Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string ipAddress, CancellationToken cancellationToken)
+    public async Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(request.Email.Trim().Normalize());
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
@@ -51,10 +51,10 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException("email not confirmed");
         }
 
-        return await GenerateTokens(user, ipAddress);
+        return await GenerateTokens(user, deviceId, ipAddress);
     }
 
-    public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string ipAddress, CancellationToken cancellationToken)
+    public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, CancellationToken cancellationToken)
     {
         var userPrincipal = GetPrincipalFromExpiredToken(request.Token);
         var userId = _userManager.GetUserId(userPrincipal)!;
@@ -66,7 +66,7 @@ public sealed class TokenService : ITokenService
 
         var hashedRequestToken = HashToken(request.RefreshToken);
         var refreshToken = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == ipAddress && t.TokenHash == hashedRequestToken, cancellationToken);
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.DeviceId == deviceId && t.TokenHash == hashedRequestToken, cancellationToken);
         if (refreshToken is null || refreshToken.Expiry <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
@@ -75,10 +75,10 @@ public sealed class TokenService : ITokenService
         _dbContext.RefreshTokens.Remove(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokens(user, ipAddress);
+        return await GenerateTokens(user, deviceId, ipAddress);
     }
 
-    private async Task<TokenResponse> GenerateTokens(User user, string ipAddress)
+    private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress)
     {
         string token = await GenerateJwt(user, ipAddress);
 
@@ -87,7 +87,7 @@ public sealed class TokenService : ITokenService
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
         var oldTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == user.Id && t.Device == ipAddress)
+            .Where(t => t.UserId == user.Id && t.DeviceId == deviceId)
             .ToListAsync();
         if (oldTokens.Count > 0)
         {
@@ -99,7 +99,7 @@ public sealed class TokenService : ITokenService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = refreshTokenHash,
-            Device = ipAddress,
+            DeviceId = deviceId,
             Expiry = refreshTokenExpiryTime
         });
 

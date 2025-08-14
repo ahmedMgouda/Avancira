@@ -10,8 +10,8 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.ToTable("RefreshTokens");
         builder.HasKey(t => t.Id);
-        builder.HasIndex(t => new { t.UserId, t.Device }).IsUnique();
+        builder.HasIndex(t => new { t.UserId, t.DeviceId }).IsUnique();
         builder.Property(t => t.TokenHash).IsRequired();
-        builder.Property(t => t.Device).HasMaxLength(200);
+        builder.Property(t => t.DeviceId).HasMaxLength(200);
     }
 }
