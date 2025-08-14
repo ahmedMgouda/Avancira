@@ -1,5 +1,4 @@
 ﻿using Avancira.Application.Audit;
-using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Infrastructure.Auth.Policy;
 using Avancira.Shared.Authorization;
@@ -10,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using Avancira.Domain.Auditing;
 using Avancira.Application.Paging;
 using Avancira.Domain.Common.Exceptions;
+using Avancira.Application.Identity.Users.Abstractions;
 
 namespace Avancira.API.Controllers;
 
@@ -17,9 +17,9 @@ namespace Avancira.API.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IAuditService _auditService;
-    private readonly Avancira.Application.Identity.Users.Abstractions.IUserService _userService;
+    private readonly IUserService _userService;
 
-    public UsersController(IAuditService auditService, Avancira.Application.Identity.Users.Abstractions.IUserService userService)
+    public UsersController(IAuditService auditService, IUserService userService)
     {
         _auditService = auditService;
         _userService = userService;
@@ -131,8 +131,6 @@ public class UsersController : BaseApiController
         return Ok(result);
     }
 
-
-
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -231,15 +229,6 @@ public class UsersController : BaseApiController
         return Ok(result);
     }
 
-    [HttpPost("login")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "Login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _userService.LoginAsync(request, cancellationToken);
-        return Ok(new { token = result.Token, roles = result.Roles });
-    }
 
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
@@ -277,20 +266,4 @@ public class UsersController : BaseApiController
         var imageBytes = await System.IO.File.ReadAllBytesAsync(imagePath, cancellationToken);
         return File(imageBytes, "image/jpeg");
     }
-
-
-    //// Read
-    //[Authorize]
-    //[HttpGet("me")]
-    //public async Task<IActionResult> GetAsync()
-    //{
-    //    var userId = GetUserId();
-    //    var user = await _userService.GetUserAsync(userId);
-    //    if (user == null)
-    //    {
-    //        throw new UnauthorizedAccessException("User not found.");
-    //    }
-    //    return JsonOk(user);
-    //}
-
 }
