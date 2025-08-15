@@ -17,6 +17,19 @@ class MockNotificationService {
   stopConnection() {}
 }
 
+function base64Url(obj: any): string {
+  return btoa(JSON.stringify(obj))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function createToken(payload: any): string {
+  const header = base64Url({ alg: 'HS256', typ: 'JWT' });
+  const body = base64Url(payload);
+  return `${header}.${body}.sig`;
+}
+
 describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
@@ -133,6 +146,21 @@ describe('authInterceptor', () => {
     expect(error2?.status).toBe(401);
     httpMock.expectNone(`${environment.apiUrl}/auth/refresh`);
     expect(refreshSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should use device id from token claims for subsequent requests', () => {
+    localStorage.setItem('deviceId', 'old');
+
+    const token = createToken({ device_id: 'new-device', exp: Date.now() / 1000 + 1000 });
+    (authService as any).accessToken = token;
+    // decode token to store device id
+    (authService as any).decodeToken(token);
+
+    http.get('/data').subscribe();
+    const req = httpMock.expectOne('/data');
+    expect(req.request.headers.get('Device-Id')).toBe('new-device');
+    expect(localStorage.getItem('deviceId')).toBe('new-device');
+    req.flush({});
   });
 });
 

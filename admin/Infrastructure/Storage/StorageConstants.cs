@@ -9,5 +9,6 @@ public static class StorageConstants
         public static string RefreshToken = "refreshToken";
         public static string ImageUri = "userImageURL";
         public static string Permissions = "permissions";
+        public static string DeviceId = "deviceId";
     }
 }
