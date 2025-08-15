@@ -13,5 +13,16 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(t => new { t.UserId, t.DeviceId }).IsUnique();
         builder.Property(t => t.TokenHash).IsRequired();
         builder.Property(t => t.DeviceId).HasMaxLength(200);
+        builder.Property(t => t.IpAddress).HasMaxLength(45);
+        builder.Property(t => t.UserAgent).HasMaxLength(512);
+        builder.Property(t => t.Latitude);
+        builder.Property(t => t.Longitude);
+        builder.Property(t => t.CreatedAt);
+
+        builder.HasIndex(t => t.IpAddress);
+        builder.HasIndex(t => t.UserAgent);
+        builder.HasIndex(t => t.Latitude);
+        builder.HasIndex(t => t.Longitude);
+        builder.HasIndex(t => t.CreatedAt);
     }
 }
