@@ -148,7 +148,8 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("Revoked");
 
                     b.HasIndex("UserId", "Device")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Revoked\" = false");
 
                     b.ToTable("RefreshTokens");
                 });

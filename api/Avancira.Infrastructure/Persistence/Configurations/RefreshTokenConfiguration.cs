@@ -11,7 +11,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.ToTable("RefreshTokens");
         builder.HasKey(t => t.Id);
 
-        builder.HasIndex(t => new { t.UserId, t.Device }).IsUnique();
+        builder.HasIndex(t => new { t.UserId, t.Device })
+            .IsUnique()
+            .HasFilter("\"Revoked\" = false");
 
         builder.Property(t => t.TokenHash).IsRequired();
         builder.Property(t => t.Device).IsRequired().HasMaxLength(200);
