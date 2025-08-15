@@ -85,6 +85,9 @@ namespace Avancira.Migrations.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("DeviceId")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -92,15 +95,39 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime>("Expiry")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IpAddress");
+
+                    b.HasIndex("UserAgent");
+
+                    b.HasIndex("Latitude");
+
+                    b.HasIndex("Longitude");
+
+                    b.HasIndex("CreatedAt");
 
                     b.HasIndex("UserId", "DeviceId")
                         .IsUnique();
