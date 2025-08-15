@@ -283,6 +283,11 @@ export class AuthService implements OnDestroy {
 
   private decodeToken(token: string): UserProfile {
     const decoded: any = jwtDecode(token);
+    // Persist device id if present in the token
+    if (decoded?.device_id) {
+      localStorage.setItem('deviceId', decoded.device_id);
+    }
+
     return {
       id: decoded.sub,
       email: decoded.email,
@@ -294,6 +299,7 @@ export class AuthService implements OnDestroy {
       timeZoneId: decoded.timeZoneId,
       ipAddress: decoded.ipAddress,
       imageUrl: decoded.image_url,
+      deviceId: decoded.device_id,
       roles: this.toArray(decoded.role),
       permissions: this.toArray(decoded.permissions),
       exp: decoded.exp

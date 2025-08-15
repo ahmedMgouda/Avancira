@@ -16,9 +16,9 @@ export function authInterceptor(
 ): Observable<HttpEvent<any>> {
   const authService = inject(AuthService);
 
-  // Avoid attaching token when none exists
   const token = authService.getAccessToken();
-  const authReq = token ? addToken(req, token) : req;
+  const deviceId = getDeviceId(authService);
+  const authReq = addHeaders(req, token, deviceId);
 
   return next(authReq).pipe(
     catchError((error) => {
@@ -34,10 +34,32 @@ export function authInterceptor(
   );
 }
 
-function addToken(request: HttpRequest<any>, token: string): HttpRequest<any> {
-  return request.clone({
-    setHeaders: { Authorization: `Bearer ${token}` }
-  });
+function addHeaders(
+  request: HttpRequest<any>,
+  token: string | null,
+  deviceId: string | null
+): HttpRequest<any> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (deviceId) {
+    headers['Device-Id'] = deviceId;
+  }
+  return Object.keys(headers).length ? request.clone({ setHeaders: headers }) : request;
+}
+
+function getDeviceId(authService: AuthService): string | null {
+  const stored = localStorage.getItem('deviceId');
+  if (stored) {
+    return stored;
+  }
+  if (!authService.getAccessToken()) {
+    const newId = crypto.randomUUID();
+    localStorage.setItem('deviceId', newId);
+    return newId;
+  }
+  return null;
 }
 
 function handle401Error(
@@ -53,7 +75,7 @@ function handle401Error(
       switchMap((response: TokenResponse) => {
         const newToken = response.token;
         authService.endRefresh(newToken);
-        return next(addToken(request, newToken));
+        return next(addHeaders(request, newToken, getDeviceId(authService)));
       }),
       catchError((err) => {
         authService.refreshFailed(err);
@@ -64,7 +86,7 @@ function handle401Error(
   } else {
     // Another request is already refreshing → wait and retry
     return authService.waitForRefresh().pipe(
-      switchMap((token) => next(addToken(request, token))),
+      switchMap((token) => next(addHeaders(request, token, getDeviceId(authService)))),
       catchError((err) => throwError(() => err))
     );
   }
