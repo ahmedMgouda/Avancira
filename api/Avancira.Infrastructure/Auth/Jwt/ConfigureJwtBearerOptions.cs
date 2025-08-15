@@ -29,7 +29,7 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
             return;
         }
 
-        byte[] key = Encoding.ASCII.GetBytes(_options.Key);
+        byte[] key = Encoding.UTF8.GetBytes(_options.Key);
 
         options.RequireHttpsMetadata = true;
         options.SaveToken = true;
