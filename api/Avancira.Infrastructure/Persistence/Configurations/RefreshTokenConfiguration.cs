@@ -15,7 +15,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         builder.Property(t => t.TokenHash).IsRequired();
         builder.Property(t => t.Device).IsRequired().HasMaxLength(200);
-        builder.Property(t => t.Browser).HasMaxLength(100);
+        builder.Property(t => t.UserAgent).HasMaxLength(100);
         builder.Property(t => t.OperatingSystem).HasMaxLength(100);
         builder.Property(t => t.IpAddress).IsRequired().HasMaxLength(45);
         builder.Property(t => t.Country).HasMaxLength(100);
@@ -26,7 +26,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(t => t.RevokedAt);
 
         builder.HasIndex(t => t.Device);
-        builder.HasIndex(t => t.Browser);
+        builder.HasIndex(t => t.UserAgent);
         builder.HasIndex(t => t.OperatingSystem);
         builder.HasIndex(t => t.IpAddress);
         builder.HasIndex(t => t.CreatedAt);

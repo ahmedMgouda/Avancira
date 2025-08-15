@@ -36,7 +36,7 @@ public sealed class TokenService : ITokenService
         _geolocationService = geolocationService;
     }
 
-    public async Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, CancellationToken cancellationToken)
+    public async Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(request.Email.Trim().Normalize());
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
@@ -54,10 +54,10 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException("email not confirmed");
         }
 
-        return await GenerateTokens(user, deviceId, ipAddress);
+        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem);
     }
 
-    public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, CancellationToken cancellationToken)
+    public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
     {
         var userPrincipal = GetPrincipalFromExpiredToken(request.Token);
         var userId = _userManager.GetUserId(userPrincipal)!;
@@ -78,10 +78,10 @@ public sealed class TokenService : ITokenService
         _dbContext.RefreshTokens.Remove(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokens(user, deviceId, ipAddress);
+        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem);
     }
 
-    private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress)
+    private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem)
     {
         string token = await GenerateJwt(user, deviceId, ipAddress);
 
@@ -105,6 +105,8 @@ public sealed class TokenService : ITokenService
             UserId = user.Id,
             TokenHash = refreshTokenHash,
             Device = deviceId,
+            UserAgent = userAgent,
+            OperatingSystem = operatingSystem,
             IpAddress = ipAddress,
             Country = country,
             City = city,

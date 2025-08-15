@@ -93,7 +93,7 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("Browser")
+                    b.Property<string>("UserAgent")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -137,7 +137,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("Device");
 
-                    b.HasIndex("Browser");
+                    b.HasIndex("UserAgent");
 
                     b.HasIndex("OperatingSystem");
 
