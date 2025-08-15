@@ -54,7 +54,7 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException("email not confirmed");
         }
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem);
+        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
     }
 
     public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
@@ -78,10 +78,10 @@ public sealed class TokenService : ITokenService
         _dbContext.RefreshTokens.Remove(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem);
+        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
     }
 
-    private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem)
+    private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
     {
         string token = await GenerateJwt(user, deviceId, ipAddress);
 
@@ -91,7 +91,7 @@ public sealed class TokenService : ITokenService
 
         var oldTokens = await _dbContext.RefreshTokens
             .Where(t => t.UserId == user.Id && t.Device == deviceId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         if (oldTokens.Count > 0)
         {
             _dbContext.RefreshTokens.RemoveRange(oldTokens);
@@ -115,7 +115,7 @@ public sealed class TokenService : ITokenService
             Revoked = false
         });
 
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         await _publisher.Publish(new AuditPublishedEvent(new()
         {
