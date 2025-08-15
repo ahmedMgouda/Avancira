@@ -1,11 +1,10 @@
-﻿using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Application.Identity.Tokens.Dtos;
 
 namespace Avancira.Application.Identity.Tokens;
+
 public interface ITokenService
 {
-    Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
-    Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
-
-    Task RevokeTokenAsync(RevokeTokenDto request, string userId, string deviceId, CancellationToken cancellationToken);
-
+    Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
+    Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
+    Task RevokeTokenAsync(string refreshToken, string userId, string deviceId, CancellationToken cancellationToken);
 }
