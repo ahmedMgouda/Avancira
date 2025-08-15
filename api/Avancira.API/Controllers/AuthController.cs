@@ -23,7 +23,7 @@ public class AuthController : BaseApiController
     [SwaggerOperation(OperationId = "GenerateToken")]
     public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request, CancellationToken cancellationToken)
     {
-        string deviceId = HttpContext.GetDeviceIdentifier();
+        string deviceId = HttpContext.GetOrCreateDeviceId();
         string ip = HttpContext.GetIpAddress();
 
         var result = await _tokenService.GenerateTokenAsync(request, deviceId, ip, cancellationToken);
@@ -42,7 +42,7 @@ public class AuthController : BaseApiController
     [SwaggerOperation(OperationId = "RefreshToken")]
     public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto request, CancellationToken cancellationToken)
     {
-        string deviceId = HttpContext.GetDeviceIdentifier();
+        string deviceId = HttpContext.GetOrCreateDeviceId();
         string ip = HttpContext.GetIpAddress();
 
         var result = await _tokenService.RefreshTokenAsync(request, deviceId, ip, cancellationToken);

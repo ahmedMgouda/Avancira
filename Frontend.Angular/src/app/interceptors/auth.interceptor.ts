@@ -6,18 +6,23 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { catchError, retry, switchMap } from 'rxjs/operators';
+import { catchError, switchMap } from 'rxjs/operators';
 
 import { AuthService, TokenResponse } from '../services/auth.service';
 
-export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> {
+export function authInterceptor(
+  req: HttpRequest<any>,
+  next: HttpHandlerFn
+): Observable<HttpEvent<any>> {
   const authService = inject(AuthService);
 
+  // Avoid attaching token when none exists
   const token = authService.getAccessToken();
   const authReq = token ? addToken(req, token) : req;
 
   return next(authReq).pipe(
-    catchError(error => {
+    catchError((error) => {
+      // Only handle 401 for non-auth endpoints
       if (error instanceof HttpErrorResponse && error.status === 401) {
         if (req.url.includes('/auth/token') || req.url.includes('/auth/refresh')) {
           return throwError(() => error);
@@ -44,24 +49,23 @@ function handle401Error(
     authService.beginRefresh();
 
     return authService.refreshToken().pipe(
-      retry(1), // retry once on network errors
+      // If you want, you can add a retryWhen here for transient network errors only.
       switchMap((response: TokenResponse) => {
         const newToken = response.token;
         authService.endRefresh(newToken);
         return next(addToken(request, newToken));
       }),
-      catchError(err => {
+      catchError((err) => {
         authService.refreshFailed(err);
         authService.logout();
         return throwError(() => err);
       })
     );
-
   } else {
-    // Wait until refresh completes and retry original request
+    // Another request is already refreshing → wait and retry
     return authService.waitForRefresh().pipe(
-      switchMap(token => next(addToken(request, token))),
-      catchError(err => throwError(() => err))
+      switchMap((token) => next(addToken(request, token))),
+      catchError((err) => throwError(() => err))
     );
   }
 }
