@@ -69,16 +69,45 @@ public sealed class TokenService : ITokenService
 
         var hashedRequestToken = HashToken(request.RefreshToken);
         var refreshToken = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == deviceId && t.TokenHash == hashedRequestToken, cancellationToken);
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == deviceId && t.TokenHash == hashedRequestToken && !t.Revoked, cancellationToken);
         if (refreshToken is null || refreshToken.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
 
-        _dbContext.RefreshTokens.Remove(refreshToken);
+        refreshToken.Revoked = true;
+        refreshToken.RevokedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
+    }
+
+    public async Task RevokeTokenAsync(RevokeTokenDto request, string userId, string deviceId, CancellationToken cancellationToken)
+    {
+        var hashedToken = HashToken(request.RefreshToken);
+        var token = await _dbContext.RefreshTokens
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == deviceId && t.TokenHash == hashedToken && !t.Revoked, cancellationToken);
+
+        if (token is null)
+        {
+            throw new UnauthorizedException("Invalid Refresh Token");
+        }
+
+        token.Revoked = true;
+        token.RevokedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _publisher.Publish(new AuditPublishedEvent(new()
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Operation = "Token Revoked",
+                Entity = "Identity",
+                UserId = new Guid(userId),
+                DateTime = DateTime.UtcNow,
+            }
+        }));
     }
 
     private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
@@ -90,11 +119,12 @@ public sealed class TokenService : ITokenService
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
         var oldTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == user.Id && t.Device == deviceId)
+            .Where(t => t.UserId == user.Id && t.Device == deviceId && !t.Revoked)
             .ToListAsync(cancellationToken);
-        if (oldTokens.Count > 0)
+        foreach (var oldToken in oldTokens)
         {
-            _dbContext.RefreshTokens.RemoveRange(oldTokens);
+            oldToken.Revoked = true;
+            oldToken.RevokedAt = DateTime.UtcNow;
         }
 
         var (country, city) = await _geolocationService.GetLocationFromIpAsync(ipAddress);

@@ -53,4 +53,18 @@ public class AuthController : BaseApiController
 
         return Ok(result);
     }
+
+    [HttpPost("revoke")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "RevokeToken")]
+    public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenDto request, CancellationToken cancellationToken)
+    {
+        string deviceId = HttpContext.GetDeviceIdentifier();
+        string userId = GetUserId();
+
+        await _tokenService.RevokeTokenAsync(request, userId, deviceId, cancellationToken);
+
+        return Ok();
+    }
 }

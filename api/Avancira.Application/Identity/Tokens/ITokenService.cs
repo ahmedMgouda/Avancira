@@ -6,4 +6,6 @@ public interface ITokenService
     Task<TokenResponse> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
     Task<TokenResponse> RefreshTokenAsync(RefreshTokenDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken);
 
+    Task RevokeTokenAsync(RevokeTokenDto request, string userId, string deviceId, CancellationToken cancellationToken);
+
 }
