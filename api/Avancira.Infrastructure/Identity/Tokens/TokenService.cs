@@ -66,8 +66,8 @@ public sealed class TokenService : ITokenService
 
         var hashedRequestToken = HashToken(request.RefreshToken);
         var refreshToken = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.UserId == userId && t.DeviceId == deviceId && t.TokenHash == hashedRequestToken, cancellationToken);
-        if (refreshToken is null || refreshToken.Expiry <= DateTime.UtcNow)
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == deviceId && t.TokenHash == hashedRequestToken, cancellationToken);
+        if (refreshToken is null || refreshToken.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
@@ -87,7 +87,7 @@ public sealed class TokenService : ITokenService
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
         var oldTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == user.Id && t.DeviceId == deviceId)
+            .Where(t => t.UserId == user.Id && t.Device == deviceId)
             .ToListAsync();
         if (oldTokens.Count > 0)
         {
@@ -99,8 +99,11 @@ public sealed class TokenService : ITokenService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = refreshTokenHash,
-            DeviceId = deviceId,
-            Expiry = refreshTokenExpiryTime
+            Device = deviceId,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = refreshTokenExpiryTime,
+            Revoked = false
         });
 
         await _dbContext.SaveChangesAsync();

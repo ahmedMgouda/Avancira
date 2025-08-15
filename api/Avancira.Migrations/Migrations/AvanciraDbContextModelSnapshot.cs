@@ -88,30 +88,36 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeviceId")
+                    b.Property<string>("Device")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<DateTime>("Expiry")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Browser")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OperatingSystem")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("IpAddress")
+                        .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)");
 
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision");
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision");
+                    b.Property<bool>("Revoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -119,17 +125,21 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IpAddress");
-
-                    b.HasIndex("UserAgent");
-
-                    b.HasIndex("Latitude");
-
-                    b.HasIndex("Longitude");
-
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("UserId", "DeviceId")
+                    b.HasIndex("Device");
+
+                    b.HasIndex("Browser");
+
+                    b.HasIndex("OperatingSystem");
+
+                    b.HasIndex("IpAddress");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Revoked");
+
+                    b.HasIndex("UserId", "Device")
                         .IsUnique();
 
                     b.ToTable("RefreshTokens");
