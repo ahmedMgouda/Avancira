@@ -29,4 +29,20 @@ public static class HttpContextExtensions
 
         return deviceId;
     }
+
+    public static string GetUserAgent(this HttpContext context) =>
+        context.Request.Headers["User-Agent"].FirstOrDefault() ?? "N/A";
+
+    public static string GetOperatingSystem(this HttpContext context)
+    {
+        var userAgent = context.GetUserAgent();
+
+        if (userAgent.Contains("Windows", StringComparison.OrdinalIgnoreCase)) return "Windows";
+        if (userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase)) return "Android";
+        if (userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase)) return "iOS";
+        if (userAgent.Contains("Mac OS", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase)) return "macOS";
+        if (userAgent.Contains("Linux", StringComparison.OrdinalIgnoreCase)) return "Linux";
+
+        return "Unknown";
+    }
 }

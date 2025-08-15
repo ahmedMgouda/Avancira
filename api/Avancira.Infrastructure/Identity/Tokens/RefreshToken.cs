@@ -8,7 +8,7 @@ public class RefreshToken
     public string UserId { get; set; } = default!;
     public string TokenHash { get; set; } = default!;
     public string Device { get; set; } = default!;
-    public string? Browser { get; set; }
+    public string? UserAgent { get; set; }
     public string? OperatingSystem { get; set; }
     public string IpAddress { get; set; } = default!;
     public string? Country { get; set; }

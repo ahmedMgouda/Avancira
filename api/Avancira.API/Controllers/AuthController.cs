@@ -25,8 +25,10 @@ public class AuthController : BaseApiController
     {
         string deviceId = HttpContext.GetDeviceIdentifier();
         string ip = HttpContext.GetIpAddress();
+        string userAgent = HttpContext.GetUserAgent();
+        string operatingSystem = HttpContext.GetOperatingSystem();
 
-        var result = await _tokenService.GenerateTokenAsync(request, deviceId, ip, cancellationToken);
+        var result = await _tokenService.GenerateTokenAsync(request, deviceId, ip, userAgent, operatingSystem, cancellationToken);
 
         if (result != null)
         {
@@ -44,8 +46,10 @@ public class AuthController : BaseApiController
     {
         string deviceId = HttpContext.GetDeviceIdentifier();
         string ip = HttpContext.GetIpAddress();
+        string userAgent = HttpContext.GetUserAgent();
+        string operatingSystem = HttpContext.GetOperatingSystem();
 
-        var result = await _tokenService.RefreshTokenAsync(request, deviceId, ip, cancellationToken);
+        var result = await _tokenService.RefreshTokenAsync(request, deviceId, ip, userAgent, operatingSystem, cancellationToken);
 
         return Ok(result);
     }
