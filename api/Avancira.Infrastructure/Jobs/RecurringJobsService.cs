@@ -1,6 +1,7 @@
 using Avancira.Application.Jobs;
+using Avancira.Infrastructure.Identity.Tokens;
 using Hangfire;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -8,12 +9,12 @@ namespace Avancira.Infrastructure.Jobs;
 
 public class RecurringJobsService : IHostedService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<RecurringJobsService> _logger;
 
-    public RecurringJobsService(IServiceProvider serviceProvider, ILogger<RecurringJobsService> logger)
+    public RecurringJobsService(IConfiguration configuration, ILogger<RecurringJobsService> logger)
     {
-        _serviceProvider = serviceProvider;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -23,6 +24,13 @@ public class RecurringJobsService : IHostedService
 
         try
         {
+            var cleanupOptions = _configuration.GetSection(nameof(TokenCleanupOptions)).Get<TokenCleanupOptions>() ?? new TokenCleanupOptions();
+
+            RecurringJob.AddOrUpdate<TokenCleanupService>(
+                "refresh-token-cleanup",
+                service => service.CleanupAsync(),
+                cleanupOptions.Schedule);
+
             // Set up your payment processing recurring jobs
             
             // Monthly payment processing - 1st day of each month at 00:00 UTC
