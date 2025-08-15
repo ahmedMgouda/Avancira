@@ -9,6 +9,7 @@ using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Cors;
 using Avancira.Infrastructure.Exceptions;
 using Avancira.Infrastructure.Identity;
+using Avancira.Infrastructure.Identity.Tokens;
 using Avancira.Infrastructure.Jobs;
 using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Mail;
@@ -67,6 +68,7 @@ public static class Extensions
         builder.Services.Configure<JitsiOptions>(builder.Configuration.GetSection("Avancira:Jitsi"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Google"));
         builder.Services.Configure<FacebookOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Facebook"));
+        builder.Services.Configure<TokenCleanupOptions>(builder.Configuration.GetSection(nameof(TokenCleanupOptions)));
 
 
         // Configure Mappings
