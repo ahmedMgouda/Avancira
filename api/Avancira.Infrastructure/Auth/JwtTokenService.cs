@@ -58,7 +58,7 @@ namespace Avancira.Infrastructure.Catalog
             try
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(_jwtSecret);
+                var key = Encoding.UTF8.GetBytes(_jwtSecret);
 
                 var claims = new[]
                 {
