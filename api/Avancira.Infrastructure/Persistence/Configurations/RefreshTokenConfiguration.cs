@@ -18,6 +18,8 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(t => t.Browser).HasMaxLength(100);
         builder.Property(t => t.OperatingSystem).HasMaxLength(100);
         builder.Property(t => t.IpAddress).IsRequired().HasMaxLength(45);
+        builder.Property(t => t.Country).HasMaxLength(100);
+        builder.Property(t => t.City).HasMaxLength(100);
         builder.Property(t => t.CreatedAt).IsRequired();
         builder.Property(t => t.ExpiresAt).IsRequired();
         builder.Property(t => t.Revoked).HasDefaultValue(false);

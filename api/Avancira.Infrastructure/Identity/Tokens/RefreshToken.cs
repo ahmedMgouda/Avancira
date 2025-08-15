@@ -11,6 +11,8 @@ public class RefreshToken
     public string? Browser { get; set; }
     public string? OperatingSystem { get; set; }
     public string IpAddress { get; set; } = default!;
+    public string? Country { get; set; }
+    public string? City { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
     public bool Revoked { get; set; }
