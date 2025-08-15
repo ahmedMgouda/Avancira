@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Avancira.Infrastructure.Common.Extensions;
 
@@ -20,7 +18,7 @@ public static class HttpContextExtensions
         return ip;
     }
 
-    public static string GetOrCreateDeviceId(this HttpContext context)
+    public static string GetDeviceIdentifier(this HttpContext context)
     {
         var deviceId = context.Request.Headers["Device-Id"].FirstOrDefault();
 

@@ -80,7 +80,7 @@ public sealed class TokenService : ITokenService
 
     private async Task<TokenResponse> GenerateTokens(User user, string deviceId, string ipAddress)
     {
-        string token = await GenerateJwt(user, ipAddress);
+        string token = await GenerateJwt(user, deviceId, ipAddress);
 
         var refreshToken = GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshToken);
@@ -120,8 +120,8 @@ public sealed class TokenService : ITokenService
         return new TokenResponse(token, refreshToken, refreshTokenExpiryTime);
     }
 
-    private async Task<string> GenerateJwt(User user, string ipAddress) =>
-        GenerateEncryptedToken(GetSigningCredentials(), await GetClaimsAsync(user, ipAddress));
+    private async Task<string> GenerateJwt(User user, string deviceId, string ipAddress) =>
+        GenerateEncryptedToken(GetSigningCredentials(), await GetClaimsAsync(user, deviceId, ipAddress));
 
     private SigningCredentials GetSigningCredentials()
     {
@@ -142,7 +142,7 @@ public sealed class TokenService : ITokenService
         return tokenHandler.WriteToken(token);
     }
 
-    private async Task<List<Claim>> GetClaimsAsync(User user, string ipAddress)
+    private async Task<List<Claim>> GetClaimsAsync(User user, string deviceId, string ipAddress)
     {
         var claims = new List<Claim>
         {
@@ -155,6 +155,7 @@ public sealed class TokenService : ITokenService
             new(ClaimTypes.Surname, user.LastName ?? string.Empty),
             new(AvanciraClaims.TimeZoneId, user.TimeZoneId ?? string.Empty),
             new(AvanciraClaims.IpAddress, ipAddress),
+            new(AvanciraClaims.DeviceId, deviceId),
             new(AvanciraClaims.ImageUrl, user.ImageUrl == null ? string.Empty : user.ImageUrl.ToString())
         };
 
