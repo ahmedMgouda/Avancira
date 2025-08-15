@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace Avancira.Application.Catalog
 {
     public interface IGeolocationService
