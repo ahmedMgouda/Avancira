@@ -1,6 +1,6 @@
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, UrlTree } from '@angular/router';
 import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from 'rxjs';
 import { catchError, finalize, map, retry, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
@@ -93,9 +93,13 @@ export class AuthService implements OnDestroy {
     .subscribe(() => {
       this.clearSession();
       if (navigate) {
-        this.router.navigate(['/signin'], { queryParams: { returnUrl: this.router.url } });
+        this.router.navigateByUrl(this.redirectToSignIn());
       }
     });
+  }
+
+  redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
+    return this.router.createUrlTree(['/signin'], { queryParams: { returnUrl } });
   }
 
   /** Ensure a valid access token; otherwise refresh via cookie. */
@@ -241,7 +245,7 @@ export class AuthService implements OnDestroy {
 
     this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;
     this.notifications.stopConnection();
-    if (navigate) this.router.navigate(['/signin']);
+    if (navigate) this.router.navigateByUrl(this.redirectToSignIn());
   }
 
   private appError(err: HttpErrorResponse | any) {
