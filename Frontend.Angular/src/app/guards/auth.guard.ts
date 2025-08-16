@@ -5,7 +5,7 @@ import { catchError, map, take } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = (_route, state) => {
+export const AuthGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
