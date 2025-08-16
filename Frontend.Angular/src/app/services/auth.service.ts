@@ -36,6 +36,7 @@ export interface TokenResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly PROFILE_KEY = 'user_profile';
+  private readonly REFRESH_FLAG_KEY = 'auth_refreshing';
   private readonly apiBase = environment.apiUrl;
 
   private accessToken: string | null = null;
@@ -47,6 +48,8 @@ export class AuthService implements OnDestroy {
   private isRefreshing = false;
   private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
+  private refreshChannel?: BroadcastChannel;
+
   private boundStorageListener: ((e: StorageEvent) => void) | null = null;
 
   constructor(
@@ -55,25 +58,49 @@ export class AuthService implements OnDestroy {
     private notificationService: NotificationService,
     private storage: StorageService
   ) {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      this.refreshChannel = new BroadcastChannel('auth-refresh');
+      this.refreshChannel.onmessage = (e) => {
+        const data = e.data;
+        if (data?.type === 'refresh_token' && data.token) {
+          this.applyTokens({ token: data.token });
+          this.endRefresh(data.token, false);
+        } else if (data?.type === 'refresh_failed') {
+          this.refreshFailed(undefined, false);
+        }
+      };
+    }
     this.initStorageListener();
+    if (this.getStorage(this.REFRESH_FLAG_KEY) === 'true') {
+      this.isRefreshing = true;
+    }
     this.restoreProfile();
   }
 
   beginRefresh(): void {
     this.isRefreshing = true;
     this.refreshTokenSubject.next(null);
+    this.setStorage(this.REFRESH_FLAG_KEY, 'true');
   }
 
-  endRefresh(token: string): void {
+  endRefresh(token: string, broadcast = true): void {
     this.isRefreshing = false;
     this.refreshTokenSubject.next(token);
+    if (broadcast) {
+      this.storage.removeItem(this.REFRESH_FLAG_KEY);
+      this.refreshChannel?.postMessage({ type: 'refresh_token', token });
+    }
   }
 
-  refreshFailed(error?: any): void {
+  refreshFailed(error?: any, broadcast = true): void {
     this.isRefreshing = false;
     this.refreshTokenSubject.error(error ?? new Error('Token refresh failed'));
     // Recreate subject for future waiters
     this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+    if (broadcast) {
+      this.storage.removeItem(this.REFRESH_FLAG_KEY);
+      this.refreshChannel?.postMessage({ type: 'refresh_failed' });
+    }
   }
 
   waitForRefresh(): Observable<string> {
@@ -199,6 +226,16 @@ export class AuthService implements OnDestroy {
 
   // ===== Private helpers =====
 
+  private refreshOrWait(): Observable<string> {
+    if (this.getStorage(this.REFRESH_FLAG_KEY) === 'true' && !this.isRefreshing) {
+      this.isRefreshing = true;
+      this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+      return this.waitForRefresh();
+    }
+    this.beginRefresh();
+    return this.refreshToken().pipe(map((r) => r.token));
+  }
+
   private applyTokens(res: TokenResponse): void {
     // Keep in-memory access token for perf
     this.accessToken = res.token;
@@ -223,11 +260,10 @@ export class AuthService implements OnDestroy {
     }
 
     // Attempt to refresh access token from refresh cookie
-    this.beginRefresh();
-    this.refreshToken()
+    this.refreshOrWait()
       .pipe(take(1))
       .subscribe({
-        next: (r) => this.endRefresh(r.token),
+        next: (token) => this.endRefresh(token),
         error: (e) => {
           this.refreshFailed(e);
           this.logout();
@@ -252,13 +288,9 @@ export class AuthService implements OnDestroy {
     const msUntilExp = expSeconds * 1000 - Date.now();
     const refreshInMs = Math.max(0, msUntilExp - 2 * 60_000);
     this.refreshTimerSub = timer(refreshInMs)
-      .pipe(
-        tap(() => this.beginRefresh()),
-        switchMap(() => this.refreshToken()),
-        take(1)
-      )
+      .pipe(switchMap(() => this.refreshOrWait()), take(1))
       .subscribe({
-        next: (r) => this.endRefresh(r.token),
+        next: (token) => this.endRefresh(token),
         error: (e) => {
           this.refreshFailed(e);
           this.logout();
@@ -333,6 +365,7 @@ export class AuthService implements OnDestroy {
 
     // Remove cached profile only
     this.storage.removeItem(this.PROFILE_KEY);
+    this.storage.removeItem(this.REFRESH_FLAG_KEY);
 
     this.cancelRefresh();
     this.notificationService.stopConnection();
@@ -350,8 +383,20 @@ export class AuthService implements OnDestroy {
     if (typeof window === 'undefined') return;
     this.boundStorageListener = (e: StorageEvent) => {
       if (e.key === this.PROFILE_KEY) {
-        // Re-evaluate current state
-        this.restoreProfile();
+        if (e.newValue) {
+          try {
+            this.profileSubject.next(JSON.parse(e.newValue));
+          } catch {
+            this.storage.removeItem(this.PROFILE_KEY);
+          }
+        } else {
+          this.clearSession();
+        }
+      } else if (e.key === this.REFRESH_FLAG_KEY) {
+        this.isRefreshing = e.newValue === 'true';
+        if (this.isRefreshing) {
+          this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+        }
       }
     };
     window.addEventListener('storage', this.boundStorageListener);
@@ -364,5 +409,6 @@ export class AuthService implements OnDestroy {
       window.removeEventListener('storage', this.boundStorageListener);
       this.boundStorageListener = null;
     }
+    this.refreshChannel?.close();
   }
 }
