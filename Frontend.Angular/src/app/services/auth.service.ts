@@ -11,6 +11,7 @@ import {
 import {
   catchError,
   filter,
+  finalize,
   map,
   switchMap,
   take,
@@ -111,8 +112,21 @@ export class AuthService implements OnDestroy {
 
   logout(): void {
     if (!this.accessToken && !this.profileSubject.value) return;
-    this.clearSession();
-    this.router.navigate(['/signin'], { queryParams: { returnUrl: this.router.url } });
+    this.http
+      .post(`${this.apiBase}/auth/revoke`, {}, { withCredentials: true })
+      .pipe(
+        catchError((err) => {
+          console.error('AuthService revoke error', err);
+          return of(null);
+        }),
+        finalize(() => {
+          this.clearSession();
+          this.router.navigate(['/signin'], {
+            queryParams: { returnUrl: this.router.url }
+          });
+        })
+      )
+      .subscribe();
   }
 
   isAuthenticated(): boolean {
