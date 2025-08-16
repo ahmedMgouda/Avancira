@@ -23,6 +23,7 @@ export class AuthService implements OnDestroy {
   private readonly api = environment.apiUrl;
 
   private accessToken: string | null = null;
+  private tokenExpiryMs: number | null = null;
   private refreshTimer?: Subscription;
   private refresh$?: Observable<string>; // de-dupes in-flight refreshes
 
@@ -51,8 +52,11 @@ export class AuthService implements OnDestroy {
   // ---------- Public API
 
   isAuthenticated(): boolean {
-    const t = this.accessToken;
-    return !!(t && this.expMs(t) > Date.now() + CLOCK_SKEW_MS);
+    return !!(
+      this.accessToken &&
+      this.tokenExpiryMs !== null &&
+      this.tokenExpiryMs > Date.now() + CLOCK_SKEW_MS
+    );
   }
 
   getAccessToken(): string | null { return this.accessToken; }
@@ -151,9 +155,10 @@ export class AuthService implements OnDestroy {
       throw new Error('INVALID_TOKEN');
     }
     this.accessToken = token;
+    const exp = (mapped as any).exp as number | undefined;
+    this.tokenExpiryMs = exp ? exp * 1000 : null;
     this.patchProfile(mapped);
 
-    const exp = (mapped as any).exp as number;
     if (exp) this.scheduleEarlyRefresh(exp);
   }
 
@@ -207,10 +212,6 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  private expMs(token: string): number {
-    try { return (jwtDecode<any>(token).exp ?? 0) * 1000; } catch { return 0; }
-  }
-
   private loadPermissions(): Observable<string[]> {
     return this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])));
   }
@@ -229,6 +230,7 @@ export class AuthService implements OnDestroy {
 
   private clearSession(navigate = false): void {
     this.accessToken = null;
+    this.tokenExpiryMs = null;
     this.profileSubject.next(null);
 
     // IMPORTANT: do NOT remove DEVICE_ID_KEY (persist across logouts)
