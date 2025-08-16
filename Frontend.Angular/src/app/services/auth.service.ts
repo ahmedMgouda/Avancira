@@ -87,7 +87,7 @@ export class AuthService implements OnDestroy {
     this.http.post(
       `${this.api}/auth/revoke`,
       {},
-      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+      { withCredentials: true }
     )
     .pipe(catchError(() => of(null)))
     .subscribe(() => {
