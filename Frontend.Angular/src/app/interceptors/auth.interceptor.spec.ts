@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { SKIP_AUTH, authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
+import { StorageService } from '../services/storage.service';
 import { environment } from '../environments/environment';
 
 class MockRouter {
@@ -40,12 +41,19 @@ describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
   let authService: AuthService;
+  let storageSpy: jasmine.SpyObj<StorageService>;
 
   beforeEach(() => {
+    storageSpy = jasmine.createSpyObj('StorageService', ['getItem', 'setItem', 'removeItem']);
+    storageSpy.getItem.and.callFake((key: string) => localStorage.getItem(key));
+    storageSpy.setItem.and.callFake((key: string, value: string) => localStorage.setItem(key, value));
+    storageSpy.removeItem.and.callFake((key: string) => localStorage.removeItem(key));
+
     TestBed.configureTestingModule({
       providers: [
         { provide: Router, useClass: MockRouter },
         { provide: NotificationService, useClass: MockNotificationService },
+        { provide: StorageService, useValue: storageSpy },
         AuthService,
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting()
