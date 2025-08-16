@@ -1,4 +1,5 @@
 import {
+  HttpContextToken,
   HttpErrorResponse,
   HttpEvent,
   HttpHandlerFn,
@@ -10,23 +11,22 @@ import { catchError, switchMap } from 'rxjs/operators';
 
 import { AuthService, TokenResponse } from '../services/auth.service';
 
+export const SKIP_AUTH = new HttpContextToken<boolean>(() => false);
+
 export function authInterceptor(
   req: HttpRequest<any>,
   next: HttpHandlerFn
 ): Observable<HttpEvent<any>> {
   const authService = inject(AuthService);
+  const skip = req.context.get(SKIP_AUTH);
 
-  const token = authService.getAccessToken();
+  const token = skip ? null : authService.getAccessToken();
   const deviceId = getDeviceId(authService);
   const authReq = addHeaders(req, token, deviceId);
 
   return next(authReq).pipe(
     catchError((error) => {
-      // Only handle 401 for non-auth endpoints
-      if (error instanceof HttpErrorResponse && error.status === 401) {
-        if (req.url.includes('/auth/token') || req.url.includes('/auth/refresh')) {
-          return throwError(() => error);
-        }
+      if (!skip && error instanceof HttpErrorResponse && error.status === 401) {
         return handle401Error(authReq, next, authService);
       }
       return throwError(() => error);

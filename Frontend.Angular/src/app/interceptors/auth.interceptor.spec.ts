@@ -1,9 +1,15 @@
-import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpErrorResponse,
+  provideHttpClient,
+  withInterceptors
+} from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
-import { authInterceptor } from './auth.interceptor';
+import { SKIP_AUTH, authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 import { environment } from '../environments/environment';
@@ -60,7 +66,8 @@ describe('authInterceptor', () => {
     const refreshSpy = spyOn(authService, 'refreshToken');
     let error: HttpErrorResponse | undefined;
 
-    http.post('/auth/token', {}).subscribe({ error: e => error = e });
+    const context = new HttpContext().set(SKIP_AUTH, true);
+    http.post('/auth/token', {}, { context }).subscribe({ error: e => error = e });
 
     const req = httpMock.expectOne('/auth/token');
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });

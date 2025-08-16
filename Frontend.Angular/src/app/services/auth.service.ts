@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import {
@@ -21,6 +21,7 @@ import { jwtDecode } from 'jwt-decode';
 import { NotificationService } from './notification.service';
 
 import { environment } from '../environments/environment';
+import { SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { UserProfile } from '../models/UserProfile';
 
 export interface TokenResponse {
@@ -82,7 +83,11 @@ export class AuthService implements OnDestroy {
 
   login(email: string, password: string): Observable<UserProfile> {
     return this.http
-      .post<TokenResponse>(`${this.apiBase}/auth/token`, { email, password })
+      .post<TokenResponse>(
+        `${this.apiBase}/auth/token`,
+        { email, password },
+        { context: new HttpContext().set(SKIP_AUTH, true) }
+      )
       .pipe(
         switchMap((res) => {
           if (!res?.token) {
@@ -127,7 +132,11 @@ export class AuthService implements OnDestroy {
 
   refreshToken(): Observable<TokenResponse> {
     return this.http
-      .post<TokenResponse>(`${this.apiBase}/auth/refresh`, {}, { withCredentials: true })
+      .post<TokenResponse>(
+        `${this.apiBase}/auth/refresh`,
+        {},
+        { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+      )
       .pipe(
         tap((res) => {
           if (res?.token) {
