@@ -1,25 +1,8 @@
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  BehaviorSubject,
-  Observable,
-  of,
-  Subscription,
-  throwError,
-  timer} from 'rxjs';
-import {
-  catchError,
-  delayWhen,
-  filter,
-  finalize,
-  map,
-  retryWhen,
-  scan,
-  switchMap,
-  take,
-  tap
-} from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from 'rxjs';
+import { catchError, finalize, map, retry, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 
 import { NotificationService } from './notification.service';
@@ -29,386 +12,242 @@ import { environment } from '../environments/environment';
 import { SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { UserProfile } from '../models/UserProfile';
 
-export interface TokenResponse {
-  token: string;
-}
+interface TokenResponse { token: string; }
+
+const CLOCK_SKEW_MS = 30_000;          // treat tokens expiring within 30s as expired
+const DEVICE_ID_KEY = 'device_id';     // persisted across logouts
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly PROFILE_KEY = 'user_profile';
-  private readonly REFRESH_FLAG_KEY = 'auth_refreshing';
-  private readonly apiBase = environment.apiUrl;
+  private readonly api = environment.apiUrl;
 
   private accessToken: string | null = null;
-  private refreshTimerSub: Subscription | null = null;
+  private refreshTimer?: Subscription;
+  private refresh$?: Observable<string>; // de-dupes in-flight refreshes
 
   private profileSubject = new BehaviorSubject<UserProfile | null>(null);
-  profile$ = this.profileSubject.asObservable();
-
-  private isRefreshing = false;
-  private refreshTokenSubject = new BehaviorSubject<string | null>(null);
-
-  private refreshChannel?: BroadcastChannel;
-
-  private boundStorageListener: ((e: StorageEvent) => void) | null = null;
+  readonly profile$ = this.profileSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private router: Router,
-    private notificationService: NotificationService,
-    private storage: StorageService
+    private storage: StorageService,
+    private notifications: NotificationService
   ) {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      this.refreshChannel = new BroadcastChannel('auth-refresh');
-      this.refreshChannel.onmessage = (e) => {
-        const data = e.data;
-        if (data?.type === 'refresh_token' && data.token) {
-          this.applyTokens({ token: data.token });
-          this.endRefresh(data.token, false);
-        } else if (data?.type === 'refresh_failed') {
-          this.refreshFailed(undefined, false);
-        }
-      };
+    // UI continuity only (token never persisted)
+    const cached = this.storage.getItem(this.PROFILE_KEY);
+    if (cached) {
+      try { this.profileSubject.next(JSON.parse(cached)); }
+      catch { this.storage.removeItem(this.PROFILE_KEY); }
     }
-    this.initStorageListener();
-    if (this.getStorage(this.REFRESH_FLAG_KEY) === 'true') {
-      this.isRefreshing = true;
-    }
-    this.restoreProfile();
+
+    // Silent sign-in on app start if a refresh cookie exists
+    this.refreshAccessToken().pipe(take(1)).subscribe({
+      error: () => this.clearSession(false)
+    });
   }
 
-  beginRefresh(): void {
-    this.isRefreshing = true;
-    this.refreshTokenSubject.next(null);
-    this.setStorage(this.REFRESH_FLAG_KEY, 'true');
+  // ---------- Public API
+
+  isAuthenticated(): boolean {
+    const t = this.accessToken;
+    return !!(t && this.expMs(t) > Date.now() + CLOCK_SKEW_MS);
   }
 
-  endRefresh(token: string, broadcast = true): void {
-    this.isRefreshing = false;
-    this.refreshTokenSubject.next(token);
-    if (broadcast) {
-      this.storage.removeItem(this.REFRESH_FLAG_KEY);
-      this.refreshChannel?.postMessage({ type: 'refresh_token', token });
-    }
-  }
+  getAccessToken(): string | null { return this.accessToken; }
 
-  refreshFailed(error?: any, broadcast = true): void {
-    this.isRefreshing = false;
-    this.refreshTokenSubject.error(error ?? new Error('Token refresh failed'));
-    // Recreate subject for future waiters
-    this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
-    if (broadcast) {
-      this.storage.removeItem(this.REFRESH_FLAG_KEY);
-      this.refreshChannel?.postMessage({ type: 'refresh_failed' });
-    }
-  }
-
-  waitForRefresh(): Observable<string> {
-    return this.refreshTokenSubject.pipe(
-      filter((token): token is string => token !== null),
-      take(1)
-    );
-  }
-
-  get refreshing(): boolean {
-    return this.isRefreshing;
+  /** Persisted across sessions; set from JWT claims when available. */
+  getDeviceIdForHeader(): string | null {
+    return this.storage.getItem(DEVICE_ID_KEY) || (this.profileSubject.value as any)?.deviceId || null;
   }
 
   login(email: string, password: string): Observable<UserProfile> {
-    return this.http
-      .post<TokenResponse>(
-        `${this.apiBase}/auth/token`,
-        { email, password },
-        { context: new HttpContext().set(SKIP_AUTH, true) }
-      )
-      .pipe(
-        switchMap((res) => {
-          if (!res?.token) {
-            return throwError(() => new Error('No token returned from server'));
-          }
-
-          // Store tokens + profile + schedule auto refresh
-          this.applyTokens(res);
-
-          // Load permissions and merge into profile
-          return this.loadPermissions().pipe(
-            map((perms) => {
-              this.updateProfile({ permissions: perms });
-              return this.profileSubject.value!;
-            })
-          );
-        }),
-        catchError((err) => this.handleError(err))
-      );
+    return this.http.post<TokenResponse>(
+      `${this.api}/auth/token`,
+      { email, password },
+      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+    ).pipe(
+      tap(res => {
+        if (!res?.token) throw new Error('No token returned');
+        this.applyToken(res.token); // throws on invalid/expired token
+      }),
+      switchMap(() => this.loadPermissions()),
+      tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
+      map(() => this.profileSubject.value as UserProfile),
+      catchError(e => this.appError(e))
+    );
   }
 
-  logout(): void {
-    if (!this.accessToken && !this.profileSubject.value) return;
-    this.http
-      .post(`${this.apiBase}/auth/revoke`, {}, { withCredentials: true })
-      .pipe(
-        catchError((err) => {
-          console.error('AuthService revoke error', err);
-          return of(null);
-        }),
-        finalize(() => {
-          this.clearSession();
-          this.router.navigate(['/signin'], {
-            queryParams: { returnUrl: this.router.url }
-          });
-        })
-      )
-      .subscribe();
-  }
-
-  isAuthenticated(): boolean {
-    const token = this.accessToken;
-    const accessValid = !!(token && this.tokenExpiryMs(token) > Date.now());
-
-    if (!accessValid && this.profileSubject.value) {
+  logout(navigate = true): void {
+    this.http.post(
+      `${this.api}/auth/revoke`,
+      {},
+      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+    )
+    .pipe(catchError(() => of(null)))
+    .subscribe(() => {
       this.clearSession();
-    }
-
-    return accessValid;
-  }
-
-  getAccessToken(): string | null {
-    return this.accessToken;
-  }
-
-  refreshToken(): Observable<TokenResponse> {
-    return this.http
-      .post<TokenResponse>(
-        `${this.apiBase}/auth/refresh`,
-        {},
-        { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
-      )
-      .pipe(
-        retryWhen((errors) =>
-          errors.pipe(
-            scan((retryCount, err) => {
-              if (retryCount >= 3) {
-                throw err;
-              }
-              return retryCount + 1;
-            }, 0),
-            delayWhen((retryCount) => timer(Math.pow(2, retryCount - 1) * 1000))
-          )
-        ),
-        tap((res) => {
-          if (res?.token) {
-            this.applyTokens(res);
-          }
-        }),
-        catchError((err) => this.handleError(err))
-      );
-  }
-
-  getProfile(): UserProfile | null {
-    return this.profileSubject.value;
-  }
-
-  hasRole(role: string): boolean {
-    return this.hasAny(this.profileSubject.value?.roles, role);
-  }
-
-  hasAnyRole(...roles: string[]): boolean {
-    return this.hasAny(this.profileSubject.value?.roles, ...roles);
-  }
-
-  hasPermission(permission: string): boolean {
-    return this.hasAny(this.profileSubject.value?.permissions, permission);
-  }
-
-  hasAnyPermission(...perms: string[]): boolean {
-    return this.hasAny(this.profileSubject.value?.permissions, ...perms);
-  }
-
-  // ===== Private helpers =====
-
-  private refreshOrWait(): Observable<string> {
-    if (this.getStorage(this.REFRESH_FLAG_KEY) === 'true' && !this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
-      return this.waitForRefresh();
-    }
-    this.beginRefresh();
-    return this.refreshToken().pipe(map((r) => r.token));
-  }
-
-  private applyTokens(res: TokenResponse): void {
-    // Keep in-memory access token for perf
-    this.accessToken = res.token;
-
-    // Decode and update profile (idempotent)
-    const profile = this.decodeToken(res.token);
-    this.updateProfile(profile);
-
-    // Schedule auto refresh a little before expiry
-    if (profile.exp) this.scheduleRefresh(profile.exp);
-  }
-
-  private restoreProfile(): void {
-    // Keep any cached profile for UI continuity
-    const cached = this.getStorage(this.PROFILE_KEY);
-    if (cached) {
-      try {
-        this.profileSubject.next(JSON.parse(cached));
-      } catch {
-        this.storage.removeItem(this.PROFILE_KEY);
+      if (navigate) {
+        this.router.navigate(['/signin'], { queryParams: { returnUrl: this.router.url } });
       }
+    });
+  }
+
+  /** Ensure a valid access token; otherwise refresh via cookie. */
+  ensureAccessToken(): Observable<boolean> {
+    if (this.isAuthenticated()) return of(true);
+    return this.refreshAccessToken().pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
+  }
+
+  getProfile(): UserProfile | null { return this.profileSubject.value; }
+  hasRole(r: string): boolean { return this.any((this.profileSubject.value as any)?.roles, r); }
+  hasAnyRole(...r: string[]): boolean { return this.any((this.profileSubject.value as any)?.roles, ...r); }
+  hasPermission(p: string): boolean { return this.any((this.profileSubject.value as any)?.permissions, p); }
+  hasAnyPermission(...p: string[]): boolean { return this.any((this.profileSubject.value as any)?.permissions, ...p); }
+
+  // ---------- Refresh (single, de-duped path using retry({...}))
+
+  refreshAccessToken(): Observable<string> {
+    if (this.isAuthenticated()) return of(this.accessToken as string);
+    if (this.refresh$) return this.refresh$;
+
+    this.refresh$ = this.http.post<TokenResponse>(
+      `${this.api}/auth/refresh`,
+      {},
+      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+    ).pipe(
+      retry({
+        count: 2, // total 3 tries (initial + 2 retries)
+        delay: (err: any, i: number) => {
+          const s = (err as HttpErrorResponse)?.status;
+          const transient = s === 0 || s === 502 || s === 503 || s === 504;
+          if (!transient) throw err;
+          return timer(Math.pow(2, i) * 1000); // 1s, 2s
+        },
+        resetOnSuccess: true
+      }),
+      map(res => {
+        if (!res?.token) throw new Error('No token on refresh');
+        this.applyToken(res.token); // throws on invalid/expired token
+        return res.token;
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+      finalize(() => { this.refresh$ = undefined; })
+    );
+
+    return this.refresh$;
+  }
+
+  // ---------- Internals
+
+  private applyToken(token: string): void {
+    const mapped = this.decode(token);
+    if (!mapped) {
+      // malformed/missing exp/expired token → treat as unauthorized
+      throw new Error('INVALID_TOKEN');
     }
+    this.accessToken = token;
+    this.patchProfile(mapped);
 
-    // Attempt to refresh access token from refresh cookie
-    this.refreshOrWait()
-      .pipe(take(1))
-      .subscribe({
-        next: (token) => this.endRefresh(token),
-        error: (e) => {
-          this.refreshFailed(e);
-          this.logout();
-        }
-      });
+    const exp = (mapped as any).exp as number;
+    if (exp) this.scheduleEarlyRefresh(exp);
   }
 
-  private updateProfile(patch: Partial<UserProfile>): void {
-    const updated = { ...this.profileSubject.value, ...patch } as UserProfile;
-    this.profileSubject.next(updated);
-    this.setStorage(this.PROFILE_KEY, JSON.stringify(updated));
+  /** Refresh ~2 minutes before expiry (with a small jitter). */
+  private scheduleEarlyRefresh(expUnixSec: number): void {
+    this.refreshTimer?.unsubscribe();
+    const early = 120_000; // 2 min
+    const jitter = Math.floor(Math.random() * 20_000); // +0..20s
+    const ms = Math.max(0, expUnixSec * 1000 - Date.now() - early - jitter);
+    this.refreshTimer = timer(ms).pipe(
+      switchMap(() => this.refreshAccessToken()),
+      take(1)
+    ).subscribe({
+      error: () => this.logout() // if refresh fails right before expiry → sign out
+    });
   }
 
-  /**
-   * Schedule a refresh ~2 minutes before exp.
-   * Important: keep the timer subscription separate from the HTTP subscription
-   * to avoid canceling in-flight refresh requests.
-   */
-  private scheduleRefresh(expSeconds: number): void {
-    this.cancelRefresh();
-
-    const msUntilExp = expSeconds * 1000 - Date.now();
-    const refreshInMs = Math.max(0, msUntilExp - 2 * 60_000);
-    this.refreshTimerSub = timer(refreshInMs)
-      .pipe(switchMap(() => this.refreshOrWait()), take(1))
-      .subscribe({
-        next: (token) => this.endRefresh(token),
-        error: (e) => {
-          this.refreshFailed(e);
-          this.logout();
-        }
-      });
-  }
-
-  private cancelRefresh(): void {
-    this.refreshTimerSub?.unsubscribe();
-    this.refreshTimerSub = null;
-  }
-
-  private decodeToken(token: string): UserProfile {
-    const decoded: any = jwtDecode(token);
-    // Persist device id if present in the token
-    if (decoded?.device_id) {
-      this.storage.setItem('deviceId', decoded.device_id);
-    }
-
-    return {
-      id: decoded.sub,
-      email: decoded.email,
-      firstName: decoded.given_name || '',
-      lastName: decoded.family_name || '',
-      fullName:
-        decoded.fullName ||
-        `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim(),
-      timeZoneId: decoded.timeZoneId,
-      ipAddress: decoded.ipAddress,
-      imageUrl: decoded.image_url,
-      deviceId: decoded.device_id,
-      roles: this.toArray(decoded.role),
-      permissions: this.toArray(decoded.permissions),
-      exp: decoded.exp
-    };
-  }
-
-  private tokenExpiryMs(token: string): number {
+  /** Map JWT → your UserProfile; persist device_id; null if invalid/expired. */
+  private decode(token: string): Partial<UserProfile> | null {
     try {
-      const exp = (jwtDecode<any>(token).exp ?? 0) * 1000;
-      return Number.isFinite(exp) ? exp : 0;
+      const d: any = jwtDecode(token);
+
+      const expSec = Number(d?.exp ?? 0);
+      const expMs = expSec * 1000;
+      if (!Number.isFinite(expSec) || expMs <= Date.now() + CLOCK_SKEW_MS) {
+        return null; // missing/invalid/expired exp → unauthorized
+      }
+
+      // Persist device id (from backend claim) for future refresh calls
+      if (d?.device_id) {
+        try { this.storage.setItem(DEVICE_ID_KEY, String(d.device_id)); } catch {}
+      }
+
+      const profile: Partial<UserProfile> = {
+        id: d.sub ?? '',
+        email: d.email ?? '',
+        firstName: d.given_name || '',
+        lastName: d.family_name || '',
+        fullName: d.fullName || `${d.given_name || ''} ${d.family_name || ''}`.trim(),
+        roles: this.arr(d.role),
+        permissions: this.arr(d.permissions),
+        exp: expSec,
+        deviceId: d.device_id ?? this.storage.getItem(DEVICE_ID_KEY) ?? null,
+        timeZoneId: d.timeZoneId,
+        ipAddress: d.ipAddress,
+        imageUrl: d.image_url
+      };
+      return profile;
     } catch {
-      return 0;
+      return null;
     }
+  }
+
+  private expMs(token: string): number {
+    try { return (jwtDecode<any>(token).exp ?? 0) * 1000; } catch { return 0; }
   }
 
   private loadPermissions(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiBase}/users/permissions`).pipe(
-      catchError(() => of([]))
-    );
+    return this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])));
   }
 
-  private hasAny(list: string[] | undefined, ...items: string[]): boolean {
-    return !!list?.some((v) => items.includes(v));
+  private patchProfile(patch: Partial<UserProfile>): void {
+    const merged = { ...(this.profileSubject.value ?? {}), ...patch } as UserProfile;
+    this.profileSubject.next(merged);
+    try { this.storage.setItem(this.PROFILE_KEY, JSON.stringify(merged)); } catch {}
   }
 
-  private toArray(val: any): string[] {
-    return Array.isArray(val) ? val : val ? [val] : [];
-    }
-
-  private getStorage(key: string): string | null {
-    return this.storage.getItem(key);
+  private any(list: string[] | undefined, ...items: string[]) {
+    if (!list?.length || !items.length) return false;
+    const s = new Set(list); return items.some(i => s.has(i));
   }
+  private arr(v: any): string[] { return Array.isArray(v) ? v : v ? [v] : []; }
 
-  private setStorage(key: string, value: string): void {
-    this.storage.setItem(key, value);
-  }
-
-  private clearSession(): void {
+  private clearSession(navigate = false): void {
     this.accessToken = null;
     this.profileSubject.next(null);
 
-    // Remove cached profile only
-    this.storage.removeItem(this.PROFILE_KEY);
-    this.storage.removeItem(this.REFRESH_FLAG_KEY);
+    // IMPORTANT: do NOT remove DEVICE_ID_KEY (persist across logouts)
+    try {
+      this.storage.removeItem(this.PROFILE_KEY);
+      // this.storage.removeItem(DEVICE_ID_KEY); // ← leave intact
+    } catch {}
 
-    this.cancelRefresh();
-    this.notificationService.stopConnection();
+    this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;
+    this.notifications.stopConnection();
+    if (navigate) this.router.navigate(['/signin']);
   }
 
-  private handleError(err: HttpErrorResponse | any) {
-    console.error('AuthService error', err);
-    return throwError(
-      () => new Error(err?.error?.message || err?.message || 'Authentication error')
-    );
-  }
-
-  // Cross-tab sync: if another tab logs in/out, react here
-  private initStorageListener(): void {
-    if (typeof window === 'undefined') return;
-    this.boundStorageListener = (e: StorageEvent) => {
-      if (e.key === this.PROFILE_KEY) {
-        if (e.newValue) {
-          try {
-            this.profileSubject.next(JSON.parse(e.newValue));
-          } catch {
-            this.storage.removeItem(this.PROFILE_KEY);
-          }
-        } else {
-          this.clearSession();
-        }
-      } else if (e.key === this.REFRESH_FLAG_KEY) {
-        this.isRefreshing = e.newValue === 'true';
-        if (this.isRefreshing) {
-          this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
-        }
-      }
-    };
-    window.addEventListener('storage', this.boundStorageListener);
+  private appError(err: HttpErrorResponse | any) {
+    return throwError(() => new Error(err?.error?.message || err?.message || 'Authentication error'));
   }
 
   ngOnDestroy(): void {
-    this.cancelRefresh();
-    this.notificationService.stopConnection();
-    if (this.boundStorageListener) {
-      window.removeEventListener('storage', this.boundStorageListener);
-      this.boundStorageListener = null;
-    }
-    this.refreshChannel?.close();
+    this.refreshTimer?.unsubscribe();
+    this.notifications.stopConnection();
   }
 }

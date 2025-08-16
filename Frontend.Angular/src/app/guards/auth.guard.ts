@@ -1,52 +1,18 @@
-import { Injectable } from '@angular/core';
-import {
-  ActivatedRouteSnapshot,
-  CanActivate,
-  Router,
-  RouterStateSnapshot,
-  UrlTree
-} from '@angular/router';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
-@Injectable({ providedIn: 'root' })
-export class AuthGuard implements CanActivate {
+export const authGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  if (auth.isAuthenticated()) return true;
 
-  canActivate(
-    _route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean | UrlTree> {
-    const evaluate = (): boolean | UrlTree => {
-      if (this.authService.isAuthenticated()) {
-        return true;
-      }
-
-      // No valid session → redirect to login and remember where we came from
-      return this.router.createUrlTree(['/signin'], {
-        queryParams: { returnUrl: state.url }
-      });
-    };
-
-    if (this.authService.refreshing) {
-      return this.authService.waitForRefresh().pipe(
-        map(() => evaluate()),
-        catchError(() =>
-          of(
-            this.router.createUrlTree(['/signin'], {
-              queryParams: { returnUrl: state.url }
-            })
-          )
-        )
-      );
-    }
-
-    return of(evaluate());
-  }
-}
+  return auth.ensureAccessToken().pipe(
+    map(ok => ok ? true : router.createUrlTree(['/signin'], { queryParams: { returnUrl: state.url } })),
+    catchError(() => of(router.createUrlTree(['/signin'], { queryParams: { returnUrl: state.url } })))
+  );
+};
