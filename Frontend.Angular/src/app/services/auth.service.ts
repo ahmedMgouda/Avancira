@@ -10,9 +10,12 @@ import {
   timer} from 'rxjs';
 import {
   catchError,
+  delayWhen,
   filter,
   finalize,
   map,
+  retryWhen,
+  scan,
   switchMap,
   take,
   tap
@@ -154,6 +157,17 @@ export class AuthService implements OnDestroy {
         { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
       )
       .pipe(
+        retryWhen((errors) =>
+          errors.pipe(
+            scan((retryCount, err) => {
+              if (retryCount >= 3) {
+                throw err;
+              }
+              return retryCount + 1;
+            }, 0),
+            delayWhen((retryCount) => timer(Math.pow(2, retryCount - 1) * 1000))
+          )
+        ),
         tap((res) => {
           if (res?.token) {
             this.applyTokens(res);
@@ -237,19 +251,19 @@ export class AuthService implements OnDestroy {
 
     const msUntilExp = expSeconds * 1000 - Date.now();
     const refreshInMs = Math.max(0, msUntilExp - 2 * 60_000);
-
-    this.refreshTimerSub = timer(refreshInMs).subscribe(() => {
-      this.beginRefresh();
-      this.refreshToken()
-        .pipe(take(1))
-        .subscribe({
-          next: (r) => this.endRefresh(r.token),
-          error: (e) => {
-            this.refreshFailed(e);
-            this.logout();
-          }
-        });
-    });
+    this.refreshTimerSub = timer(refreshInMs)
+      .pipe(
+        tap(() => this.beginRefresh()),
+        switchMap(() => this.refreshToken()),
+        take(1)
+      )
+      .subscribe({
+        next: (r) => this.endRefresh(r.token),
+        error: (e) => {
+          this.refreshFailed(e);
+          this.logout();
+        }
+      });
   }
 
   private cancelRefresh(): void {
