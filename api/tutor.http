@@ -1,0 +1,172 @@
+### Tutor User Journey - Minimal API Requests
+
+### 1. Register as Tutor
+# @name register
+POST https://localhost:9000/api/users/register
+Content-Type: application/json
+
+{
+  "email": "tutor@avancira.com",
+  "password": "Test@1234",
+  "confirmPassword": "Test@1234",
+  "userName": "John",
+  "firstName": "John",
+  "lastName": "Smith"
+}
+
+###
+
+### 2. Login
+# @name login
+POST https://localhost:9000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "tutor@avancira.com",
+  "password": "Test@1234"
+}
+
+###
+
+### 3. Get Current User (to get user ID)
+# @name currentUser
+GET https://localhost:9000/api/users/me
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 4. Complete Profile Information
+PUT https://localhost:9000/api/users/profile
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer {{login.response.body.token}}
+
+Id={{currentUser.response.body.id}}&FirstName=John&LastName=Smith&PhoneNumber=+1234567890&Bio=Experienced mathematics tutor with 5+ years of teaching experience&TimeZoneId=UTC&AddressCity=New York&AddressState=NY&AddressCountry=USA
+
+###
+
+### 6. Get Available Categories
+# @name categories
+GET https://localhost:9000/api/lesson/categories
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 7. Submit a Listing
+POST https://localhost:9000/api/listings/create-listing
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{login.response.body.token}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Name"
+
+Expert Mathematics Tutoring - All Levels
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Description"
+
+Comprehensive math tutoring from basic arithmetic to advanced calculus
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="HourlyRate"
+
+45.00
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="CategoryIds"
+
+{{categories.response.body.results[0].id}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### 8. View My Listings
+# @name myListings
+GET https://localhost:9000/api/listings/tutor-listings
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 9. Update Listing Title
+PUT https://localhost:9000/api/listings/{{myListings.response.body.data.results[0].id}}/update-title
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "title": "Expert Mathematics Tutoring - Updated"
+}
+
+###
+
+### 10. View All Lessons (with filters)
+GET https://localhost:9000/api/lessons?page=1&pageSize=10
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 11. Accept/Respond to Lesson Proposition
+PUT https://localhost:9000/api/lessons/respondToProposition/00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+true
+
+###
+
+### 12. View Specific Lessons with Student
+GET https://localhost:9000/api/lessons/00000000-0000-0000-0000-000000000001/{{categories.response.body.results[0].id}}
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 13. Cancel a Lesson (if needed)
+DELETE https://localhost:9000/api/lessons/00000000-0000-0000-0000-000000000001/cancel
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 14. View Messages/Chat
+GET https://localhost:9000/api/chats
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 15. Send Message to Student
+POST https://localhost:9000/api/chats/1/messages
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "content": "Great job in today's lesson! Keep practicing the problems we discussed."
+}
+
+###
+
+### 16. View Earnings/Wallet
+GET https://localhost:9000/api/wallets
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 17. View Reviews/Evaluations
+GET https://localhost:9000/api/evaluations
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 18. Update Profile Bio
+PUT https://localhost:9000/api/users/profile
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer {{login.response.body.token}}
+
+Id={{currentUser.response.body.id}}&Bio=Updated bio: Expert tutor available for online sessions
+
+###
+
+### 19. View Notifications
+GET https://localhost:9000/api/notifications
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 20. Get Current User Profile (Final Check)
+GET https://localhost:9000/api/users/me
+Authorization: Bearer {{login.response.body.token}}
+
+###

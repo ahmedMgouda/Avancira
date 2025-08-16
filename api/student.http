@@ -1,0 +1,261 @@
+### Student User Journey - Minimal API Requests
+
+### 1. Register as Student
+# @name register
+POST https://localhost:9000/api/users/register
+Content-Type: application/json
+
+{
+  "email": "student@avancira.com",
+  "password": "Test@1234",
+  "confirmPassword": "Test@1234",
+  "userName": "studentjane",
+  "firstName": "Jane",
+  "lastName": "Doe"
+}
+
+###
+
+### 2. Login
+# @name login
+POST https://localhost:9000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "student@avancira.com",
+  "password": "Test@1234"
+}
+
+###
+
+### 3. Get Current User (to get user ID)
+# @name currentUser
+GET https://localhost:9000/api/users/me
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 4. Complete Profile Information
+PUT https://localhost:9000/api/users/profile
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer {{login.response.body.token}}
+
+Id={{currentUser.response.body.id}}&FirstName=Jane&LastName=Doe&PhoneNumber=+1234567891&Bio=Eager student looking to improve my skills&TimeZoneId=UTC&AddressCity=Boston&AddressState=MA&AddressCountry=USA
+
+###
+
+### 5. Get Available Categories
+# @name categories
+GET https://localhost:9000/api/lesson/categories
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 6. Search for Listings/Tutors
+# @name searchResults
+GET https://localhost:9000/api/listings/search?query=Expert Mathematics Tutoring&page=1&pageSize=10
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 7. View Specific Listing Details
+# @name listingDetails
+GET https://localhost:9000/api/listings/{{searchResults.response.body.results[0].id}}
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 8. Get Current Wallet Balance
+GET https://localhost:9000/api/wallets/balance
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 9. Get Current Saved Payment Cards
+# @name savedCards
+GET https://localhost:9000/api/payments/saved-cards
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 10. Save Payment Card (for making payments)
+POST https://localhost:9000/api/payments/save-card
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "stripeToken": "tok_visa",
+  "purpose": 1
+}
+
+###
+
+### 11. Get Updated Saved Payment Cards
+# @name updatedCards
+GET https://localhost:9000/api/payments/saved-cards
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 12. Check Active Subscription Status
+GET https://localhost:9000/api/subscriptions/active
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 13. Create Monthly Subscription
+POST https://localhost:9000/api/subscriptions/create
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "amount": 69.00,
+  "paymentMethod": 2,
+  "paymentType": 1,
+  "billingFrequency": 0,
+  "promoCode": ""
+}
+
+###
+
+### 14. Get Subscription Details
+# @name subscriptionDetails
+GET https://localhost:9000/api/subscriptions/details
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 15. Propose a Lesson
+POST https://localhost:9000/api/lessons/proposeLesson
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "id": "{{currentUser.response.body.id}}",
+  "topic": "Mathematics Tutoring Session",
+  "date": "2025-08-15T10:00:00Z",
+  "duration": "01:00:00",
+  "price": 45.00,
+  "studentId": "{{currentUser.response.body.id}}",
+  "listingId": "{{searchResults.response.body.results[0].id}}",
+  "paymentMethod": 2,
+  "type": 0
+}
+
+###
+
+### 16. View All My Lessons
+GET https://localhost:9000/api/lessons?page=1&pageSize=10
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 17. View Specific Lessons (with contact and listing)
+GET https://localhost:9000/api/lessons/{{searchResults.response.body.results[0].tutorId}}/{{searchResults.response.body.results[0].id}}
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 18. Respond to Lesson Proposition (if tutor counter-proposes)
+PUT https://localhost:9000/api/lessons/respondToProposition/00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+true
+
+###
+
+### 19. View Messages/Chat with Tutor
+GET https://localhost:9000/api/chats
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 20. Send Message to Tutor
+POST https://localhost:9000/api/chats/1/messages
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "content": "Thank you for the great lesson! I understand the concepts much better now."
+}
+
+###
+
+### 21. Complete/Evaluate Lesson (Rate Tutor)
+POST https://localhost:9000/api/lessons/1/evaluate
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "rating": 5,
+  "feedback": "Excellent tutor! Very patient and explains concepts clearly. Highly recommend!",
+  "wouldRecommend": true
+}
+
+###
+
+### 22. Submit Tutor Evaluation/Review
+POST https://localhost:9000/api/evaluations
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "tutorId": "{{searchResults.response.body.results[0].tutorId}}",
+  "listingId": "{{searchResults.response.body.results[0].id}}",
+  "rating": 5,
+  "comment": "Outstanding teaching skills and very professional approach",
+  "categories": ["Teaching Quality", "Communication", "Punctuality"]
+}
+
+###
+
+### 23. Cancel a Lesson (if needed)
+DELETE https://localhost:9000/api/lessons/00000000-0000-0000-0000-000000000001/cancel
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 24. View My Wallet/Payment History
+GET https://localhost:9000/api/wallets
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 25. View Subscription History
+GET https://localhost:9000/api/subscriptions/list?page=1&pageSize=10
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 26. Change Billing Frequency (Optional)
+PUT https://localhost:9000/api/subscriptions/change-frequency
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "newFrequency": 1
+}
+
+###
+
+### 27. View Notifications
+GET https://localhost:9000/api/notifications
+Authorization: Bearer {{login.response.body.token}}
+
+###
+
+### 28. Update Profile Bio
+PUT https://localhost:9000/api/users/profile
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer {{login.response.body.token}}
+
+Id={{currentUser.response.body.id}}&Bio=Updated bio: Active learner with great experience from Avancira tutors
+
+###
+
+### 29. Get Current User Profile (Final Check)
+GET https://localhost:9000/api/users/me
+Authorization: Bearer {{login.response.body.token}}
+
+###

@@ -1,0 +1,113 @@
+### Admin User Journey - Minimal API Requests
+
+### 1. Login as Admin
+# @name adminLogin
+POST https://localhost:9000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "admin@system.local",
+  "password": "Test@1234"
+}
+
+###
+
+### 2. Get Current Admin User
+# @name currentAdmin
+GET https://localhost:9000/api/users/me
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
+
+### 3. Get Admin Permissions
+GET https://localhost:9000/api/users/permissions
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
+
+### 4. Create Mathematics Category
+POST https://localhost:9000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+{
+  "name": "Mathematics",
+  "displayInLandingPage": true
+}
+
+###
+
+### 5. Create Science Category
+POST https://localhost:9000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+{
+  "name": "Science",
+  "displayInLandingPage": true
+}
+
+###
+
+### 6. Create Languages Category
+POST https://localhost:9000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+{
+  "name": "Languages",
+  "displayInLandingPage": true
+}
+
+###
+
+### 7. Create Programming Category
+POST https://localhost:9000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+{
+  "name": "Programming",
+  "displayInLandingPage": false
+}
+
+###
+
+### 8. Get All Categories
+# @name allCategories
+GET https://localhost:9000/api/categories
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
+
+### 9. Get All Users (Admin View)
+GET https://localhost:9000/api/users
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
+
+### 10. Search Users with Pagination
+POST https://localhost:9000/api/users/search
+Content-Type: application/json
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+{
+  "pageNumber": 1,
+  "pageSize": 10,
+  "filters": "",
+  "sortOrder": "asc"
+}
+
+###
+
+### 11. Get Landing Page Categories
+GET https://localhost:9000/api/landing/categories
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
+
+### 12. Get Lesson Categories
+GET https://localhost:9000/api/lesson/categories
+Authorization: Bearer {{adminLogin.response.body.token}}
+
+###
