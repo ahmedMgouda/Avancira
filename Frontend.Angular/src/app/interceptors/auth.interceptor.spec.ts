@@ -84,6 +84,37 @@ describe('authInterceptor', () => {
     expect(error?.status).toBe(401);
   });
 
+  it('should wait for refresh before forwarding request', () => {
+    authService.beginRefresh();
+
+    let resp: any;
+    http.get('/data').subscribe(r => resp = r);
+
+    httpMock.expectNone('/data');
+
+    authService.endRefresh('new');
+
+    const req = httpMock.expectOne('/data');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer new');
+    req.flush({ data: 123 });
+
+    expect(resp).toEqual({ data: 123 });
+  });
+
+  it('should bypass refresh wait for SKIP_AUTH requests', () => {
+    authService.beginRefresh();
+
+    let resp: any;
+    const context = new HttpContext().set(SKIP_AUTH, true);
+    http.get('/public', { context }).subscribe(r => resp = r);
+
+    const req = httpMock.expectOne('/public');
+    expect(req.request.headers.get('Authorization')).toBeNull();
+    req.flush({ ok: true });
+
+    expect(resp).toEqual({ ok: true });
+  });
+
   it('should not loop refresh when refresh endpoint fails', () => {
     const refreshSpy = spyOn(authService, 'refreshToken').and.callThrough();
     authService['accessToken'] = 'a';

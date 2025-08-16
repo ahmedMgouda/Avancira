@@ -22,16 +22,27 @@ export function authInterceptor(
 
   const token = skip ? null : authService.getAccessToken();
   const deviceId = getDeviceId(authService);
-  const authReq = addHeaders(req, token, deviceId);
 
-  return next(authReq).pipe(
-    catchError((error) => {
-      if (!skip && error instanceof HttpErrorResponse && error.status === 401) {
-        return handle401Error(authReq, next, authService);
-      }
-      return throwError(() => error);
-    })
-  );
+  const forwardRequest = (request: HttpRequest<any>) =>
+    next(request).pipe(
+      catchError((error) => {
+        if (!skip && error instanceof HttpErrorResponse && error.status === 401) {
+          return handle401Error(request, next, authService);
+        }
+        return throwError(() => error);
+      })
+    );
+
+  if (!skip && (authService.refreshing || !token)) {
+    return authService.waitForRefresh().pipe(
+      switchMap((newToken) =>
+        forwardRequest(addHeaders(req, newToken, deviceId))
+      ),
+      catchError((err) => throwError(() => err))
+    );
+  }
+
+  return forwardRequest(addHeaders(req, token, deviceId));
 }
 
 function addHeaders(
