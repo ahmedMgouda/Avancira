@@ -143,7 +143,7 @@ public sealed class TokenService : ITokenService
             UserId = user.Id,
             TokenHash = refreshTokenHash,
             Device = deviceId,
-            UserAgent = userAgent,
+            //UserAgent = userAgent,
             OperatingSystem = operatingSystem,
             IpAddress = ipAddress,
             Country = country,
@@ -197,7 +197,7 @@ public sealed class TokenService : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.NameIdentifier, user.Id),
+            new(JwtRegisteredClaimNames.Sub, user.Id),
             new(ClaimTypes.Email, user.Email!),
             new(ClaimTypes.Name, user.FirstName ?? string.Empty),
             new(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty),
