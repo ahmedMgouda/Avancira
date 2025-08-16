@@ -134,10 +134,7 @@ export class AuthService implements OnDestroy {
             this.applyTokens(res);
           }
         }),
-        catchError((err) => {
-          this.logout();
-          return this.handleError(err);
-        })
+        catchError((err) => this.handleError(err))
       );
   }
 
@@ -192,7 +189,10 @@ export class AuthService implements OnDestroy {
       .pipe(take(1))
       .subscribe({
         next: (r) => this.endRefresh(r.token),
-        error: (e) => this.refreshFailed(e)
+        error: (e) => {
+          this.refreshFailed(e);
+          this.logout();
+        }
       });
   }
 
@@ -219,7 +219,10 @@ export class AuthService implements OnDestroy {
         .pipe(take(1))
         .subscribe({
           next: (r) => this.endRefresh(r.token),
-          error: (e) => this.refreshFailed(e)
+          error: (e) => {
+            this.refreshFailed(e);
+            this.logout();
+          }
         });
     });
   }
