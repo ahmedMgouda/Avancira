@@ -7,7 +7,7 @@ import {
   UrlTree
 } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
@@ -35,7 +35,16 @@ export class AuthGuard implements CanActivate {
     };
 
     if (this.authService.refreshing) {
-      return this.authService.waitForRefresh().pipe(map(() => evaluate()));
+      return this.authService.waitForRefresh().pipe(
+        map(() => evaluate()),
+        catchError(() =>
+          of(
+            this.router.createUrlTree(['/signin'], {
+              queryParams: { returnUrl: state.url }
+            })
+          )
+        )
+      );
     }
 
     return of(evaluate());
