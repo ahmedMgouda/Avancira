@@ -21,7 +21,7 @@ export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Obs
   const skip = req.context.get(SKIP_AUTH);
   const retried = req.context.get(ALREADY_RETRIED);
 
-  const toApi = isApi(req.url, environment.apiUrl);
+  const toApi = isApi(req, environment.apiUrl);
   const token = (!skip && toApi) ? auth.getAccessToken() : null;
   const deviceId = toApi ? auth.getDeviceIdForHeader() : null;
 
@@ -40,9 +40,10 @@ export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Obs
   );
 }
 
-function isApi(url: string, apiBase: string): boolean {
-  // Adjust if your API path differs
-  return url.startsWith(apiBase) || url.startsWith('/api/');
+function isApi(req: HttpRequest<any>, apiBase: string): boolean {
+  const requestUrl = new URL(req.url, window.location.origin);
+  const baseUrl = new URL(apiBase, window.location.origin);
+  return requestUrl.origin === baseUrl.origin && requestUrl.pathname.startsWith(baseUrl.pathname);
 }
 
 function withAuth(req: HttpRequest<any>, token: string | null, deviceId: string | null, toApi: boolean): HttpRequest<any> {
