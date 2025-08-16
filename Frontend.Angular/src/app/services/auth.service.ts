@@ -20,6 +20,7 @@ import {
 import { jwtDecode } from 'jwt-decode';
 
 import { NotificationService } from './notification.service';
+import { StorageService } from './storage.service';
 
 import { environment } from '../environments/environment';
 import { SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -48,7 +49,8 @@ export class AuthService implements OnDestroy {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private storage: StorageService
   ) {
     this.initStorageListener();
     this.restoreProfile();
@@ -202,7 +204,7 @@ export class AuthService implements OnDestroy {
       try {
         this.profileSubject.next(JSON.parse(cached));
       } catch {
-        localStorage.removeItem(this.PROFILE_KEY);
+        this.storage.removeItem(this.PROFILE_KEY);
       }
     }
 
@@ -259,7 +261,7 @@ export class AuthService implements OnDestroy {
     const decoded: any = jwtDecode(token);
     // Persist device id if present in the token
     if (decoded?.device_id) {
-      localStorage.setItem('deviceId', decoded.device_id);
+      this.storage.setItem('deviceId', decoded.device_id);
     }
 
     return {
@@ -304,11 +306,11 @@ export class AuthService implements OnDestroy {
     }
 
   private getStorage(key: string): string | null {
-    return localStorage.getItem(key);
+    return this.storage.getItem(key);
   }
 
   private setStorage(key: string, value: string): void {
-    localStorage.setItem(key, value);
+    this.storage.setItem(key, value);
   }
 
   private clearSession(): void {
@@ -316,7 +318,7 @@ export class AuthService implements OnDestroy {
     this.profileSubject.next(null);
 
     // Remove cached profile only
-    localStorage.removeItem(this.PROFILE_KEY);
+    this.storage.removeItem(this.PROFILE_KEY);
 
     this.cancelRefresh();
     this.notificationService.stopConnection();

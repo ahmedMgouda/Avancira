@@ -4,16 +4,24 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
+import { StorageService } from './storage.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
+  let storageSpy: jasmine.SpyObj<StorageService>;
 
   beforeEach(() => {
+    storageSpy = jasmine.createSpyObj('StorageService', ['getItem', 'setItem', 'removeItem']);
+    storageSpy.getItem.and.callFake((key: string) => localStorage.getItem(key));
+    storageSpy.setItem.and.callFake((key: string, value: string) => localStorage.setItem(key, value));
+    storageSpy.removeItem.and.callFake((key: string) => localStorage.removeItem(key));
+
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
       providers: [
-        { provide: NotificationService, useValue: { stopConnection: () => {} } }
+        { provide: NotificationService, useValue: { stopConnection: () => {} } },
+        { provide: StorageService, useValue: storageSpy }
       ]
     });
 
