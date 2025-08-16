@@ -75,7 +75,10 @@ public class AuthController : BaseApiController
             await _tokenService.RevokeTokenAsync(refreshToken, userId, deviceId, cancellationToken);
         }
 
-        Response.Cookies.Delete("refreshToken");
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Path = "/api/auth"
+        });
         return Ok();
     }
 
@@ -86,7 +89,8 @@ public class AuthController : BaseApiController
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.Strict,
-            Expires = expires
+            Expires = expires,
+            Path = "/api/auth"
         };
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
