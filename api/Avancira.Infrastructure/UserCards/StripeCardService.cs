@@ -37,11 +37,16 @@ namespace Avancira.Infrastructure.Catalog
         {
             StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
 
-            // Start database transaction
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            // Use execution strategy for retryable operations
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
             
-            try
+            return await strategy.ExecuteAsync(async () =>
             {
+                // Start database transaction within execution strategy
+                using var transaction = await _dbContext.Database.BeginTransactionAsync();
+                
+                try
+                {
                 var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null) throw new KeyNotFoundException("User not found.");
 
@@ -123,23 +128,24 @@ namespace Avancira.Infrastructure.Catalog
                 
                 _logger.LogInformation("Successfully added card for user {UserId}", userId);
                 return true;
-            }
-            catch (StripeException stripeEx)
-            {
-                // Rollback database transaction
-                await transaction.RollbackAsync();
-                
-                _logger.LogError(stripeEx, "Stripe error while adding card for user {UserId}: {Error}", userId, stripeEx.Message);
-                throw new InvalidOperationException($"Payment card error: {stripeEx.Message}", stripeEx);
-            }
-            catch (Exception ex)
-            {
-                // Rollback database transaction
-                await transaction.RollbackAsync();
-                
-                _logger.LogError(ex, "Error adding card for user {UserId}", userId);
-                throw;
-            }
+                }
+                catch (StripeException stripeEx)
+                {
+                    // Rollback database transaction
+                    await transaction.RollbackAsync();
+                    
+                    _logger.LogError(stripeEx, "Stripe error while adding card for user {UserId}: {Error}", userId, stripeEx.Message);
+                    throw new InvalidOperationException($"Payment card error: {stripeEx.Message}", stripeEx);
+                }
+                catch (Exception ex)
+                {
+                    // Rollback database transaction
+                    await transaction.RollbackAsync();
+                    
+                    _logger.LogError(ex, "Error adding card for user {UserId}", userId);
+                    throw;
+                }
+            });
         }
 
         // TODO : Pagination
@@ -163,63 +169,69 @@ namespace Avancira.Infrastructure.Catalog
         {
             StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
 
-            // Start database transaction
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            // Use execution strategy for retryable operations
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
             
-            try
+            return await strategy.ExecuteAsync(async () =>
             {
-                var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
-                if (user == null || string.IsNullOrEmpty(user.StripeCustomerId))
+                // Start database transaction within execution strategy
+                using var transaction = await _dbContext.Database.BeginTransactionAsync();
+                
+                try
                 {
-                    throw new KeyNotFoundException("User or Stripe customer not found.");
-                }
+                    var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
+                    if (user == null || string.IsNullOrEmpty(user.StripeCustomerId))
+                    {
+                        throw new KeyNotFoundException("User or Stripe customer not found.");
+                    }
 
-                var card = await _dbContext.UserCards.FirstOrDefaultAsync(c => c.Id == cardId && c.UserId == userId);
-                if (card == null)
+                    var card = await _dbContext.UserCards.FirstOrDefaultAsync(c => c.Id == cardId && c.UserId == userId);
+                    if (card == null)
+                    {
+                        throw new KeyNotFoundException("Card not found.");
+                    }
+
+                    // Delete card from Stripe first
+                    var cardService = new CardService();
+                    await cardService.DeleteAsync(user.StripeCustomerId, card.CardId);
+
+                    // If Stripe deletion succeeded, update database
+                    _dbContext.UserCards.Remove(card);
+
+                    // Check if there are any remaining cards for the user
+                    var remainingCards = await _dbContext.UserCards.CountAsync(c => c.UserId == userId && c.Id != cardId);
+                    if (remainingCards == 0)
+                    {
+                        // If no cards remain, clear the StripeCustomerId
+                        user.StripeCustomerId = null;
+                        _dbContext.Users.Update(user);
+                    }
+
+                    await _dbContext.SaveChangesAsync();
+                    
+                    // Commit the transaction
+                    await transaction.CommitAsync();
+                    
+                    _logger.LogInformation("Successfully removed card {CardId} for user {UserId}", cardId, userId);
+                    return true;
+                }
+                catch (StripeException stripeEx)
                 {
-                    throw new KeyNotFoundException("Card not found.");
+                    // Rollback database transaction
+                    await transaction.RollbackAsync();
+                    
+                    _logger.LogError(stripeEx, "Stripe error while removing card {CardId} for user {UserId}: {Error}", cardId, userId, stripeEx.Message);
+                    throw new InvalidOperationException($"Payment card removal error: {stripeEx.Message}", stripeEx);
                 }
-
-                // Delete card from Stripe first
-                var cardService = new CardService();
-                await cardService.DeleteAsync(user.StripeCustomerId, card.CardId);
-
-                // If Stripe deletion succeeded, update database
-                _dbContext.UserCards.Remove(card);
-
-                // Check if there are any remaining cards for the user
-                var remainingCards = await _dbContext.UserCards.CountAsync(c => c.UserId == userId && c.Id != cardId);
-                if (remainingCards == 0)
+                catch (Exception ex)
                 {
-                    // If no cards remain, clear the StripeCustomerId
-                    user.StripeCustomerId = null;
-                    _dbContext.Users.Update(user);
+                    // Rollback database transaction
+                    await transaction.RollbackAsync();
+                    
+                    _logger.LogError(ex, "Error removing card {CardId} for user {UserId}", cardId, userId);
+                    throw;
                 }
-
-                await _dbContext.SaveChangesAsync();
-                
-                // Commit the transaction
-                await transaction.CommitAsync();
-                
-                _logger.LogInformation("Successfully removed card {CardId} for user {UserId}", cardId, userId);
-                return true;
-            }
-            catch (StripeException stripeEx)
-            {
-                // Rollback database transaction
-                await transaction.RollbackAsync();
-                
-                _logger.LogError(stripeEx, "Stripe error while removing card {CardId} for user {UserId}: {Error}", cardId, userId, stripeEx.Message);
-                throw new InvalidOperationException($"Payment card removal error: {stripeEx.Message}", stripeEx);
-            }
-            catch (Exception ex)
-            {
-                // Rollback database transaction
-                await transaction.RollbackAsync();
-                
-                _logger.LogError(ex, "Error removing card {CardId} for user {UserId}", cardId, userId);
-                throw;
-            }
+            });
         }
     }
 }
