@@ -3,7 +3,11 @@ import {
   ActivatedRouteSnapshot,
   CanActivate,
   Router,
-  RouterStateSnapshot} from '@angular/router';
+  RouterStateSnapshot,
+  UrlTree
+} from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
@@ -15,13 +19,25 @@ export class AuthGuard implements CanActivate {
     private router: Router
   ) {}
 
-  canActivate(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
-    if (this.authService.isAuthenticated()) {
-      return true;
+  canActivate(
+    _route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): Observable<boolean | UrlTree> {
+    const evaluate = (): boolean | UrlTree => {
+      if (this.authService.isAuthenticated()) {
+        return true;
+      }
+
+      // No valid session → redirect to login and remember where we came from
+      return this.router.createUrlTree(['/signin'], {
+        queryParams: { returnUrl: state.url }
+      });
+    };
+
+    if (this.authService.refreshing) {
+      return this.authService.waitForRefresh().pipe(map(() => evaluate()));
     }
 
-    // No valid session → redirect to login and remember where we came from
-    this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-    return false;
+    return of(evaluate());
   }
 }
