@@ -29,6 +29,7 @@ internal static class Extensions
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<IAuditService, AuditService>();
         services.AddScoped<IDbInitializer, IdentityDbInitializer>();
+        services.AddScoped<IDbInitializer, AvanciraDbInitializer>();
 
         services.AddIdentity<User, Role>(options =>
         {

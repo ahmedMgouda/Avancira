@@ -85,15 +85,25 @@ public static class Extensions
                 Logger.Information("Migrations applied");
             }
 
-            // Handle seeding only if Aspire allows it
+            // Always run IdentityDbInitializer for essential roles and admin user
+            var identityInitializer = serviceScope.ServiceProvider.GetServices<IDbInitializer>()
+                .FirstOrDefault(i => i.GetType() == typeof(IdentityDbInitializer));
+            if (identityInitializer != null)
+            {
+                identityInitializer.SeedAsync(CancellationToken.None).Wait();
+                Logger.Information("Identity data seeded (roles and admin user)");
+            }
+
+            // Handle application data seeding only if Aspire allows it
             if (runSeeding)
             {
-                var initializers = serviceScope.ServiceProvider.GetServices<IDbInitializer>();
-                foreach (var initializer in initializers)
+                var avanciraInitializer = serviceScope.ServiceProvider.GetServices<IDbInitializer>()
+                    .FirstOrDefault(i => i.GetType() == typeof(AvanciraDbInitializer));
+                if (avanciraInitializer != null)
                 {
-                    initializer.SeedAsync(CancellationToken.None).Wait();
+                    avanciraInitializer.SeedAsync(CancellationToken.None).Wait();
+                    Logger.Information("Avancira application data seeding completed");
                 }
-                Logger.Information("Database seeded");
             }
         }
         catch (Exception ex)

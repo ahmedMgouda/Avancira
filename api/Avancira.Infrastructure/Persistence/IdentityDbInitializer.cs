@@ -21,19 +21,6 @@ internal sealed class IdentityDbInitializer(
     {
         await SeedRolesAsync();
         await SeedAdminUserAsync();
-
-        CountrySeeder.Seed(context, userManager);
-        UserSeeder.Seed(context, userManager);
-        CategorySeeder.Seed(context, userManager);
-        ListingSeeder.Seed(context, userManager);
-        ListingCategorySeeder.Seed(context, userManager);
-
-        PromoCodeSeeder.Seed(context);
-        // LessonSeeder.Seed(context);
-        // ReviewSeeder.Seed(context);
-        // ChatSeeder.Seed(context);
-        // MessageSeeder.Seed(context);
-
     }
 
     private async Task SeedRolesAsync()
