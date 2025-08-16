@@ -25,16 +25,11 @@ import { UserProfile } from '../models/UserProfile';
 
 export interface TokenResponse {
   token: string;
-  refreshToken?: string;
-  refreshTokenExpiryTime?: string; // ISO string (UTC)
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly PROFILE_KEY = 'user_profile';
-  private readonly ACCESS_TOKEN_KEY = 'access_token';
-  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
-  private readonly REFRESH_EXPIRY_KEY = 'refresh_token_expiry';
   private readonly apiBase = environment.apiUrl;
 
   private accessToken: string | null = null;
@@ -116,39 +111,23 @@ export class AuthService implements OnDestroy {
   }
 
   isAuthenticated(): boolean {
-    const token = this.accessToken || this.getStorage(this.ACCESS_TOKEN_KEY);
-    const refreshToken = this.getStorage(this.REFRESH_TOKEN_KEY);
-    const refreshExpiry = this.getStorage(this.REFRESH_EXPIRY_KEY);
-
+    const token = this.accessToken;
     const accessValid = !!(token && this.tokenExpiryMs(token) > Date.now());
-    const refreshValid = !!(refreshToken && refreshExpiry && Date.parse(refreshExpiry) > Date.now());
 
-    // Only clear session if BOTH are invalid and we had some state
-    if (!accessValid && !refreshValid && (token || refreshToken || this.profileSubject.value)) {
+    if (!accessValid && this.profileSubject.value) {
       this.clearSession();
     }
 
-    return accessValid || refreshValid;
+    return accessValid;
   }
 
   getAccessToken(): string | null {
-    return this.accessToken || this.getStorage(this.ACCESS_TOKEN_KEY);
+    return this.accessToken;
   }
 
   refreshToken(): Observable<TokenResponse> {
-    const token = this.accessToken || this.getStorage(this.ACCESS_TOKEN_KEY);
-    const refreshToken = this.getStorage(this.REFRESH_TOKEN_KEY);
-
-    if (!token || !refreshToken) {
-      this.logout();
-      return throwError(() => new Error('Missing token or refresh token'));
-    }
-
     return this.http
-      .post<TokenResponse>(`${this.apiBase}/auth/refresh`, {
-        Token: token,
-        RefreshToken: refreshToken
-      })
+      .post<TokenResponse>(`${this.apiBase}/auth/refresh`, {}, { withCredentials: true })
       .pipe(
         tap((res) => {
           if (res?.token) {
@@ -185,9 +164,6 @@ export class AuthService implements OnDestroy {
   // ===== Private helpers =====
 
   private applyTokens(res: TokenResponse): void {
-    // Persist tokens
-    this.setTokensToStorage(res);
-
     // Keep in-memory access token for perf
     this.accessToken = res.token;
 
@@ -199,28 +175,7 @@ export class AuthService implements OnDestroy {
     if (profile.exp) this.scheduleRefresh(profile.exp);
   }
 
-  private setTokensToStorage({ token, refreshToken, refreshTokenExpiryTime }: TokenResponse): void {
-    if (token) this.setStorage(this.ACCESS_TOKEN_KEY, token);
-    if (refreshToken) this.setStorage(this.REFRESH_TOKEN_KEY, refreshToken);
-    if (refreshTokenExpiryTime) this.setStorage(this.REFRESH_EXPIRY_KEY, refreshTokenExpiryTime);
-  }
-
   private restoreProfile(): void {
-    const storedAccess = this.getStorage(this.ACCESS_TOKEN_KEY);
-    const storedRefresh = this.getStorage(this.REFRESH_TOKEN_KEY);
-    const storedRefreshExp = this.getStorage(this.REFRESH_EXPIRY_KEY);
-
-    const now = Date.now();
-    const accessExpired = !storedAccess || this.tokenExpiryMs(storedAccess) <= now;
-    const refreshExpired =
-      !storedRefresh || !storedRefreshExp || Date.parse(storedRefreshExp) <= now;
-
-    if (refreshExpired) {
-      // No way to recover → clear
-      this.clearSession();
-      return;
-    }
-
     // Keep any cached profile for UI continuity
     const cached = this.getStorage(this.PROFILE_KEY);
     if (cached) {
@@ -231,21 +186,14 @@ export class AuthService implements OnDestroy {
       }
     }
 
-    if (!accessExpired && storedAccess) {
-      // Access still valid
-      this.accessToken = storedAccess;
-      const { exp } = this.decodeToken(storedAccess);
-      if (exp) this.scheduleRefresh(exp);
-    } else {
-      // Access missing/expired but refresh is valid → refresh immediately
-      this.beginRefresh();
-      this.refreshToken()
-        .pipe(take(1))
-        .subscribe({
-          next: (r) => this.endRefresh(r.token),
-          error: (e) => this.refreshFailed(e)
-        });
-    }
+    // Attempt to refresh access token from refresh cookie
+    this.beginRefresh();
+    this.refreshToken()
+      .pipe(take(1))
+      .subscribe({
+        next: (r) => this.endRefresh(r.token),
+        error: (e) => this.refreshFailed(e)
+      });
   }
 
   private updateProfile(patch: Partial<UserProfile>): void {
@@ -340,12 +288,9 @@ export class AuthService implements OnDestroy {
   private clearSession(): void {
     this.accessToken = null;
     this.profileSubject.next(null);
-    [
-      this.PROFILE_KEY,
-      this.REFRESH_TOKEN_KEY,
-      this.REFRESH_EXPIRY_KEY,
-      this.ACCESS_TOKEN_KEY
-    ].forEach((k) => localStorage.removeItem(k));
+
+    // Remove cached profile only
+    localStorage.removeItem(this.PROFILE_KEY);
 
     this.cancelRefresh();
     this.notificationService.stopConnection();
@@ -362,12 +307,7 @@ export class AuthService implements OnDestroy {
   private initStorageListener(): void {
     if (typeof window === 'undefined') return;
     this.boundStorageListener = (e: StorageEvent) => {
-      if (
-        e.key === this.ACCESS_TOKEN_KEY ||
-        e.key === this.REFRESH_TOKEN_KEY ||
-        e.key === this.REFRESH_EXPIRY_KEY ||
-        e.key === this.PROFILE_KEY
-      ) {
+      if (e.key === this.PROFILE_KEY) {
         // Re-evaluate current state
         this.restoreProfile();
       }
