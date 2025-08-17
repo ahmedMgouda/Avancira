@@ -102,13 +102,11 @@ export class AuthService implements OnDestroy {
     return this.router.createUrlTree(['/signin'], { queryParams: { returnUrl } });
   }
 
-  /** Ensure a valid access token; otherwise refresh via cookie. */
-  ensureAccessToken(): Observable<boolean> {
-    if (this.isAuthenticated()) return of(true);
-    return this.refreshAccessToken().pipe(
-      map(() => true),
-      catchError(() => of(false))
-    );
+  /** Obtain a valid access token, refreshing silently if needed. */
+  getValidAccessToken(): Observable<string> {
+    return this.isAuthenticated()
+      ? of(this.accessToken as string)
+      : this.refreshAccessToken();
   }
 
   getProfile(): UserProfile | null { return this.profileSubject.value; }

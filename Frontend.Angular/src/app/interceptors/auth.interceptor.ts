@@ -6,7 +6,7 @@ import {
   HttpRequest
 } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { from,Observable, throwError } from 'rxjs';
+import { from, Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
@@ -24,9 +24,8 @@ export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Obs
   if (skip || !toApi) return next(req.clone({ withCredentials: true }));
 
   // PRE-WAIT: avoid sending requests without a token on reload
-  return from(auth.ensureAccessToken()).pipe(
-    switchMap(() => {
-      const token = auth.getAccessToken();
+  return from(auth.getValidAccessToken()).pipe(
+    switchMap(token => {
       const deviceId = auth.getDeviceIdForHeader();
       return next(withAuth(req, token, deviceId));
     }),
