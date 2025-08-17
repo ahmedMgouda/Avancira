@@ -15,7 +15,6 @@ import { UserProfile } from '../models/UserProfile';
 interface TokenResponse { token: string; }
 
 const CLOCK_SKEW_MS = 30_000;          // treat tokens expiring within 30s as expired
-const DEVICE_ID_KEY = 'device_id';     // persisted across logouts
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
@@ -61,11 +60,6 @@ export class AuthService implements OnDestroy {
   }
 
   getAccessToken(): string | null { return this.accessToken; }
-
-  /** Persisted across sessions; set from JWT claims when available. */
-  getDeviceIdForHeader(): string | null {
-    return this.storage.getItem(DEVICE_ID_KEY) || (this.profileSubject.value as any)?.deviceId || null;
-  }
 
   login(email: string, password: string): Observable<UserProfile> {
     return this.http.post<TokenResponse>(
@@ -185,7 +179,7 @@ export class AuthService implements OnDestroy {
     });
   }
 
-  /** Map JWT → your UserProfile; persist device_id; null if invalid/expired. */
+  /** Map JWT → your UserProfile; null if invalid/expired. */
   private decode(token: string): Partial<UserProfile> | null {
     try {
       const d: any = jwtDecode(token);
@@ -196,10 +190,6 @@ export class AuthService implements OnDestroy {
         return null; // missing/invalid/expired exp → unauthorized
       }
 
-      // Persist device id (from backend claim) for future refresh calls
-      if (d?.device_id) {
-        try { this.storage.setItem(DEVICE_ID_KEY, String(d.device_id)); } catch {}
-      }
 
       const profile: Partial<UserProfile> = {
         id: d.sub ?? '',
@@ -210,7 +200,6 @@ export class AuthService implements OnDestroy {
         roles: this.arr(d.role),
         permissions: this.arr(d.permissions),
         exp: expSec,
-        deviceId: d.device_id ?? this.storage.getItem(DEVICE_ID_KEY) ?? null,
         timeZoneId: d.timeZoneId,
         ipAddress: d.ipAddress,
         imageUrl: d.image_url
@@ -242,10 +231,8 @@ export class AuthService implements OnDestroy {
     this.tokenExpiryMs = null;
     this.profileSubject.next(null);
 
-    // IMPORTANT: do NOT remove DEVICE_ID_KEY (persist across logouts)
     try {
       this.storage.removeItem(this.PROFILE_KEY);
-      // this.storage.removeItem(DEVICE_ID_KEY); // ← leave intact
     } catch {}
 
     this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;

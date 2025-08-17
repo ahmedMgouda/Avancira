@@ -25,17 +25,14 @@ export function authInterceptor(req: HttpRequest<any>, next: HttpHandlerFn): Obs
 
   // PRE-WAIT: avoid sending requests without a token on reload
   return from(auth.getValidAccessToken()).pipe(
-    switchMap(token => {
-      const deviceId = auth.getDeviceIdForHeader();
-      return next(withAuth(req, token, deviceId));
-    }),
+    switchMap(token => next(withAuth(req, token))),
     // Fallback: single retry on 401 to handle rare races
     catchError(err => {
       const retried = req.context.get(ALREADY_RETRIED);
       if (!retried && err instanceof HttpErrorResponse && err.status === 401) {
         return auth.refreshAccessToken().pipe(
           switchMap(t => next(
-            withAuth(req.clone({ context: req.context.set(ALREADY_RETRIED, true) }), t, auth.getDeviceIdForHeader())
+            withAuth(req.clone({ context: req.context.set(ALREADY_RETRIED, true) }), t)
           )),
           catchError(e => { auth.logout(); return throwError(() => e); })
         );
@@ -51,10 +48,9 @@ function isApi(req: HttpRequest<any>, apiBase: string): boolean {
   return requestUrl.origin === baseUrl.origin && requestUrl.pathname.startsWith(baseUrl.pathname);
 }
 
-function withAuth(req: HttpRequest<any>, token: string | null, deviceId: string | null): HttpRequest<any> {
+function withAuth(req: HttpRequest<any>, token: string | null): HttpRequest<any> {
   const setHeaders: Record<string, string> = {};
   if (token) setHeaders['Authorization'] = `Bearer ${token}`;
-  if (deviceId) setHeaders['Device-Id'] = deviceId;
   return Object.keys(setHeaders).length
     ? req.clone({ setHeaders, withCredentials: true })
     : req.clone({ withCredentials: true });
