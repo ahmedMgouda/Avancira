@@ -2,7 +2,6 @@
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Infrastructure.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -88,7 +87,7 @@ public class AuthController : BaseApiController
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.None,
             Expires = expires,
             Path = "/api/auth"
         };
