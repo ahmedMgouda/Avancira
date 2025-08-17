@@ -8,9 +8,9 @@ import { AuthService } from '../services/auth.service';
 export const AuthGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
 
-  return auth.ensureAccessToken().pipe(
+  return auth.getValidAccessToken().pipe(
     take(1),
-    map(ok => ok ? true : auth.redirectToSignIn(state.url)),
+    map(() => true),
     catchError(() => {
       auth.logout(false);
       return of(auth.redirectToSignIn(state.url));

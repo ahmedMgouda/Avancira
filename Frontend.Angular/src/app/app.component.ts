@@ -26,13 +26,8 @@ export class AppComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-      this.authService.ensureAccessToken().subscribe(isAuth => {
-        if (!isAuth) {
-          this.toastr.info('Your session expired. Please sign in again.');
-          this.authService.logout(false);
-          return;
-        }
-
+    this.authService.getValidAccessToken().subscribe({
+      next: () => {
         // Payment
         this.configService.loadConfig().subscribe({
           next: () => console.log('Config loaded:', this.configService.get('apiUrl')),
@@ -62,6 +57,11 @@ export class AppComponent implements OnInit {
             this.toastr.info(notification.data.content, notification.message);
           }
         });
-      });
-    }
+      },
+      error: () => {
+        this.toastr.info('Your session expired. Please sign in again.');
+        this.authService.logout(false);
+      }
+    });
+  }
 }
