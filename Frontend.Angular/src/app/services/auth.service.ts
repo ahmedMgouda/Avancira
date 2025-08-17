@@ -9,7 +9,7 @@ import { NotificationService } from './notification.service';
 import { StorageService } from './storage.service';
 
 import { environment } from '../environments/environment';
-import { SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { INCLUDE_CREDENTIALS, REQUIRES_AUTH, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { UserProfile } from '../models/UserProfile';
 
 interface TokenResponse { token: string; }
@@ -65,7 +65,11 @@ export class AuthService implements OnDestroy {
     return this.http.post<TokenResponse>(
       `${this.api}/auth/token`,
       { email, password },
-      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+      {
+        context: new HttpContext()
+          .set(SKIP_AUTH, true)
+          .set(INCLUDE_CREDENTIALS, true)
+      }
     ).pipe(
       tap(res => {
         if (!res?.token) throw new Error('No token returned');
@@ -82,15 +86,19 @@ export class AuthService implements OnDestroy {
     this.http.post(
       `${this.api}/auth/revoke`,
       {},
-      { withCredentials: true }
-    )
-    .pipe(catchError(() => of(null)))
-    .subscribe(() => {
-      this.clearSession();
-      if (navigate) {
-        this.router.navigateByUrl(this.redirectToSignIn());
+      {
+        context: new HttpContext()
+          .set(REQUIRES_AUTH, true)
+          .set(INCLUDE_CREDENTIALS, true)
       }
-    });
+    )
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => {
+        this.clearSession();
+        if (navigate) {
+          this.router.navigateByUrl(this.redirectToSignIn());
+        }
+      });
   }
 
   redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
@@ -120,7 +128,11 @@ export class AuthService implements OnDestroy {
     this.refresh$ = this.http.post<TokenResponse>(
       `${this.api}/auth/refresh`,
       {},
-      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH, true) }
+      {
+        context: new HttpContext()
+          .set(SKIP_AUTH, true)
+          .set(INCLUDE_CREDENTIALS, true)
+      }
     ).pipe(
       retry({
         count: 2, // total 3 tries (initial + 2 retries)
@@ -217,7 +229,7 @@ export class AuthService implements OnDestroy {
   private patchProfile(patch: Partial<UserProfile>): void {
     const merged = { ...(this.profileSubject.value ?? {}), ...patch } as UserProfile;
     this.profileSubject.next(merged);
-    try { this.storage.setItem(this.PROFILE_KEY, JSON.stringify(merged)); } catch {}
+    try { this.storage.setItem(this.PROFILE_KEY, JSON.stringify(merged)); } catch { }
   }
 
   private any(list: string[] | undefined, ...items: string[]) {
@@ -233,7 +245,7 @@ export class AuthService implements OnDestroy {
 
     try {
       this.storage.removeItem(this.PROFILE_KEY);
-    } catch {}
+    } catch { }
 
     this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;
     this.refreshFailed = true;
