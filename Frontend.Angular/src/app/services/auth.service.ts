@@ -26,6 +26,7 @@ export class AuthService implements OnDestroy {
   private tokenExpiryMs: number | null = null;
   private refreshTimer?: Subscription;
   private refresh$?: Observable<string>; // de-dupes in-flight refreshes
+  private refreshFailed = false; // tracks first refresh failure
 
   private profileSubject = new BehaviorSubject<UserProfile | null>(null);
   readonly profile$ = this.profileSubject.asObservable();
@@ -119,6 +120,7 @@ export class AuthService implements OnDestroy {
 
   refreshAccessToken(): Observable<string> {
     if (this.isAuthenticated()) return of(this.accessToken as string);
+    if (this.refreshFailed) return throwError(() => new Error('REFRESH_FAILED'));
     if (this.refresh$) return this.refresh$;
 
     this.refresh$ = this.http.post<TokenResponse>(
@@ -142,6 +144,10 @@ export class AuthService implements OnDestroy {
         return res.token;
       }),
       shareReplay({ bufferSize: 1, refCount: true }),
+      catchError(err => {
+        this.refreshFailed = true;
+        return throwError(() => err);
+      }),
       finalize(() => { this.refresh$ = undefined; })
     );
 
@@ -156,6 +162,7 @@ export class AuthService implements OnDestroy {
       // malformed/missing exp/expired token → treat as unauthorized
       throw new Error('INVALID_TOKEN');
     }
+    this.refreshFailed = false;
     this.accessToken = token;
     const exp = (mapped as any).exp as number | undefined;
     this.tokenExpiryMs = exp ? exp * 1000 : null;
@@ -242,6 +249,7 @@ export class AuthService implements OnDestroy {
     } catch {}
 
     this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;
+    this.refreshFailed = true;
     this.notifications.stopConnection();
     if (navigate) this.router.navigateByUrl(this.redirectToSignIn());
   }
