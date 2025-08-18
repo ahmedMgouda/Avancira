@@ -5,6 +5,7 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
 using Avancira.Application.Catalog;
 using Avancira.Application.Identity.Users.Abstractions;
+using Avancira.Application.Common;
 using Avancira.Application.Lessons;
 using Avancira.Application.Messaging;
 using Avancira.Application.Payments;
@@ -17,6 +18,7 @@ using Avancira.Infrastructure.Identity.Tokens;
 using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Infrastructure.Common;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -49,6 +51,7 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<ILessonService, LessonService>();
             services.AddTransient<IJwtTokenService, JwtTokenService>();
             services.AddTransient<IGeolocationService, GeolocationService>();
+            services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();
             
             // Register billing services

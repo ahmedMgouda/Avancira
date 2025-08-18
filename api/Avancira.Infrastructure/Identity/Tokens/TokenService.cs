@@ -1,5 +1,5 @@
 ﻿using Avancira.Application.Auth.Jwt;
-using Avancira.Application.Catalog;
+using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Domain.Common.Exceptions;
@@ -26,18 +26,16 @@ public sealed class TokenService : ITokenService
     private readonly JwtOptions _jwtOptions;
     private readonly IPublisher _publisher;
     private readonly AvanciraDbContext _dbContext;
-    private readonly IGeolocationService _geolocationService;
 
-    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher, AvanciraDbContext dbContext, IGeolocationService geolocationService)
+    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher, AvanciraDbContext dbContext)
     {
         _jwtOptions = jwtOptions.Value;
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _publisher = publisher;
         _dbContext = dbContext;
-        _geolocationService = geolocationService;
     }
 
-    public async Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    public async Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, string deviceId, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(request.Email.Trim().Normalize());
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
@@ -55,10 +53,10 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException("email not confirmed");
         }
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
+        return await GenerateTokens(user, deviceId, clientInfo, cancellationToken);
     }
 
-    public async Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    public async Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, string deviceId, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var hashedRefreshToken = HashToken(refreshToken);
         var tokenEntity = await _dbContext.RefreshTokens
@@ -88,7 +86,7 @@ public sealed class TokenService : ITokenService
         tokenEntity.RevokedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
+        return await GenerateTokens(user, deviceId, clientInfo, cancellationToken);
     }
 
     public async Task RevokeTokenAsync(string refreshToken, string userId, string deviceId, CancellationToken cancellationToken)
@@ -119,11 +117,11 @@ public sealed class TokenService : ITokenService
         }));
     }
 
-    private async Task<TokenPair> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    private async Task<TokenPair> GenerateTokens(User user, string deviceId, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
-        string token = await GenerateJwt(user, deviceId, ipAddress);
+        string token = await GenerateJwt(user, deviceId, clientInfo.IpAddress);
 
-        var client = Parser.GetDefault().Parse(userAgent);
+        var client = Parser.GetDefault().Parse(clientInfo.UserAgent);
         var browser = $"{client.UA.Family} {client.UA.Major}".Trim();
         var os = client.OS.ToString();
         if (browser.Length > 100) browser = browser[..100];
@@ -142,7 +140,8 @@ public sealed class TokenService : ITokenService
             oldToken.RevokedAt = DateTime.UtcNow;
         }
 
-        var (country, city) = await _geolocationService.GetLocationFromIpAsync(ipAddress);
+        var country = clientInfo.Country;
+        var city = clientInfo.City;
 
         _dbContext.RefreshTokens.Add(new RefreshToken
         {
@@ -152,7 +151,7 @@ public sealed class TokenService : ITokenService
             Device = deviceId,
             UserAgent = browser,
             OperatingSystem = os,
-            IpAddress = ipAddress,
+            IpAddress = clientInfo.IpAddress,
             Country = country,
             City = city,
             CreatedAt = DateTime.UtcNow,
