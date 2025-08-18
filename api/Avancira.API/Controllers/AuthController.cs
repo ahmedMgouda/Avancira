@@ -29,7 +29,7 @@ public class AuthController : BaseApiController
 
         var result = await _tokenService.GenerateTokenAsync(request, clientInfo, cancellationToken);
 
-        SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiryTime);
+        SetRefreshTokenCookie(result.RefreshToken, request.RememberMe ? result.RefreshTokenExpiryTime : null);
 
         return Ok(new TokenResponse(result.Token));
     }
@@ -77,16 +77,21 @@ public class AuthController : BaseApiController
         return Ok();
     }
 
-    private void SetRefreshTokenCookie(string refreshToken, DateTime expires)
+    private void SetRefreshTokenCookie(string refreshToken, DateTime? expires)
     {
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.None,
-            Expires = expires,
             Path = "/api/auth"
         };
+
+        if (expires.HasValue)
+        {
+            cookieOptions.Expires = expires.Value;
+        }
+
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 }
