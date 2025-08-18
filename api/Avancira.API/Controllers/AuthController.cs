@@ -1,6 +1,6 @@
-﻿using Avancira.Application.Identity.Tokens;
+using Avancira.Application.Common;
+using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
-using Avancira.Infrastructure.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -11,10 +11,12 @@ namespace Avancira.API.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly ITokenService _tokenService;
+    private readonly IClientInfoService _clientInfoService;
 
-    public AuthController(ITokenService tokenService)
+    public AuthController(ITokenService tokenService, IClientInfoService clientInfoService)
     {
         _tokenService = tokenService;
+        _clientInfoService = clientInfoService;
     }
 
     [HttpPost("token")]
@@ -23,12 +25,9 @@ public class AuthController : BaseApiController
     [SwaggerOperation(OperationId = "GenerateToken")]
     public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request, CancellationToken cancellationToken)
     {
-        string deviceId = HttpContext.GetDeviceIdentifier();
-        string ip = HttpContext.GetIpAddress();
-        string userAgent = HttpContext.GetUserAgent();
-        string operatingSystem = HttpContext.GetOperatingSystem();
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
 
-        var result = await _tokenService.GenerateTokenAsync(request, deviceId, ip, userAgent, operatingSystem, cancellationToken);
+        var result = await _tokenService.GenerateTokenAsync(request, clientInfo, cancellationToken);
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiryTime);
 
@@ -41,18 +40,15 @@ public class AuthController : BaseApiController
     [SwaggerOperation(OperationId = "RefreshToken")]
     public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto? request, CancellationToken cancellationToken)
     {
-        string deviceId = HttpContext.GetDeviceIdentifier();
-        string ip = HttpContext.GetIpAddress();
-        string userAgent = HttpContext.GetUserAgent();
-        string operatingSystem = HttpContext.GetOperatingSystem();
-
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return Unauthorized();
         }
 
-        var result = await _tokenService.RefreshTokenAsync(request?.Token, refreshToken, deviceId, ip, userAgent, operatingSystem, cancellationToken);
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
+
+        var result = await _tokenService.RefreshTokenAsync(request?.Token, refreshToken, clientInfo, cancellationToken);
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiryTime);
 
@@ -65,13 +61,13 @@ public class AuthController : BaseApiController
     [SwaggerOperation(OperationId = "RevokeToken")]
     public async Task<IActionResult> RevokeToken(CancellationToken cancellationToken)
     {
-        string deviceId = HttpContext.GetDeviceIdentifier();
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
         string userId = GetUserId();
         var refreshToken = Request.Cookies["refreshToken"];
 
         if (!string.IsNullOrWhiteSpace(refreshToken))
         {
-            await _tokenService.RevokeTokenAsync(refreshToken, userId, deviceId, cancellationToken);
+            await _tokenService.RevokeTokenAsync(refreshToken, userId, clientInfo, cancellationToken);
         }
 
         Response.Cookies.Delete("refreshToken", new CookieOptions

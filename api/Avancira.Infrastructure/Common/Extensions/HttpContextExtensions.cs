@@ -19,25 +19,6 @@ public static class HttpContextExtensions
         return ip;
     }
 
-    public static string GetDeviceIdentifier(this HttpContext context)
-    {
-        var deviceId = context.Request.Cookies["device_id"];
-        if (string.IsNullOrEmpty(deviceId))
-        {
-            deviceId = Guid.NewGuid().ToString();
-            context.Response.Cookies.Append("device_id", deviceId, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTime.UtcNow.AddYears(1),
-                Path = "/api/auth"
-            });
-        }
-
-        return deviceId;
-    }
-
     public static string GetUserAgent(this HttpContext context) =>
         context.Request.Headers["User-Agent"].FirstOrDefault() ?? "N/A";
 
