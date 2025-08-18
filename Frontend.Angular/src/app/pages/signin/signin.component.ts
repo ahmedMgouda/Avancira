@@ -42,6 +42,7 @@ export class SigninComponent implements OnInit {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
+      rememberMe: [false],
     });
 
     this.route.queryParams.subscribe((params) => {
@@ -69,11 +70,11 @@ export class SigninComponent implements OnInit {
   onLogin(): void {
     if (this.loginForm.invalid) return;
 
-    const { email, password } = this.loginForm.value;
+    const { email, password, rememberMe } = this.loginForm.value;
     this.spinner.show();
 
     this.authService
-      .login(email, password)
+      .login(email, password, rememberMe)
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () => {
