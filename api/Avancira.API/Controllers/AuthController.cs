@@ -1,4 +1,5 @@
-﻿using Avancira.Application.Identity.Tokens;
+using Avancira.Application.Common;
+using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Infrastructure.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
@@ -11,10 +12,12 @@ namespace Avancira.API.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly ITokenService _tokenService;
+    private readonly IClientInfoService _clientInfoService;
 
-    public AuthController(ITokenService tokenService)
+    public AuthController(ITokenService tokenService, IClientInfoService clientInfoService)
     {
         _tokenService = tokenService;
+        _clientInfoService = clientInfoService;
     }
 
     [HttpPost("token")]
@@ -24,11 +27,9 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request, CancellationToken cancellationToken)
     {
         string deviceId = HttpContext.GetDeviceIdentifier();
-        string ip = HttpContext.GetIpAddress();
-        string userAgent = HttpContext.GetUserAgent();
-        string operatingSystem = HttpContext.GetOperatingSystem();
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
 
-        var result = await _tokenService.GenerateTokenAsync(request, deviceId, ip, userAgent, operatingSystem, cancellationToken);
+        var result = await _tokenService.GenerateTokenAsync(request, deviceId, clientInfo, cancellationToken);
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiryTime);
 
@@ -42,9 +43,7 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto? request, CancellationToken cancellationToken)
     {
         string deviceId = HttpContext.GetDeviceIdentifier();
-        string ip = HttpContext.GetIpAddress();
-        string userAgent = HttpContext.GetUserAgent();
-        string operatingSystem = HttpContext.GetOperatingSystem();
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
 
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -52,7 +51,7 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        var result = await _tokenService.RefreshTokenAsync(request?.Token, refreshToken, deviceId, ip, userAgent, operatingSystem, cancellationToken);
+        var result = await _tokenService.RefreshTokenAsync(request?.Token, refreshToken, deviceId, clientInfo, cancellationToken);
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiryTime);
 
