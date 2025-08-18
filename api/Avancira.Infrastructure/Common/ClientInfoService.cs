@@ -1,19 +1,25 @@
 using Avancira.Application.Common;
 using Avancira.Infrastructure.Common.Extensions;
+using Avancira.Application.Catalog;
 using Microsoft.AspNetCore.Http;
+using UAParser;
 
 namespace Avancira.Infrastructure.Common;
 
 public class ClientInfoService : IClientInfoService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IGeolocationService _geolocationService;
+    private readonly Parser _parser;
 
-    public ClientInfoService(IHttpContextAccessor httpContextAccessor)
+    public ClientInfoService(IHttpContextAccessor httpContextAccessor, IGeolocationService geolocationService, Parser parser)
     {
         _httpContextAccessor = httpContextAccessor;
+        _geolocationService = geolocationService;
+        _parser = parser;
     }
 
-    public Task<ClientInfo> GetClientInfoAsync()
+    public async Task<ClientInfo> GetClientInfoAsync()
     {
         var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
 
@@ -33,14 +39,17 @@ public class ClientInfoService : IClientInfoService
 
         var ip = context.GetIpAddress();
         var userAgent = context.GetUserAgent();
-        var operatingSystem = context.GetOperatingSystem();
+        var os = _parser.Parse(userAgent).OS.ToString();
+        var (country, city) = await _geolocationService.GetLocationFromIpAsync(ip);
 
-        return Task.FromResult(new ClientInfo
+        return new ClientInfo
         {
             DeviceId = deviceId,
             IpAddress = ip,
             UserAgent = userAgent,
-            OperatingSystem = operatingSystem
-        });
+            OperatingSystem = os,
+            Country = country,
+            City = city
+        };
     }
 }

@@ -6,4 +6,6 @@ public class ClientInfo
     public string IpAddress { get; set; } = default!;
     public string UserAgent { get; set; } = default!;
     public string OperatingSystem { get; set; } = default!;
+    public string? Country { get; set; }
+    public string? City { get; set; }
 }

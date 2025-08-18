@@ -27,6 +27,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Categories;
 using Avancira.Infrastructure.Payments;
+using UAParser;
 
 namespace Avancira.Infrastructure.Catalog
 {
@@ -53,6 +54,7 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IGeolocationService, GeolocationService>();
             services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();
+            services.AddSingleton(_ => Parser.GetDefault());
             
             // Register billing services
             services.AddTransient<IPaymentGateway, DefaultPaymentGateway>();
