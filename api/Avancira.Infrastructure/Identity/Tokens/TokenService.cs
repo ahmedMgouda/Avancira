@@ -1,5 +1,4 @@
 using Avancira.Application.Auth.Jwt;
-using Avancira.Application.Catalog;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
@@ -27,15 +26,13 @@ public sealed class TokenService : ITokenService
     private readonly JwtOptions _jwtOptions;
     private readonly IPublisher _publisher;
     private readonly AvanciraDbContext _dbContext;
-    private readonly IGeolocationService _geolocationService;
 
-    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher, AvanciraDbContext dbContext, IGeolocationService geolocationService)
+    public TokenService(IOptions<JwtOptions> jwtOptions, UserManager<User> userManager, IPublisher publisher, AvanciraDbContext dbContext)
     {
         _jwtOptions = jwtOptions.Value;
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _publisher = publisher;
         _dbContext = dbContext;
-        _geolocationService = geolocationService;
     }
 
     public async Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, ClientInfo clientInfo, CancellationToken cancellationToken)
@@ -143,8 +140,6 @@ public sealed class TokenService : ITokenService
             oldToken.RevokedAt = DateTime.UtcNow;
         }
 
-        var (country, city) = await _geolocationService.GetLocationFromIpAsync(clientInfo.IpAddress);
-
         _dbContext.RefreshTokens.Add(new RefreshToken
         {
             Id = Guid.NewGuid(),
@@ -154,8 +149,8 @@ public sealed class TokenService : ITokenService
             UserAgent = browser,
             OperatingSystem = os,
             IpAddress = clientInfo.IpAddress,
-            Country = country,
-            City = city,
+            Country = clientInfo.Country,
+            City = clientInfo.City,
             CreatedAt = DateTime.UtcNow,
             ExpiresAt = refreshTokenExpiryTime,
             Revoked = false
