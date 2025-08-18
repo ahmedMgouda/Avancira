@@ -86,10 +86,10 @@ export class AuthService implements OnDestroy {
     return this.refreshAccessToken(); // normal path (not forced)
   }
 
-  login(email: string, password: string): Observable<UserProfile> {
+  login(email: string, password: string, rememberMe = false): Observable<UserProfile> {
     return this.http.post<TokenResponse>(
       `${this.api}/auth/token`,
-      { email, password },
+      { email, password, rememberMe },
       { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
     ).pipe(
       tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
