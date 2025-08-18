@@ -1,5 +1,6 @@
-﻿using Avancira.Application.Auth.Jwt;
+using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Catalog;
+using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Domain.Common.Exceptions;
@@ -37,7 +38,7 @@ public sealed class TokenService : ITokenService
         _geolocationService = geolocationService;
     }
 
-    public async Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    public async Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(request.Email.Trim().Normalize());
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
@@ -55,14 +56,14 @@ public sealed class TokenService : ITokenService
             throw new UnauthorizedException("email not confirmed");
         }
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
+        return await GenerateTokens(user, clientInfo, cancellationToken);
     }
 
-    public async Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    public async Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var hashedRefreshToken = HashToken(refreshToken);
         var tokenEntity = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.Device == deviceId && t.TokenHash == hashedRefreshToken && !t.Revoked, cancellationToken);
+            .SingleOrDefaultAsync(t => t.Device == clientInfo.DeviceId && t.TokenHash == hashedRefreshToken && !t.Revoked, cancellationToken);
         if (tokenEntity is null || tokenEntity.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
@@ -88,14 +89,14 @@ public sealed class TokenService : ITokenService
         tokenEntity.RevokedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GenerateTokens(user, deviceId, ipAddress, userAgent, operatingSystem, cancellationToken);
+        return await GenerateTokens(user, clientInfo, cancellationToken);
     }
 
-    public async Task RevokeTokenAsync(string refreshToken, string userId, string deviceId, CancellationToken cancellationToken)
+    public async Task RevokeTokenAsync(string refreshToken, string userId, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var hashedToken = HashToken(refreshToken);
         var token = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == deviceId && t.TokenHash == hashedToken && !t.Revoked, cancellationToken);
+            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == clientInfo.DeviceId && t.TokenHash == hashedToken && !t.Revoked, cancellationToken);
 
         if (token is null)
         {
@@ -119,11 +120,11 @@ public sealed class TokenService : ITokenService
         }));
     }
 
-    private async Task<TokenPair> GenerateTokens(User user, string deviceId, string ipAddress, string userAgent, string operatingSystem, CancellationToken cancellationToken)
+    private async Task<TokenPair> GenerateTokens(User user, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
-        string token = await GenerateJwt(user, deviceId, ipAddress);
+        string token = await GenerateJwt(user, clientInfo.DeviceId, clientInfo.IpAddress);
 
-        var client = Parser.GetDefault().Parse(userAgent);
+        var client = Parser.GetDefault().Parse(clientInfo.UserAgent);
         var browser = $"{client.UA.Family} {client.UA.Major}".Trim();
         var os = client.OS.ToString();
         if (browser.Length > 100) browser = browser[..100];
@@ -134,7 +135,7 @@ public sealed class TokenService : ITokenService
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
         var oldTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == user.Id && t.Device == deviceId && !t.Revoked)
+            .Where(t => t.UserId == user.Id && t.Device == clientInfo.DeviceId && !t.Revoked)
             .ToListAsync(cancellationToken);
         foreach (var oldToken in oldTokens)
         {
@@ -142,17 +143,17 @@ public sealed class TokenService : ITokenService
             oldToken.RevokedAt = DateTime.UtcNow;
         }
 
-        var (country, city) = await _geolocationService.GetLocationFromIpAsync(ipAddress);
+        var (country, city) = await _geolocationService.GetLocationFromIpAsync(clientInfo.IpAddress);
 
         _dbContext.RefreshTokens.Add(new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = refreshTokenHash,
-            Device = deviceId,
+            Device = clientInfo.DeviceId,
             UserAgent = browser,
             OperatingSystem = os,
-            IpAddress = ipAddress,
+            IpAddress = clientInfo.IpAddress,
             Country = country,
             City = city,
             CreatedAt = DateTime.UtcNow,
