@@ -2,6 +2,8 @@ using Avancira.Application.Common;
 using Avancira.Application.Catalog;
 using Avancira.Infrastructure.Common.Extensions;
 using Microsoft.AspNetCore.Http;
+using UAParser;
+using ClientInfo = Avancira.Application.Common.ClientInfo;
 
 namespace Avancira.Infrastructure.Common;
 
@@ -9,11 +11,13 @@ public class ClientInfoService : IClientInfoService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IGeolocationService _geolocationService;
+    private readonly Parser _parser;
 
-    public ClientInfoService(IHttpContextAccessor httpContextAccessor, IGeolocationService geolocationService)
+    public ClientInfoService(IHttpContextAccessor httpContextAccessor, IGeolocationService geolocationService, Parser parser)
     {
         _httpContextAccessor = httpContextAccessor;
         _geolocationService = geolocationService;
+        _parser = parser;
     }
 
     public async Task<ClientInfo> GetClientInfoAsync()
@@ -36,8 +40,7 @@ public class ClientInfoService : IClientInfoService
 
         var ip = context.GetIpAddress();
         var userAgent = context.GetUserAgent();
-        var operatingSystem = context.GetOperatingSystem();
-
+        var os = _parser.Parse(userAgent).OS.ToString();
         var (country, city) = await _geolocationService.GetLocationFromIpAsync(ip);
 
         return new ClientInfo
@@ -45,7 +48,7 @@ public class ClientInfoService : IClientInfoService
             DeviceId = deviceId,
             IpAddress = ip,
             UserAgent = userAgent,
-            OperatingSystem = operatingSystem,
+            OperatingSystem = os,
             Country = country,
             City = city
         };
