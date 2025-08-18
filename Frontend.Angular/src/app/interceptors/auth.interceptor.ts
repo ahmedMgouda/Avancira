@@ -8,7 +8,7 @@ import {
   HttpRequest
 } from '@angular/common/http';
 import { inject } from '@angular/core';
-  import { Observable, throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
@@ -59,9 +59,10 @@ export const authInterceptor: HttpInterceptorFn = (
       const retried = req.context.get(ALREADY_RETRIED);
       const is401 = err instanceof HttpErrorResponse && err.status === 401;
 
-      // Single safe retry on 401 (handles expiry race between pre-wait and server check)
+      // Single safe retry on 401 (handles expiry race between pre-wait and server-side check)
       if (!retried && is401) {
-        return auth.refreshAccessToken().pipe(
+        // Use getValidAccessToken again so we JOIN any in-flight refresh (single-flight)
+        return auth.getValidAccessToken().pipe(
           switchMap(t =>
             next(
               applyAuth(
@@ -73,6 +74,8 @@ export const authInterceptor: HttpInterceptorFn = (
           catchError(e => throwError(() => e))
         );
       }
+
+      // Propagate error (no navigation here)
       return throwError(() => err);
     })
   );

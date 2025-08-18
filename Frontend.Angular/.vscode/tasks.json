@@ -1,40 +1,50 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
   "version": "2.0.0",
   "tasks": [
     {
       "type": "npm",
-      "script": "start",
+      "script": "start:ssl",
+      "label": "npm: start:ssl",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "typescript",
-        "pattern": "$tsc",
+        "owner": "angular",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [{ "regexp": ".*" }],
         "background": {
           "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "(.*?)"
-          },
-          "endsPattern": {
-            "regexp": "bundle generation complete"
-          }
+          "beginsPattern": ".*Starting development server.*|.*Initial chunk files.*",
+          "endsPattern": ".*Compiled successfully.*|.*✔ Compiled successfully.*"
+        }
+      }
+    },
+    {
+      "type": "npm",
+      "script": "start",
+      "label": "npm: start",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "angular",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [{ "regexp": ".*" }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Starting development server.*|.*Initial chunk files.*",
+          "endsPattern": ".*Compiled successfully.*|.*✔ Compiled successfully.*"
         }
       }
     },
     {
       "type": "npm",
       "script": "test",
+      "label": "npm: test",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
         "pattern": "$tsc",
         "background": {
           "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "(.*?)"
-          },
-          "endsPattern": {
-            "regexp": "bundle generation complete"
-          }
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "bundle generation complete" }
         }
       }
     }

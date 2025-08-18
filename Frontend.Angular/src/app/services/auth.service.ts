@@ -5,137 +5,135 @@ import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from
 import { catchError, finalize, map, retry, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 
-import { NotificationService } from './notification.service';
-import { StorageService } from './storage.service';
-
 import { environment } from '../environments/environment';
-import { INCLUDE_CREDENTIALS, REQUIRES_AUTH, SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { INCLUDE_CREDENTIALS, REQUIRES_AUTH,SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { UserProfile } from '../models/UserProfile';
 
 interface TokenResponse { token: string; }
 
-const CLOCK_SKEW_MS = 30_000;          // treat tokens expiring within 30s as expired
+// Light, internal constants (you can move to env later if you want)
+const CLOCK_SKEW_MS    = 30_000;
+const EARLY_REFRESH_MS = 120_000;
+const JITTER_MAX_MS    = 20_000;
+
+/** Internal auth state (strongly typed, no strings) */
+export enum AuthStateKind {
+  Unauthenticated,
+  Refreshing,
+  Authenticated,
+  Expired
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly PROFILE_KEY = 'user_profile';
   private readonly api = environment.apiUrl;
 
+  // In-memory token (not persisted)
   private accessToken: string | null = null;
   private tokenExpiryMs: number | null = null;
-  private refreshTimer?: Subscription;
-  private refresh$?: Observable<string>; // de-dupes in-flight refreshes
-  private refreshFailed = false; // tracks first refresh failure
 
+  /** Early refresh timer */
+  private refreshTimer?: Subscription;
+
+  /** Single-flight refresh queue */
+  private refresh$?: Observable<string>;
+
+  /** Block refresh attempts after a hard fail until next login */
+  private authLocked = false;
+
+  /** Published profile (UI continuity only; token is memory-only) */
   private profileSubject = new BehaviorSubject<UserProfile | null>(null);
   readonly profile$ = this.profileSubject.asObservable();
 
+  /** Published auth state so any component can subscribe */
+  private stateSubject = new BehaviorSubject<AuthStateKind>(AuthStateKind.Unauthenticated);
+  readonly authState$  = this.stateSubject.asObservable();
+
+  /** A handy selector many UIs want */
+  readonly isAuthenticated$ = this.authState$.pipe(
+    map(s => s === AuthStateKind.Authenticated),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private storage: StorageService,
-    private notifications: NotificationService
+    private router: Router
   ) {
-    // UI continuity only (token never persisted)
-    const cached = this.storage.getItem(this.PROFILE_KEY);
+    // Restore profile only (not token)
+    const cached = localStorage.getItem(this.PROFILE_KEY);
     if (cached) {
       try { this.profileSubject.next(JSON.parse(cached)); }
-      catch { this.storage.removeItem(this.PROFILE_KEY); }
+      catch { localStorage.removeItem(this.PROFILE_KEY); }
     }
-
-    // Silent sign-in on app start if a refresh cookie exists
-    this.refreshAccessToken().pipe(take(1)).subscribe({
-      error: () => this.clearSession(false)
-    });
   }
 
-  // ---------- Public API
+  /* ---------------- Public API ---------------- */
 
+  /** Synchronous check for guards/interceptors */
   isAuthenticated(): boolean {
-    return !!(
-      this.accessToken &&
-      this.tokenExpiryMs !== null &&
-      this.tokenExpiryMs > Date.now() + CLOCK_SKEW_MS
-    );
+    return !!(this.accessToken && this.tokenExpiryMs && this.tokenExpiryMs > Date.now() + CLOCK_SKEW_MS);
   }
+
+  /** Guards can wait only if a refresh is already running (no network here). */
+  waitForRefresh(): Observable<unknown> { return this.refresh$ ?? of(null); }
 
   getAccessToken(): string | null { return this.accessToken; }
+
+  /** Single entry: returns a valid token or joins the refresh queue (no navigation here). */
+  getValidAccessToken(): Observable<string> {
+    if (this.isAuthenticated()) return of(this.accessToken as string);
+    return this.refreshAccessToken(); // normal path (not forced)
+  }
 
   login(email: string, password: string): Observable<UserProfile> {
     return this.http.post<TokenResponse>(
       `${this.api}/auth/token`,
       { email, password },
-      {
-        context: new HttpContext()
-          .set(SKIP_AUTH, true)
-          .set(INCLUDE_CREDENTIALS, true)
-      }
+      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
     ).pipe(
-      tap(res => {
-        if (!res?.token) throw new Error('No token returned');
-        this.applyToken(res.token); // throws on invalid/expired token
-      }),
-      switchMap(() => this.loadPermissions()),
+      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
+      switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
       tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
-      map(() => this.profileSubject.value as UserProfile),
-      catchError(e => this.appError(e))
+      map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
     );
   }
 
+  /** User-initiated logout (this one may navigate) */
   logout(navigate = true): void {
     this.http.post(
       `${this.api}/auth/revoke`,
       {},
-      {
-        context: new HttpContext()
-          .set(REQUIRES_AUTH, true)
-          .set(INCLUDE_CREDENTIALS, true)
-      }
+      { context: new HttpContext().set(REQUIRES_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
     )
-      .pipe(catchError(() => of(null)))
-      .subscribe(() => {
-        this.clearSession();
-        if (navigate) {
-          this.router.navigateByUrl(this.redirectToSignIn());
-        }
-      });
+    .pipe(catchError(() => of(null)))
+    .subscribe(() => {
+      this.clearSession(AuthStateKind.Unauthenticated);
+      if (navigate) this.router.navigateByUrl(this.redirectToSignIn());
+    });
   }
 
+  /** Helper so the guard can build a consistent redirect */
   redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
     return this.router.createUrlTree(['/signin'], { queryParams: { returnUrl } });
   }
 
-  /** Obtain a valid access token, refreshing silently if needed. */
-  getValidAccessToken(): Observable<string> {
-    return this.isAuthenticated()
-      ? of(this.accessToken as string)
-      : this.refreshAccessToken();
-  }
+  /* ---------------- Refresh (single-flight; no navigation on failure) ---------------- */
 
-  getProfile(): UserProfile | null { return this.profileSubject.value; }
-  hasRole(r: string): boolean { return this.any((this.profileSubject.value as any)?.roles, r); }
-  hasAnyRole(...r: string[]): boolean { return this.any((this.profileSubject.value as any)?.roles, ...r); }
-  hasPermission(p: string): boolean { return this.any((this.profileSubject.value as any)?.permissions, p); }
-  hasAnyPermission(...p: string[]): boolean { return this.any((this.profileSubject.value as any)?.permissions, ...p); }
-
-  // ---------- Refresh (single, de-duped path using retry({...}))
-
-  refreshAccessToken(): Observable<string> {
-    if (this.isAuthenticated()) return of(this.accessToken as string);
-    if (this.refreshFailed) return throwError(() => new Error('REFRESH_FAILED'));
+  private refreshAccessToken(force = false): Observable<string> {
+    // Race-safety: if not forcing and token became valid in the meantime, bail out
+    if (!force && this.isAuthenticated()) return of(this.accessToken as string);
+    if (this.authLocked) return throwError(() => new Error('AUTH_LOCKED'));
     if (this.refresh$) return this.refresh$;
 
+    this.setState(AuthStateKind.Refreshing);
+
     this.refresh$ = this.http.post<TokenResponse>(
-      `${this.api}/auth/refresh`,
-      {},
-      {
-        context: new HttpContext()
-          .set(SKIP_AUTH, true)
-          .set(INCLUDE_CREDENTIALS, true)
-      }
+      `${this.api}/auth/refresh`, {},
+      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
     ).pipe(
       retry({
-        count: 2, // total 3 tries (initial + 2 retries)
+        count: 2,
         delay: (err: any, i: number) => {
           const s = (err as HttpErrorResponse)?.status;
           const transient = s === 0 || s === 502 || s === 503 || s === 504;
@@ -145,63 +143,51 @@ export class AuthService implements OnDestroy {
         resetOnSuccess: true
       }),
       map(res => {
-        if (!res?.token) throw new Error('No token on refresh');
-        this.applyToken(res.token); // throws on invalid/expired token
+        if (!res?.token) throw new Error('NO_TOKEN_REFRESH');
+        this.applyToken(res.token);
+        this.setState(AuthStateKind.Authenticated);
         return res.token;
       }),
       shareReplay({ bufferSize: 1, refCount: true }),
-      catchError(err => {
-        this.refreshFailed = true;
-        return throwError(() => err);
-      }),
+      catchError(err => { this.onRefreshFailed(); return throwError(() => err); }),
       finalize(() => { this.refresh$ = undefined; })
     );
 
     return this.refresh$;
   }
 
-  // ---------- Internals
+  /* ---------------- Internals ---------------- */
 
   private applyToken(token: string): void {
     const mapped = this.decode(token);
-    if (!mapped) {
-      // malformed/missing exp/expired token → treat as unauthorized
-      throw new Error('INVALID_TOKEN');
-    }
-    this.refreshFailed = false;
+    if (!mapped) throw new Error('INVALID_TOKEN');
+
+    this.authLocked = false;
     this.accessToken = token;
+
     const exp = (mapped as any).exp as number | undefined;
     this.tokenExpiryMs = exp ? exp * 1000 : null;
-    this.patchProfile(mapped);
 
+    this.patchProfile(mapped);
     if (exp) this.scheduleEarlyRefresh(exp);
   }
 
-  /** Refresh ~2 minutes before expiry (with a small jitter). */
   private scheduleEarlyRefresh(expUnixSec: number): void {
     this.refreshTimer?.unsubscribe();
-    const early = 120_000; // 2 min
-    const jitter = Math.floor(Math.random() * 20_000); // +0..20s
-    const ms = Math.max(0, expUnixSec * 1000 - Date.now() - early - jitter);
+    const jitter = Math.floor(Math.random() * JITTER_MAX_MS);
+    const ms = Math.max(0, expUnixSec * 1000 - Date.now() - EARLY_REFRESH_MS - jitter);
     this.refreshTimer = timer(ms).pipe(
-      switchMap(() => this.refreshAccessToken()),
+      switchMap(() => this.refreshAccessToken(true)), // force proactive refresh
       take(1)
-    ).subscribe({
-      error: () => this.logout() // if refresh fails right before expiry → sign out
-    });
+    ).subscribe();
   }
 
-  /** Map JWT → your UserProfile; null if invalid/expired. */
   private decode(token: string): Partial<UserProfile> | null {
     try {
       const d: any = jwtDecode(token);
-
       const expSec = Number(d?.exp ?? 0);
-      const expMs = expSec * 1000;
-      if (!Number.isFinite(expSec) || expMs <= Date.now() + CLOCK_SKEW_MS) {
-        return null; // missing/invalid/expired exp → unauthorized
-      }
-
+      const expMs  = expSec * 1000;
+      if (!Number.isFinite(expSec) || expMs <= Date.now() + CLOCK_SKEW_MS) return null;
 
       const profile: Partial<UserProfile> = {
         id: d.sub ?? '',
@@ -217,48 +203,33 @@ export class AuthService implements OnDestroy {
         imageUrl: d.image_url
       };
       return profile;
-    } catch {
-      return null;
-    }
-  }
-
-  private loadPermissions(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])));
+    } catch { return null; }
   }
 
   private patchProfile(patch: Partial<UserProfile>): void {
     const merged = { ...(this.profileSubject.value ?? {}), ...patch } as UserProfile;
     this.profileSubject.next(merged);
-    try { this.storage.setItem(this.PROFILE_KEY, JSON.stringify(merged)); } catch { }
+    try { localStorage.setItem(this.PROFILE_KEY, JSON.stringify(merged)); } catch {}
   }
 
-  private any(list: string[] | undefined, ...items: string[]) {
-    if (!list?.length || !items.length) return false;
-    const s = new Set(list); return items.some(i => s.has(i));
-  }
-  private arr(v: any): string[] { return Array.isArray(v) ? v : v ? [v] : []; }
-
-  private clearSession(navigate = false): void {
+  private clearSession(next: AuthStateKind): void {
     this.accessToken = null;
     this.tokenExpiryMs = null;
     this.profileSubject.next(null);
-
-    try {
-      this.storage.removeItem(this.PROFILE_KEY);
-    } catch { }
-
+    try { localStorage.removeItem(this.PROFILE_KEY); } catch {}
     this.refreshTimer?.unsubscribe(); this.refreshTimer = undefined;
-    this.refreshFailed = true;
-    this.notifications.stopConnection();
-    if (navigate) this.router.navigateByUrl(this.redirectToSignIn());
+    this.authLocked = true;
+    this.setState(next);
   }
 
-  private appError(err: HttpErrorResponse | any) {
-    return throwError(() => new Error(err?.error?.message || err?.message || 'Authentication error'));
+  private onRefreshFailed(): void {
+    // No navigation — guard will redirect when user hits a protected route
+    this.clearSession(AuthStateKind.Expired);
   }
 
-  ngOnDestroy(): void {
-    this.refreshTimer?.unsubscribe();
-    this.notifications.stopConnection();
-  }
+  private setState(s: AuthStateKind) { this.stateSubject.next(s); }
+
+  private arr(v: any): string[] { return Array.isArray(v) ? v : v ? [v] : []; }
+
+  ngOnDestroy(): void { this.refreshTimer?.unsubscribe(); }
 }
