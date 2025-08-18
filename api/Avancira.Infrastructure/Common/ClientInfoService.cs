@@ -39,16 +39,15 @@ public class ClientInfoService : IClientInfoService
         }
 
         var ip = context.GetIpAddress();
-        var userAgent = context.GetUserAgent();
-        var os = _parser.Parse(userAgent).OS.ToString();
+        var client = _parser.Parse(context.GetUserAgent());
         var (country, city) = await _geolocationService.GetLocationFromIpAsync(ip);
 
         return new ClientInfo
         {
             DeviceId = deviceId,
             IpAddress = ip,
-            UserAgent = userAgent,
-            OperatingSystem = os,
+            UserAgent = $"{client.UA.Family} {client.UA.Major}".Trim(),
+            OperatingSystem = client.ToString(),
             Country = country,
             City = city
         };

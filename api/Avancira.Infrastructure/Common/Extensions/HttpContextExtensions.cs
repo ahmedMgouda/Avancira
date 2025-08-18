@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using UAParser;
 
 namespace Avancira.Infrastructure.Common.Extensions;
 
@@ -21,12 +20,6 @@ public static class HttpContextExtensions
 
     public static string GetUserAgent(this HttpContext context) =>
         context.Request.Headers["User-Agent"].FirstOrDefault() ?? "N/A";
-
-    public static string GetOperatingSystem(this HttpContext context)
-    {
-        var userAgent = context.GetUserAgent();
-        var client = Parser.GetDefault().Parse(userAgent);
-        return client.OS.Family ?? "Unknown";
-    }
+  
 }
 

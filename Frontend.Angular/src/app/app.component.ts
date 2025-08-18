@@ -27,7 +27,6 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
-      this.toastr.info('Your session expired. Please sign in again.');
       return;
     }
 
