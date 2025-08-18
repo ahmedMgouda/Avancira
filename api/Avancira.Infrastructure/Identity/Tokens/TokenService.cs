@@ -17,6 +17,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using UAParser;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 public sealed class TokenService : ITokenService
@@ -122,6 +123,12 @@ public sealed class TokenService : ITokenService
     {
         string token = await GenerateJwt(user, deviceId, ipAddress);
 
+        var client = Parser.GetDefault().Parse(userAgent);
+        var browser = $"{client.UA.Family} {client.UA.Major}".Trim();
+        var os = client.OS.ToString();
+        if (browser.Length > 100) browser = browser[..100];
+        if (os.Length > 100) os = os[..100];
+
         var refreshToken = GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshToken);
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
@@ -143,8 +150,8 @@ public sealed class TokenService : ITokenService
             UserId = user.Id,
             TokenHash = refreshTokenHash,
             Device = deviceId,
-            //UserAgent = userAgent,
-            OperatingSystem = operatingSystem,
+            UserAgent = browser,
+            OperatingSystem = os,
             IpAddress = ipAddress,
             Country = country,
             City = city,

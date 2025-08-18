@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
+using UAParser;
 
 namespace Avancira.Infrastructure.Common.Extensions;
 
@@ -43,13 +44,8 @@ public static class HttpContextExtensions
     public static string GetOperatingSystem(this HttpContext context)
     {
         var userAgent = context.GetUserAgent();
-
-        if (userAgent.Contains("Windows", StringComparison.OrdinalIgnoreCase)) return "Windows";
-        if (userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase)) return "Android";
-        if (userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase)) return "iOS";
-        if (userAgent.Contains("Mac OS", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase)) return "macOS";
-        if (userAgent.Contains("Linux", StringComparison.OrdinalIgnoreCase)) return "Linux";
-
-        return "Unknown";
+        var client = Parser.GetDefault().Parse(userAgent);
+        return client.OS.Family ?? "Unknown";
     }
 }
+
