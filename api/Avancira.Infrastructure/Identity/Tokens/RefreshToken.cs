@@ -5,16 +5,14 @@ namespace Avancira.Infrastructure.Identity.Tokens;
 public class RefreshToken
 {
     public Guid Id { get; set; }
-    public string UserId { get; set; } = default!;
     public string TokenHash { get; set; } = default!;
-    public string Device { get; set; } = default!;
-    public string? UserAgent { get; set; }
-    public string? OperatingSystem { get; set; }
-    public string IpAddress { get; set; } = default!;
-    public string? Country { get; set; }
-    public string? City { get; set; }
+    public Guid SessionId { get; set; }
+    public Guid? RotatedFromId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
     public bool Revoked { get; set; }
     public DateTime? RevokedAt { get; set; }
+
+    public Session Session { get; set; } = default!;
+    public RefreshToken? RotatedFrom { get; set; }
 }

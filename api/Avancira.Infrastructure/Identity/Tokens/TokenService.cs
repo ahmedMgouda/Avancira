@@ -17,6 +17,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Linq;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 public sealed class TokenService : ITokenService
@@ -59,8 +60,9 @@ public sealed class TokenService : ITokenService
     {
         var hashedRefreshToken = HashToken(refreshToken);
         var tokenEntity = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.Device == clientInfo.DeviceId && t.TokenHash == hashedRefreshToken && !t.Revoked, cancellationToken);
-        if (tokenEntity is null || tokenEntity.ExpiresAt <= DateTime.UtcNow)
+            .Include(t => t.Session)
+            .SingleOrDefaultAsync(t => t.Session.Device == clientInfo.DeviceId && t.TokenHash == hashedRefreshToken && !t.Revoked, cancellationToken);
+        if (tokenEntity is null || tokenEntity.ExpiresAt <= DateTime.UtcNow || tokenEntity.Session.AbsoluteExpiryUtc <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
@@ -69,13 +71,13 @@ public sealed class TokenService : ITokenService
         {
             var principal = GetPrincipalFromExpiredToken(token);
             var userIdFromToken = _userManager.GetUserId(principal)!;
-            if (userIdFromToken != tokenEntity.UserId)
+            if (userIdFromToken != tokenEntity.Session.UserId)
             {
                 throw new UnauthorizedException();
             }
         }
 
-        var user = await _userManager.FindByIdAsync(tokenEntity.UserId);
+        var user = await _userManager.FindByIdAsync(tokenEntity.Session.UserId);
         if (user is null)
         {
             throw new UnauthorizedException();
@@ -83,6 +85,8 @@ public sealed class TokenService : ITokenService
 
         tokenEntity.Revoked = true;
         tokenEntity.RevokedAt = DateTime.UtcNow;
+        tokenEntity.Session.LastRefreshUtc = DateTime.UtcNow;
+        tokenEntity.Session.LastActivityUtc = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return await GenerateTokens(user, clientInfo, cancellationToken);
@@ -92,7 +96,8 @@ public sealed class TokenService : ITokenService
     {
         var hashedToken = HashToken(refreshToken);
         var token = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.UserId == userId && t.Device == clientInfo.DeviceId && t.TokenHash == hashedToken && !t.Revoked, cancellationToken);
+            .Include(t => t.Session)
+            .SingleOrDefaultAsync(t => t.Session.UserId == userId && t.Session.Device == clientInfo.DeviceId && t.TokenHash == hashedToken && !t.Revoked, cancellationToken);
 
         if (token is null)
         {
@@ -101,6 +106,7 @@ public sealed class TokenService : ITokenService
 
         token.Revoked = true;
         token.RevokedAt = DateTime.UtcNow;
+        token.Session.LastActivityUtc = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         await _publisher.Publish(new AuditPublishedEvent(new()
@@ -118,35 +124,44 @@ public sealed class TokenService : ITokenService
 
     public async Task<IReadOnlyList<SessionDto>> GetSessionsAsync(string userId, CancellationToken ct)
     {
-        return await _dbContext.RefreshTokens
+        return await _dbContext.Sessions
             .AsNoTracking()
-            .Where(t => t.UserId == userId && !t.Revoked && t.ExpiresAt > DateTime.UtcNow)
-            .Select(t => new SessionDto(
-                t.Id,
-                t.Device,
-                t.UserAgent,
-                t.OperatingSystem,
-                t.IpAddress,
-                t.Country,
-                t.City,
-                t.CreatedAt,
-                t.ExpiresAt,
-                t.RevokedAt))
+            .Where(s => s.UserId == userId)
+            .SelectMany(s => s.RefreshTokens
+                .Where(t => !t.Revoked && t.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(1)
+                .Select(t => new SessionDto(
+                    s.Id,
+                    s.Device,
+                    s.UserAgent,
+                    s.OperatingSystem,
+                    s.IpAddress,
+                    s.Country,
+                    s.City,
+                    t.CreatedAt,
+                    t.ExpiresAt,
+                    t.RevokedAt)))
             .ToListAsync(ct);
     }
 
     public async Task RevokeSessionAsync(Guid sessionId, string userId, CancellationToken ct)
     {
-        var session = await _dbContext.RefreshTokens
-            .SingleOrDefaultAsync(t => t.Id == sessionId && t.UserId == userId && !t.Revoked, ct);
+        var session = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .SingleOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId, ct);
 
         if (session is null)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
 
-        session.Revoked = true;
-        session.RevokedAt = DateTime.UtcNow;
+        foreach (var token in session.RefreshTokens.Where(t => !t.Revoked))
+        {
+            token.Revoked = true;
+            token.RevokedAt = DateTime.UtcNow;
+        }
+        session.LastActivityUtc = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(ct);
 
         await _publisher.Publish(new AuditPublishedEvent(new()
@@ -162,6 +177,20 @@ public sealed class TokenService : ITokenService
         }));
     }
 
+    public async Task UpdateSessionActivityAsync(string userId, string deviceId, CancellationToken ct)
+    {
+        var session = await _dbContext.Sessions
+            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == deviceId, ct);
+
+        if (session is null || session.AbsoluteExpiryUtc <= DateTime.UtcNow)
+        {
+            return;
+        }
+
+        session.LastActivityUtc = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
     private async Task<TokenPair> GenerateTokens(User user, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         string token = await GenerateJwt(user, clientInfo.DeviceId, clientInfo.IpAddress);
@@ -170,30 +199,74 @@ public sealed class TokenService : ITokenService
         var refreshTokenHash = HashToken(refreshToken);
         var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
-        var oldTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == user.Id && t.Device == clientInfo.DeviceId && !t.Revoked)
-            .ToListAsync(cancellationToken);
-        foreach (var oldToken in oldTokens)
+        var session = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .SingleOrDefaultAsync(s => s.UserId == user.Id && s.Device == clientInfo.DeviceId, cancellationToken);
+
+        if (session is null)
         {
-            oldToken.Revoked = true;
-            oldToken.RevokedAt = DateTime.UtcNow;
+            session = new Session
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Device = clientInfo.DeviceId,
+                UserAgent = clientInfo.UserAgent,
+                OperatingSystem = clientInfo.OperatingSystem,
+                IpAddress = clientInfo.IpAddress,
+                Country = clientInfo.Country,
+                City = clientInfo.City,
+                CreatedAt = DateTime.UtcNow,
+                AbsoluteExpiryUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays),
+                LastRefreshUtc = DateTime.UtcNow,
+                LastActivityUtc = DateTime.UtcNow
+            };
+            _dbContext.Sessions.Add(session);
+        }
+        else
+        {
+            if (session.AbsoluteExpiryUtc <= DateTime.UtcNow)
+            {
+                foreach (var token in session.RefreshTokens.Where(t => !t.Revoked))
+                {
+                    token.Revoked = true;
+                    token.RevokedAt = DateTime.UtcNow;
+                }
+                session.CreatedAt = DateTime.UtcNow;
+                session.AbsoluteExpiryUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
+            }
+
+            session.UserAgent = clientInfo.UserAgent;
+            session.OperatingSystem = clientInfo.OperatingSystem;
+            session.IpAddress = clientInfo.IpAddress;
+            session.Country = clientInfo.Country;
+            session.City = clientInfo.City;
+            session.LastRefreshUtc = DateTime.UtcNow;
+            session.LastActivityUtc = DateTime.UtcNow;
         }
 
-        _dbContext.RefreshTokens.Add(new RefreshToken
+        var previousToken = session.RefreshTokens
+            .Where(t => !t.Revoked)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefault();
+
+        if (previousToken != null)
+        {
+            previousToken.Revoked = true;
+            previousToken.RevokedAt = DateTime.UtcNow;
+        }
+
+        var newToken = new RefreshToken
         {
             Id = Guid.NewGuid(),
-            UserId = user.Id,
             TokenHash = refreshTokenHash,
-            Device = clientInfo.DeviceId,
-            UserAgent = clientInfo.UserAgent,
-            OperatingSystem = clientInfo.OperatingSystem,
-            IpAddress = clientInfo.IpAddress,
-            Country = clientInfo.Country,
-            City = clientInfo.City,
+            SessionId = session.Id,
+            RotatedFromId = previousToken?.Id,
             CreatedAt = DateTime.UtcNow,
             ExpiresAt = refreshTokenExpiryTime,
             Revoked = false
-        });
+        };
+
+        _dbContext.RefreshTokens.Add(newToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -63,6 +63,7 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<Wallet> Wallets { get; set; }
     public DbSet<WalletLog> WalletLogs { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Session> Sessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

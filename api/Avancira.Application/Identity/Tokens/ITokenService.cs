@@ -12,4 +12,5 @@ public interface ITokenService
     Task RevokeTokenAsync(string refreshToken, string userId, ClientInfo clientInfo, CancellationToken cancellationToken);
     Task<IReadOnlyList<SessionDto>> GetSessionsAsync(string userId, CancellationToken ct);
     Task RevokeSessionAsync(Guid sessionId, string userId, CancellationToken ct);
+    Task UpdateSessionActivityAsync(string userId, string deviceId, CancellationToken ct);
 }

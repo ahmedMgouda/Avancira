@@ -11,28 +11,26 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.ToTable("RefreshTokens");
         builder.HasKey(t => t.Id);
 
-        builder.HasIndex(t => new { t.UserId, t.Device })
-            .IsUnique()
-            .HasFilter("\"Revoked\" = false");
-
         builder.Property(t => t.TokenHash).IsRequired();
-        builder.Property(t => t.Device).IsRequired().HasMaxLength(200);
-        builder.Property(t => t.UserAgent).HasMaxLength(100);
-        builder.Property(t => t.OperatingSystem).HasMaxLength(100);
-        builder.Property(t => t.IpAddress).IsRequired().HasMaxLength(45);
-        builder.Property(t => t.Country).HasMaxLength(100);
-        builder.Property(t => t.City).HasMaxLength(100);
         builder.Property(t => t.CreatedAt).IsRequired();
         builder.Property(t => t.ExpiresAt).IsRequired();
         builder.Property(t => t.Revoked).HasDefaultValue(false);
         builder.Property(t => t.RevokedAt);
 
-        builder.HasIndex(t => t.Device);
-        builder.HasIndex(t => t.UserAgent);
-        builder.HasIndex(t => t.OperatingSystem);
-        builder.HasIndex(t => t.IpAddress);
+        builder.HasIndex(t => t.SessionId);
+        builder.HasIndex(t => t.RotatedFromId).IsUnique(false);
         builder.HasIndex(t => t.CreatedAt);
         builder.HasIndex(t => t.ExpiresAt);
         builder.HasIndex(t => t.Revoked);
+
+        builder.HasOne(t => t.Session)
+            .WithMany(s => s.RefreshTokens)
+            .HasForeignKey(t => t.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(t => t.RotatedFrom)
+            .WithOne()
+            .HasForeignKey<RefreshToken>(t => t.RotatedFromId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
