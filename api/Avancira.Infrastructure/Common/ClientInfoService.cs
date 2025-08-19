@@ -34,7 +34,7 @@ public class ClientInfoService : IClientInfoService
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Expires = DateTime.UtcNow.AddYears(1),
-                Path = "/api/auth"
+                Path = "/"
             });
         }
 
