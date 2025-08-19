@@ -18,6 +18,7 @@ import { MessagesComponent } from './pages/messages/messages.component';
 import { PaymentsComponent } from './pages/payments/payments.component';
 import { PrivacyComponent } from './pages/privacy/privacy.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { SessionsComponent } from './pages/sessions/sessions.component';
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { SigninComponent } from './pages/signin/signin.component';
 import { SignupComponent } from './pages/signup/signup.component';
@@ -82,6 +83,7 @@ export const routes: Routes = [
               { path: 'payments', component: PaymentsComponent, data: { title: 'Payments' } },
               { path: 'invoices', component: InvoicesComponent, data: { title: 'Invoices' } },
               { path: 'profile', component: ProfileComponent, data: { title: 'Profile' } },
+              { path: 'sessions', component: SessionsComponent, data: { title: 'Sessions' } },
             ]
           }
         ]

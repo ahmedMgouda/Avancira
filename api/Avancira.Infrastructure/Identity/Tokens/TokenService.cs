@@ -167,7 +167,8 @@ public sealed class TokenService : ITokenService
     {
         return await _dbContext.Sessions
             .AsNoTracking()
-            .Where(s => s.UserId == userId)
+            .Where(s => s.UserId == userId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
+            .OrderByDescending(s => s.LastActivityUtc)
             .Select(s => new SessionDto(
                 s.Id,
                 s.Device,
@@ -177,6 +178,7 @@ public sealed class TokenService : ITokenService
                 s.Country,
                 s.City,
                 s.CreatedUtc,
+                s.LastActivityUtc,
                 s.AbsoluteExpiryUtc,
                 s.RevokedUtc))
             .ToListAsync(ct);

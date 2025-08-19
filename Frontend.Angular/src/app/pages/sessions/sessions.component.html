@@ -1,0 +1,11 @@
+<div class="sessions">
+  <h2>Active Sessions</h2>
+  <div *ngIf="loading">Loading...</div>
+  <ul *ngIf="!loading && sessions.length">
+    <li *ngFor="let session of sessions">
+      <span>{{ session.device }} ({{ session.ipAddress }}) - Last active: {{ session.lastActivityUtc | date:'short' }}</span>
+      <button type="button" (click)="revoke(session)">Revoke</button>
+    </li>
+  </ul>
+  <p *ngIf="!loading && sessions.length === 0">No active sessions.</p>
+</div>
