@@ -62,7 +62,7 @@ public sealed class TokenService : ITokenService
             .Include(t => t.Session)
             .SingleOrDefaultAsync(t => t.Session.Device == clientInfo.DeviceId && t.TokenHash == hashedRefreshToken && t.RevokedUtc == null, cancellationToken);
 
-        if (tokenEntity is null || tokenEntity.AbsoluteExpiryUtc <= DateTime.UtcNow)
+        if (tokenEntity is null)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
@@ -92,7 +92,7 @@ public sealed class TokenService : ITokenService
         string accessToken = await GenerateJwt(user, clientInfo.DeviceId, clientInfo.IpAddress);
         string newRefreshToken = GenerateRefreshToken();
         string newRefreshTokenHash = HashToken(newRefreshToken);
-        var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
+        var refreshTokenExpiryTime = session.AbsoluteExpiryUtc;
 
         tokenEntity.RevokedUtc = DateTime.UtcNow;
 
@@ -103,7 +103,6 @@ public sealed class TokenService : ITokenService
             SessionId = session.Id,
             RotatedFromId = tokenEntity.Id,
             CreatedUtc = DateTime.UtcNow,
-            AbsoluteExpiryUtc = refreshTokenExpiryTime,
             RevokedUtc = null
         };
 
@@ -235,7 +234,6 @@ public sealed class TokenService : ITokenService
 
         var refreshToken = GenerateRefreshToken();
         var refreshTokenHash = HashToken(refreshToken);
-        var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
 
         var session = await _dbContext.Sessions
             .Include(s => s.RefreshTokens)
@@ -243,6 +241,7 @@ public sealed class TokenService : ITokenService
 
         if (session is null || session.AbsoluteExpiryUtc <= DateTime.UtcNow)
         {
+            var newExpiry = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
             if (session is null)
             {
                 session = new Session
@@ -256,7 +255,7 @@ public sealed class TokenService : ITokenService
                     Country = clientInfo.Country,
                     City = clientInfo.City,
                     CreatedUtc = DateTime.UtcNow,
-                    AbsoluteExpiryUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays),
+                    AbsoluteExpiryUtc = newExpiry,
                     LastRefreshUtc = DateTime.UtcNow,
                     LastActivityUtc = DateTime.UtcNow
                 };
@@ -269,7 +268,7 @@ public sealed class TokenService : ITokenService
                     tk.RevokedUtc = DateTime.UtcNow;
                 }
                 session.CreatedUtc = DateTime.UtcNow;
-                session.AbsoluteExpiryUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
+                session.AbsoluteExpiryUtc = newExpiry;
                 session.RevokedUtc = null;
             }
         }
@@ -284,6 +283,8 @@ public sealed class TokenService : ITokenService
 
         session.LastRefreshUtc = DateTime.UtcNow;
         session.LastActivityUtc = DateTime.UtcNow;
+
+        var refreshTokenExpiryTime = session.AbsoluteExpiryUtc;
 
         var previousToken = session.RefreshTokens
             .Where(t => t.RevokedUtc == null)
@@ -302,7 +303,6 @@ public sealed class TokenService : ITokenService
             SessionId = session.Id,
             RotatedFromId = previousToken?.Id,
             CreatedUtc = DateTime.UtcNow,
-            AbsoluteExpiryUtc = refreshTokenExpiryTime,
             RevokedUtc = null
         };
 
