@@ -8,8 +8,8 @@ public class RefreshToken
     public string TokenHash { get; set; } = default!;
     public Guid SessionId { get; set; }
     public Guid? RotatedFromId { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime ExpiresAt { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime AbsoluteExpiryUtc { get; set; }
     public DateTime? RevokedUtc { get; set; }
 
     public Session Session { get; set; } = default!;

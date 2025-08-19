@@ -63,7 +63,7 @@ public sealed class TokenService : ITokenService
             .Include(t => t.Session)
             .SingleOrDefaultAsync(t => t.Session.Device == clientInfo.DeviceId && t.TokenHash == hashedRefreshToken && t.RevokedUtc == null, cancellationToken);
 
-        if (tokenEntity is null || tokenEntity.ExpiresAt <= DateTime.UtcNow)
+        if (tokenEntity is null || tokenEntity.AbsoluteExpiryUtc <= DateTime.UtcNow)
         {
             throw new UnauthorizedException("Invalid Refresh Token");
         }
@@ -103,8 +103,8 @@ public sealed class TokenService : ITokenService
             TokenHash = newRefreshTokenHash,
             SessionId = session.Id,
             RotatedFromId = tokenEntity.Id,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = refreshTokenExpiryTime,
+            CreatedUtc = DateTime.UtcNow,
+            AbsoluteExpiryUtc = refreshTokenExpiryTime,
             RevokedUtc = null
         };
 
@@ -286,7 +286,7 @@ public sealed class TokenService : ITokenService
 
         var previousToken = session.RefreshTokens
             .Where(t => t.RevokedUtc == null)
-            .OrderByDescending(t => t.CreatedAt)
+            .OrderByDescending(t => t.CreatedUtc)
             .FirstOrDefault();
 
         if (previousToken != null)
@@ -300,8 +300,8 @@ public sealed class TokenService : ITokenService
             TokenHash = refreshTokenHash,
             SessionId = session.Id,
             RotatedFromId = previousToken?.Id,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = refreshTokenExpiryTime,
+            CreatedUtc = DateTime.UtcNow,
+            AbsoluteExpiryUtc = refreshTokenExpiryTime,
             RevokedUtc = null
         };
 
