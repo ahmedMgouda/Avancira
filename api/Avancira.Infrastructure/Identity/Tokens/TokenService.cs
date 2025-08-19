@@ -3,7 +3,6 @@ using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Domain.Common.Exceptions;
-using Avancira.Infrastructure.Auth.Jwt;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Persistence;
@@ -339,8 +338,8 @@ public sealed class TokenService : ITokenService
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(_jwtOptions.TokenExpirationInMinutes),
             signingCredentials: signingCredentials,
-            issuer: JwtAuthConstants.Issuer,
-            audience: JwtAuthConstants.Audience
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience
         );
         var tokenHandler = new JwtSecurityTokenHandler();
         return tokenHandler.WriteToken(token);
@@ -392,8 +391,8 @@ public sealed class TokenService : ITokenService
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidAudience = JwtAuthConstants.Audience,
-            ValidIssuer = JwtAuthConstants.Issuer,
+            ValidAudience = _jwtOptions.Audience,
+            ValidIssuer = _jwtOptions.Issuer,
             RoleClaimType = ClaimTypes.Role,
             ClockSkew = TimeSpan.Zero,
             ValidateLifetime = false

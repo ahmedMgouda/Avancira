@@ -37,10 +37,10 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidIssuer = JwtAuthConstants.Issuer,
+            ValidIssuer = _options.Issuer,
             ValidateIssuer = true,
             ValidateLifetime = true,
-            ValidAudience = JwtAuthConstants.Audience,
+            ValidAudience = _options.Audience,
             ValidateAudience = true,
             RoleClaimType = ClaimTypes.Role,
             ClockSkew = TimeSpan.Zero
