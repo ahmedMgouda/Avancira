@@ -116,6 +116,52 @@ public sealed class TokenService : ITokenService
         }));
     }
 
+    public async Task<IReadOnlyList<SessionDto>> GetSessionsAsync(string userId, CancellationToken ct)
+    {
+        return await _dbContext.RefreshTokens
+            .AsNoTracking()
+            .Where(t => t.UserId == userId && !t.Revoked && t.ExpiresAt > DateTime.UtcNow)
+            .Select(t => new SessionDto(
+                t.Id,
+                t.Device,
+                t.UserAgent,
+                t.OperatingSystem,
+                t.IpAddress,
+                t.Country,
+                t.City,
+                t.CreatedAt,
+                t.ExpiresAt,
+                t.RevokedAt))
+            .ToListAsync(ct);
+    }
+
+    public async Task RevokeSessionAsync(Guid sessionId, string userId, CancellationToken ct)
+    {
+        var session = await _dbContext.RefreshTokens
+            .SingleOrDefaultAsync(t => t.Id == sessionId && t.UserId == userId && !t.Revoked, ct);
+
+        if (session is null)
+        {
+            throw new UnauthorizedException("Invalid Refresh Token");
+        }
+
+        session.Revoked = true;
+        session.RevokedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(ct);
+
+        await _publisher.Publish(new AuditPublishedEvent(new()
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Operation = "Token Revoked",
+                Entity = "Identity",
+                UserId = new Guid(userId),
+                DateTime = DateTime.UtcNow,
+            }
+        }));
+    }
+
     private async Task<TokenPair> GenerateTokens(User user, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         string token = await GenerateJwt(user, clientInfo.DeviceId, clientInfo.IpAddress);

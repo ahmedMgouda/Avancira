@@ -4,6 +4,8 @@ using Avancira.Application.Identity.Tokens.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System;
+using System.Collections.Generic;
 
 namespace Avancira.API.Controllers;
 
@@ -74,6 +76,28 @@ public class AuthController : BaseApiController
         {
             Path = "/api/auth"
         });
+        return Ok();
+    }
+
+    [HttpGet("sessions")]
+    [Authorize]
+    [ProducesResponseType(typeof(IReadOnlyList<SessionDto>), StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "GetSessions")]
+    public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
+    {
+        string userId = GetUserId();
+        var sessions = await _tokenService.GetSessionsAsync(userId, cancellationToken);
+        return Ok(sessions);
+    }
+
+    [HttpDelete("sessions/{id:guid}")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [SwaggerOperation(OperationId = "RevokeSession")]
+    public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
+    {
+        string userId = GetUserId();
+        await _tokenService.RevokeSessionAsync(id, userId, cancellationToken);
         return Ok();
     }
 
