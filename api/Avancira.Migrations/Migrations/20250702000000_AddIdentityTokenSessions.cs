@@ -1,7 +1,7 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Avancira.Migrations.Migrations
 {

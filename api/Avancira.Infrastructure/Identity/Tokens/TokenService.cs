@@ -264,9 +264,9 @@ public sealed class TokenService : ITokenService
             }
             else
             {
-                foreach (var token in session.RefreshTokens.Where(t => t.RevokedUtc == null))
+                foreach (var tk in session.RefreshTokens.Where(t => t.RevokedUtc == null))
                 {
-                    token.RevokedUtc = DateTime.UtcNow;
+                    tk.RevokedUtc = DateTime.UtcNow;
                 }
                 session.CreatedUtc = DateTime.UtcNow;
                 session.AbsoluteExpiryUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationInDays);
