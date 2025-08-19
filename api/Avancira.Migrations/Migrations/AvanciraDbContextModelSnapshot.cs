@@ -85,25 +85,13 @@ namespace Avancira.Migrations.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Device")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("UserAgent")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("ExpiresAt")
+                    b.Property<DateTime>("AbsoluteExpiryUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("Revoked")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("RevokedAt")
+                    b.Property<DateTime?>("RevokedUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("RotatedFromId")
@@ -118,14 +106,13 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedUtc");
 
-                    b.HasIndex("ExpiresAt");
+                    b.HasIndex("AbsoluteExpiryUtc");
 
-                    b.HasIndex("Revoked");
+                    b.HasIndex("RevokedUtc");
 
-                    b.HasIndex("RotatedFromId")
-                        .IsUnique();
+                    b.HasIndex("RotatedFromId");
 
                     b.HasIndex("SessionId");
 
@@ -157,7 +144,7 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("AbsoluteExpiryUtc")
@@ -167,6 +154,9 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("LastActivityUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Device")
@@ -193,7 +183,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedUtc");
                     b.HasIndex("AbsoluteExpiryUtc");
                     b.HasIndex("LastRefreshUtc");
                     b.HasIndex("LastActivityUtc");
@@ -201,6 +191,7 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("IpAddress");
                     b.HasIndex("OperatingSystem");
                     b.HasIndex("UserAgent");
+                    b.HasIndex("RevokedUtc");
                     b.HasIndex("UserId", "Device")
                         .IsUnique();
 
