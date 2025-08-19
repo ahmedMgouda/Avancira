@@ -13,27 +13,27 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.AddColumn<DateTime>(
                 name: "AbsoluteExpiryUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 type: "timestamp with time zone",
                 nullable: false,
                 defaultValue: new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "LastRefreshUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 type: "timestamp with time zone",
                 nullable: false,
                 defaultValue: new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "LastActivityUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 type: "timestamp with time zone",
                 nullable: false,
                 defaultValue: new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
             migrationBuilder.Sql(@"
-                UPDATE \"Sessions\" 
+                UPDATE \"identity\".\"Sessions\"
                 SET \"AbsoluteExpiryUtc\" = \"CreatedAt\" + interval '7 days',
                     \"LastRefreshUtc\" = \"CreatedAt\",
                     \"LastActivityUtc\" = \"CreatedAt\";
@@ -41,17 +41,17 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_AbsoluteExpiryUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "AbsoluteExpiryUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_LastRefreshUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "LastRefreshUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_LastActivityUtc",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "LastActivityUtc");
         }
 
@@ -60,27 +60,27 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_Sessions_AbsoluteExpiryUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_Sessions_LastRefreshUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_Sessions_LastActivityUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "AbsoluteExpiryUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "LastRefreshUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "LastActivityUtc",
-                table: "Sessions");
+                table: "Sessions", schema: "identity");
         }
     }
 }

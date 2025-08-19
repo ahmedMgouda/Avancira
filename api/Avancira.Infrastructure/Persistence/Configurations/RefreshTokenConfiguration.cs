@@ -1,6 +1,7 @@
 using Avancira.Infrastructure.Identity.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
 
 namespace Avancira.Infrastructure.Persistence.Configurations;
 
@@ -8,7 +9,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
-        builder.ToTable("RefreshTokens");
+        builder.ToTable("RefreshTokens", IdentityConstants.SchemaName);
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.TokenHash).IsRequired();

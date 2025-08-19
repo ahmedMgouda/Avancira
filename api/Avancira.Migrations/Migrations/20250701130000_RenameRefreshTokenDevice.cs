@@ -13,11 +13,13 @@ namespace Avancira.Migrations.Migrations
             migrationBuilder.RenameColumn(
                 name: "Device",
                 table: "RefreshTokens",
+                schema: "identity",
                 newName: "DeviceId");
 
             migrationBuilder.RenameIndex(
                 name: "IX_RefreshTokens_UserId_Device",
                 table: "RefreshTokens",
+                schema: "identity",
                 newName: "IX_RefreshTokens_UserId_DeviceId");
         }
 
@@ -27,11 +29,13 @@ namespace Avancira.Migrations.Migrations
             migrationBuilder.RenameIndex(
                 name: "IX_RefreshTokens_UserId_DeviceId",
                 table: "RefreshTokens",
+                schema: "identity",
                 newName: "IX_RefreshTokens_UserId_Device");
 
             migrationBuilder.RenameColumn(
                 name: "DeviceId",
                 table: "RefreshTokens",
+                schema: "identity",
                 newName: "Device");
         }
     }
