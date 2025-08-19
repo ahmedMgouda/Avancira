@@ -326,7 +326,7 @@ public sealed class TokenService : ITokenService
     }
 
     private async Task<string> GenerateJwt(User user, string deviceId, string ipAddress) =>
-        GenerateEncryptedToken(GetSigningCredentials(), await GetClaimsAsync(user, deviceId, ipAddress));
+        GenerateSignedToken(GetSigningCredentials(), await GetClaimsAsync(user, deviceId, ipAddress));
 
     private SigningCredentials GetSigningCredentials()
     {
@@ -334,7 +334,13 @@ public sealed class TokenService : ITokenService
         return new SigningCredentials(new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256);
     }
 
-    private string GenerateEncryptedToken(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
+    /// <summary>
+    /// Generates a signed JWT token using the provided credentials and claims.
+    /// </summary>
+    /// <param name="signingCredentials">Credentials used to sign the token.</param>
+    /// <param name="claims">Claims to embed in the JWT.</param>
+    /// <returns>The serialized JWT token.</returns>
+    private string GenerateSignedToken(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
     {
         var token = new JwtSecurityToken(
             claims: claims,
