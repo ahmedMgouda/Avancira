@@ -8,6 +8,6 @@ public record SessionDto(
     string IpAddress,
     string? Country,
     string? City,
-    DateTime CreatedAt,
-    DateTime ExpiresAt,
-    DateTime? RevokedAt);
+    DateTime CreatedUtc,
+    DateTime AbsoluteExpiryUtc,
+    DateTime? RevokedUtc);

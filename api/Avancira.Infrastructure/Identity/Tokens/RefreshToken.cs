@@ -10,8 +10,7 @@ public class RefreshToken
     public Guid? RotatedFromId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
-    public bool Revoked { get; set; }
-    public DateTime? RevokedAt { get; set; }
+    public DateTime? RevokedUtc { get; set; }
 
     public Session Session { get; set; } = default!;
     public RefreshToken? RotatedFrom { get; set; }
