@@ -97,23 +97,6 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("OperatingSystem")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)");
-
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -123,9 +106,86 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("RotatedFromId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Revoked");
+
+                    b.HasIndex("RotatedFromId")
+                        .IsUnique();
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("RefreshTokens");
+
+                    b.HasOne("Avancira.Infrastructure.Identity.Tokens.RefreshToken", "RotatedFrom")
+                        .WithOne()
+                        .HasForeignKey("Avancira.Infrastructure.Identity.Tokens.RefreshToken", "RotatedFromId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Avancira.Infrastructure.Identity.Tokens.Session", "Session")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("AbsoluteExpiryUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastRefreshUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastActivityUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Device")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<string>("OperatingSystem")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -134,24 +194,17 @@ namespace Avancira.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
-
+                    b.HasIndex("AbsoluteExpiryUtc");
+                    b.HasIndex("LastRefreshUtc");
+                    b.HasIndex("LastActivityUtc");
                     b.HasIndex("Device");
-
-                    b.HasIndex("UserAgent");
-
-                    b.HasIndex("OperatingSystem");
-
                     b.HasIndex("IpAddress");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("Revoked");
-
+                    b.HasIndex("OperatingSystem");
+                    b.HasIndex("UserAgent");
                     b.HasIndex("UserId", "Device")
-                        .IsUnique()
-                        .HasFilter("\"Revoked\" = false");
+                        .IsUnique();
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("Sessions");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Catalog.Listing", b =>
@@ -1574,6 +1627,17 @@ namespace Avancira.Migrations.Migrations
             modelBuilder.Entity("Avancira.Domain.PromoCodes.PromoCode", b =>
                 {
                     b.Navigation("ListingPromoCodes");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.RefreshToken", b =>
+                {
+                    b.Navigation("RotatedFrom");
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.Session", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
