@@ -12,12 +12,12 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.RenameColumn(
                 name: "Browser",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 newName: "UserAgent");
 
             migrationBuilder.RenameIndex(
                 name: "IX_RefreshTokens_Browser",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 newName: "IX_RefreshTokens_UserAgent");
         }
 
@@ -26,12 +26,12 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.RenameIndex(
                 name: "IX_RefreshTokens_UserAgent",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 newName: "IX_RefreshTokens_Browser");
 
             migrationBuilder.RenameColumn(
                 name: "UserAgent",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 newName: "Browser");
         }
     }

@@ -129,7 +129,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", "identity");
 
                     b.HasOne("Avancira.Infrastructure.Identity.Tokens.RefreshToken", "RotatedFrom")
                         .WithOne()
@@ -204,7 +204,7 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("UserId", "Device")
                         .IsUnique();
 
-                    b.ToTable("Sessions");
+                    b.ToTable("Sessions", "identity");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Catalog.Listing", b =>

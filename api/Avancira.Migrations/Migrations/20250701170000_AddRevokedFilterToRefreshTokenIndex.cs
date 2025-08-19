@@ -12,11 +12,11 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 columns: new[] { "UserId", "Device" },
                 unique: true,
                 filter: "\"Revoked\" = false");
@@ -27,11 +27,11 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 columns: new[] { "UserId", "Device" },
                 unique: true);
         }

@@ -12,14 +12,14 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "Country",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "City",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 maxLength: 100,
                 nullable: true);
@@ -30,11 +30,11 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "Country",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "City",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
         }
     }
 }

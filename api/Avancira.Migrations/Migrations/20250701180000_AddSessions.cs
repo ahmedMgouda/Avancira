@@ -13,26 +13,27 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_Device",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_UserAgent",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_OperatingSystem",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_IpAddress",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.CreateTable(
                 name: "Sessions",
+                schema: "identity",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -52,108 +53,108 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.AddColumn<Guid>(
                 name: "SessionId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "uuid",
                 nullable: false,
                 defaultValue: Guid.Empty);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "RotatedFromId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.Sql(@"
-                INSERT INTO \"Sessions\" (\"Id\", \"UserId\", \"Device\", \"UserAgent\", \"OperatingSystem\", \"IpAddress\", \"Country\", \"City\", \"CreatedAt\")
+                INSERT INTO \"identity\".\"Sessions\" (\"Id\", \"UserId\", \"Device\", \"UserAgent\", \"OperatingSystem\", \"IpAddress\", \"Country\", \"City\", \"CreatedAt\")
                 SELECT \"Id\", \"UserId\", \"Device\", \"UserAgent\", \"OperatingSystem\", \"IpAddress\", \"Country\", \"City\", \"CreatedAt\"
-                FROM \"RefreshTokens\";
+                FROM \"identity\".\"RefreshTokens\";
 
-                UPDATE \"RefreshTokens\" SET \"SessionId\" = \"Id\";
+                UPDATE \"identity\".\"RefreshTokens\" SET \"SessionId\" = \"Id\";
             ");
 
             migrationBuilder.DropColumn(
                 name: "UserId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "Device",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "UserAgent",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "OperatingSystem",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "IpAddress",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "Country",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "City",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_UserId_Device",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 columns: new[] { "UserId", "Device" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_Device",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "Device");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_UserAgent",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "UserAgent");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_OperatingSystem",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "OperatingSystem");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_IpAddress",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "IpAddress");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_CreatedAt",
-                table: "Sessions",
+                table: "Sessions", schema: "identity",
                 column: "CreatedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_SessionId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_RotatedFromId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "RotatedFromId",
                 unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_RefreshTokens_Sessions_SessionId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "SessionId",
-                principalTable: "Sessions",
+                principalTable: "Sessions", principalSchema: "identity",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_RefreshTokens_RefreshTokens_RotatedFromId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "RotatedFromId",
-                principalTable: "RefreshTokens",
+                principalTable: "RefreshTokens", principalSchema: "identity",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }
@@ -163,41 +164,42 @@ namespace Avancira.Migrations.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_RefreshTokens_Sessions_SessionId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_RefreshTokens_RefreshTokens_RotatedFromId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_SessionId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_RotatedFromId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "Sessions");
+                name: "Sessions",
+                schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "SessionId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.DropColumn(
                 name: "RotatedFromId",
-                table: "RefreshTokens");
+                table: "RefreshTokens", schema: "identity");
 
             migrationBuilder.AddColumn<string>(
                 name: "UserId",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "text",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.AddColumn<string>(
                 name: "Device",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(200)",
                 maxLength: 200,
                 nullable: false,
@@ -205,21 +207,21 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "UserAgent",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "OperatingSystem",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "IpAddress",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(45)",
                 maxLength: 45,
                 nullable: false,
@@ -227,41 +229,41 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "Country",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "City",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 type: "character varying(100)",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId_Device",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 columns: new[] { "UserId", "Device" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_Device",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "Device");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserAgent",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "UserAgent");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_OperatingSystem",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "OperatingSystem");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_IpAddress",
-                table: "RefreshTokens",
+                table: "RefreshTokens", schema: "identity",
                 column: "IpAddress");
         }
     }
