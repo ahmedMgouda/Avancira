@@ -7,6 +7,6 @@ public class RefreshTokenValidator : AbstractValidator<RefreshTokenDto>
 {
     public RefreshTokenValidator()
     {
-        RuleFor(p => p.Token).Cascade(CascadeMode.Stop).NotEmpty();
+        // Access token is optional when refreshing, so no validation rules are required.
     }
 }
