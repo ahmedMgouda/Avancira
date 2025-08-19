@@ -88,9 +88,6 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("AbsoluteExpiryUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime?>("RevokedUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -107,8 +104,6 @@ namespace Avancira.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedUtc");
-
-                    b.HasIndex("AbsoluteExpiryUtc");
 
                     b.HasIndex("RevokedUtc");
 

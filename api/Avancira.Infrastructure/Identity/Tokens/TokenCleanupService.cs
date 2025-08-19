@@ -27,7 +27,8 @@ public class TokenCleanupService
         var threshold = now.AddDays(-_options.RetentionDays);
 
         var tokens = await _dbContext.RefreshTokens
-            .Where(t => (t.RevokedUtc != null && t.RevokedUtc <= threshold) || t.AbsoluteExpiryUtc <= threshold)
+            .Include(t => t.Session)
+            .Where(t => (t.RevokedUtc != null && t.RevokedUtc <= threshold) || t.Session.AbsoluteExpiryUtc <= threshold)
             .ToListAsync();
 
         if (tokens.Count == 0)
