@@ -1,11 +1,28 @@
-<div class="sessions">
-  <h2>Active Sessions</h2>
-  <div *ngIf="loading">Loading...</div>
-  <ul *ngIf="!loading && sessions.length">
-    <li *ngFor="let session of sessions">
-      <span>{{ session.device }} ({{ session.ipAddress }}) - Last active: {{ session.lastActivityUtc | date:'short' }}</span>
-      <button type="button" (click)="revoke(session)">Revoke</button>
-    </li>
-  </ul>
-  <p *ngIf="!loading && sessions.length === 0">No active sessions.</p>
+<div class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card border-0">
+          <div class="card-header text-white">
+            <h5 class="mb-0">Active Sessions</h5>
+          </div>
+          <div class="card-body">
+            <p *ngIf="loading">Loading...</p>
+            <app-table *ngIf="!loading"
+              [data]="pagedSessions"
+              [columns]="sessionColumns"
+              [actions]="sessionActions"
+              [page]="page"
+              [pageSize]="pageSize"
+              [totalResults]="totalResults"
+              [pageSizeOptions]="pageSizeOptions"
+              (pageChange)="onPageChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)">
+            </app-table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
