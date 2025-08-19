@@ -13,10 +13,11 @@ public class Session
     public string IpAddress { get; set; } = default!;
     public string? Country { get; set; }
     public string? City { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedUtc { get; set; }
     public DateTime AbsoluteExpiryUtc { get; set; }
     public DateTime LastRefreshUtc { get; set; }
     public DateTime LastActivityUtc { get; set; }
+    public DateTime? RevokedUtc { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

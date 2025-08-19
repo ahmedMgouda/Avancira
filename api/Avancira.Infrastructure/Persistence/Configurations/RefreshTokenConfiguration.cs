@@ -14,14 +14,13 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(t => t.TokenHash).IsRequired();
         builder.Property(t => t.CreatedAt).IsRequired();
         builder.Property(t => t.ExpiresAt).IsRequired();
-        builder.Property(t => t.Revoked).HasDefaultValue(false);
-        builder.Property(t => t.RevokedAt);
+        builder.Property(t => t.RevokedUtc);
 
         builder.HasIndex(t => t.SessionId);
         builder.HasIndex(t => t.RotatedFromId).IsUnique(false);
         builder.HasIndex(t => t.CreatedAt);
         builder.HasIndex(t => t.ExpiresAt);
-        builder.HasIndex(t => t.Revoked);
+        builder.HasIndex(t => t.RevokedUtc);
 
         builder.HasOne(t => t.Session)
             .WithMany(s => s.RefreshTokens)

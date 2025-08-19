@@ -20,18 +20,20 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IpAddress).IsRequired().HasMaxLength(45);
         builder.Property(s => s.Country).HasMaxLength(100);
         builder.Property(s => s.City).HasMaxLength(100);
-        builder.Property(s => s.CreatedAt).IsRequired();
+        builder.Property(s => s.CreatedUtc).IsRequired();
         builder.Property(s => s.AbsoluteExpiryUtc).IsRequired();
         builder.Property(s => s.LastRefreshUtc).IsRequired();
         builder.Property(s => s.LastActivityUtc).IsRequired();
+        builder.Property(s => s.RevokedUtc);
 
         builder.HasIndex(s => s.Device);
         builder.HasIndex(s => s.UserAgent);
         builder.HasIndex(s => s.OperatingSystem);
         builder.HasIndex(s => s.IpAddress);
-        builder.HasIndex(s => s.CreatedAt);
+        builder.HasIndex(s => s.CreatedUtc);
         builder.HasIndex(s => s.AbsoluteExpiryUtc);
         builder.HasIndex(s => s.LastRefreshUtc);
         builder.HasIndex(s => s.LastActivityUtc);
+        builder.HasIndex(s => s.RevokedUtc);
     }
 }
