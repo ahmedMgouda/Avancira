@@ -213,7 +213,12 @@ export class UserService {
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/reset-password`, data);
+    return this.http.post<void>(`${this.apiUrl}/reset-password`, {
+      email: data.email,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+      token: data.token,
+    });
   }
 
   submitDiploma(diplomaFile: File): Observable<void> {

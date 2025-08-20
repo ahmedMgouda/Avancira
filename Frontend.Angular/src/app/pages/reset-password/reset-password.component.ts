@@ -66,6 +66,7 @@ export class ResetPasswordComponent implements OnInit {
     const resetData: ResetPasswordRequest = {
       email: this.email,
       password: this.resetPasswordForm.value.newPassword,
+      confirmPassword: this.resetPasswordForm.value.confirmPassword,
       token: this.token,
     };
 
