@@ -10,6 +10,7 @@ using Avancira.Domain.Auditing;
 using Avancira.Application.Paging;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Application.Identity.Users.Abstractions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Avancira.API.Controllers;
 
@@ -133,6 +134,7 @@ public class UsersController : BaseApiController
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("PasswordResetPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ResetPassword")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto command, CancellationToken cancellationToken)
@@ -143,6 +145,7 @@ public class UsersController : BaseApiController
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("PasswordResetPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto command, CancellationToken cancellationToken)
