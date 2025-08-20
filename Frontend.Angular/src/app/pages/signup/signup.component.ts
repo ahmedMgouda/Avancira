@@ -17,6 +17,7 @@ import { ConfigService } from '../../services/config.service';
 import { GoogleAuthService } from '../../services/google-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
+import { passwordComplexityValidator } from '../../validators/password.validators';
 
 @Component({
   selector: 'app-signup',
@@ -49,10 +50,8 @@ export class SignupComponent implements OnInit {
         '',
         [
           Validators.required,
-          Validators.minLength(6),
-          ValidatorService.hasLowercase(),
-          ValidatorService.hasUppercase(),
-          ValidatorService.hasNonAlphanumeric(),
+          Validators.minLength(8),
+          passwordComplexityValidator(),
         ],
       ],
       verifyPassword: ['', [Validators.required, ValidatorService.matchesPassword('password')]],

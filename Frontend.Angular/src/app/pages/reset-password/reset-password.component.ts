@@ -4,8 +4,9 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { UserService } from '../../services/user.service';
 import { ResetPasswordRequest } from '../../models/reset-password-request';
+import { UserService } from '../../services/user.service';
+import { passwordComplexityValidator } from '../../validators/password.validators';
 
 @Component({
   selector: 'app-reset-password',
@@ -22,12 +23,6 @@ export class ResetPasswordComponent implements OnInit {
   errorMessage: string = '';
   formDisabled: boolean = false;
 
-  // Password complexity patterns mirroring backend requirements
-  uppercasePattern = /[A-Z]/;
-  lowercasePattern = /[a-z]/;
-  digitPattern = /[0-9]/;
-  symbolPattern = /[^a-zA-Z0-9]/;
-
   constructor(
     private route: ActivatedRoute,
     private fb: FormBuilder,
@@ -40,10 +35,7 @@ export class ResetPasswordComponent implements OnInit {
         [
           Validators.required,
           Validators.minLength(8),
-          Validators.pattern(this.uppercasePattern),
-          Validators.pattern(this.lowercasePattern),
-          Validators.pattern(this.digitPattern),
-          Validators.pattern(this.symbolPattern),
+          passwordComplexityValidator(),
         ],
       ],
       confirmPassword: ['', [Validators.required]],
