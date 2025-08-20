@@ -111,6 +111,16 @@ internal sealed partial class UserService(
 
     public async Task<RegisterUserResponseDto> RegisterAsync(RegisterUserDto request, string origin, CancellationToken cancellationToken)
     {
+        if (await ExistsWithEmailAsync(request.Email))
+        {
+            throw new AvanciraException("Email already in use");
+        }
+
+        if (await ExistsWithNameAsync(request.UserName))
+        {
+            throw new AvanciraException("Username already in use");
+        }
+
         // create user entity
         var user = new User
         {
