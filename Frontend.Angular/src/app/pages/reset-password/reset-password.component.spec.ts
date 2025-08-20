@@ -1,16 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
 
 import { ResetPasswordComponent } from './reset-password.component';
 
 describe('ResetPasswordComponent', () => {
   let component: ResetPasswordComponent;
   let fixture: ComponentFixture<ResetPasswordComponent>;
+  let queryParamsSubject: Subject<any>;
 
   beforeEach(async () => {
+    queryParamsSubject = new Subject();
+
     await TestBed.configureTestingModule({
-      imports: [ResetPasswordComponent]
-    })
-    .compileComponents();
+      imports: [ResetPasswordComponent],
+      providers: [
+        { provide: ActivatedRoute, useValue: { queryParams: queryParamsSubject.asObservable() } },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ResetPasswordComponent);
     component = fixture.componentInstance;
@@ -58,5 +65,17 @@ describe('ResetPasswordComponent', () => {
     expect(form.valid).toBeFalse();
     form.controls['confirmPassword'].setValue('Str0ng!Pass');
     expect(form.valid).toBeTrue();
+  });
+
+  it('should unsubscribe from query params on destroy', () => {
+    queryParamsSubject.next({ token: 'first', userId: 'one' });
+    expect(component.token).toBe('first');
+    expect(component.userId).toBe('one');
+
+    component.ngOnDestroy();
+    queryParamsSubject.next({ token: 'second', userId: 'two' });
+
+    expect(component.token).toBe('first');
+    expect(component.userId).toBe('one');
   });
 });

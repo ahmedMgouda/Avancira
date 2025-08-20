@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { finalize, takeUntil } from 'rxjs/operators';
 
 import { ResetPasswordRequest } from '../../models/reset-password-request';
 import { UserService } from '../../services/user.service';
@@ -14,7 +15,7 @@ import { matchPasswords, passwordComplexityValidator } from '../../validators/pa
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss'
 })
-export class ResetPasswordComponent implements OnInit {
+export class ResetPasswordComponent implements OnInit, OnDestroy {
   resetPasswordForm: FormGroup;
   token: string = '';
   userId: string = '';
@@ -22,6 +23,7 @@ export class ResetPasswordComponent implements OnInit {
   successMessage: string = '';
   errorMessage: string = '';
   formDisabled: boolean = false;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
@@ -54,7 +56,9 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
       this.token = params['token'] || '';
       this.userId = params['userId'] || '';
 
@@ -64,7 +68,7 @@ export class ResetPasswordComponent implements OnInit {
         this.resetPasswordForm.disable();
         return;
       }
-    });
+      });
   }
 
   resetPassword(): void {
@@ -97,5 +101,10 @@ export class ResetPasswordComponent implements OnInit {
           this.errorMessage = err.error.message || 'Failed to reset the password.';
         },
       });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
