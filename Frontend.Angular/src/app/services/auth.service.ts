@@ -110,6 +110,7 @@ export class AuthService implements OnDestroy {
     phoneNumber?: string,
     timeZoneId?: string,
     referralToken?: string,
+    acceptTerms?: boolean,
   ): Observable<RegisterUserResponseDto> {
     return this.http.post<RegisterUserResponseDto>(
       `${this.api}/users/register`,
@@ -123,6 +124,7 @@ export class AuthService implements OnDestroy {
         phoneNumber,
         timeZoneId,
         referralToken,
+        acceptTerms,
       },
       {
         context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),

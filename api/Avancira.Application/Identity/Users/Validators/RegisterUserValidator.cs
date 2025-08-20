@@ -63,5 +63,9 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .MaximumLength(255)
             .WithMessage("Referral token must not exceed 255 characters.")
             .When(x => !string.IsNullOrEmpty(x.ReferralToken));
+
+        RuleFor(x => x.AcceptTerms)
+            .Equal(true)
+            .WithMessage("You must agree to the Privacy Policy & Terms.");
     }
 }

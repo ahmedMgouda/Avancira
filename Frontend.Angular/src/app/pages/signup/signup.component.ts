@@ -61,6 +61,7 @@ export class SignupComponent implements OnInit {
         ],
       ],
       verifyPassword: ['', [Validators.required, ValidatorService.matchesPassword('password')]],
+      agreeToTerms: [false, Validators.requiredTrue],
     });
 
     this.route.queryParams.subscribe((params) => {
@@ -85,7 +86,10 @@ export class SignupComponent implements OnInit {
 
   /** Handle manual signup */
   onSignup(): void {
-    if (this.signupForm.invalid) return;
+    if (this.signupForm.invalid) {
+      this.signupForm.markAllAsTouched();
+      return;
+    }
     const {
       firstName,
       lastName,
@@ -95,6 +99,7 @@ export class SignupComponent implements OnInit {
       email,
       password,
       verifyPassword,
+      agreeToTerms,
     } = this.signupForm.value;
     this.signupError = '';
     this.isSubmitting = true;
@@ -111,6 +116,7 @@ export class SignupComponent implements OnInit {
         phoneNumber || undefined,
         timeZoneId || undefined,
         this.referralToken ?? undefined,
+        agreeToTerms,
       )
       .subscribe({
         next: () => this.loginUser(),
