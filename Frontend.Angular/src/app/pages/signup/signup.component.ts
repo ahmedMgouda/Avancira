@@ -18,6 +18,7 @@ import { GoogleAuthService } from '../../services/google-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
+import { RegisterUserRequest } from '../../models/register-user-request';
 
 @Component({
   selector: 'app-signup',
@@ -93,34 +94,20 @@ export class SignupComponent implements OnInit {
       this.signupForm.markAllAsTouched();
       return;
     }
-    const {
-      firstName,
-      lastName,
-      userName,
-      phoneNumber,
-      timeZoneId,
-      email,
-      password,
-      verifyPassword,
-      agreeToTerms,
-    } = this.signupForm.value;
+    const { verifyPassword, ...rest } = this.signupForm.value;
+    const payload: RegisterUserRequest = {
+      ...rest,
+      confirmPassword: verifyPassword,
+      phoneNumber: rest.phoneNumber || undefined,
+      timeZoneId: rest.timeZoneId || undefined,
+      referralToken: this.referralToken ?? undefined,
+    };
     this.signupError = '';
     this.isSubmitting = true;
     this.spinner.show();
 
     this.authService
-      .register(
-        firstName,
-        lastName,
-        userName,
-        email,
-        password,
-        verifyPassword,
-        phoneNumber || undefined,
-        timeZoneId || undefined,
-        this.referralToken ?? undefined,
-        agreeToTerms,
-      )
+      .register(payload)
       .subscribe({
         next: () => this.loginUser(),
         error: (err) => {
