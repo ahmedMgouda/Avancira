@@ -3,7 +3,6 @@ using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Configuration;
 using System.Text;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
@@ -25,28 +24,12 @@ internal sealed partial class UserService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(origin))
-            throw new AvanciraException("Password reset is temporarily unavailable.");
-
-        if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
-            throw new AvanciraException("Password reset is temporarily unavailable.");
-
-        var allowedOrigins = config.GetSection("CorsOptions:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-
-        bool isAllowedOrigin = allowedOrigins.Any(allowedOrigin =>
-            Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowedUri) &&
-            string.Equals(allowedUri.Scheme, originUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(allowedUri.Host, originUri.Host, StringComparison.OrdinalIgnoreCase) &&
-            allowedUri.Port == originUri.Port);
-
-        if (!isAllowedOrigin)
-            throw new AvanciraException("Password reset is temporarily unavailable.");
+        var sanitizedOrigin = linkBuilder.ValidateOrigin(origin, "Password reset is temporarily unavailable.");
 
         var rawToken = await userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var sanitizedOrigin = originUri.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        var resetPasswordUri = BuildResetPasswordLink(sanitizedOrigin, user.Id, encodedToken);
+        var resetPasswordUri = linkBuilder.BuildResetPasswordLink(sanitizedOrigin, user.Id, encodedToken);
 
         var resetPasswordEvent = new ResetPasswordEvent
         {
@@ -117,12 +100,4 @@ internal sealed partial class UserService
         await userManager.UpdateSecurityStampAsync(user);
     }
 
-    private static string BuildResetPasswordLink(string origin, string userId, string encodedToken)
-    {
-        var baseUri = origin.TrimEnd('/');
-        var endpoint = $"{baseUri}/reset-password";
-        var withUserId = QueryHelpers.AddQueryString(endpoint, "userId", userId);
-        var withToken = QueryHelpers.AddQueryString(withUserId, "token", encodedToken);
-        return withToken;
-    }
 }
