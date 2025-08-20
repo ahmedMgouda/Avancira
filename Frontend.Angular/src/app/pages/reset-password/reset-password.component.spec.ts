@@ -20,4 +20,34 @@ describe('ResetPasswordComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should invalidate password without uppercase letter', () => {
+    const control = component.resetPasswordForm.controls['newPassword'];
+    control.setValue('alllowercase1!');
+    expect(control.valid).toBeFalse();
+  });
+
+  it('should invalidate password without lowercase letter', () => {
+    const control = component.resetPasswordForm.controls['newPassword'];
+    control.setValue('ALLUPPERCASE1!');
+    expect(control.valid).toBeFalse();
+  });
+
+  it('should invalidate password without digits', () => {
+    const control = component.resetPasswordForm.controls['newPassword'];
+    control.setValue('NoDigits!');
+    expect(control.valid).toBeFalse();
+  });
+
+  it('should invalidate password without symbols', () => {
+    const control = component.resetPasswordForm.controls['newPassword'];
+    control.setValue('NoSymbols1');
+    expect(control.valid).toBeFalse();
+  });
+
+  it('should validate a strong password', () => {
+    const control = component.resetPasswordForm.controls['newPassword'];
+    control.setValue('Str0ng!Pass');
+    expect(control.valid).toBeTrue();
+  });
 });

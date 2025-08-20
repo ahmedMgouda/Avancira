@@ -21,6 +21,12 @@ export class ResetPasswordComponent implements OnInit {
   errorMessage: string = '';
   formDisabled: boolean = false;
 
+  // Password complexity patterns mirroring backend requirements
+  uppercasePattern = /[A-Z]/;
+  lowercasePattern = /[a-z]/;
+  digitPattern = /[0-9]/;
+  symbolPattern = /[^a-zA-Z0-9]/;
+
   constructor(
     private route: ActivatedRoute,
     private fb: FormBuilder,
@@ -29,9 +35,27 @@ export class ResetPasswordComponent implements OnInit {
   ) {
     this.resetPasswordForm = this.fb.group({
       email: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', [Validators.required]]
+      newPassword: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(8),
+          Validators.pattern(this.uppercasePattern),
+          Validators.pattern(this.lowercasePattern),
+          Validators.pattern(this.digitPattern),
+          Validators.pattern(this.symbolPattern),
+        ],
+      ],
+      confirmPassword: ['', [Validators.required]],
     });
+  }
+
+  get newPasswordControl() {
+    return this.resetPasswordForm.get('newPassword');
+  }
+
+  get confirmPasswordControl() {
+    return this.resetPasswordForm.get('confirmPassword');
   }
 
   ngOnInit(): void {
