@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -298,14 +299,15 @@ namespace Avancira.Infrastructure.Catalog
             if (eventData is ResetPasswordEvent resetPasswordData)
             {
                 var subject = "Reset Your Password";
+                var encodedLink = HtmlEncoder.Default.Encode(resetPasswordData.ResetPasswordLink);
                 var body = $@"
                     <html>
                     <body>
                         <h2>Password Reset Request</h2>
                         <p>We received a request to reset your password. Click the link below to reset your password:</p>
-                        <p><a href='{resetPasswordData.ResetPasswordLink}' style='background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Reset Password</a></p>
+                        <p><a href='{encodedLink}' style='background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Reset Password</a></p>
                         <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                        <p>{resetPasswordData.ResetPasswordLink}</p>
+                        <p>{encodedLink}</p>
                         <p><strong>Note:</strong> This link will expire in 24 hours for security reasons.</p>
                         <p>If you didn't request this password reset, please ignore this email.</p>
                         <br>
