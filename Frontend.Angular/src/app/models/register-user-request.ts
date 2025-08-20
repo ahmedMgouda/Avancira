@@ -8,5 +8,5 @@ export interface RegisterUserRequest {
   phoneNumber?: string;
   timeZoneId?: string;
   referralToken?: string;
-  agreeToTerms: boolean;
+  acceptTerms: boolean;
 }

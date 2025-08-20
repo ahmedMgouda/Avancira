@@ -62,7 +62,7 @@ export class SignupComponent implements OnInit {
         ],
       ],
       verifyPassword: ['', [Validators.required, ValidatorService.matchesPassword('password')]],
-      agreeToTerms: [false, Validators.requiredTrue],
+      acceptTerms: [false, Validators.requiredTrue],
     });
 
     const timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
