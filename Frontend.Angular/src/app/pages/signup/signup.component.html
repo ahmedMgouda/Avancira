@@ -13,20 +13,84 @@
 
           <!-- Register Form -->
           <form [formGroup]="signupForm" (ngSubmit)="onSignup()">
-            <!-- <div class="row">
+            <div class="row">
               <div class="col-lg-6">
                 <div class="form-group">
                   <label class="form-control-label">First Name</label>
-                  <input id="first-name" type="text" class="form-control" name="first_name" autofocus="">
+                  <input
+                    id="Input_FirstName"
+                    type="text"
+                    class="form-control"
+                    formControlName="firstName"
+                    [ngClass]="{ 'is-invalid': signupForm.get('firstName')?.invalid && signupForm.get('firstName')?.touched }"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="signupForm.get('firstName')?.errors?.['required'] && signupForm.get('firstName')?.touched"
+                  >
+                    First name is required.
+                  </div>
                 </div>
               </div>
               <div class="col-lg-6">
                 <div class="form-group">
                   <label class="form-control-label">Last Name</label>
-                  <input id="last-name" type="text" class="form-control" name="last_name">
+                  <input
+                    id="Input_LastName"
+                    type="text"
+                    class="form-control"
+                    formControlName="lastName"
+                    [ngClass]="{ 'is-invalid': signupForm.get('lastName')?.invalid && signupForm.get('lastName')?.touched }"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="signupForm.get('lastName')?.errors?.['required'] && signupForm.get('lastName')?.touched"
+                  >
+                    Last name is required.
+                  </div>
                 </div>
               </div>
-            </div> -->
+            </div>
+            <div class="row">
+              <div class="col-lg-6">
+                <div class="form-group">
+                  <label class="form-control-label">Username</label>
+                  <input
+                    id="Input_UserName"
+                    type="text"
+                    class="form-control"
+                    formControlName="userName"
+                    [ngClass]="{ 'is-invalid': signupForm.get('userName')?.invalid && signupForm.get('userName')?.touched }"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="signupForm.get('userName')?.errors?.['required'] && signupForm.get('userName')?.touched"
+                  >
+                    Username is required.
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="form-group">
+                  <label class="form-control-label">Phone Number</label>
+                  <input
+                    id="Input_PhoneNumber"
+                    type="tel"
+                    class="form-control"
+                    formControlName="phoneNumber"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-control-label">Time Zone</label>
+              <input
+                id="Input_TimeZoneId"
+                type="text"
+                class="form-control"
+                formControlName="timeZoneId"
+              />
+            </div>
             <div class="form-group">
               <label class="form-control-label">Email Address</label>
               <input type="email" id="Input_Email" class="form-control" placeholder="Email address"
@@ -92,8 +156,9 @@
                     href="/privacy-policy">Privacy Policy</a> &amp; <a tabindex="-1" href="/terms"> Terms.</a> </label>
               </div>
             </div>
-            <button class="btn btn-primary login-btn" type="submit" [disabled]="signupForm.invalid">Create
-              Account</button>
+            <button class="btn btn-primary login-btn" type="submit" [disabled]="signupForm.invalid || isSubmitting">
+              Create Account
+            </button>
             <!-- Error Message -->
             <div *ngIf="signupError" class="alert alert-danger" role="alert">
               {{ signupError }}

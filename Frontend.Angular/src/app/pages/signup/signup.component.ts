@@ -28,6 +28,7 @@ import { passwordComplexityValidator } from '../../validators/password.validator
 export class SignupComponent implements OnInit {
   signupForm!: FormGroup;
   signupError = '';
+  isSubmitting = false;
   referralToken: string | null = null;
   returnUrl = '/';
 
@@ -45,6 +46,11 @@ export class SignupComponent implements OnInit {
 
   ngOnInit(): void {
     this.signupForm = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      userName: ['', Validators.required],
+      phoneNumber: [''],
+      timeZoneId: [''],
       email: ['', [Validators.required, Validators.email]],
       password: [
         '',
@@ -80,25 +86,46 @@ export class SignupComponent implements OnInit {
   /** Handle manual signup */
   onSignup(): void {
     if (this.signupForm.invalid) return;
-
-    // const { email, password, verifyPassword } = this.signupForm.value;
+    const {
+      firstName,
+      lastName,
+      userName,
+      phoneNumber,
+      timeZoneId,
+      email,
+      password,
+      verifyPassword,
+    } = this.signupForm.value;
+    this.signupError = '';
+    this.isSubmitting = true;
     this.spinner.show();
 
-    // this.authService
-    //   .register(email, password, verifyPassword, this.referralToken ?? undefined)
-    //   .subscribe({
-    //     next: (errorMessage) => {
-    //       if (!errorMessage) {
-    //         this.loginUser();
-    //       } else {
-    //         this.spinner.hide();
-    //       }
-    //     },
-    //     error: (err) => {
-    //       this.signupError = err?.message || 'Signup failed. Please try again.';
-    //       this.spinner.hide();
-    //     },
-    //   });
+    this.authService
+      .register(
+        firstName,
+        lastName,
+        userName,
+        email,
+        password,
+        verifyPassword,
+        phoneNumber || undefined,
+        timeZoneId || undefined,
+        this.referralToken ?? undefined,
+      )
+      .subscribe({
+        next: () => this.loginUser(),
+        error: (err) => {
+          const errors = err?.error?.errors;
+          if (errors) {
+            this.signupError = Object.values(errors).flat().join(' ');
+          } else {
+            this.signupError =
+              err?.error?.message || err?.error?.title || err?.message || 'Signup failed. Please try again.';
+          }
+          this.spinner.hide();
+          this.isSubmitting = false;
+        },
+      });
   }
 
   /** Attempt login after signup */
@@ -115,7 +142,10 @@ export class SignupComponent implements OnInit {
       error: () => {
         this.signupError = 'Signup succeeded, but automatic login failed.';
       },
-      complete: () => this.spinner.hide(),
+      complete: () => {
+        this.spinner.hide();
+        this.isSubmitting = false;
+      },
     });
   }
 

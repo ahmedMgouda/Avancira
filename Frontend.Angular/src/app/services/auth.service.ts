@@ -6,7 +6,8 @@ import { catchError, finalize, map, retry, shareReplay, switchMap, take, tap } f
 import { jwtDecode } from 'jwt-decode';
 
 import { environment } from '../environments/environment';
-import { INCLUDE_CREDENTIALS, REQUIRES_AUTH,SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { INCLUDE_CREDENTIALS, REQUIRES_AUTH, SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { RegisterUserResponseDto } from '../models/register-user-response';
 import { UserProfile } from '../models/UserProfile';
 
 interface TokenResponse { token: string; }
@@ -96,6 +97,36 @@ export class AuthService implements OnDestroy {
       switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
       tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
       map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
+    );
+  }
+
+  register(
+    firstName: string,
+    lastName: string,
+    userName: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    phoneNumber?: string,
+    timeZoneId?: string,
+    referralToken?: string,
+  ): Observable<RegisterUserResponseDto> {
+    return this.http.post<RegisterUserResponseDto>(
+      `${this.api}/users/register`,
+      {
+        firstName,
+        lastName,
+        email,
+        userName,
+        password,
+        confirmPassword,
+        phoneNumber,
+        timeZoneId,
+        referralToken,
+      },
+      {
+        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
+      }
     );
   }
 
