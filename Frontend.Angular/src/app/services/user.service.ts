@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 
@@ -7,6 +7,7 @@ import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
 import { UserPaymentSchedule } from '../models/enums/user-payment-schedule';
 import { User } from '../models/user';
 import { ResetPasswordRequest } from '../models/reset-password-request';
+import { REQUIRES_AUTH } from '../interceptors/auth.interceptor';
 
 @Injectable({
   providedIn: 'root',
@@ -237,7 +238,11 @@ export class UserService {
       return throwError(() => this.buildCooldownError(remaining, 'requesting again'));
     }
     this.lastRequestPasswordReset = Date.now();
-    return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
+    return this.http.post<void>(
+      `${this.apiUrl}/forgot-password`,
+      { email },
+      { context: new HttpContext().set(REQUIRES_AUTH, false) }
+    );
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<void> {
@@ -246,12 +251,16 @@ export class UserService {
       return throwError(() => this.buildCooldownError(remaining, 'trying again'));
     }
     this.lastResetPassword = Date.now();
-    return this.http.post<void>(`${this.apiUrl}/reset-password`, {
-      userId: data.userId,
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-      token: data.token,
-    });
+    return this.http.post<void>(
+      `${this.apiUrl}/reset-password`,
+      {
+        userId: data.userId,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        token: data.token,
+      },
+      { context: new HttpContext().set(REQUIRES_AUTH, false) }
+    );
   }
 
   submitDiploma(diplomaFile: File): Observable<void> {
