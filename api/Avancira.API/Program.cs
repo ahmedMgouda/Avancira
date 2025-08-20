@@ -3,6 +3,8 @@ using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,32 @@ builder.Services.AddControllers(options =>
 
 builder.Services.AddSignalR();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = (context, token) =>
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RateLimiting");
+        logger.LogWarning("Rate limit exceeded for {Path} from {IP}",
+            context.HttpContext.Request.Path,
+            context.HttpContext.Connection.RemoteIpAddress);
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return new ValueTask();
+    };
+
+    options.AddPolicy("PasswordResetPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -43,6 +71,8 @@ app.MapDefaultEndpoints();
 app.UseAvanciraFramework();
 
 app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 app.MapHub<NotificationHub>("/notification");
 
