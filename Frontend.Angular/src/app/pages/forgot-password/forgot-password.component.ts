@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 
 import { UserService } from '../../services/user.service';
 
@@ -31,18 +32,19 @@ export class ForgotPasswordComponent {
     this.isSubmitting = true;
     const email = this.forgotPasswordForm.value.email;
 
-    this.userService.requestPasswordReset(email).subscribe({
-      next: () => {
-        this.successMessage = 'A password reset link has been sent to your email.';
-        this.errorMessage = '';
-        this.isSubmitting = false;
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.message || 'Unable to process password reset request.';
-        this.successMessage = '';
-        this.isSubmitting = false;
-      }
-    });
+    this.userService
+      .requestPasswordReset(email)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe({
+        next: () => {
+          this.successMessage = 'A password reset link has been sent to your email.';
+          this.errorMessage = '';
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.message || 'Unable to process password reset request.';
+          this.successMessage = '';
+        }
+      });
   }
 }
 

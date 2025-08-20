@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 
 import { UserService } from '../../services/user.service';
 import { ResetPasswordRequest } from '../../models/reset-password-request';
@@ -94,20 +95,21 @@ export class ResetPasswordComponent implements OnInit {
       token: this.token,
     };
 
-    this.userService.resetPassword(resetData).subscribe({
-      next: () => {
-        this.successMessage = 'Your password has been reset successfully!';
-        this.errorMessage = '';
-        this.isSubmitting = false;
-        this.resetPasswordForm.reset();
-        setTimeout(() => {
-          this.router.navigate(['/signin']);
-        }, 3000);
-      },
-      error: (err) => {
-        this.errorMessage = err.error.message || 'Failed to reset the password.';
-        this.isSubmitting = false;
-      },
-    });
+    this.userService
+      .resetPassword(resetData)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Your password has been reset successfully!';
+          this.errorMessage = '';
+          this.resetPasswordForm.reset();
+          setTimeout(() => {
+            this.router.navigate(['/signin']);
+          }, 3000);
+        },
+        error: (err) => {
+          this.errorMessage = err.error.message || 'Failed to reset the password.';
+        },
+      });
   }
 }
