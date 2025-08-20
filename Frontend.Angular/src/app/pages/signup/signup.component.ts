@@ -12,6 +12,7 @@ import { RouterModule } from '@angular/router';
 import { FacebookService, InitParams } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, takeUntil } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
@@ -112,10 +113,14 @@ export class SignupComponent implements OnInit, OnDestroy {
 
     this.authService
       .register(payload)
-      .subscribe({
-        next: () => {
+      .pipe(
+        finalize(() => {
           this.spinner.hide();
           this.isSubmitting = false;
+        })
+      )
+      .subscribe({
+        next: () => {
           this.toastr.success(
             'Registration successful! Please verify your email before signing in.'
           );
@@ -129,8 +134,6 @@ export class SignupComponent implements OnInit, OnDestroy {
             this.signupError =
               err?.error?.message || err?.error?.title || err?.message || 'Signup failed. Please try again.';
           }
-          this.spinner.hide();
-          this.isSubmitting = false;
         },
       });
   }
