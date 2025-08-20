@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, REQUIRES_AUTH, SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
 import { UserProfile } from '../models/UserProfile';
 
@@ -100,32 +101,10 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  register(
-    firstName: string,
-    lastName: string,
-    userName: string,
-    email: string,
-    password: string,
-    confirmPassword: string,
-    phoneNumber?: string,
-    timeZoneId?: string,
-    referralToken?: string,
-    acceptTerms?: boolean,
-  ): Observable<RegisterUserResponseDto> {
+  register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
     return this.http.post<RegisterUserResponseDto>(
       `${this.api}/users/register`,
-      {
-        firstName,
-        lastName,
-        email,
-        userName,
-        password,
-        confirmPassword,
-        phoneNumber,
-        timeZoneId,
-        referralToken,
-        acceptTerms,
-      },
+      data,
       {
         context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
       }
