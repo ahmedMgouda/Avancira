@@ -21,13 +21,22 @@ export class UserService {
   private lastRequestPasswordReset = 0;
   private lastResetPassword = 0;
 
+  private checkCooldown(lastTime: number): number {
+    return this.cooldownMs - (Date.now() - lastTime);
+  }
+
+  private buildCooldownError(remaining: number, action: string): Error {
+    const seconds = Math.ceil(remaining / 1000);
+    return new Error(`Please wait ${seconds}s before ${action}.`);
+  }
+
   getRequestPasswordResetCooldown(): number {
-    const remaining = this.cooldownMs - (Date.now() - this.lastRequestPasswordReset);
+    const remaining = this.checkCooldown(this.lastRequestPasswordReset);
     return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
   }
 
   getResetPasswordCooldown(): number {
-    const remaining = this.cooldownMs - (Date.now() - this.lastResetPassword);
+    const remaining = this.checkCooldown(this.lastResetPassword);
     return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
   }
 
@@ -223,24 +232,20 @@ export class UserService {
   }
 
   requestPasswordReset(email: string): Observable<void> {
-    const now = Date.now();
-    const remaining = this.cooldownMs - (now - this.lastRequestPasswordReset);
+    const remaining = this.checkCooldown(this.lastRequestPasswordReset);
     if (remaining > 0) {
-      const seconds = Math.ceil(remaining / 1000);
-      return throwError(() => new Error(`Please wait ${seconds}s before requesting again.`));
+      return throwError(() => this.buildCooldownError(remaining, 'requesting again'));
     }
-    this.lastRequestPasswordReset = now;
+    this.lastRequestPasswordReset = Date.now();
     return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<void> {
-    const now = Date.now();
-    const remaining = this.cooldownMs - (now - this.lastResetPassword);
+    const remaining = this.checkCooldown(this.lastResetPassword);
     if (remaining > 0) {
-      const seconds = Math.ceil(remaining / 1000);
-      return throwError(() => new Error(`Please wait ${seconds}s before trying again.`));
+      return throwError(() => this.buildCooldownError(remaining, 'trying again'));
     }
-    this.lastResetPassword = now;
+    this.lastResetPassword = Date.now();
     return this.http.post<void>(`${this.apiUrl}/reset-password`, {
       userId: data.userId,
       password: data.password,
