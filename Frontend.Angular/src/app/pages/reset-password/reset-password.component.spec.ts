@@ -50,4 +50,13 @@ describe('ResetPasswordComponent', () => {
     control.setValue('Str0ng!Pass');
     expect(control.valid).toBeTrue();
   });
+
+  it('should invalidate the form when passwords do not match', () => {
+    const form = component.resetPasswordForm;
+    form.controls['newPassword'].setValue('Str0ng!Pass');
+    form.controls['confirmPassword'].setValue('Different1!');
+    expect(form.valid).toBeFalse();
+    form.controls['confirmPassword'].setValue('Str0ng!Pass');
+    expect(form.valid).toBeTrue();
+  });
 });
