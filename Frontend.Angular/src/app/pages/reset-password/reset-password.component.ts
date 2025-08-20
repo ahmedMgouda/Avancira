@@ -19,6 +19,7 @@ export class ResetPasswordComponent implements OnInit {
   isSubmitting: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
+  formDisabled: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -37,9 +38,11 @@ export class ResetPasswordComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.token = params['token'] || '';
       this.email = params['email'] || '';
-      
+
       if (!this.token || !this.email) {
         this.errorMessage = 'Invalid or missing reset token or email.';
+        this.formDisabled = true;
+        this.resetPasswordForm.disable();
         return;
       }
       
