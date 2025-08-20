@@ -82,15 +82,8 @@
                 </div>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-control-label">Time Zone</label>
-              <input
-                id="Input_TimeZoneId"
-                type="text"
-                class="form-control"
-                formControlName="timeZoneId"
-              />
-            </div>
+            <!-- Time zone is detected automatically and stored via form control -->
+            <input type="hidden" formControlName="timeZoneId" />
             <div class="form-group">
               <label class="form-control-label">Email Address</label>
               <input type="email" id="Input_Email" class="form-control" placeholder="Email address"
