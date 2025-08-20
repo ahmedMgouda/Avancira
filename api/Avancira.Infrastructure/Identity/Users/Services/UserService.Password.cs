@@ -3,6 +3,7 @@ using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
@@ -27,10 +28,25 @@ internal sealed partial class UserService
         if (string.IsNullOrWhiteSpace(origin))
             throw new AvanciraException("Password reset is temporarily unavailable.");
 
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
+            throw new AvanciraException("Password reset is temporarily unavailable.");
+
+        var allowedOrigins = config.GetSection("CorsOptions:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+        bool isAllowedOrigin = allowedOrigins.Any(allowedOrigin =>
+            Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowedUri) &&
+            string.Equals(allowedUri.Scheme, originUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(allowedUri.Host, originUri.Host, StringComparison.OrdinalIgnoreCase) &&
+            allowedUri.Port == originUri.Port);
+
+        if (!isAllowedOrigin)
+            throw new AvanciraException("Password reset is temporarily unavailable.");
+
         var rawToken = await userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var resetPasswordUri = BuildResetPasswordLink(origin, request.Email, encodedToken);
+        var sanitizedOrigin = originUri.GetLeftPart(UriPartial.Path).TrimEnd('/');
+        var resetPasswordUri = BuildResetPasswordLink(sanitizedOrigin, request.Email, encodedToken);
 
         var resetPasswordEvent = new ResetPasswordEvent
         {

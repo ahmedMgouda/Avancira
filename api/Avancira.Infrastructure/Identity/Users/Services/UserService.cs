@@ -14,6 +14,7 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
 using System.Text;
 using Avancira.Domain.Common.Exceptions;
@@ -26,6 +27,7 @@ internal sealed partial class UserService(
     AvanciraDbContext db,
     ICacheService cache,
     IJobService jobService,
+    IConfiguration config,
     INotificationService notificationService,
     IStorageService storageService
     ) : Application.Identity.Users.Abstractions.IUserService
