@@ -1,21 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { Subject } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, of, throwError } from 'rxjs';
 
 import { ResetPasswordComponent } from './reset-password.component';
+import { UserService } from '../../services/user.service';
 
 describe('ResetPasswordComponent', () => {
   let component: ResetPasswordComponent;
   let fixture: ComponentFixture<ResetPasswordComponent>;
   let queryParamsSubject: Subject<any>;
+  let userServiceSpy: jasmine.SpyObj<UserService>;
+  let routerSpy: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     queryParamsSubject = new Subject();
+    userServiceSpy = jasmine.createSpyObj('UserService', ['resetPassword']);
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    userServiceSpy.resetPassword.and.returnValue(of(void 0));
 
     await TestBed.configureTestingModule({
       imports: [ResetPasswordComponent],
       providers: [
         { provide: ActivatedRoute, useValue: { queryParams: queryParamsSubject.asObservable() } },
+        { provide: UserService, useValue: userServiceSpy },
+        { provide: Router, useValue: routerSpy },
       ],
     }).compileComponents();
 
@@ -77,5 +85,42 @@ describe('ResetPasswordComponent', () => {
 
     expect(component.token).toBe('first');
     expect(component.userId).toBe('one');
+  });
+
+  it('should set success message on successful reset', async () => {
+    component.token = 'token';
+    component.userId = '1';
+    component.resetPasswordForm.setValue({
+      newPassword: 'Str0ng!Pass',
+      confirmPassword: 'Str0ng!Pass',
+    });
+
+    spyOn(window, 'setTimeout').and.callFake((fn: Function) => fn());
+
+    await component.resetPassword();
+
+    expect(userServiceSpy.resetPassword).toHaveBeenCalled();
+    expect(component.successMessage).toBe('Your password has been reset successfully!');
+    expect(component.errorMessage).toBe('');
+    expect(component.isSubmitting).toBeFalse();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/signin']);
+  });
+
+  it('should set error message on failed reset', async () => {
+    userServiceSpy.resetPassword.and.returnValue(
+      throwError(() => ({ error: { message: 'oops' } }))
+    );
+    component.token = 'token';
+    component.userId = '1';
+    component.resetPasswordForm.setValue({
+      newPassword: 'Str0ng!Pass',
+      confirmPassword: 'Str0ng!Pass',
+    });
+
+    await component.resetPassword();
+
+    expect(component.errorMessage).toBe('oops');
+    expect(component.successMessage).toBe('');
+    expect(component.isSubmitting).toBeFalse();
   });
 });
