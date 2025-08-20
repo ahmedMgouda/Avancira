@@ -1,6 +1,6 @@
 // src/app/auth/signup/signup.component.ts
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -11,6 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router'; 
 import { FacebookService, InitParams } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
+import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
@@ -26,12 +27,13 @@ import { RegisterUserRequest } from '../../models/register-user-request';
   styleUrls: ['./signup.component.scss'],
   imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
-export class SignupComponent implements OnInit {
+export class SignupComponent implements OnInit, OnDestroy {
   signupForm!: FormGroup;
   signupError = '';
   isSubmitting = false;
   referralToken: string | null = null;
   returnUrl = '/';
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -68,10 +70,12 @@ export class SignupComponent implements OnInit {
     const timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
     this.signupForm.patchValue({ timeZoneId });
 
-    this.route.queryParams.subscribe((params) => {
-      this.referralToken = params['referral'] || null;
-      this.returnUrl = params['returnUrl'] || '/';
-    });
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        this.referralToken = params['referral'] || null;
+        this.returnUrl = params['returnUrl'] || '/';
+      });
 
     // Init Facebook SDK
     this.config.loadConfig().subscribe({
@@ -178,5 +182,10 @@ export class SignupComponent implements OnInit {
     //     this.signupError = `${provider} signup failed.`;
     //   },
     // });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
