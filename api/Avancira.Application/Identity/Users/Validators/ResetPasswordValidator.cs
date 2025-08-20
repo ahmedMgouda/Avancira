@@ -22,6 +22,11 @@ public class ResetPasswordValidator : AbstractValidator<ResetPasswordDto>
             .Matches("[^a-zA-Z0-9]")
                 .WithMessage("Password must contain at least one non-alphanumeric character.");
 
+        RuleFor(x => x.ConfirmPassword)
+            .NotEmpty()
+            .Equal(x => x.Password)
+                .WithMessage("Passwords do not match.");
+
         RuleFor(x => x.Token).NotEmpty();
     }
 }

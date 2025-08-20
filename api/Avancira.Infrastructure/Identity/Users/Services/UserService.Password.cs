@@ -63,6 +63,11 @@ internal sealed partial class UserService
         if (request is null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token))
             throw new AvanciraException("Invalid password reset request.");
 
+        if (string.IsNullOrWhiteSpace(request.Password) ||
+            string.IsNullOrWhiteSpace(request.ConfirmPassword) ||
+            request.Password != request.ConfirmPassword)
+            throw new AvanciraException("Passwords do not match.");
+
         const string invalidRequestMessage = "Invalid password reset request.";
         const string invalidTokenMessage = "Invalid password reset token.";
 
