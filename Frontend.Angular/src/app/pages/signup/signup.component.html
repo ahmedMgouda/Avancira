@@ -151,9 +151,22 @@
             </div>
             <div class="form-group">
               <div class="form-check form-check-xs custom-checkbox">
-                <input type="checkbox" class="form-check-input" name="agreeCheckboxUser" id="agree_checkbox_user">
-                <label class="form-check-label" for="agree_checkbox_user">I agree to Avancira <a tabindex="-1"
-                    href="/privacy-policy">Privacy Policy</a> &amp; <a tabindex="-1" href="/terms"> Terms.</a> </label>
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="agree_checkbox_user"
+                  formControlName="agreeToTerms"
+                />
+                <label class="form-check-label" for="agree_checkbox_user">
+                  I agree to Avancira <a tabindex="-1" href="/privacy-policy">Privacy Policy</a> &amp;
+                  <a tabindex="-1" href="/terms"> Terms.</a>
+                </label>
+              </div>
+              <div
+                class="text-danger"
+                *ngIf="signupForm.get('agreeToTerms')?.invalid && signupForm.get('agreeToTerms')?.touched"
+              >
+                You must agree to the Privacy Policy &amp; Terms.
               </div>
             </div>
             <button class="btn btn-primary login-btn" type="submit" [disabled]="signupForm.invalid || isSubmitting">

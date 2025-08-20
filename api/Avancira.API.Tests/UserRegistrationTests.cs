@@ -52,7 +52,7 @@ public class UserRegistrationServiceTests
         userManager.Setup(x => x.FindByEmailAsync("existing@example.com")).ReturnsAsync(new User { Id = "1", Email = "existing@example.com" });
 
         var service = CreateService(userManager);
-        var dto = new RegisterUserDto { Email = "existing@example.com", UserName = "newuser", FirstName = "first", LastName = "last", Password = "P@ssw0rd", ConfirmPassword = "P@ssw0rd" };
+        var dto = new RegisterUserDto { Email = "existing@example.com", UserName = "newuser", FirstName = "first", LastName = "last", Password = "P@ssw0rd", ConfirmPassword = "P@ssw0rd", AcceptTerms = true };
 
         Func<Task> act = () => service.RegisterAsync(dto, "http://origin", CancellationToken.None);
 
@@ -68,7 +68,7 @@ public class UserRegistrationServiceTests
         userManager.Setup(x => x.FindByNameAsync("existing")).ReturnsAsync(new User { Id = "1", UserName = "existing" });
 
         var service = CreateService(userManager);
-        var dto = new RegisterUserDto { Email = "new@example.com", UserName = "existing", FirstName = "first", LastName = "last", Password = "P@ssw0rd", ConfirmPassword = "P@ssw0rd" };
+        var dto = new RegisterUserDto { Email = "new@example.com", UserName = "existing", FirstName = "first", LastName = "last", Password = "P@ssw0rd", ConfirmPassword = "P@ssw0rd", AcceptTerms = true };
 
         Func<Task> act = () => service.RegisterAsync(dto, "http://origin", CancellationToken.None);
 
@@ -94,7 +94,7 @@ public class UsersControllerRegisterTests
         httpContext.Request.Host = new HostString("localhost");
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
-        var result = await controller.RegisterUser(new RegisterUserDto(), CancellationToken.None);
+        var result = await controller.RegisterUser(new RegisterUserDto { AcceptTerms = true }, CancellationToken.None);
 
         var conflict = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
