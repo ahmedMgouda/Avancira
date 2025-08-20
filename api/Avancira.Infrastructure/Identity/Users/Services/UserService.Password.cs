@@ -46,7 +46,7 @@ internal sealed partial class UserService
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
         var sanitizedOrigin = originUri.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        var resetPasswordUri = BuildResetPasswordLink(sanitizedOrigin, request.Email, encodedToken);
+        var resetPasswordUri = BuildResetPasswordLink(sanitizedOrigin, user.Id, encodedToken);
 
         var resetPasswordEvent = new ResetPasswordEvent
         {
@@ -60,7 +60,7 @@ internal sealed partial class UserService
 
     public async Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token))
+        if (request is null || string.IsNullOrWhiteSpace(request.UserId) || string.IsNullOrWhiteSpace(request.Token))
             throw new AvanciraException("Invalid password reset request.");
 
         if (string.IsNullOrWhiteSpace(request.Password) ||
@@ -71,7 +71,7 @@ internal sealed partial class UserService
         const string invalidRequestMessage = "Invalid password reset request.";
         const string invalidTokenMessage = "Invalid password reset token.";
 
-        var user = await userManager.FindByEmailAsync(request.Email);
+        var user = await userManager.FindByIdAsync(request.UserId);
         if (user == null)
             throw new AvanciraException(invalidRequestMessage);
 
@@ -117,12 +117,12 @@ internal sealed partial class UserService
         await userManager.UpdateSecurityStampAsync(user);
     }
 
-    private static string BuildResetPasswordLink(string origin, string email, string encodedToken)
+    private static string BuildResetPasswordLink(string origin, string userId, string encodedToken)
     {
         var baseUri = origin.TrimEnd('/');
         var endpoint = $"{baseUri}/reset-password";
-        var withEmail = QueryHelpers.AddQueryString(endpoint, "email", email);
-        var withToken = QueryHelpers.AddQueryString(withEmail, "token", encodedToken);
+        var withUserId = QueryHelpers.AddQueryString(endpoint, "userId", userId);
+        var withToken = QueryHelpers.AddQueryString(withUserId, "token", encodedToken);
         return withToken;
     }
 }

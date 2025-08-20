@@ -6,9 +6,8 @@ public class ResetPasswordValidator : AbstractValidator<ResetPasswordDto>
 {
     public ResetPasswordValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty()
-            .EmailAddress();
+        RuleFor(x => x.UserId)
+            .NotEmpty();
 
         RuleFor(x => x.Password)
             .NotEmpty()

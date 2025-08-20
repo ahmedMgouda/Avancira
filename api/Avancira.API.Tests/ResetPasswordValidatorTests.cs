@@ -19,7 +19,7 @@ public class ResetPasswordValidatorTests
     {
         var dto = new ResetPasswordDto
         {
-            Email = "user@example.com",
+            UserId = "user-id",
             Password = password,
             Token = "token"
         };
@@ -33,7 +33,7 @@ public class ResetPasswordValidatorTests
     {
         var dto = new ResetPasswordDto
         {
-            Email = "user@example.com",
+            UserId = "user-id",
             Password = "Str0ng!Pass",
             Token = "token"
         };
