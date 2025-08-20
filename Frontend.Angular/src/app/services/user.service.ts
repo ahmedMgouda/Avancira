@@ -208,11 +208,11 @@ export class UserService {
   }
 
   requestPasswordReset(email: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/request-reset-password`, { email: email });
+    return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
   }
 
-  resetPassword(data: { token: string; newPassword: string }): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/reset-password`, data);
+  resetPassword(data: { email: string; password: string; token: string }): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/reset-password`, data);
   }
 
   submitDiploma(diplomaFile: File): Observable<void> {

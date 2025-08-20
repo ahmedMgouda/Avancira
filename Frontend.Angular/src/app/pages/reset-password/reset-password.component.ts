@@ -62,7 +62,7 @@ export class ResetPasswordComponent implements OnInit {
     const resetData = {
       token: this.token,
       email: this.email,
-      newPassword: this.resetPasswordForm.value.newPassword
+      password: this.resetPasswordForm.value.newPassword
     };
 
     this.userService.resetPassword(resetData).subscribe({
