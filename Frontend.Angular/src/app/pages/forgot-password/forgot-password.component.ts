@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 import { UserService } from '../../services/user.service';
 
@@ -24,7 +24,7 @@ export class ForgotPasswordComponent {
     });
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.forgotPasswordForm.invalid) {
       return;
     }
@@ -32,19 +32,16 @@ export class ForgotPasswordComponent {
     this.isSubmitting = true;
     const email = this.forgotPasswordForm.value.email;
 
-    this.userService
-      .requestPasswordReset(email)
-      .pipe(finalize(() => (this.isSubmitting = false)))
-      .subscribe({
-        next: () => {
-          this.successMessage = 'A password reset link has been sent to your email.';
-          this.errorMessage = '';
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message || 'Unable to process password reset request.';
-          this.successMessage = '';
-        }
-      });
+    try {
+      await firstValueFrom(this.userService.requestPasswordReset(email));
+      this.successMessage = 'A password reset link has been sent to your email.';
+      this.errorMessage = '';
+    } catch (err: any) {
+      this.errorMessage = err?.error?.message || 'Unable to process password reset request.';
+      this.successMessage = '';
+    } finally {
+      this.isSubmitting = false;
+    }
   }
 }
 

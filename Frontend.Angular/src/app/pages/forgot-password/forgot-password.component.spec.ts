@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { ForgotPasswordComponent } from './forgot-password.component';
 import { UserService } from '../../services/user.service';
@@ -26,5 +26,29 @@ describe('ForgotPasswordComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should set success message on successful submit', async () => {
+    component.forgotPasswordForm.setValue({ email: 'test@example.com' });
+
+    await component.onSubmit();
+
+    expect(userServiceSpy.requestPasswordReset).toHaveBeenCalledWith('test@example.com');
+    expect(component.successMessage).toBe('A password reset link has been sent to your email.');
+    expect(component.errorMessage).toBe('');
+    expect(component.isSubmitting).toBeFalse();
+  });
+
+  it('should set error message on failed submit', async () => {
+    userServiceSpy.requestPasswordReset.and.returnValue(
+      throwError(() => ({ error: { message: 'fail' } }))
+    );
+    component.forgotPasswordForm.setValue({ email: 'test@example.com' });
+
+    await component.onSubmit();
+
+    expect(component.errorMessage).toBe('fail');
+    expect(component.successMessage).toBe('');
+    expect(component.isSubmitting).toBeFalse();
   });
 });

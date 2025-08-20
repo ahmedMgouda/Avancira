@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { finalize, takeUntil } from 'rxjs/operators';
+import { Subject, firstValueFrom } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 import { ResetPasswordRequest } from '../../models/reset-password-request';
 import { UserService } from '../../services/user.service';
@@ -71,7 +71,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       });
   }
 
-  resetPassword(): void {
+  async resetPassword(): Promise<void> {
     if (this.resetPasswordForm.invalid) {
       this.resetPasswordForm.markAllAsTouched();
       return;
@@ -85,22 +85,19 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       token: this.token,
     };
 
-    this.userService
-      .resetPassword(resetData)
-      .pipe(finalize(() => (this.isSubmitting = false)))
-      .subscribe({
-        next: () => {
-          this.successMessage = 'Your password has been reset successfully!';
-          this.errorMessage = '';
-          this.resetPasswordForm.reset();
-          setTimeout(() => {
-            this.router.navigate(['/signin']);
-          }, 3000);
-        },
-        error: (err) => {
-          this.errorMessage = err.error.message || 'Failed to reset the password.';
-        },
-      });
+    try {
+      await firstValueFrom(this.userService.resetPassword(resetData));
+      this.successMessage = 'Your password has been reset successfully!';
+      this.errorMessage = '';
+      this.resetPasswordForm.reset();
+      setTimeout(() => {
+        this.router.navigate(['/signin']);
+      }, 3000);
+    } catch (err: any) {
+      this.errorMessage = err?.error?.message || 'Failed to reset the password.';
+    } finally {
+      this.isSubmitting = false;
+    }
   }
 
   ngOnDestroy(): void {
