@@ -121,11 +121,6 @@ internal sealed partial class UserService(
             throw new AvanciraException("Username already in use");
         }
 
-        if (!request.AcceptTerms)
-        {
-            throw new AvanciraException("You must agree to the Privacy Policy & Terms.");
-        }
-
         await using var transaction = await db.Database.BeginTransactionAsync();
 
         try
