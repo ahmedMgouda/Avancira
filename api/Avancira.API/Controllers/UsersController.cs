@@ -118,7 +118,8 @@ public class UsersController : BaseApiController
 
     [HttpPost("register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(OperationId = "RegisterUser")]
     public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
     {
@@ -126,23 +127,12 @@ public class UsersController : BaseApiController
         try
         {
             var result = await _userService.RegisterAsync(request, origin, cancellationToken);
-            return Ok(result);
+            return CreatedAtAction(nameof(GetUserById), new { id = result.UserId }, result);
         }
         catch (AvanciraException ex)
         {
             return Conflict(ex.Message);
         }
-    }
-
-    [HttpPost("self-register")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "SelfRegisterUser")]
-    public async Task<IActionResult> SelfRegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
-    {
-        var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-        var result = await _userService.RegisterAsync(request, origin, cancellationToken);
-        return Ok(result);
     }
 
     [HttpPost("reset-password")]

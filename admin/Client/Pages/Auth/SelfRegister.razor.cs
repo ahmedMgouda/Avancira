@@ -25,7 +25,7 @@ public partial class SelfRegister
         BusySubmitting = true;
 
         var response = await ApiHelper.ExecuteCallGuardedAsync(
-            () => UsersClient.SelfRegisterUserAsync(_createUserRequest),
+            () => UsersClient.RegisterUserAsync(_createUserRequest),
             Toast, Navigation,
             _customValidation);
 
