@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -12,11 +12,13 @@ import { UserService } from '../../services/user.service';
   templateUrl: './forgot-password.component.html',
   styleUrl: './forgot-password.component.scss'
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnInit, OnDestroy {
   forgotPasswordForm: FormGroup;
   successMessage = '';
   errorMessage = '';
   isSubmitting = false;
+  cooldown = 0;
+  private cooldownInterval?: ReturnType<typeof setInterval>;
 
   constructor(private fb: FormBuilder, private userService: UserService) {
     this.forgotPasswordForm = this.fb.group({
@@ -24,8 +26,26 @@ export class ForgotPasswordComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.cooldown = this.userService.getRequestPasswordResetCooldown();
+    if (this.cooldown > 0) {
+      this.startCooldown();
+    }
+  }
+
+  private startCooldown(): void {
+    this.forgotPasswordForm.disable();
+    this.cooldownInterval = setInterval(() => {
+      this.cooldown--;
+      if (this.cooldown <= 0) {
+        this.forgotPasswordForm.enable();
+        clearInterval(this.cooldownInterval);
+      }
+    }, 1000);
+  }
+
   async onSubmit(): Promise<void> {
-    if (this.forgotPasswordForm.invalid) {
+    if (this.forgotPasswordForm.invalid || this.cooldown > 0) {
       return;
     }
 
@@ -41,6 +61,16 @@ export class ForgotPasswordComponent {
       this.successMessage = '';
     } finally {
       this.isSubmitting = false;
+      this.cooldown = this.userService.getRequestPasswordResetCooldown();
+      if (this.cooldown > 0) {
+        this.startCooldown();
+      }
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.cooldownInterval) {
+      clearInterval(this.cooldownInterval);
     }
   }
 }
