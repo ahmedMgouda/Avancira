@@ -31,7 +31,7 @@ export const routes: Routes = [
   { path: 'video-call-window', component: VideoCallWindowComponent },
   { path: 'signup', component: SignupComponent },
   { path: 'signin', component: SigninComponent },
-  { path: 'forget-password', component: ForgotPasswordComponent },
+  { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
   { path: 'complete-registration', component: CompleteRegistrationComponent },
