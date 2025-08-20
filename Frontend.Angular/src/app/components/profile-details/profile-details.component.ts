@@ -149,7 +149,7 @@ export class ProfileDetailsComponent implements OnInit {
   // 6. Account Management
   changePassword(): void {
     if (this.profile?.email) {
-      this.userService.requestPasswordReset({ email: this.profile.email }).subscribe({
+      this.userService.requestPasswordReset(this.profile.email).subscribe({
         next: () => {
           this.alertService.successAlert('Password reset request has been sent to your email.', 'Success');
         },
