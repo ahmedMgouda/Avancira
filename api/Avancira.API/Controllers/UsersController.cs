@@ -123,8 +123,15 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
     {
         var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-        var result = await _userService.RegisterAsync(request, origin, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _userService.RegisterAsync(request, origin, cancellationToken);
+            return Ok(result);
+        }
+        catch (AvanciraException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPost("self-register")]
