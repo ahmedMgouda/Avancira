@@ -64,6 +64,9 @@ export class SignupComponent implements OnInit {
       agreeToTerms: [false, Validators.requiredTrue],
     });
 
+    const timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    this.signupForm.patchValue({ timeZoneId });
+
     this.route.queryParams.subscribe((params) => {
       this.referralToken = params['referral'] || null;
       this.returnUrl = params['returnUrl'] || '/';
