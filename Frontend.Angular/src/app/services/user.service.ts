@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, map, Observable, of, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
@@ -16,6 +16,20 @@ export class UserService {
   private cachedUser: User | null = null;
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();
+
+  private cooldownMs = 30000;
+  private lastRequestPasswordReset = 0;
+  private lastResetPassword = 0;
+
+  getRequestPasswordResetCooldown(): number {
+    const remaining = this.cooldownMs - (Date.now() - this.lastRequestPasswordReset);
+    return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+  }
+
+  getResetPasswordCooldown(): number {
+    const remaining = this.cooldownMs - (Date.now() - this.lastResetPassword);
+    return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+  }
 
   constructor(private http: HttpClient) { }
 
@@ -209,10 +223,24 @@ export class UserService {
   }
 
   requestPasswordReset(email: string): Observable<void> {
+    const now = Date.now();
+    const remaining = this.cooldownMs - (now - this.lastRequestPasswordReset);
+    if (remaining > 0) {
+      const seconds = Math.ceil(remaining / 1000);
+      return throwError(() => new Error(`Please wait ${seconds}s before requesting again.`));
+    }
+    this.lastRequestPasswordReset = now;
     return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<void> {
+    const now = Date.now();
+    const remaining = this.cooldownMs - (now - this.lastResetPassword);
+    if (remaining > 0) {
+      const seconds = Math.ceil(remaining / 1000);
+      return throwError(() => new Error(`Please wait ${seconds}s before trying again.`));
+    }
+    this.lastResetPassword = now;
     return this.http.post<void>(`${this.apiUrl}/reset-password`, {
       userId: data.userId,
       password: data.password,
