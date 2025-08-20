@@ -143,12 +143,21 @@ export class SigninComponent implements OnInit {
     );
 
     if (email) {
-      this.user.requestPasswordReset(email).subscribe();
-      this.alert.successAlert(
-        'Check your inbox',
-        'We’ve sent a reset link to your email.',
-        'Return to login'
-      );
+      this.user.requestPasswordReset(email).subscribe({
+        next: () =>
+          this.alert.successAlert(
+            'Check your inbox',
+            'We’ve sent a reset link to your email.',
+            'Return to login'
+          ),
+        error: (err) => {
+          console.error('Password reset request failed:', err);
+          this.toastr.error(
+            'Failed to send reset link. Please try again.',
+            'Error'
+          );
+        },
+      });
     }
   }
 }
