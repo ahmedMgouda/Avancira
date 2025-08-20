@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { UserService } from '../../services/user.service';
+import { ResetPasswordRequest } from '../../models/reset-password-request';
 
 @Component({
   selector: 'app-reset-password',
@@ -59,7 +60,7 @@ export class ResetPasswordComponent implements OnInit {
     }
 
     this.isSubmitting = true;
-    const resetData = {
+    const resetData: ResetPasswordRequest = {
       token: this.token,
       email: this.email,
       password: this.resetPasswordForm.value.newPassword

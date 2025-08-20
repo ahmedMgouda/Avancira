@@ -6,6 +6,7 @@ import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
 import { UserPaymentSchedule } from '../models/enums/user-payment-schedule';
 import { User } from '../models/user';
+import { ResetPasswordRequest } from '../models/reset-password-request';
 
 @Injectable({
   providedIn: 'root',
@@ -211,7 +212,7 @@ export class UserService {
     return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
   }
 
-  resetPassword(data: { email: string; password: string; token: string }): Observable<void> {
+  resetPassword(data: ResetPasswordRequest): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/reset-password`, data);
   }
 
