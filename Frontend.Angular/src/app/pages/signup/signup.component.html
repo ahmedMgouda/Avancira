@@ -59,7 +59,7 @@
               </span>
               <span class="text-danger"
                 *ngIf="signupForm.get('password')?.errors?.['minlength'] && signupForm.get('password')?.touched">
-                Password must be at least 6 characters long.
+                Password must be at least 8 characters long.
               </span>
               <span class="text-danger"
                 *ngIf="signupForm.get('password')?.errors?.['noNonAlphanumeric'] && signupForm.get('password')?.touched">
@@ -72,6 +72,10 @@
               <span class="text-danger"
                 *ngIf="signupForm.get('password')?.errors?.['noUppercase'] && signupForm.get('password')?.touched">
                 Password must contain at least one uppercase letter.
+              </span>
+              <span class="text-danger"
+                *ngIf="signupForm.get('password')?.errors?.['noDigit'] && signupForm.get('password')?.touched">
+                Password must contain at least one digit.
               </span>
 
 
