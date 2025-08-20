@@ -100,4 +100,25 @@ public class UsersControllerRegisterTests
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
         Assert.Equal(message, conflict.Value);
     }
+
+    [Fact]
+    public async Task RegisterUser_ReturnsCreated_OnSuccess()
+    {
+        var userService = new Mock<IUserService>();
+        userService.Setup(s => s.RegisterAsync(It.IsAny<RegisterUserDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new RegisterUserResponseDto("new-user-id"));
+
+        var controller = new UsersController(Mock.Of<IAuditService>(), userService.Object, new ConfigurationBuilder().Build());
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = "http";
+        httpContext.Request.Host = new HostString("localhost");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.RegisterUser(new RegisterUserDto { AcceptTerms = true }, CancellationToken.None);
+
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        Assert.Equal(StatusCodes.Status201Created, created.StatusCode);
+        var response = Assert.IsType<RegisterUserResponseDto>(created.Value);
+        Assert.Equal("new-user-id", response.UserId);
+    }
 }
