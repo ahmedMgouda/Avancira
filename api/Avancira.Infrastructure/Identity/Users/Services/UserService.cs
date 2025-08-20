@@ -126,47 +126,59 @@ internal sealed partial class UserService(
             throw new AvanciraException("You must agree to the Privacy Policy & Terms.");
         }
 
-        // create user entity
-        var user = new User
-        {
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            UserName = request.UserName,
-            PhoneNumber = request.PhoneNumber,
-            TimeZoneId = request.TimeZoneId,
-            IsActive = true,
-            EmailConfirmed = false,
-            PhoneNumberConfirmed = false,
-        };
+        await using var transaction = await db.Database.BeginTransactionAsync();
 
-        // register user
-        var result = await userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
+        try
         {
-            var errors = result.Errors.Select(error => error.Description).ToList();
-            throw new AvanciraException("error while registering a new user", errors);
-        }
-
-        // add basic role
-        await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
-
-        // send confirmation mail
-        if (!string.IsNullOrEmpty(user.Email))
-        {
-            string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
-            var confirmEmailEvent = new ConfirmEmailEvent
+            // create user entity
+            var user = new User
             {
-                UserId = user.Id,
-                Email = user.Email,
-                ConfirmationLink = emailVerificationUri
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                UserName = request.UserName,
+                PhoneNumber = request.PhoneNumber,
+                TimeZoneId = request.TimeZoneId,
+                IsActive = true,
+                EmailConfirmed = false,
+                PhoneNumberConfirmed = false,
             };
 
-            // Use notification service to send email confirmation
-            await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
-        }
+            // register user
+            var result = await userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(error => error.Description).ToList();
+                throw new AvanciraException("error while registering a new user", errors);
+            }
 
-        return new RegisterUserResponseDto(user.Id);
+            // add basic role
+            await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
+
+            // send confirmation mail
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
+                var confirmEmailEvent = new ConfirmEmailEvent
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    ConfirmationLink = emailVerificationUri
+                };
+
+                // Use notification service to send email confirmation
+                await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
+            }
+
+            await transaction.CommitAsync();
+
+            return new RegisterUserResponseDto(user.Id);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
