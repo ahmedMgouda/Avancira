@@ -20,7 +20,9 @@ public class UsersController : BaseApiController
     private readonly IAuditService _auditService;
     private readonly IUserService _userService;
 
-    public UsersController(IAuditService auditService, IUserService userService)
+    public UsersController(
+        IAuditService auditService,
+        IUserService userService)
     {
         _auditService = auditService;
         _userService = userService;
