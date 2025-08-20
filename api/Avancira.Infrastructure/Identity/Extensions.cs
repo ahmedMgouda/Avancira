@@ -62,7 +62,7 @@ internal static class Extensions
 
         services.Configure<DataProtectionTokenProviderOptions>("PasswordReset", o =>
         {
-            o.TokenLifespan = TimeSpan.FromHours(2);
+            o.TokenLifespan = TimeSpan.FromHours(24);
         });
 
         return services;
