@@ -12,6 +12,8 @@ public class RegisterUserDto
     public string? PhoneNumber { get; set; }
     public string? TimeZoneId { get; set; }
     public string? ReferralToken { get; set; }
+
+    [JsonPropertyName("acceptTerms")]
     public bool AcceptTerms { get; set; }
 
     [JsonIgnore]
