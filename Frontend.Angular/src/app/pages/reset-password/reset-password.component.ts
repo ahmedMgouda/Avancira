@@ -16,7 +16,7 @@ import { ResetPasswordRequest } from '../../models/reset-password-request';
 export class ResetPasswordComponent implements OnInit {
   resetPasswordForm: FormGroup;
   token: string = '';
-  email: string = '';
+  userId: string = '';
   isSubmitting: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
@@ -35,7 +35,6 @@ export class ResetPasswordComponent implements OnInit {
     private router: Router
   ) {
     this.resetPasswordForm = this.fb.group({
-      email: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
       newPassword: [
         '',
         [
@@ -62,17 +61,14 @@ export class ResetPasswordComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       this.token = params['token'] || '';
-      this.email = params['email'] || '';
+      this.userId = params['userId'] || '';
 
-      if (!this.token || !this.email) {
-        this.errorMessage = 'Invalid or missing reset token or email.';
+      if (!this.token || !this.userId) {
+        this.errorMessage = 'Invalid or missing reset token or user identifier.';
         this.formDisabled = true;
         this.resetPasswordForm.disable();
         return;
       }
-      
-      // Set the email value in the form
-      this.resetPasswordForm.patchValue({ email: this.email });
     });
   }
 
@@ -89,7 +85,7 @@ export class ResetPasswordComponent implements OnInit {
 
     this.isSubmitting = true;
     const resetData: ResetPasswordRequest = {
-      email: this.email,
+      userId: this.userId,
       password: this.resetPasswordForm.value.newPassword,
       confirmPassword: this.resetPasswordForm.value.confirmPassword,
       token: this.token,
