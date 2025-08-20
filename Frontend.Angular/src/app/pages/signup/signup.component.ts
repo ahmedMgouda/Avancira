@@ -109,7 +109,14 @@ export class SignupComponent implements OnInit {
     this.authService
       .register(payload)
       .subscribe({
-        next: () => this.loginUser(),
+        next: () => {
+          this.spinner.hide();
+          this.isSubmitting = false;
+          this.toastr.success(
+            'Registration successful! Please verify your email before signing in.'
+          );
+          this.router.navigate(['/check-email']);
+        },
         error: (err) => {
           const errors = err?.error?.errors;
           if (errors) {
@@ -122,27 +129,6 @@ export class SignupComponent implements OnInit {
           this.isSubmitting = false;
         },
       });
-  }
-
-  /** Attempt login after signup */
-  loginUser(): void {
-    const { email, password } = this.signupForm.value;
-    this.authService.login(email, password).subscribe({
-      next: (res) => {
-        if (res) {
-          this.router.navigate(['/complete-registration']);
-        } else {
-          this.signupError = 'Signup succeeded, but login failed.';
-        }
-      },
-      error: () => {
-        this.signupError = 'Signup succeeded, but automatic login failed.';
-      },
-      complete: () => {
-        this.spinner.hide();
-        this.isSubmitting = false;
-      },
-    });
   }
 
   /** Facebook signup */

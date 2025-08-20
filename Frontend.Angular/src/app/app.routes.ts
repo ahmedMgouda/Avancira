@@ -6,6 +6,7 @@ import { HeaderLayoutComponent } from './layout/header-layout/header-layout.comp
 import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
 import { CompleteRegistrationComponent } from './pages/complete-registration/complete-registration.component';
 import { ConfirmEmailComponent } from './pages/confirm-email/confirm-email.component';
+import { CheckEmailComponent } from './pages/check-email/check-email.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { EvaluationsComponent } from './pages/evaluations/evaluations.component';
 import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
@@ -34,6 +35,7 @@ export const routes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
+  { path: 'check-email', component: CheckEmailComponent },
   { path: 'complete-registration', component: CompleteRegistrationComponent },
 
   {
