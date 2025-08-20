@@ -10,6 +10,7 @@ public class ResetPasswordValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData("short")]
+    [InlineData("Short1!")]
     [InlineData("alllowercase1!")]
     [InlineData("ALLUPPERCASE1!")]
     [InlineData("NoDigits!")]
