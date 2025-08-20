@@ -14,7 +14,6 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
 using System.Text;
 using Avancira.Domain.Common.Exceptions;
@@ -27,9 +26,9 @@ internal sealed partial class UserService(
     AvanciraDbContext db,
     ICacheService cache,
     IJobService jobService,
-    IConfiguration config,
     INotificationService notificationService,
-    IStorageService storageService
+    IStorageService storageService,
+    IdentityLinkBuilder linkBuilder
     ) : Application.Identity.Users.Abstractions.IUserService
 {
     public async Task<string> ConfirmEmailAsync(string userId, string code, CancellationToken cancellationToken)
@@ -298,10 +297,11 @@ internal sealed partial class UserService(
 
     private async Task<string> GetEmailVerificationUriAsync(User user, string origin)
     {
+        var sanitizedOrigin = linkBuilder.ValidateOrigin(origin, "Email verification is temporarily unavailable.");
         string code = await userManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         const string route = "api/users/confirm-email/";
-        var endpointUri = new Uri(string.Concat($"{origin}/", route));
+        var endpointUri = new Uri(string.Concat($"{sanitizedOrigin}/", route));
         string verificationUri = QueryHelpers.AddQueryString(endpointUri.ToString(), QueryStringKeys.UserId, user.Id);
         verificationUri = QueryHelpers.AddQueryString(verificationUri, QueryStringKeys.Code, code);
         return verificationUri;
