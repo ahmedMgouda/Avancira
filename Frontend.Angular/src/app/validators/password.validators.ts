@@ -33,3 +33,22 @@ export function passwordComplexityValidator(): ValidatorFn {
     return Object.keys(errors).length ? errors : null;
   };
 }
+
+/**
+ * Validates that the `newPassword` and `confirmPassword` controls
+ * within a form group contain identical values.
+ */
+export function matchPasswords(): ValidatorFn {
+  return (group: AbstractControl): ValidationErrors | null => {
+    const newPassword = group.get('newPassword')?.value;
+    const confirmPassword = group.get('confirmPassword')?.value;
+
+    if (!newPassword || !confirmPassword) {
+      return null;
+    }
+
+    return newPassword === confirmPassword
+      ? null
+      : { passwordsMismatch: true };
+  };
+}

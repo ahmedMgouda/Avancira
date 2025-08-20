@@ -6,7 +6,7 @@ import { finalize } from 'rxjs/operators';
 
 import { ResetPasswordRequest } from '../../models/reset-password-request';
 import { UserService } from '../../services/user.service';
-import { passwordComplexityValidator } from '../../validators/password.validators';
+import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
 
 @Component({
   selector: 'app-reset-password',
@@ -29,17 +29,20 @@ export class ResetPasswordComponent implements OnInit {
     private userService: UserService,
     private router: Router
   ) {
-    this.resetPasswordForm = this.fb.group({
-      newPassword: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          passwordComplexityValidator(),
+    this.resetPasswordForm = this.fb.group(
+      {
+        newPassword: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(8),
+            passwordComplexityValidator(),
+          ],
         ],
-      ],
-      confirmPassword: ['', [Validators.required]],
-    });
+        confirmPassword: ['', [Validators.required]],
+      },
+      { validators: matchPasswords() }
+    );
   }
 
   get newPasswordControl() {
@@ -66,12 +69,7 @@ export class ResetPasswordComponent implements OnInit {
 
   resetPassword(): void {
     if (this.resetPasswordForm.invalid) {
-      this.errorMessage = 'Please ensure the form is valid.';
-      return;
-    }
-
-    if (this.resetPasswordForm.value.newPassword !== this.resetPasswordForm.value.confirmPassword) {
-      this.errorMessage = 'Passwords do not match.';
+      this.resetPasswordForm.markAllAsTouched();
       return;
     }
 
