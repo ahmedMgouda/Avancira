@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 
 import { ForgotPasswordComponent } from './forgot-password.component';
@@ -10,8 +10,9 @@ describe('ForgotPasswordComponent', () => {
   let userServiceSpy: jasmine.SpyObj<UserService>;
 
   beforeEach(async () => {
-    userServiceSpy = jasmine.createSpyObj('UserService', ['requestPasswordReset']);
+    userServiceSpy = jasmine.createSpyObj('UserService', ['requestPasswordReset', 'getRequestPasswordResetCooldown']);
     userServiceSpy.requestPasswordReset.and.returnValue(of(void 0));
+    userServiceSpy.getRequestPasswordResetCooldown.and.returnValue(0);
 
     await TestBed.configureTestingModule({
       imports: [ForgotPasswordComponent],
@@ -51,4 +52,19 @@ describe('ForgotPasswordComponent', () => {
     expect(component.successMessage).toBe('');
     expect(component.isSubmitting).toBeFalse();
   });
+
+  it('should disable form if cooldown active on init', fakeAsync(() => {
+    userServiceSpy.getRequestPasswordResetCooldown.and.returnValue(2);
+
+    fixture = TestBed.createComponent(ForgotPasswordComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
+    expect(button.disabled).toBeTrue();
+
+    tick(2000);
+    fixture.detectChanges();
+    expect(button.disabled).toBeFalse();
+  }));
 });
