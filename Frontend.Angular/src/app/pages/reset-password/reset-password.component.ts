@@ -61,23 +61,25 @@ export class ResetPasswordComponent implements OnInit {
 
     this.isSubmitting = true;
     const resetData: ResetPasswordRequest = {
-      token: this.token,
       email: this.email,
-      password: this.resetPasswordForm.value.newPassword
+      password: this.resetPasswordForm.value.newPassword,
+      token: this.token,
     };
 
     this.userService.resetPassword(resetData).subscribe({
       next: () => {
         this.successMessage = 'Your password has been reset successfully!';
+        this.errorMessage = '';
         this.isSubmitting = false;
+        this.resetPasswordForm.reset();
         setTimeout(() => {
-          this.router.navigate(['/login']);
+          this.router.navigate(['/signin']);
         }, 3000);
       },
       error: (err) => {
         this.errorMessage = err.error.message || 'Failed to reset the password.';
         this.isSubmitting = false;
-      }
+      },
     });
   }
 }
