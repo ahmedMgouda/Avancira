@@ -10,6 +10,7 @@ import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service'; 
 import { UserService } from '../../services/user.service';
 import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
+import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
@@ -71,7 +72,7 @@ export class ProfileComponent implements OnInit {
           '',
           [
             Validators.required,
-            Validators.minLength(8),
+            Validators.minLength(MIN_PASSWORD_LENGTH),
             passwordComplexityValidator(),
           ],
         ],

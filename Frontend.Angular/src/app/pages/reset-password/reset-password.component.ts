@@ -8,6 +8,7 @@ import { takeUntil } from 'rxjs/operators';
 import { ResetPasswordRequest } from '../../models/reset-password-request';
 import { UserService } from '../../services/user.service';
 import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
+import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 
 @Component({
   selector: 'app-reset-password',
@@ -37,7 +38,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
           '',
           [
             Validators.required,
-            Validators.minLength(8),
+            Validators.minLength(MIN_PASSWORD_LENGTH),
             passwordComplexityValidator(),
           ],
         ],
