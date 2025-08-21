@@ -10,7 +10,6 @@ export interface Config {
   payPalClientId: string;
   googleMapsApiKey: string;
   googleClientId: string;
-  googleClientSecret: string;
   facebookAppId: string;
   [key: string]: string;
 }
@@ -35,7 +34,6 @@ export class ConfigService {
       'payPalClientId',
       'googleMapsApiKey',
       'googleClientId',
-      'googleClientSecret',
       'facebookAppId'
     ];
 
