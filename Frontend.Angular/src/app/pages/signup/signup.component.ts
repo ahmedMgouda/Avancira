@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   FormBuilder,
+  FormControl,
   FormGroup,
   Validators,
 } from '@angular/forms';
@@ -22,6 +23,18 @@ import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
 import { RegisterUserRequest } from '../../models/register-user-request';
 
+interface SignupForm {
+  firstName: FormControl<string>;
+  lastName: FormControl<string>;
+  userName: FormControl<string>;
+  phoneNumber: FormControl<string>;
+  timeZoneId: FormControl<string>;
+  email: FormControl<string>;
+  password: FormControl<string>;
+  verifyPassword: FormControl<string>;
+  acceptTerms: FormControl<boolean>;
+}
+
 @Component({
   selector: 'app-signup',
   templateUrl: './signup.component.html',
@@ -29,7 +42,7 @@ import { RegisterUserRequest } from '../../models/register-user-request';
   imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
 export class SignupComponent implements OnInit, OnDestroy {
-  signupForm!: FormGroup;
+  signupForm: FormGroup<SignupForm>;
   signupError = '';
   isSubmitting = false;
   referralToken: string | null = null;
@@ -46,28 +59,31 @@ export class SignupComponent implements OnInit, OnDestroy {
     private toastr: ToastrService,
     private google: GoogleAuthService,
     private facebook: FacebookService
-  ) {}
+  ) {
+    this.signupForm = this.fb.nonNullable.group<SignupForm>({
+      firstName: this.fb.nonNullable.control('', Validators.required),
+      lastName: this.fb.nonNullable.control('', Validators.required),
+      userName: this.fb.nonNullable.control('', Validators.required),
+      phoneNumber: this.fb.nonNullable.control(''),
+      timeZoneId: this.fb.nonNullable.control(''),
+      email: this.fb.nonNullable.control('', [
+        Validators.required,
+        Validators.email,
+      ]),
+      password: this.fb.nonNullable.control('', [
+        Validators.required,
+        Validators.minLength(8),
+        passwordComplexityValidator(),
+      ]),
+      verifyPassword: this.fb.nonNullable.control('', [
+        Validators.required,
+        ValidatorService.matchesPassword('password'),
+      ]),
+      acceptTerms: this.fb.nonNullable.control(false, Validators.requiredTrue),
+    });
+  }
 
   ngOnInit(): void {
-    this.signupForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      userName: ['', Validators.required],
-      phoneNumber: [''],
-      timeZoneId: [''],
-      email: ['', [Validators.required, Validators.email]],
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          passwordComplexityValidator(),
-        ],
-      ],
-      verifyPassword: ['', [Validators.required, ValidatorService.matchesPassword('password')]],
-      acceptTerms: [false, Validators.requiredTrue],
-    });
-
     const timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
     this.signupForm.patchValue({ timeZoneId });
 
@@ -99,7 +115,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       this.signupForm.markAllAsTouched();
       return;
     }
-    const { verifyPassword, ...rest } = this.signupForm.value;
+    const { verifyPassword, ...rest } = this.signupForm.getRawValue();
     const payload: RegisterUserRequest = {
       ...rest,
       confirmPassword: verifyPassword,
