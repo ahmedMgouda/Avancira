@@ -38,10 +38,7 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .WithMessage("Username can only contain letters, numbers, dots, underscores, and hyphens.");
 
         RuleFor(x => x.Password)
-            .NotEmpty()
-            .WithMessage("Password is required.")
-            .MinimumLength(6)
-            .WithMessage("Password must be at least 6 characters long.");
+            .ApplyPasswordRules();
 
         RuleFor(x => x.ConfirmPassword)
             .NotEmpty()
