@@ -56,6 +56,9 @@ internal sealed partial class UserService(
             throw new AvanciraException("Error confirming email.", errors);
         }
 
+        user.IsActive = true;
+        await userManager.UpdateAsync(user);
+
         return $"Account confirmed for {user.Email}.";
     }
 
@@ -135,7 +138,7 @@ internal sealed partial class UserService(
                 UserName = request.UserName,
                 PhoneNumber = request.PhoneNumber,
                 TimeZoneId = request.TimeZoneId,
-                IsActive = true,
+                IsActive = false,
                 EmailConfirmed = false,
                 PhoneNumberConfirmed = false,
             };
