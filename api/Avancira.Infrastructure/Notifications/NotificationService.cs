@@ -56,7 +56,7 @@ namespace Avancira.Infrastructure.Catalog
                 switch (eventType)
                 {
                     case NotificationEvent.ConfirmEmail:
-                        await HandleConfirmEmailAsync(eventData);
+                        await HandleConfirmEmailAsync(eventData, CancellationToken.None);
                         break;
                     case NotificationEvent.ResetPassword:
                         await HandleResetPasswordAsync(eventData);
@@ -253,22 +253,23 @@ namespace Avancira.Infrastructure.Catalog
         }
 
 
-        private async Task HandleConfirmEmailAsync<T>(T eventData)
+        private async Task HandleConfirmEmailAsync<T>(T eventData, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Handling confirm email notification");
-            
+
             // Cast eventData to the expected type
             if (eventData is ConfirmEmailEvent confirmEmailData)
             {
                 var subject = "Confirm Your Email Address";
+                var encodedLink = HtmlEncoder.Default.Encode(confirmEmailData.ConfirmationLink);
                 var body = $@"
                     <html>
                     <body>
                         <h2>Welcome to Avancira!</h2>
                         <p>Thank you for registering with us. Please confirm your email address by clicking the link below:</p>
-                        <p><a href='{confirmEmailData.ConfirmationLink}' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Confirm Email</a></p>
+                        <p><a href='{encodedLink}' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Confirm Email</a></p>
                         <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                        <p>{confirmEmailData.ConfirmationLink}</p>
+                        <p>{encodedLink}</p>
                         <br>
                         <p>Best regards,<br>The Avancira Team</p>
                     </body>
@@ -280,7 +281,7 @@ namespace Avancira.Infrastructure.Catalog
                     subject: subject,
                     body: body,
                     provider: "GraphApi",
-                    cancellationToken: CancellationToken.None
+                    cancellationToken: cancellationToken
                 );
 
                 _logger.LogInformation("Email confirmation sent successfully to {Email}", confirmEmailData.Email);
