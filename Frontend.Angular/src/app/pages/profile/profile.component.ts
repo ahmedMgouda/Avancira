@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { MapAddressComponent } from '../../components/map-address/map-address.component';
@@ -9,6 +9,7 @@ import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service'; 
 import { UserService } from '../../services/user.service';
+import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
 
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
@@ -19,7 +20,7 @@ import { Address, User } from '../../models/user';
 
 @Component({
   selector: 'app-profile',
-  imports: [CommonModule, FormsModule, MapAddressComponent, ImageFallbackDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MapAddressComponent, ImageFallbackDirective],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -33,6 +34,7 @@ export class ProfileComponent implements OnInit {
   // States
   profile: User = {} as User;
   profileImageFile: File | null = null;
+  changePasswordForm: FormGroup;
 
   // Notifications
   notifications = {
@@ -59,8 +61,24 @@ export class ProfileComponent implements OnInit {
     private userService: UserService,
     private spinnerService: SpinnerService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private fb: FormBuilder
   ) {
+    this.changePasswordForm = this.fb.group(
+      {
+        oldPassword: ['', [Validators.required]],
+        newPassword: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(8),
+            passwordComplexityValidator(),
+          ],
+        ],
+        confirmPassword: ['', [Validators.required]],
+      },
+      { validators: matchPasswords() }
+    );
   }
 
 
@@ -210,6 +228,18 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  get oldPasswordControl() {
+    return this.changePasswordForm.get('oldPassword');
+  }
+
+  get newPasswordControl() {
+    return this.changePasswordForm.get('newPassword');
+  }
+
+  get confirmPasswordControl() {
+    return this.changePasswordForm.get('confirmPassword');
+  }
+
   // 6. Account Management
   changePassword(): void {
     if (this.profile?.email) {
@@ -249,29 +279,26 @@ export class ProfileComponent implements OnInit {
     });
   }
   
-  changePasswordData = {
-    oldPassword: '',
-    newPassword: '',
-    confirmNewPassword: ''
-  };
   changeOldPassword(): void {
-    if (this.changePasswordData.newPassword !== this.changePasswordData.confirmNewPassword) {
-      this.alertService.warningAlert('New password and confirmation do not match.');
+    if (this.changePasswordForm.invalid) {
+      this.changePasswordForm.markAllAsTouched();
       return;
     }
 
-    this.userService.changePassword(
-      this.changePasswordData.oldPassword,
-      this.changePasswordData.newPassword,
-      this.changePasswordData.confirmNewPassword
-    ).subscribe({
-      next: () => {
-        this.alertService.successAlert('Password updated successfully.');
-        this.changePasswordData = { oldPassword: '', newPassword: '', confirmNewPassword: '' };
-      },
-      error: (err) => {
-        this.alertService.errorAlert('Failed to update password: ' + (err.error?.message || 'Unknown error'));
-      }
-    });
+    const { oldPassword, newPassword, confirmPassword } = this.changePasswordForm.value;
+
+    this.userService
+      .changePassword(oldPassword, newPassword, confirmPassword)
+      .subscribe({
+        next: () => {
+          this.alertService.successAlert('Password updated successfully.');
+          this.changePasswordForm.reset();
+        },
+        error: (err) => {
+          this.alertService.errorAlert(
+            'Failed to update password: ' + (err.error?.message || 'Unknown error')
+          );
+        },
+      });
   }
 }
