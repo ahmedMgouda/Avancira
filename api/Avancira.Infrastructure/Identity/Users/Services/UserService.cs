@@ -121,12 +121,13 @@ internal sealed partial class UserService(
             throw new AvanciraException("Username already in use");
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
+        User user;
         try
         {
             // create user entity
-            var user = new User
+            user = new User
             {
                 Email = request.Email,
                 FirstName = request.FirstName,
@@ -148,10 +149,25 @@ internal sealed partial class UserService(
             }
 
             // add basic role
-            await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
+            IdentityResult roleResult = await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
+            if (!roleResult.Succeeded)
+            {
+                var errors = roleResult.Errors.Select(error => error.Description).ToList();
+                throw new AvanciraException("error while assigning user role", errors);
+            }
 
-            // send confirmation mail
-            if (!string.IsNullOrEmpty(user.Email))
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        // send confirmation mail after commit so user creation succeeds even if notification fails
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            try
             {
                 string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
                 var confirmEmailEvent = new ConfirmEmailEvent
@@ -164,16 +180,13 @@ internal sealed partial class UserService(
                 // Use notification service to send email confirmation
                 await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
             }
-
-            await transaction.CommitAsync();
-
-            return new RegisterUserResponseDto(user.Id);
+            catch
+            {
+                // Intentionally swallow exceptions so that user registration is not affected
+            }
         }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+
+        return new RegisterUserResponseDto(user.Id);
     }
 
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
