@@ -35,14 +35,17 @@ public class ExternalAuthController : BaseApiController
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
     {
-        var info = request.Provider.ToLowerInvariant() switch
+        var result = request.Provider.ToLowerInvariant() switch
         {
             "google" => await _externalAuthService.ValidateGoogleTokenAsync(request.Token),
             "facebook" => await _externalAuthService.ValidateFacebookTokenAsync(request.Token),
-            _ => null
+            _ => ExternalAuthResult.Fail("Unsupported provider")
         };
 
-        if (info is null) return Unauthorized();
+        if (!result.Succeeded || result.LoginInfo is null)
+            return Unauthorized(result.Error);
+
+        var info = result.LoginInfo;
 
         var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
         if (user is null)

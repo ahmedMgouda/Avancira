@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Avancira.API\Avancira.API.csproj" />
     <ProjectReference Include="..\Avancira.Application\Avancira.Application.csproj" />
+    <ProjectReference Include="..\Avancira.Infrastructure\Avancira.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
