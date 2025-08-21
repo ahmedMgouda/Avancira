@@ -5,6 +5,7 @@ using Avancira.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +64,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 });
+
+builder.Services.AddAuthentication()
+    .AddGoogle(o =>
+    {
+        o.ClientId = builder.Configuration["Avancira:ExternalServices:Google:ClientId"]!;
+        o.ClientSecret = builder.Configuration["Avancira:ExternalServices:Google:ClientSecret"]!;
+    })
+    .AddFacebook(o =>
+    {
+        o.AppId = builder.Configuration["Avancira:ExternalServices:Facebook:AppId"]!;
+        o.AppSecret = builder.Configuration["Avancira:ExternalServices:Facebook:AppSecret"]!;
+    });
 
 var app = builder.Build();
 

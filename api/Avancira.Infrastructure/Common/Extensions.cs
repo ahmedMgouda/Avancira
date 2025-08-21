@@ -10,6 +10,7 @@ using Avancira.Application.Messaging;
 using Avancira.Application.Payments;
 using Avancira.Application.Subscriptions;
 using Avancira.Application.Common;
+using Avancira.Application.Auth;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Billing;
 using Avancira.Infrastructure.Identity.Audit;
@@ -51,6 +52,7 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IWalletService, WalletService>();
             services.AddTransient<ILessonService, LessonService>();
             services.AddTransient<IJwtTokenService, JwtTokenService>();
+            services.AddHttpClient<IExternalAuthService, ExternalAuthService>();
             services.AddTransient<IGeolocationService, GeolocationService>();
             services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();

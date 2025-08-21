@@ -8,6 +8,7 @@ namespace Avancira.Application.Identity.Tokens;
 public interface ITokenService
 {
     Task<TokenPair> GenerateTokenAsync(TokenGenerationDto request, ClientInfo clientInfo, CancellationToken cancellationToken);
+    Task<TokenPair> GenerateTokenForUserAsync(string userId, ClientInfo clientInfo, CancellationToken cancellationToken);
     Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, ClientInfo clientInfo, CancellationToken cancellationToken);
     Task RevokeTokenAsync(string refreshToken, string userId, ClientInfo clientInfo, CancellationToken cancellationToken);
     Task<IReadOnlyList<SessionDto>> GetSessionsAsync(string userId, CancellationToken ct);
