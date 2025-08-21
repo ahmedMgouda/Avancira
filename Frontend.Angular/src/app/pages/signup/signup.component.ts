@@ -188,20 +188,19 @@ export class SignupComponent implements OnInit, OnDestroy {
   }
 
   /** Handle token verification with backend */
-  handleSocialSignup(provider: string, token: string): void {
-    // this.authService.socialLogin(provider, token).subscribe({
-    //   next: (res) => {
-    //     if (res) {
-    //       this.router.navigateByUrl(this.returnUrl);
-    //     } else {
-    //       this.router.navigate(['/complete-registration']);
-    //     }
-    //   },
-    //   error: (err) => {
-    //     console.error(`${provider} signup error:`, err);
-    //     this.signupError = `${provider} signup failed.`;
-    //   },
-    // });
+  handleSocialSignup(provider: 'google' | 'facebook', token: string): void {
+    this.authService
+      .externalLogin(provider, token)
+      .pipe(finalize(() => this.spinner.hide()))
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl(this.returnUrl);
+        },
+        error: (err) => {
+          console.error(`${provider} signup error:`, err);
+          this.toastr.error(`${provider} signup failed.`, 'Error');
+        },
+      });
   }
 
   ngOnDestroy(): void {

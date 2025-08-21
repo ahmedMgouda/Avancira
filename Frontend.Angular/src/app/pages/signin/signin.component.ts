@@ -120,16 +120,19 @@ export class SigninComponent implements OnInit {
   }
 
   /** Common handler for social login */
-  handleSocialLogin(provider: string, token: string): void {
-    // this.authService.socialLogin(provider, token).subscribe({
-    //   next: () => {
-    //     this.router.navigateByUrl(this.returnUrl);
-    //   },
-    //   error: (err : any) => {
-    //     console.error(`${provider} login error:`, err);
-    //     this.toastr.error(`${provider} login failed.`, 'Error');
-    //   },
-    // });
+  handleSocialLogin(provider: 'google' | 'facebook', token: string): void {
+    this.authService
+      .externalLogin(provider, token)
+      .pipe(finalize(() => this.spinner.hide()))
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl(this.returnUrl);
+        },
+        error: (err: any) => {
+          console.error(`${provider} login error:`, err);
+          this.toastr.error(`${provider} login failed.`, 'Error');
+        },
+      });
   }
 
   /** Password reset prompt */
