@@ -101,6 +101,19 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  externalLogin(provider: 'google' | 'facebook', token: string): Observable<UserProfile> {
+    return this.http.post<TokenResponse>(
+      `${this.api}/auth/external-login`,
+      { provider, token },
+      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+    ).pipe(
+      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
+      switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
+      tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
+      map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
+    );
+  }
+
   register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
     return this.http.post<RegisterUserResponseDto>(
       `${this.api}/users/register`,

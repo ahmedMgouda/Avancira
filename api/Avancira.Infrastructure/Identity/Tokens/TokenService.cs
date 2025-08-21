@@ -55,6 +55,27 @@ public sealed class TokenService : ITokenService
         return await GenerateTokens(user, clientInfo, cancellationToken);
     }
 
+    public async Task<TokenPair> GenerateTokenForUserAsync(string userId, ClientInfo clientInfo, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw new UnauthorizedException();
+        }
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedException("user is deactivated");
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            throw new UnauthorizedException("email not confirmed");
+        }
+
+        return await GenerateTokens(user, clientInfo, cancellationToken);
+    }
+
     public async Task<TokenPair> RefreshTokenAsync(string? token, string refreshToken, ClientInfo clientInfo, CancellationToken cancellationToken)
     {
         var hashedRefreshToken = HashToken(refreshToken);
