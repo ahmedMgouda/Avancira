@@ -10,7 +10,7 @@ public class ChangePasswordValidator : AbstractValidator<ChangePasswordDto>
             .NotEmpty();
 
         RuleFor(p => p.NewPassword)
-            .NotEmpty();
+            .ApplyPasswordRules();
 
         RuleFor(p => p.ConfirmNewPassword)
             .Equal(p => p.NewPassword)

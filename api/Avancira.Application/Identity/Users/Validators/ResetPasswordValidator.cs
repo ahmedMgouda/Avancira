@@ -11,12 +11,7 @@ public class ResetPasswordValidator : AbstractValidator<ResetPasswordDto>
             .NotEmpty();
 
         RuleFor(x => x.Password)
-            .NotEmpty()
-            .MinimumLength(8).WithMessage(UserErrorMessages.PasswordTooShort)
-            .Matches("[A-Z]").WithMessage(UserErrorMessages.PasswordRequiresUppercase)
-            .Matches("[a-z]").WithMessage(UserErrorMessages.PasswordRequiresLowercase)
-            .Matches("[0-9]").WithMessage(UserErrorMessages.PasswordRequiresDigit)
-            .Matches("[^a-zA-Z0-9]").WithMessage(UserErrorMessages.PasswordRequiresNonAlphanumeric);
+            .ApplyPasswordRules();
 
         RuleFor(x => x.ConfirmPassword)
             .NotEmpty()
