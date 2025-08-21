@@ -1,9 +1,11 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
-export const UPPERCASE_PATTERN = /[A-Z]/;
-export const LOWERCASE_PATTERN = /[a-z]/;
-export const DIGIT_PATTERN = /[0-9]/;
-export const SYMBOL_PATTERN = /[^a-zA-Z0-9]/;
+import {
+  UPPERCASE_PATTERN,
+  LOWERCASE_PATTERN,
+  DIGIT_PATTERN,
+  SYMBOL_PATTERN,
+} from './password-rules';
 
 /**
  * Validates that a control's value meets common password complexity rules.

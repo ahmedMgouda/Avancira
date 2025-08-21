@@ -21,6 +21,7 @@ import { GoogleAuthService } from '../../services/google-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
+import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
 
 interface SignupForm {
@@ -72,7 +73,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       ]),
       password: this.fb.nonNullable.control('', [
         Validators.required,
-        Validators.minLength(8),
+        Validators.minLength(MIN_PASSWORD_LENGTH),
         passwordComplexityValidator(),
       ]),
       verifyPassword: this.fb.nonNullable.control('', [

@@ -8,10 +8,10 @@ public static class PasswordRuleExtensions
     public static IRuleBuilderOptions<T, string> ApplyPasswordRules<T>(this IRuleBuilder<T, string> ruleBuilder)
         => ruleBuilder
             .NotEmpty()
-            .MinimumLength(8).WithMessage(UserErrorMessages.PasswordTooShort)
-            .Matches("[A-Z]").WithMessage(UserErrorMessages.PasswordRequiresUppercase)
-            .Matches("[a-z]").WithMessage(UserErrorMessages.PasswordRequiresLowercase)
-            .Matches("[0-9]").WithMessage(UserErrorMessages.PasswordRequiresDigit)
-            .Matches("[^a-zA-Z0-9]").WithMessage(UserErrorMessages.PasswordRequiresNonAlphanumeric);
+            .MinimumLength(PasswordRules.MinLength).WithMessage(UserErrorMessages.PasswordTooShort)
+            .Matches(PasswordRules.UppercasePattern).WithMessage(UserErrorMessages.PasswordRequiresUppercase)
+            .Matches(PasswordRules.LowercasePattern).WithMessage(UserErrorMessages.PasswordRequiresLowercase)
+            .Matches(PasswordRules.DigitPattern).WithMessage(UserErrorMessages.PasswordRequiresDigit)
+            .Matches(PasswordRules.NonAlphanumericPattern).WithMessage(UserErrorMessages.PasswordRequiresNonAlphanumeric);
 }
 
