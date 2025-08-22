@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Net.Http;
 using Avancira.Application.Auth;
 using Avancira.Application.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Facebook;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -37,11 +39,18 @@ public class FacebookTokenValidator : IExternalTokenValidator
                 ["input_token"] = accessToken,
                 ["access_token"] = appToken
             };
+
             using var debugDoc = await _facebookClient.GetAsync("debug_token", debugParams);
-            var data = debugDoc.RootElement.GetProperty("data");
-            var appId = data.GetProperty("app_id").GetString();
-            var isValid = data.GetProperty("is_valid").GetBoolean();
-            var expiresAt = data.GetProperty("expires_at").GetInt64();
+            var debug = debugDoc.Deserialize<FacebookDebugTokenResponse>();
+            if (debug?.Data == null)
+            {
+                _logger.LogError("Malformed debug_token response from Facebook");
+                return ExternalAuthResult.Fail("Malformed response from Facebook");
+            }
+
+            var appId = debug.Data.AppId;
+            var isValid = debug.Data.IsValid;
+            var expiresAt = debug.Data.ExpiresAt;
             if (appId != _options.AppId || !isValid || DateTimeOffset.FromUnixTimeSeconds(expiresAt) <= DateTimeOffset.UtcNow)
             {
                 _logger.LogWarning("Facebook token invalid: app_id={AppId} is_valid={IsValid} exp={Exp}", appId, isValid, expiresAt);
@@ -53,11 +62,18 @@ public class FacebookTokenValidator : IExternalTokenValidator
                 ["fields"] = "id,name,email",
                 ["access_token"] = accessToken
             };
+
             using var profileDoc = await _facebookClient.GetAsync("me", profileParams);
-            var root = profileDoc.RootElement;
-            var id = root.GetProperty("id").GetString() ?? string.Empty;
-            var email = root.TryGetProperty("email", out var emailEl) ? emailEl.GetString() ?? string.Empty : string.Empty;
-            var name = root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? string.Empty : string.Empty;
+            var profile = profileDoc.Deserialize<FacebookMeResponse>();
+            if (profile == null)
+            {
+                _logger.LogError("Malformed me response from Facebook");
+                return ExternalAuthResult.Fail("Malformed response from Facebook");
+            }
+
+            var id = profile.Id ?? string.Empty;
+            var email = profile.Email ?? string.Empty;
+            var name = profile.Name ?? string.Empty;
 
             var claims = new List<Claim>
             {
@@ -67,6 +83,21 @@ public class FacebookTokenValidator : IExternalTokenValidator
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "facebook"));
             var info = new ExternalLoginInfo(principal, "Facebook", id, "Facebook");
             return ExternalAuthResult.Success(info);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error validating Facebook token");
+            return ExternalAuthResult.Fail("Network error validating Facebook token");
+        }
+        catch (FacebookApiException ex)
+        {
+            _logger.LogError(ex, "Network error validating Facebook token");
+            return ExternalAuthResult.Fail("Network error validating Facebook token");
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Malformed JSON from Facebook");
+            return ExternalAuthResult.Fail("Malformed response from Facebook");
         }
         catch (Exception ex)
         {
