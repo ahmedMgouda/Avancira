@@ -13,12 +13,13 @@ import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 import { FacebookAuthService } from '../../services/facebook-auth.service';
+import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 
 @Component({
   selector: 'app-signin',
   templateUrl: './signin.component.html',
   styleUrls: ['./signin.component.scss'],
-  imports: [CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, SocialLoginButtonsComponent]
 })
 export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
