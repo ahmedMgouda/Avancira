@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using System;
 
 namespace Avancira.API.Controllers;
 
@@ -51,5 +53,28 @@ public abstract class BaseApiController : ControllerBase
     protected bool HasRole(string role)
     {
         return User.IsInRole(role);
+    }
+
+    /// <summary>
+    /// Sets the refresh token cookie with standard options
+    /// </summary>
+    /// <param name="refreshToken">Refresh token value</param>
+    /// <param name="expires">Optional expiration time for persistent cookies</param>
+    protected void SetRefreshTokenCookie(string refreshToken, DateTime? expires)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/api/auth"
+        };
+
+        if (expires.HasValue)
+        {
+            cookieOptions.Expires = expires.Value;
+        }
+
+        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 }

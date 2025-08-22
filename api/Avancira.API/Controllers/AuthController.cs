@@ -100,22 +100,4 @@ public class AuthController : BaseApiController
         await _tokenService.RevokeSessionAsync(id, userId, cancellationToken);
         return Ok();
     }
-
-    private void SetRefreshTokenCookie(string refreshToken, DateTime? expires)
-    {
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Path = "/api/auth"
-        };
-
-        if (expires.HasValue)
-        {
-            cookieOptions.Expires = expires.Value;
-        }
-
-        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
-    }
 }

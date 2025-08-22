@@ -106,21 +106,6 @@ public class ExternalAuthController : BaseApiController
         return Ok(new TokenResponse(tokens.Token));
     }
 
-    private void SetRefreshTokenCookie(string refreshToken, DateTime expires)
-    {
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Path = "/api/auth"
-        };
-
-        cookieOptions.Expires = expires;
-
-        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
-    }
-
     public class ExternalLoginRequest
     {
         [Required]
