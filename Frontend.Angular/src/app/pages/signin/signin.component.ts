@@ -4,13 +4,15 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { finalize } from 'rxjs/operators';
+import { finalize, switchMap } from 'rxjs/operators';
+import { from } from 'rxjs';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
+import { FacebookAuthService } from '../../services/facebook-auth.service';
 
 @Component({
   selector: 'app-signin',
@@ -42,7 +44,8 @@ export class SigninComponent implements OnInit {
     private toastr: ToastrService,
     private alert: AlertService,
     private user: UserService,
-    private socialAuth: SocialAuthService
+    private socialAuth: SocialAuthService,
+    private facebookAuth: FacebookAuthService
   ) {}
 
   ngOnInit(): void {
@@ -80,8 +83,14 @@ export class SigninComponent implements OnInit {
 
   authenticate(provider: 'google' | 'facebook'): void {
     this.spinner.show();
-    this.socialAuth
-      .authenticate(provider)
+    const auth$ =
+      provider === 'facebook'
+        ? from(this.facebookAuth.ensureInitialized()).pipe(
+            switchMap(() => this.socialAuth.authenticate(provider))
+          )
+        : this.socialAuth.authenticate(provider);
+
+    auth$
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () =>

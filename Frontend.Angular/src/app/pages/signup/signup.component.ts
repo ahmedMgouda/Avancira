@@ -11,8 +11,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { Subject, takeUntil } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { Subject, from, takeUntil } from 'rxjs';
+import { finalize, switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
 import { SocialAuthService } from '../../services/social-auth.service';
@@ -21,6 +21,7 @@ import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
+import { FacebookAuthService } from '../../services/facebook-auth.service';
 
 interface SignupForm {
   firstName: FormControl<string>;
@@ -55,7 +56,8 @@ export class SignupComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private spinner: SpinnerService,
     private toastr: ToastrService,
-    private socialAuth: SocialAuthService
+    private socialAuth: SocialAuthService,
+    private facebookAuth: FacebookAuthService
   ) {
     this.signupForm = this.fb.nonNullable.group<SignupForm>({
       firstName: this.fb.nonNullable.control('', Validators.required),
@@ -139,8 +141,14 @@ export class SignupComponent implements OnInit, OnDestroy {
 
   authenticate(provider: 'google' | 'facebook'): void {
     this.spinner.show();
-    this.socialAuth
-      .authenticate(provider)
+    const auth$ =
+      provider === 'facebook'
+        ? from(this.facebookAuth.ensureInitialized()).pipe(
+            switchMap(() => this.socialAuth.authenticate(provider))
+          )
+        : this.socialAuth.authenticate(provider);
+
+    auth$
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () => {
