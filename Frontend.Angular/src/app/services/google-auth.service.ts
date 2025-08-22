@@ -1,14 +1,12 @@
 // src/app/services/google-auth.service.ts
 import { Injectable } from '@angular/core';
 
-declare const google: any;
-
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
   private initialized = false;
   private clientId = '';
   private resolveFn?: (token: string) => void;
-  private rejectFn?: (reason?: any) => void;
+  private rejectFn?: (reason?: unknown) => void;
 
   /** Initializes the Google Identity SDK */
   async init(clientId: string): Promise<void> {
@@ -19,7 +17,7 @@ export class GoogleAuthService {
 
     google.accounts.id.initialize({
       client_id: this.clientId,
-      callback: (response: any) => {
+      callback: (response: google.accounts.id.CredentialResponse) => {
         if (response.credential) {
           this.resolveFn?.(response.credential);
         } else {
@@ -39,12 +37,14 @@ export class GoogleAuthService {
       this.resolveFn = resolve;
       this.rejectFn = reject;
       try {
-        google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed()) {
-            reject('Google Sign-In not displayed.');
-            this.clearHandlers();
-          }
-        });
+        google.accounts.id.prompt(
+          (notification: google.accounts.id.PromptMomentNotification) => {
+            if (notification.isNotDisplayed()) {
+              reject('Google Sign-In not displayed.');
+              this.clearHandlers();
+            }
+          },
+        );
       } catch (e) {
         reject(e);
         this.clearHandlers();
