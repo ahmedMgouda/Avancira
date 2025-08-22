@@ -48,7 +48,17 @@ public class ExternalAuthController : BaseApiController
             return BadRequest(ModelState);
         }
 
-        var provider = request.Provider!.Value.ToString();
+        if (request.Provider is null)
+        {
+            return BadRequest("Provider is required");
+        }
+
+        var provider = Enum.GetName(typeof(ExternalAuthProvider), request.Provider.Value);
+        if (provider is null)
+        {
+            return BadRequest("Unsupported provider");
+        }
+
         var result = await _externalAuthService.ValidateTokenAsync(provider, request.Token);
 
         if (!result.Succeeded || result.LoginInfo is null)
