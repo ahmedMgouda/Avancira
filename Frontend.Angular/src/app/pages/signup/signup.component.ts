@@ -9,15 +9,13 @@ import {
 } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { RouterModule } from '@angular/router'; 
-import { FacebookService, InitParams } from 'ngx-facebook';
+import { RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, takeUntil } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
-import { ConfigService } from '../../services/config.service';
-import { GoogleAuthService } from '../../services/google-auth.service';
+import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
@@ -55,11 +53,9 @@ export class SignupComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private config: ConfigService,
     private spinner: SpinnerService,
     private toastr: ToastrService,
-    private google: GoogleAuthService,
-    private facebook: FacebookService
+    private socialAuth: SocialAuthService
   ) {
     this.signupForm = this.fb.nonNullable.group<SignupForm>({
       firstName: this.fb.nonNullable.control('', Validators.required),
@@ -94,20 +90,6 @@ export class SignupComponent implements OnInit, OnDestroy {
         this.referralToken = params['referral'] || null;
         this.returnUrl = params['returnUrl'] || '/';
       });
-
-    // Init Facebook SDK
-    this.config.loadConfig().subscribe({
-      next: () => {
-        const initParams: InitParams = {
-          appId: this.config.get('facebookAppId'),
-          cookie: true,
-          xfbml: true,
-          version: 'v21.0',
-        };
-        this.facebook.init(initParams);
-      },
-      error: (err) => console.error('Facebook SDK init failed:', err),
-    });
   }
 
   /** Handle manual signup */
@@ -155,42 +137,10 @@ export class SignupComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Facebook signup */
-  signupWithFacebook(): void {
+  authenticate(provider: 'google' | 'facebook'): void {
     this.spinner.show();
-    this.facebook
-      .login({ scope: 'email,public_profile' })
-      .then(async (res) => {
-        const token = res.authResponse.accessToken;
-        await this.handleSocialSignup('facebook', token);
-      })
-      .catch((err) => {
-        console.error('Facebook signup error:', err);
-        this.signupError = 'Facebook signup failed.';
-        this.spinner.hide();
-      });
-  }
-
-  /** Google signup with GIS */
-  async signupWithGoogle(): Promise<void> {
-    try {
-      this.spinner.show();
-      const clientId = this.config.get('googleClientId');
-      await this.google.init(clientId);
-      const idToken = await this.google.signIn();
-      await this.handleSocialSignup('google', idToken);
-    } catch (err) {
-      console.error('Google signup error:', err);
-      this.signupError = 'Google signup failed. Try again.';
-    } finally {
-      this.spinner.hide();
-    }
-  }
-
-  /** Handle token verification with backend */
-  handleSocialSignup(provider: 'google' | 'facebook', token: string): void {
-    this.authService
-      .externalLogin(provider, token)
+    this.socialAuth
+      .authenticate(provider)
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () => {

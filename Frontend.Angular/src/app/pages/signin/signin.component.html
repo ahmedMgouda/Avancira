@@ -53,12 +53,12 @@
             </div>
             <div class="row form-row social-login">
               <div class="col-6">
-                <button class="btn btn-facebook btn-block w-100" (click)="loginWithFacebook()">
+                <button class="btn btn-facebook btn-block w-100" (click)="authenticate('facebook')">
                   <i class="fab fa-facebook-f me-1"></i> Login
                 </button>
               </div>
               <div class="col-6">
-                <button class="btn btn-google btn-block w-100" (click)="loginWithGoogle()">
+                <button class="btn btn-google btn-block w-100" (click)="authenticate('google')">
                   <i class="fab fa-google me-1"></i> Login
                 </button>
               </div>
