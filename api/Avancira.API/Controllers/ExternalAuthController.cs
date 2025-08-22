@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Avancira.Application.Auth;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
@@ -71,10 +72,20 @@ public class ExternalAuthController : BaseApiController
                     EmailConfirmed = true,
                     FirstName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty
                 };
-                await _userManager.CreateAsync(user);
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    var error = createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.";
+                    return Problem(error);
+                }
             }
 
-            await _userManager.AddLoginAsync(user, info);
+            var loginResult = await _userManager.AddLoginAsync(user, info);
+            if (!loginResult.Succeeded)
+            {
+                var error = loginResult.Errors.FirstOrDefault()?.Description ?? "Failed to add external login.";
+                return BadRequest(error);
+            }
         }
 
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
