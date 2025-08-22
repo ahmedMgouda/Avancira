@@ -1,68 +1,49 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Avancira.Application.Auth;
 using Avancira.Application.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+using Google.Apis.Auth;
 
 namespace Avancira.Infrastructure.Auth;
 
 public class GoogleTokenValidator : IExternalTokenValidator
 {
     private readonly GoogleOptions _options;
+    private readonly IGoogleJsonWebSignatureValidator _validator;
     private readonly ILogger<GoogleTokenValidator> _logger;
 
     public string Provider => "google";
 
     public GoogleTokenValidator(
         IOptions<GoogleOptions> googleOptions,
+        IGoogleJsonWebSignatureValidator validator,
         ILogger<GoogleTokenValidator> logger)
     {
         _options = googleOptions.Value;
+        _validator = validator;
         _logger = logger;
     }
 
-    public Task<ExternalAuthResult> ValidateAsync(string idToken)
+    public async Task<ExternalAuthResult> ValidateAsync(string idToken)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var parameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuers = new[] { "accounts.google.com", "https://accounts.google.com" },
-            ValidateAudience = true,
-            ValidAudience = _options.ClientId,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(5),
-            ValidateIssuerSigningKey = false
-        };
-
         try
         {
-            var principal = handler.ValidateToken(idToken, parameters, out _);
-            var sub = principal.FindFirstValue("sub") ?? string.Empty;
-            var email = principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-            var name = principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
-
+            var payload = await _validator.ValidateAsync(idToken, _options.ClientId);
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, name)
+                new Claim(ClaimTypes.Email, payload.Email ?? string.Empty),
+                new Claim(ClaimTypes.Name, payload.Name ?? string.Empty)
             };
-            var identity = new ClaimsIdentity(claims, "google");
-            var info = new ExternalLoginInfo(new ClaimsPrincipal(identity), "Google", sub, "Google");
-            return Task.FromResult(ExternalAuthResult.Success(info));
-        }
-        catch (SecurityTokenException ex)
-        {
-            _logger.LogWarning(ex, "Google token validation failed");
-            return Task.FromResult(ExternalAuthResult.Fail("Invalid Google token"));
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "google"));
+            var info = new ExternalLoginInfo(principal, "Google", payload.Subject, "Google");
+            return ExternalAuthResult.Success(info);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating Google token");
-            return Task.FromResult(ExternalAuthResult.Fail("Error validating Google token"));
+            _logger.LogWarning(ex, "Google token validation failed");
+            return ExternalAuthResult.Fail("Invalid Google token");
         }
     }
 }

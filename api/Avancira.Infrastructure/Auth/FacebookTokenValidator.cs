@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
 using Avancira.Application.Auth;
@@ -10,18 +11,18 @@ namespace Avancira.Infrastructure.Auth;
 
 public class FacebookTokenValidator : IExternalTokenValidator
 {
-    private readonly HttpClient _httpClient;
+    private readonly IFacebookClient _facebookClient;
     private readonly FacebookOptions _options;
     private readonly ILogger<FacebookTokenValidator> _logger;
 
     public string Provider => "facebook";
 
     public FacebookTokenValidator(
-        IHttpClientFactory httpClientFactory,
+        IFacebookClient facebookClient,
         IOptions<FacebookOptions> facebookOptions,
         ILogger<FacebookTokenValidator> logger)
     {
-        _httpClient = httpClientFactory.CreateClient();
+        _facebookClient = facebookClient;
         _options = facebookOptions.Value;
         _logger = logger;
     }
@@ -31,14 +32,12 @@ public class FacebookTokenValidator : IExternalTokenValidator
         try
         {
             var appToken = $"{_options.AppId}|{_options.AppSecret}";
-            var debugResponse = await _httpClient.GetAsync($"https://graph.facebook.com/debug_token?input_token={accessToken}&access_token={appToken}");
-            if (!debugResponse.IsSuccessStatusCode)
+            var debugParams = new Dictionary<string, object>
             {
-                _logger.LogWarning("Facebook debug_token request failed: {StatusCode}", debugResponse.StatusCode);
-                return ExternalAuthResult.Fail("Invalid Facebook token");
-            }
-
-            using var debugDoc = JsonDocument.Parse(await debugResponse.Content.ReadAsStringAsync());
+                ["input_token"] = accessToken,
+                ["access_token"] = appToken
+            };
+            using var debugDoc = await _facebookClient.GetAsync("debug_token", debugParams);
             var data = debugDoc.RootElement.GetProperty("data");
             var appId = data.GetProperty("app_id").GetString();
             var isValid = data.GetProperty("is_valid").GetBoolean();
@@ -49,14 +48,12 @@ public class FacebookTokenValidator : IExternalTokenValidator
                 return ExternalAuthResult.Fail("Invalid Facebook token");
             }
 
-            var profileResponse = await _httpClient.GetAsync($"https://graph.facebook.com/me?fields=id,name,email&access_token={accessToken}");
-            if (!profileResponse.IsSuccessStatusCode)
+            var profileParams = new Dictionary<string, object>
             {
-                _logger.LogWarning("Facebook profile request failed: {StatusCode}", profileResponse.StatusCode);
-                return ExternalAuthResult.Fail("Unable to retrieve Facebook user info");
-            }
-
-            using var profileDoc = JsonDocument.Parse(await profileResponse.Content.ReadAsStringAsync());
+                ["fields"] = "id,name,email",
+                ["access_token"] = accessToken
+            };
+            using var profileDoc = await _facebookClient.GetAsync("me", profileParams);
             var root = profileDoc.RootElement;
             var id = root.GetProperty("id").GetString() ?? string.Empty;
             var email = root.TryGetProperty("email", out var emailEl) ? emailEl.GetString() ?? string.Empty : string.Empty;
