@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using Avancira.Application.Auth;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
@@ -9,6 +10,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avancira.API.Controllers;
+
+public enum ExternalAuthProvider
+{
+    Google,
+    Facebook
+}
 
 [Route("api/auth")]
 public class ExternalAuthController : BaseApiController
@@ -35,7 +42,13 @@ public class ExternalAuthController : BaseApiController
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await _externalAuthService.ValidateTokenAsync(request.Provider, request.Token);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var provider = request.Provider!.Value.ToString();
+        var result = await _externalAuthService.ValidateTokenAsync(provider, request.Token);
 
         if (!result.Succeeded || result.LoginInfo is null)
             return Unauthorized(result.Error);
@@ -87,5 +100,13 @@ public class ExternalAuthController : BaseApiController
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 
-    public record ExternalLoginRequest(string Provider, string Token);
+    public class ExternalLoginRequest
+    {
+        [Required]
+        [EnumDataType(typeof(ExternalAuthProvider))]
+        public ExternalAuthProvider? Provider { get; set; }
+
+        [Required]
+        public string Token { get; set; } = string.Empty;
+    }
 }
