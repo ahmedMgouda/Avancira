@@ -53,6 +53,8 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<ILessonService, LessonService>();
             services.AddTransient<IJwtTokenService, JwtTokenService>();
             services.AddHttpClient();
+            services.AddSingleton<IGoogleJsonWebSignatureValidator, GoogleJsonWebSignatureValidator>();
+            services.AddSingleton<IFacebookClient, FacebookClientWrapper>();
             services.AddTransient<IExternalTokenValidator, GoogleTokenValidator>();
             services.AddTransient<IExternalTokenValidator, FacebookTokenValidator>();
             services.AddTransient<IExternalAuthService, ExternalAuthService>();
