@@ -25,6 +25,17 @@ export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
   returnUrl = '/';
 
+  /**
+   * Validates and sanitizes a return URL.
+   * Ensures the URL is a relative path within the app.
+   * Defaults to '/' if validation fails.
+   */
+  private sanitizeReturnUrl(url?: string): string {
+    if (!url) return '/';
+    const isRelative = /^\/(?!\/)/.test(url) && !url.includes('://');
+    return isRelative ? url : '/';
+  }
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -47,7 +58,7 @@ export class SigninComponent implements OnInit {
     });
 
     this.route.queryParams.subscribe((params) => {
-      this.returnUrl = params['returnUrl'] || '/';
+      this.returnUrl = this.sanitizeReturnUrl(params['returnUrl']);
     });
 
     // Initialize Facebook SDK
@@ -82,7 +93,7 @@ export class SigninComponent implements OnInit {
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () => {
-          this.router.navigateByUrl(this.returnUrl);
+          this.router.navigateByUrl(this.sanitizeReturnUrl(this.returnUrl));
         },
         error: () => {
           this.toastr.error('Invalid credentials', 'Login Failed');
@@ -135,7 +146,11 @@ export class SigninComponent implements OnInit {
   ): Observable<void> {
     return this.authService
       .externalLogin(provider, token)
-      .pipe(tap(() => this.router.navigateByUrl(this.returnUrl)));
+      .pipe(
+        tap(() =>
+          this.router.navigateByUrl(this.sanitizeReturnUrl(this.returnUrl))
+        )
+      );
   }
 
   /** Password reset prompt */
