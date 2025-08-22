@@ -4,6 +4,5 @@ namespace Avancira.Application.Auth;
 
 public interface IExternalAuthService
 {
-    Task<ExternalAuthResult> ValidateGoogleTokenAsync(string idToken);
-    Task<ExternalAuthResult> ValidateFacebookTokenAsync(string accessToken);
+    Task<ExternalAuthResult> ValidateTokenAsync(string provider, string token);
 }

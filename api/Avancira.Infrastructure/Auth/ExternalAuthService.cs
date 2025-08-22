@@ -29,7 +29,17 @@ public class ExternalAuthService : IExternalAuthService
         _logger = logger;
     }
 
-    public Task<ExternalAuthResult> ValidateGoogleTokenAsync(string idToken)
+    public Task<ExternalAuthResult> ValidateTokenAsync(string provider, string token)
+    {
+        return provider.ToLowerInvariant() switch
+        {
+            "google" => ValidateGoogleTokenAsync(token),
+            "facebook" => ValidateFacebookTokenAsync(token),
+            _ => Task.FromResult(ExternalAuthResult.Fail("Unsupported provider"))
+        };
+    }
+
+    private Task<ExternalAuthResult> ValidateGoogleTokenAsync(string idToken)
     {
         var handler = new JwtSecurityTokenHandler();
         var parameters = new TokenValidationParameters
@@ -71,7 +81,7 @@ public class ExternalAuthService : IExternalAuthService
         }
     }
 
-    public async Task<ExternalAuthResult> ValidateFacebookTokenAsync(string accessToken)
+    private async Task<ExternalAuthResult> ValidateFacebookTokenAsync(string accessToken)
     {
         try
         {
