@@ -6,20 +6,20 @@ import { SignupComponent } from './signup.component';
 import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ToastrService } from 'ngx-toastr';
-import { ConfigService } from '../../services/config.service';
-import { GoogleAuthService } from '../../services/google-auth.service';
-import { FacebookService } from 'ngx-facebook';
+import { SocialAuthService } from '../../services/social-auth.service';
 
 describe('SignupComponent', () => {
   let component: SignupComponent;
   let fixture: ComponentFixture<SignupComponent>;
   let authService: jasmine.SpyObj<AuthService>;
+  let socialAuth: jasmine.SpyObj<SocialAuthService>;
   let router: jasmine.SpyObj<Router>;
   let spinner: jasmine.SpyObj<SpinnerService>;
   let toastr: jasmine.SpyObj<ToastrService>;
 
   beforeEach(async () => {
-    authService = jasmine.createSpyObj('AuthService', ['externalLogin']);
+    authService = jasmine.createSpyObj('AuthService', ['register']);
+    socialAuth = jasmine.createSpyObj('SocialAuthService', ['authenticate']);
     router = jasmine.createSpyObj('Router', ['navigateByUrl']);
     spinner = jasmine.createSpyObj('SpinnerService', ['show', 'hide']);
     toastr = jasmine.createSpyObj('ToastrService', ['error']);
@@ -28,13 +28,11 @@ describe('SignupComponent', () => {
       imports: [SignupComponent],
       providers: [
         { provide: AuthService, useValue: authService },
+        { provide: SocialAuthService, useValue: socialAuth },
         { provide: Router, useValue: router },
         { provide: SpinnerService, useValue: spinner },
         { provide: ToastrService, useValue: toastr },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
-        { provide: ConfigService, useValue: { loadConfig: () => of({}), get: () => '' } },
-        { provide: GoogleAuthService, useValue: {} },
-        { provide: FacebookService, useValue: { init: () => {} } },
       ],
     }).compileComponents();
 
@@ -48,20 +46,20 @@ describe('SignupComponent', () => {
   });
 
   it('should navigate to returnUrl on successful social signup', () => {
-    authService.externalLogin.and.returnValue(of({} as any));
+    socialAuth.authenticate.and.returnValue(of({} as any));
     component.returnUrl = '/home';
 
-    component.handleSocialSignup('google', 'token123');
+    component.authenticate('google');
 
-    expect(authService.externalLogin).toHaveBeenCalledWith('google', 'token123');
+    expect(socialAuth.authenticate).toHaveBeenCalledWith('google');
     expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
     expect(spinner.hide).toHaveBeenCalled();
   });
 
   it('should show error toast and hide spinner on social signup error', () => {
-    authService.externalLogin.and.returnValue(throwError(() => new Error('fail')));
+    socialAuth.authenticate.and.returnValue(throwError(() => new Error('fail')));
 
-    component.handleSocialSignup('google', 'token123');
+    component.authenticate('google');
 
     expect(toastr.error).toHaveBeenCalled();
     expect(spinner.hide).toHaveBeenCalled();
