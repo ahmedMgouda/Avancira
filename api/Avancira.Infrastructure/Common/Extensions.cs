@@ -52,7 +52,10 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IWalletService, WalletService>();
             services.AddTransient<ILessonService, LessonService>();
             services.AddTransient<IJwtTokenService, JwtTokenService>();
-            services.AddHttpClient<IExternalAuthService, ExternalAuthService>();
+            services.AddHttpClient();
+            services.AddTransient<IExternalTokenValidator, GoogleTokenValidator>();
+            services.AddTransient<IExternalTokenValidator, FacebookTokenValidator>();
+            services.AddTransient<IExternalAuthService, ExternalAuthService>();
             services.AddTransient<IGeolocationService, GeolocationService>();
             services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();

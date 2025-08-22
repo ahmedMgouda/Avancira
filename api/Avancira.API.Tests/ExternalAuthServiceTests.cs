@@ -26,8 +26,15 @@ public class ExternalAuthServiceTests
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
         var gOptions = Options.Create(googleOptions ?? new GoogleOptions { ClientId = "valid-client-id" });
         var fOptions = Options.Create(facebookOptions ?? new FacebookOptions { AppId = "app", AppSecret = "secret" });
-        var logger = Mock.Of<ILogger<ExternalAuthService>>();
-        return new ExternalAuthService(factory.Object, gOptions, fOptions, logger);
+        var serviceLogger = Mock.Of<ILogger<ExternalAuthService>>();
+        var googleLogger = Mock.Of<ILogger<GoogleTokenValidator>>();
+        var facebookLogger = Mock.Of<ILogger<FacebookTokenValidator>>();
+        var validators = new IExternalTokenValidator[]
+        {
+            new GoogleTokenValidator(gOptions, googleLogger),
+            new FacebookTokenValidator(factory.Object, fOptions, facebookLogger)
+        };
+        return new ExternalAuthService(validators, serviceLogger);
     }
 
     private static string CreateGoogleToken(string audience)
