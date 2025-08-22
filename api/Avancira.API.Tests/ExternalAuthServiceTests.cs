@@ -50,12 +50,12 @@ public class ExternalAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateGoogleTokenAsync_ReturnsInfo_OnValidToken()
+    public async Task ValidateTokenAsync_ReturnsInfo_OnValidGoogleToken()
     {
         var service = CreateService(new StubMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
         var token = CreateGoogleToken("valid-client-id");
 
-        var result = await service.ValidateGoogleTokenAsync(token);
+        var result = await service.ValidateTokenAsync("google", token);
 
         result.Succeeded.Should().BeTrue();
         result.LoginInfo.Should().NotBeNull();
@@ -63,19 +63,19 @@ public class ExternalAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateGoogleTokenAsync_Fails_OnInvalidAudience()
+    public async Task ValidateTokenAsync_Fails_OnInvalidGoogleAudience()
     {
         var service = CreateService(new StubMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
         var token = CreateGoogleToken("wrong-client-id");
 
-        var result = await service.ValidateGoogleTokenAsync(token);
+        var result = await service.ValidateTokenAsync("google", token);
 
         result.Succeeded.Should().BeFalse();
         result.Error.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task ValidateFacebookTokenAsync_ReturnsInfo_OnValidToken()
+    public async Task ValidateTokenAsync_ReturnsInfo_OnValidFacebookToken()
     {
         var handler = new StubMessageHandler(req =>
         {
@@ -96,7 +96,7 @@ public class ExternalAuthServiceTests
         });
         var service = CreateService(handler);
 
-        var result = await service.ValidateFacebookTokenAsync("token");
+        var result = await service.ValidateTokenAsync("facebook", "token");
 
         result.Succeeded.Should().BeTrue();
         result.LoginInfo.Should().NotBeNull();
@@ -104,7 +104,7 @@ public class ExternalAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateFacebookTokenAsync_Fails_WhenInvalid()
+    public async Task ValidateTokenAsync_Fails_OnInvalidFacebookToken()
     {
         var handler = new StubMessageHandler(req =>
         {
@@ -120,7 +120,7 @@ public class ExternalAuthServiceTests
         });
         var service = CreateService(handler);
 
-        var result = await service.ValidateFacebookTokenAsync("token");
+        var result = await service.ValidateTokenAsync("facebook", "token");
 
         result.Succeeded.Should().BeFalse();
         result.Error.Should().NotBeNull();
