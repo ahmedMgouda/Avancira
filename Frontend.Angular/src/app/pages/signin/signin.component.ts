@@ -5,7 +5,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FacebookService, InitParams } from 'ngx-facebook';
 import { ToastrService } from 'ngx-toastr';
-import { finalize } from 'rxjs/operators';
+import { from, Observable } from 'rxjs';
+import { finalize, switchMap, take, tap } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
@@ -50,20 +51,23 @@ export class SigninComponent implements OnInit {
     });
 
     // Initialize Facebook SDK
-    this.config.loadConfig().subscribe({
-      next: () => {
-        const params: InitParams = {
-          appId: this.config.get('facebookAppId'),
-          cookie: true,
-          xfbml: true,
-          version: 'v21.0',
-        };
-        this.facebook.init(params);
-      },
-      error: (err) => {
-        console.error('Config load error:', err);
-      },
-    });
+    this.config
+      .loadConfig()
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          const params: InitParams = {
+            appId: this.config.get('facebookAppId'),
+            cookie: true,
+            xfbml: true,
+            version: 'v21.0',
+          };
+          this.facebook.init(params);
+        },
+        error: (err) => {
+          console.error('Config load error:', err);
+        },
+      });
   }
 
   /** Regular login */
@@ -88,51 +92,51 @@ export class SigninComponent implements OnInit {
   }
 
   /** Google login using Identity Services */
-  async loginWithGoogle(): Promise<void> {
-    try {
-      this.spinner.show();
-      const clientId = this.config.get('googleClientId');
-      await this.google.init(clientId);
-      const idToken = await this.google.signIn();
-      await this.handleSocialLogin('google', idToken);
-    } catch (err) {
-      console.error('Google login error:', err);
-      this.toastr.error('Google login failed. Try again.', 'Error');
-    } finally {
-      this.spinner.hide();
-    }
+  loginWithGoogle(): void {
+    this.spinner.show();
+    const clientId = this.config.get('googleClientId');
+
+    from(this.google.init(clientId))
+      .pipe(
+        switchMap(() => from(this.google.signIn())),
+        switchMap((idToken) => this.handleSocialLogin('google', idToken)),
+        finalize(() => this.spinner.hide())
+      )
+      .subscribe({
+        error: (err) => {
+          console.error('Google login error:', err);
+          this.toastr.error('Google login failed. Try again.', 'Error');
+        },
+      });
   }
 
   /** Facebook login */
   loginWithFacebook(): void {
     this.spinner.show();
-    this.facebook
-      .login({ scope: 'email,public_profile' })
-      .then(async (res) => {
-        const token = res.authResponse.accessToken;
-        await this.handleSocialLogin('facebook', token);
-      })
-      .catch((err) => {
-        console.error('Facebook login failed:', err);
-        this.toastr.error('Facebook login failed.', 'Error');
-        this.spinner.hide();
+
+    from(this.facebook.login({ scope: 'email,public_profile' }))
+      .pipe(
+        switchMap((res) =>
+          this.handleSocialLogin('facebook', res.authResponse.accessToken)
+        ),
+        finalize(() => this.spinner.hide())
+      )
+      .subscribe({
+        error: (err) => {
+          console.error('Facebook login failed:', err);
+          this.toastr.error('Facebook login failed.', 'Error');
+        },
       });
   }
 
   /** Common handler for social login */
-  handleSocialLogin(provider: 'google' | 'facebook', token: string): void {
-    this.authService
+  private handleSocialLogin(
+    provider: 'google' | 'facebook',
+    token: string
+  ): Observable<void> {
+    return this.authService
       .externalLogin(provider, token)
-      .pipe(finalize(() => this.spinner.hide()))
-      .subscribe({
-        next: () => {
-          this.router.navigateByUrl(this.returnUrl);
-        },
-        error: (err: any) => {
-          console.error(`${provider} login error:`, err);
-          this.toastr.error(`${provider} login failed.`, 'Error');
-        },
-      });
+      .pipe(tap(() => this.router.navigateByUrl(this.returnUrl)));
   }
 
   /** Password reset prompt */
