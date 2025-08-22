@@ -29,7 +29,8 @@ public class ExternalAuthServiceTests
         {
             Subject = "123",
             Email = "user@example.com",
-            Name = "User Example"
+            Name = "User Example",
+            EmailVerified = true
         }));
         facebookClient ??= new StubFacebookClient((path, _) =>
         {
@@ -60,6 +61,35 @@ public class ExternalAuthServiceTests
     {
         var service = CreateService(
             googleValidator: new StubGoogleValidator((_, _) => throw new InvalidJwtException("invalid")));
+        var result = await service.ValidateTokenAsync("google", "token");
+        result.Succeeded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_Fails_OnUnverifiedGoogleEmail()
+    {
+        var service = CreateService(
+            googleValidator: new StubGoogleValidator((_, _) => Task.FromResult(new GoogleJsonWebSignature.Payload
+            {
+                Subject = "123",
+                Email = "user@example.com",
+                Name = "User Example",
+                EmailVerified = false
+            })));
+        var result = await service.ValidateTokenAsync("google", "token");
+        result.Succeeded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_Fails_OnMissingGoogleEmailVerification()
+    {
+        var service = CreateService(
+            googleValidator: new StubGoogleValidator((_, _) => Task.FromResult(new GoogleJsonWebSignature.Payload
+            {
+                Subject = "123",
+                Email = "user@example.com",
+                Name = "User Example"
+            })));
         var result = await service.ValidateTokenAsync("google", "token");
         result.Succeeded.Should().BeFalse();
     }

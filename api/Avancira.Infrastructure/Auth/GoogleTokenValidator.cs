@@ -31,6 +31,12 @@ public class GoogleTokenValidator : IExternalTokenValidator
         try
         {
             var payload = await _validator.ValidateAsync(idToken, _options.ClientId);
+            if (payload.EmailVerified != true)
+            {
+                _logger.LogWarning("Google token validation failed: email not verified");
+                return ExternalAuthResult.Fail("Unverified Google email");
+            }
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Email, payload.Email ?? string.Empty),
