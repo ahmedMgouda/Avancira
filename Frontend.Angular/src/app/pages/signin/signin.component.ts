@@ -86,7 +86,6 @@ export class SigninComponent implements OnInit {
         },
         error: () => {
           this.toastr.error('Invalid credentials', 'Login Failed');
-          this.spinner.hide();
         },
       });
   }
