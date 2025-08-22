@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Avancira.Application.Auth;
 using Microsoft.Extensions.Logging;
 
@@ -12,8 +13,17 @@ public class ExternalAuthService : IExternalAuthService
         IEnumerable<IExternalTokenValidator> validators,
         ILogger<ExternalAuthService> logger)
     {
-        _validators = validators.ToDictionary(v => v.Provider, StringComparer.OrdinalIgnoreCase);
         _logger = logger;
+        _validators = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var validator in validators)
+        {
+            if (!_validators.TryAdd(validator.Provider, validator))
+            {
+                _logger.LogError("Duplicate external auth provider {Provider}", validator.Provider);
+                throw new InvalidOperationException($"Duplicate external auth provider: {validator.Provider}");
+            }
+        }
     }
 
     public Task<ExternalAuthResult> ValidateTokenAsync(string provider, string token)
