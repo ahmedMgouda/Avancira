@@ -22,6 +22,7 @@ import { passwordComplexityValidator } from '../../validators/password.validator
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
 import { FacebookAuthService } from '../../services/facebook-auth.service';
+import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 
 interface SignupForm {
   firstName: FormControl<string>;
@@ -39,7 +40,7 @@ interface SignupForm {
   selector: 'app-signup',
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.scss'],
-  imports: [CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, SocialLoginButtonsComponent]
 })
 export class SignupComponent implements OnInit, OnDestroy {
   signupForm: FormGroup<SignupForm>;
