@@ -22,8 +22,14 @@ export class FacebookAuthService {
         xfbml: true,
         version: 'v21.0',
       };
-      this.fb.init(params);
-      this.initPromise = Promise.resolve();
+      this.initPromise = (async () => {
+        try {
+          await this.fb.init(params);
+        } catch (error) {
+          this.initPromise = null;
+          throw error;
+        }
+      })();
     }
     return this.initPromise;
   }
