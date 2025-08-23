@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avancira.API.Controllers;
 using Avancira.Application.Auth;
+using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using FluentAssertions;
@@ -32,7 +33,7 @@ public class ExternalAuthControllerTests
             clientInfoService.Object,
             logger.Object);
 
-        var request = new ExternalAuthController.ExternalLoginRequest
+        var request = new ExternalLoginRequest
         {
             Provider = SocialProvider.Google,
             Token = "token"
