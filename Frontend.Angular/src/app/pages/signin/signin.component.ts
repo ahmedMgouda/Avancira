@@ -61,8 +61,18 @@ export class SigninComponent implements OnInit {
     this.route.queryParams.subscribe((params) => {
       this.returnUrl = this.sanitizeReturnUrl(params['returnUrl']);
     });
-    this.config.loadConfig().subscribe(() => {
-      this.enabledProviders = this.config.getEnabledSocialProviders();
+    this.config.loadConfig().subscribe({
+      next: () => {
+        this.enabledProviders = this.config.getEnabledSocialProviders();
+      },
+      error: (err) => {
+        console.error('Failed to load configuration:', err);
+        this.toastr.error(
+          'Some features may be unavailable. Please refresh the page or try again later.',
+          'Configuration Error'
+        );
+        this.enabledProviders = [];
+      },
     });
   }
 
