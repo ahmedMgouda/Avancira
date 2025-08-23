@@ -90,28 +90,22 @@ export class AuthService implements OnDestroy {
   }
 
   login(email: string, password: string, rememberMe = false): Observable<UserProfile> {
-    return this.http.post<TokenResponse>(
-      `${this.api}/auth/token`,
-      { email, password, rememberMe },
-      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
-    ).pipe(
-      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
-      switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
-      tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
-      map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
+    return this.handleLoginResponse(
+      this.http.post<TokenResponse>(
+        `${this.api}/auth/token`,
+        { email, password, rememberMe },
+        { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+      )
     );
   }
 
   externalLogin(provider: SocialProvider, token: string): Observable<UserProfile> {
-    return this.http.post<TokenResponse>(
-      `${this.api}/auth/external-login`,
-      { provider, token },
-      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
-    ).pipe(
-      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
-      switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
-      tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
-      map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
+    return this.handleLoginResponse(
+      this.http.post<TokenResponse>(
+        `${this.api}/auth/external-login`,
+        { provider, token },
+        { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+      )
     );
   }
 
@@ -183,6 +177,15 @@ export class AuthService implements OnDestroy {
   }
 
   /* ---------------- Internals ---------------- */
+
+  private handleLoginResponse(source: Observable<TokenResponse>): Observable<UserProfile> {
+    return source.pipe(
+      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
+      switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
+      tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
+      map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
+    );
+  }
 
   private applyToken(token: string): void {
     const mapped = this.decode(token);
