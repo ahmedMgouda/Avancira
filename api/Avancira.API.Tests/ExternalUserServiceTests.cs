@@ -100,5 +100,24 @@ public class ExternalUserServiceTests
         result.Succeeded.Should().BeFalse();
         result.ErrorType.Should().Be(ExternalUserError.Unauthorized);
     }
+
+    [Fact]
+    public async Task EnsureUserAsync_ConfirmsEmail_WhenExistingUserEmailVerified()
+    {
+        var existingUser = new User { Id = "existing-id", EmailConfirmed = false };
+        var userManager = MockUserManager();
+        userManager.Setup(m => m.FindByLoginAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User?)null);
+        userManager.Setup(m => m.FindByEmailAsync("user@example.com")).ReturnsAsync(existingUser);
+        userManager.Setup(m => m.UpdateAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
+        userManager.Setup(m => m.AddLoginAsync(existingUser, It.IsAny<UserLoginInfo>())).ReturnsAsync(IdentityResult.Success);
+
+        var service = new ExternalUserService(userManager.Object);
+        var info = CreateLoginInfo();
+        var result = await service.EnsureUserAsync(info);
+
+        result.Succeeded.Should().BeTrue();
+        existingUser.EmailConfirmed.Should().BeTrue();
+        userManager.Verify(m => m.UpdateAsync(It.Is<User>(u => u.EmailConfirmed)), Times.Once);
+    }
 }
 

@@ -45,6 +45,11 @@ public class ExternalUserService : IExternalUserService
                     return ExternalUserResult.Problem(error);
                 }
             }
+            else if (emailVerified && !user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user);
+            }
 
             var loginResult = await _userManager.AddLoginAsync(user, info);
             if (!loginResult.Succeeded)
