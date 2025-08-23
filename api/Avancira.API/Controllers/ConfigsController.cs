@@ -2,7 +2,8 @@ using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Linq;
+using System.Collections.Generic;
+using Avancira.Application.Auth;
 
 namespace Avancira.API.Controllers;
 
@@ -14,27 +15,30 @@ public class ConfigsController : BaseApiController
     private readonly PayPalOptions _payPalOptions;
     private readonly GoogleOptions _googleOptions;
     private readonly FacebookOptions _facebookOptions;
-    private readonly IEnumerable<IExternalTokenValidator> _tokenValidators;
 
     public ConfigsController(
         IOptions<StripeOptions> stripeOptions,
         IOptions<PayPalOptions> payPalOptions,
         IOptions<GoogleOptions> googleOptions,
-        IOptions<FacebookOptions> facebookOptions,
-        IEnumerable<IExternalTokenValidator> tokenValidators
+        IOptions<FacebookOptions> facebookOptions
     )
     {
         _stripeOptions = stripeOptions.Value;
         _payPalOptions = payPalOptions.Value;
         _googleOptions = googleOptions.Value;
         _facebookOptions = facebookOptions.Value;
-        _tokenValidators = tokenValidators;
     }
 
     // Read
     [HttpGet]
     public IActionResult GetConfig()
     {
+        var providers = new List<SocialProvider>();
+        if (!string.IsNullOrWhiteSpace(_googleOptions.ClientId))
+            providers.Add(SocialProvider.Google);
+        if (!string.IsNullOrWhiteSpace(_facebookOptions.AppId))
+            providers.Add(SocialProvider.Facebook);
+
         var config = new
         {
             stripePublishableKey = _stripeOptions.PublishableKey,
@@ -42,8 +46,7 @@ public class ConfigsController : BaseApiController
             googleMapsApiKey = _googleOptions.ApiKey,
             googleClientId = _googleOptions.ClientId,
             facebookAppId = _facebookOptions.AppId,
-            enabledSocialProviders = _tokenValidators
-                .Select(v => v.Provider)
+            enabledSocialProviders = providers
         };
 
         return Ok(config);
