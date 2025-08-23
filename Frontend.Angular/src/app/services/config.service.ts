@@ -87,7 +87,7 @@ export class ConfigService {
   }
 
   getEnabledSocialProviders(): SocialProvider[] {
-    return this.getConfig().enabledSocialProviders || [];
+    return (this.getConfig().enabledSocialProviders ?? []) as SocialProvider[];
   }
 
   isSocialProviderEnabled(provider: SocialProvider): boolean {
