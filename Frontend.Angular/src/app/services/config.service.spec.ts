@@ -15,30 +15,30 @@ describe('ConfigService', () => {
   });
 
   describe('isConfigValid', () => {
-    it('should treat config with only social keys as valid', () => {
-      const socialConfig: Config = {
-        stripePublishableKey: '',
-        payPalClientId: '',
-        googleMapsApiKey: '',
+    it('should return true when all keys are populated', () => {
+      const validConfig: Config = {
+        stripePublishableKey: 'spk',
+        payPalClientId: 'ppid',
+        googleMapsApiKey: 'gmak',
         googleClientId: 'gid',
         facebookAppId: 'fid',
         enabledSocialProviders: []
       };
 
-      expect((service as any).isConfigValid(socialConfig)).toBeTrue();
+      expect((service as any).isConfigValid(validConfig)).toBeTrue();
     });
 
-    it('should treat config with empty social keys as invalid', () => {
-      const emptySocialConfig: Config = {
+    it('should return false when any key is empty', () => {
+      const invalidConfig: Config = {
         stripePublishableKey: '',
-        payPalClientId: '',
-        googleMapsApiKey: '',
-        googleClientId: '',
-        facebookAppId: '',
+        payPalClientId: 'ppid',
+        googleMapsApiKey: 'gmak',
+        googleClientId: 'gid',
+        facebookAppId: 'fid',
         enabledSocialProviders: []
       };
 
-      expect((service as any).isConfigValid(emptySocialConfig)).toBeFalse();
+      expect((service as any).isConfigValid(invalidConfig)).toBeFalse();
     });
   });
 });
