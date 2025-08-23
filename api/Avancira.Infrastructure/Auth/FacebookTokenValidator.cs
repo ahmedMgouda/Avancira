@@ -46,6 +46,22 @@ public class FacebookTokenValidator : ExternalTokenValidatorBase
                 return Fail(ExternalAuthErrorType.MalformedResponse, "Facebook", "Malformed debug_token response from Facebook");
             }
 
+            bool? isEmailVerified = null;
+            if (debugDoc.RootElement.TryGetProperty("data", out var dataElement) &&
+                dataElement.TryGetProperty("is_email_verified", out var verifiedElement) &&
+                verifiedElement.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                isEmailVerified = verifiedElement.GetBoolean();
+            }
+
+            if (isEmailVerified == false)
+            {
+                return Fail(
+                    ExternalAuthErrorType.UnverifiedEmail,
+                    "Facebook",
+                    "Facebook token validation failed: email not verified");
+            }
+
             var appId = debug.Data.AppId;
             var isValid = debug.Data.IsValid;
             var expiresAt = debug.Data.ExpiresAt;
@@ -79,6 +95,11 @@ public class FacebookTokenValidator : ExternalTokenValidatorBase
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Name, name)
             };
+            if (isEmailVerified == true)
+            {
+                claims.Add(new Claim("email_verified", "true"));
+            }
+            // If is_email_verified is missing, Facebook does not provide an indicator; user email will require manual verification.
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "facebook"));
             var info = new ExternalLoginInfo(principal, "Facebook", id, "Facebook");
             return ExternalAuthResult.Success(info);

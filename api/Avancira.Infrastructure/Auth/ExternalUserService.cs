@@ -22,6 +22,12 @@ public class ExternalUserService : IExternalUserService
             var email = info.Principal.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrEmpty(email)) return ExternalUserResult.Unauthorized();
 
+            var emailVerified = info.LoginProvider switch
+            {
+                "Google" => true,
+                _ => bool.TryParse(info.Principal.FindFirstValue("email_verified"), out var verified) && verified
+            };
+
             user = await _userManager.FindByEmailAsync(email);
             if (user is null)
             {
@@ -29,7 +35,7 @@ public class ExternalUserService : IExternalUserService
                 {
                     UserName = email,
                     Email = email,
-                    EmailConfirmed = true,
+                    EmailConfirmed = emailVerified,
                     FirstName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty
                 };
                 var createResult = await _userManager.CreateAsync(user);
