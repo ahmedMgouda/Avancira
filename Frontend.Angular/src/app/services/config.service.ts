@@ -94,6 +94,14 @@ export class ConfigService {
     return this.getEnabledSocialProviders().includes(provider);
   }
 
+  get googleEnabled(): boolean {
+    return !!this.getConfig().googleClientId;
+  }
+
+  get facebookEnabled(): boolean {
+    return !!this.getConfig().facebookAppId;
+  }
+
   // Optional: Retrieve the entire configuration object
   getConfig(): Config {
     // If config is already loaded in memory, return it

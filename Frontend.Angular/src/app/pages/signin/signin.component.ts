@@ -8,6 +8,7 @@ import { finalize } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
+import { ConfigService } from '../../services/config.service';
 import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
@@ -24,6 +25,7 @@ export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
   returnUrl = '/';
   readonly Provider = SocialProvider;
+  enabledProviders: SocialProvider[] = [];
 
   /**
    * Validates and sanitizes a return URL.
@@ -41,6 +43,7 @@ export class SigninComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
+    private config: ConfigService,
     private spinner: SpinnerService,
     private toastr: ToastrService,
     private alert: AlertService,
@@ -58,7 +61,16 @@ export class SigninComponent implements OnInit {
     this.route.queryParams.subscribe((params) => {
       this.returnUrl = this.sanitizeReturnUrl(params['returnUrl']);
     });
-
+    this.config.loadConfig().subscribe(() => {
+      const providers: SocialProvider[] = [];
+      if (this.config.googleEnabled) {
+        providers.push(SocialProvider.Google);
+      }
+      if (this.config.facebookEnabled) {
+        providers.push(SocialProvider.Facebook);
+      }
+      this.enabledProviders = providers;
+    });
   }
 
   /** Regular login */
