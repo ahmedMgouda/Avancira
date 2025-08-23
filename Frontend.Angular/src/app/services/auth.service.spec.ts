@@ -53,6 +53,8 @@ describe('AuthService', () => {
   it('should set auth state and profile on external login', (done) => {
     const token = makeToken({ sub: '2', email: 'c@d.com', exp: Math.floor(Date.now() / 1000) + 3600 });
 
+    document.cookie = 'CSRF-TOKEN=csrf123';
+
     service.externalLogin(SocialProvider.Google, 'social-token').subscribe(profile => {
       expect(profile.email).toBe('c@d.com');
       expect(profile.permissions).toEqual(['perm2']);
@@ -65,6 +67,7 @@ describe('AuthService', () => {
 
     const req = http.expectOne(`${environment.apiUrl}/auth/external-login`);
     expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get('X-CSRF-TOKEN')).toBe('csrf123');
     req.flush({ token });
 
     const perms = http.expectOne(`${environment.apiUrl}/users/permissions`);

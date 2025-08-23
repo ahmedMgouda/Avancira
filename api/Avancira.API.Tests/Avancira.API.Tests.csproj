@@ -18,5 +18,6 @@
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Moq" Version="4.20.2" />
     <PackageReference Include="FluentValidation.TestHelper" Version="11.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.3" />
   </ItemGroup>
 </Project>

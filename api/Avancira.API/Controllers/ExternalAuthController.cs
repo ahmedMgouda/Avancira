@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System;
 using Avancira.Application.Auth;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
@@ -45,6 +46,17 @@ public class ExternalAuthController : BaseApiController
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
+        }
+
+        if (!Request.Headers.TryGetValue("X-CSRF-TOKEN", out var csrfToken))
+        {
+            var origin = Request.Headers["Origin"].FirstOrDefault() ?? Request.Headers["Referer"].FirstOrDefault();
+            if (string.IsNullOrEmpty(origin) ||
+                !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+                uri.Host != Request.Host.Host)
+            {
+                return Forbid();
+            }
         }
 
         var result = await _externalAuthService.ValidateTokenAsync(request.Provider, request.Token);
