@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avancira.Application.Auth;
@@ -68,6 +69,27 @@ public class ExternalAuthServiceTests
             googleValidator: new StubGoogleValidator((_, _) => throw new InvalidJwtException("invalid")));
         var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
         result.Succeeded.Should().BeFalse();
+        result.ErrorType.Should().Be(ExternalAuthErrorType.InvalidToken);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_Fails_OnGoogleNetworkError()
+    {
+        var service = CreateService(
+            googleValidator: new StubGoogleValidator((_, _) => throw new HttpRequestException("network")));
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
+        result.Succeeded.Should().BeFalse();
+        result.ErrorType.Should().Be(ExternalAuthErrorType.NetworkError);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_Fails_OnGoogleUnexpectedError()
+    {
+        var service = CreateService(
+            googleValidator: new StubGoogleValidator((_, _) => throw new Exception("unexpected")));
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
+        result.Succeeded.Should().BeFalse();
+        result.ErrorType.Should().Be(ExternalAuthErrorType.Error);
     }
 
     [Fact]
