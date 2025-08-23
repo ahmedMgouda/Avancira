@@ -49,25 +49,38 @@ export class GoogleAuthService {
     const google = (window as any).google;
 
     return new Promise((resolve, reject) => {
-      this.resolveFn = resolve;
-      this.rejectFn = reject;
+      const timeout = setTimeout(() => {
+        reject('Google Sign-In timed out.');
+        this.clearHandlers();
+      }, 10000);
+
+      this.resolveFn = (token: string) => {
+        clearTimeout(timeout);
+        resolve(token);
+      };
+
+      this.rejectFn = (reason?: unknown) => {
+        clearTimeout(timeout);
+        reject(reason);
+      };
+
       try {
         google.accounts.id.prompt(
           (notification: any) => {
             if (notification.isNotDisplayed()) {
-              reject('Google Sign-In not displayed.');
+              this.rejectFn?.('Google Sign-In not displayed.');
               this.clearHandlers();
             } else if (notification.isDismissedMoment()) {
-              reject('Google Sign-In dismissed.');
+              this.rejectFn?.('Google Sign-In dismissed.');
               this.clearHandlers();
             } else if (notification.isSkippedMoment()) {
-              reject('Google Sign-In skipped.');
+              this.rejectFn?.('Google Sign-In skipped.');
               this.clearHandlers();
             }
           },
         );
       } catch (e) {
-        reject(e);
+        this.rejectFn?.(e);
         this.clearHandlers();
       }
     });
