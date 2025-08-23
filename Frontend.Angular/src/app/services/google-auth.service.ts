@@ -7,6 +7,7 @@ export class GoogleAuthService {
   private clientId = '';
   private resolveFn?: (token: string) => void;
   private rejectFn?: (reason?: unknown) => void;
+  private signInInProgress = false;
 
   /** Initializes the Google Identity SDK */
   async init(clientId: string): Promise<void> {
@@ -33,6 +34,12 @@ export class GoogleAuthService {
 
   /** Triggers Google Sign-In popup and resolves ID token */
   async signIn(): Promise<string> {
+    if (this.signInInProgress) {
+      return Promise.reject('Google Sign-In already in progress.');
+    }
+
+    this.signInInProgress = true;
+
     return new Promise((resolve, reject) => {
       this.resolveFn = resolve;
       this.rejectFn = reject;
@@ -79,5 +86,6 @@ export class GoogleAuthService {
   private clearHandlers(): void {
     this.resolveFn = undefined;
     this.rejectFn = undefined;
+    this.signInInProgress = false;
   }
 }
