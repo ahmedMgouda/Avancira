@@ -28,6 +28,9 @@ export class SocialAuthService {
     return this.config.loadConfig().pipe(
       take(1),
       switchMap(() => {
+        if (!this.config.isSocialProviderEnabled(provider)) {
+          return throwError(() => new Error(`Provider disabled: ${provider}`));
+        }
         const strategy = this.strategies.get(provider);
         if (!strategy) {
           return throwError(() => new Error(`Unsupported provider: ${provider}`));
