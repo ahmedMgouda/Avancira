@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
-using System.Linq;
 using Avancira.Application.Auth;
 
 namespace Avancira.API.Controllers;
@@ -48,7 +47,6 @@ public class ConfigsController : BaseApiController
             googleClientId = _googleOptions.ClientId,
             facebookAppId = _facebookOptions.AppId,
             enabledSocialProviders = providers
-                .Select(p => p.ToString().ToLowerInvariant())
         };
 
         return Ok(config);
