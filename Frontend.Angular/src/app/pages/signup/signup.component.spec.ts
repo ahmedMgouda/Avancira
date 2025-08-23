@@ -7,15 +7,13 @@ import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ToastrService } from 'ngx-toastr';
 import { SocialAuthService } from '../../services/social-auth.service';
-import { FacebookAuthService } from '../../services/facebook-auth.service';
-import { GOOGLE } from '../../models/social-provider';
+import { FACEBOOK, GOOGLE } from '../../models/social-provider';
 
 describe('SignupComponent', () => {
   let component: SignupComponent;
   let fixture: ComponentFixture<SignupComponent>;
   let authService: jasmine.SpyObj<AuthService>;
   let socialAuth: jasmine.SpyObj<SocialAuthService>;
-  let facebookAuth: jasmine.SpyObj<FacebookAuthService>;
   let router: jasmine.SpyObj<Router>;
   let spinner: jasmine.SpyObj<SpinnerService>;
   let toastr: jasmine.SpyObj<ToastrService>;
@@ -23,7 +21,6 @@ describe('SignupComponent', () => {
   beforeEach(async () => {
     authService = jasmine.createSpyObj('AuthService', ['register']);
     socialAuth = jasmine.createSpyObj('SocialAuthService', ['authenticate']);
-    facebookAuth = jasmine.createSpyObj('FacebookAuthService', ['ensureInitialized']);
     router = jasmine.createSpyObj('Router', ['navigateByUrl']);
     spinner = jasmine.createSpyObj('SpinnerService', ['show', 'hide']);
     toastr = jasmine.createSpyObj('ToastrService', ['error']);
@@ -33,7 +30,6 @@ describe('SignupComponent', () => {
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: SocialAuthService, useValue: socialAuth },
-        { provide: FacebookAuthService, useValue: facebookAuth },
         { provide: Router, useValue: router },
         { provide: SpinnerService, useValue: spinner },
         { provide: ToastrService, useValue: toastr },
@@ -50,13 +46,24 @@ describe('SignupComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should navigate to returnUrl on successful social signup', () => {
+  it('should navigate to returnUrl on successful Google signup', () => {
     socialAuth.authenticate.and.returnValue(of({} as any));
     component.returnUrl = '/home';
 
     component.authenticate(GOOGLE);
 
     expect(socialAuth.authenticate).toHaveBeenCalledWith(GOOGLE);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
+    expect(spinner.hide).toHaveBeenCalled();
+  });
+
+  it('should navigate to returnUrl on successful Facebook signup', () => {
+    socialAuth.authenticate.and.returnValue(of({} as any));
+    component.returnUrl = '/home';
+
+    component.authenticate(FACEBOOK);
+
+    expect(socialAuth.authenticate).toHaveBeenCalledWith(FACEBOOK);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
     expect(spinner.hide).toHaveBeenCalled();
   });
