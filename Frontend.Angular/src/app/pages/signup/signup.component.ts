@@ -101,14 +101,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       .loadConfig()
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        const providers: SocialProvider[] = [];
-        if (this.config.googleEnabled) {
-          providers.push(SocialProvider.Google);
-        }
-        if (this.config.facebookEnabled) {
-          providers.push(SocialProvider.Facebook);
-        }
-        this.enabledProviders = providers;
+        this.enabledProviders = this.config.getEnabledSocialProviders();
       });
   }
 

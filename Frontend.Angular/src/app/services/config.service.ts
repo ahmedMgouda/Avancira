@@ -95,11 +95,11 @@ export class ConfigService {
   }
 
   get googleEnabled(): boolean {
-    return !!this.getConfig().googleClientId;
+    return this.isSocialProviderEnabled(SocialProvider.Google);
   }
 
   get facebookEnabled(): boolean {
-    return !!this.getConfig().facebookAppId;
+    return this.isSocialProviderEnabled(SocialProvider.Facebook);
   }
 
   // Optional: Retrieve the entire configuration object

@@ -62,14 +62,7 @@ export class SigninComponent implements OnInit {
       this.returnUrl = this.sanitizeReturnUrl(params['returnUrl']);
     });
     this.config.loadConfig().subscribe(() => {
-      const providers: SocialProvider[] = [];
-      if (this.config.googleEnabled) {
-        providers.push(SocialProvider.Google);
-      }
-      if (this.config.facebookEnabled) {
-        providers.push(SocialProvider.Facebook);
-      }
-      this.enabledProviders = providers;
+      this.enabledProviders = this.config.getEnabledSocialProviders();
     });
   }
 
