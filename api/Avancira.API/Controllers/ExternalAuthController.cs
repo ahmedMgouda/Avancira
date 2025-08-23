@@ -79,7 +79,6 @@ public class ExternalAuthController : BaseApiController
     public class ExternalLoginRequest : IValidatableObject
     {
         [Required]
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public SocialProvider Provider { get; set; }
 
         [Required]
