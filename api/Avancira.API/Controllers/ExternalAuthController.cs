@@ -1,10 +1,7 @@
-using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System;
 using Avancira.Application.Auth;
+using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
@@ -43,11 +40,6 @@ public class ExternalAuthController : BaseApiController
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         if (!Request.Headers.TryGetValue("X-CSRF-TOKEN", out var csrfToken))
         {
             var origin = Request.Headers["Origin"].FirstOrDefault() ?? Request.Headers["Referer"].FirstOrDefault();
@@ -92,23 +84,5 @@ public class ExternalAuthController : BaseApiController
         SetRefreshTokenCookie(tokens.RefreshToken, tokens.RefreshTokenExpiryTime);
 
         return Ok(new TokenResponse(tokens.Token));
-    }
-
-    public class ExternalLoginRequest : IValidatableObject
-    {
-        [Required]
-        public SocialProvider Provider { get; set; }
-
-        [Required]
-        public string Token { get; set; } = string.Empty;
-
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
-            var authService = validationContext.GetService(typeof(IExternalAuthService)) as IExternalAuthService;
-            if (authService != null && !authService.SupportsProvider(Provider))
-            {
-                yield return new ValidationResult("Unsupported provider", new[] { nameof(Provider) });
-            }
-        }
     }
 }
