@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from 'rxjs';
@@ -100,11 +100,19 @@ export class AuthService implements OnDestroy {
   }
 
   externalLogin(provider: SocialProvider, token: string): Observable<UserProfile> {
+    const csrf = this.getCsrfToken();
+    let headers = new HttpHeaders();
+    if (csrf) {
+      headers = headers.set('X-CSRF-TOKEN', csrf);
+    }
     return this.handleLoginResponse(
       this.http.post<TokenResponse>(
         `${this.api}/auth/external-login`,
         { provider, token },
-        { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+        {
+          context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
+          headers
+        }
       )
     );
   }
@@ -199,6 +207,11 @@ export class AuthService implements OnDestroy {
 
     this.patchProfile(mapped);
     if (exp) this.scheduleEarlyRefresh(exp);
+  }
+
+  private getCsrfToken(): string | null {
+    const match = document.cookie.match(/(^|;\s*)CSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[2]) : null;
   }
 
   private scheduleEarlyRefresh(expUnixSec: number): void {
