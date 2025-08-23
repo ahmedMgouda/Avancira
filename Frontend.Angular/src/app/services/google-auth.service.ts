@@ -42,6 +42,12 @@ export class GoogleAuthService {
             if (notification.isNotDisplayed()) {
               reject('Google Sign-In not displayed.');
               this.clearHandlers();
+            } else if (notification.isDismissedMoment()) {
+              reject('Google Sign-In dismissed.');
+              this.clearHandlers();
+            } else if (notification.isSkippedMoment()) {
+              reject('Google Sign-In skipped.');
+              this.clearHandlers();
             }
           },
         );
