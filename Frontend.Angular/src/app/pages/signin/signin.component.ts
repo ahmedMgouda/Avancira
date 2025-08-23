@@ -12,7 +12,7 @@ import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
-import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
+import { SocialProvider } from '../../models/social-provider';
 
 @Component({
   selector: 'app-signin',
@@ -23,8 +23,7 @@ import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvide
 export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
   returnUrl = '/';
-  readonly GOOGLE = GOOGLE_PROVIDER;
-  readonly FACEBOOK = FACEBOOK_PROVIDER;
+  readonly Provider = SocialProvider;
 
   /**
    * Validates and sanitizes a return URL.

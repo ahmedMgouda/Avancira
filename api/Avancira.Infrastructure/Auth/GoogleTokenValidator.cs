@@ -14,7 +14,7 @@ public class GoogleTokenValidator : IExternalTokenValidator
     private readonly IGoogleJsonWebSignatureValidator _validator;
     private readonly ILogger<GoogleTokenValidator> _logger;
 
-    public string Provider => "google";
+    public SocialProvider Provider => SocialProvider.Google;
 
     public GoogleTokenValidator(
         IOptions<GoogleOptions> googleOptions,

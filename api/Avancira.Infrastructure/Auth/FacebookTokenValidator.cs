@@ -17,7 +17,7 @@ public class FacebookTokenValidator : IExternalTokenValidator
     private readonly FacebookOptions _options;
     private readonly ILogger<FacebookTokenValidator> _logger;
 
-    public string Provider => "facebook";
+    public SocialProvider Provider => SocialProvider.Facebook;
 
     public FacebookTokenValidator(
         IFacebookClient facebookClient,
