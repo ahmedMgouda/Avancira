@@ -4,39 +4,39 @@ import { switchMap, take } from 'rxjs/operators';
 
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
-import { GoogleAuthService } from './google-auth.service';
-import { FacebookAuthService } from './facebook-auth.service';
+import { FacebookAuthStrategy } from './facebook-auth.strategy';
+import { GoogleAuthStrategy } from './google-auth.strategy';
+import { SocialAuthStrategy } from './social-auth-strategy';
 import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 
 @Injectable({ providedIn: 'root' })
 export class SocialAuthService {
+  private strategies = new Map<SocialProvider, SocialAuthStrategy>();
+
   constructor(
-    private google: GoogleAuthService,
-    private facebook: FacebookAuthService,
+    google: GoogleAuthStrategy,
+    facebook: FacebookAuthStrategy,
     private config: ConfigService,
     private auth: AuthService
-  ) {}
+  ) {
+    this.strategies.set(SocialProvider.Google, google);
+    this.strategies.set(SocialProvider.Facebook, facebook);
+  }
 
   authenticate(provider: SocialProvider): Observable<UserProfile> {
     return this.config.loadConfig().pipe(
       take(1),
       switchMap(() => {
-        if (provider === SocialProvider.Google) {
-          return from(this.google.init(this.config.get('googleClientId'))).pipe(
-            switchMap(() => from(this.google.signIn())),
-            switchMap((token) => this.auth.externalLogin(SocialProvider.Google, token))
-          );
+        const strategy = this.strategies.get(provider);
+        if (!strategy) {
+          return throwError(() => new Error(`Unsupported provider: ${provider}`));
         }
 
-        if (provider === SocialProvider.Facebook) {
-          return from(this.facebook.ensureInitialized()).pipe(
-            switchMap(() => from(this.facebook.login())),
-            switchMap((token) => this.auth.externalLogin(SocialProvider.Facebook, token))
-          );
-        }
-
-        return throwError(() => new Error(`Unsupported provider: ${provider}`));
+        return from(strategy.init()).pipe(
+          switchMap(() => from(strategy.login())),
+          switchMap((token) => this.auth.externalLogin(provider, token))
+        );
       })
     );
   }
