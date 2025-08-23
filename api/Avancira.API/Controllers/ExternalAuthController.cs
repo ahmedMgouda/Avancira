@@ -6,7 +6,6 @@ using Avancira.Application.Auth;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
-using Avancira.Infrastructure.Identity.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,18 +16,18 @@ namespace Avancira.API.Controllers;
 public class ExternalAuthController : BaseApiController
 {
     private readonly IExternalAuthService _externalAuthService;
-    private readonly UserManager<User> _userManager;
+    private readonly IExternalUserService _externalUserService;
     private readonly ITokenService _tokenService;
     private readonly IClientInfoService _clientInfoService;
 
     public ExternalAuthController(
         IExternalAuthService externalAuthService,
-        UserManager<User> userManager,
+        IExternalUserService externalUserService,
         ITokenService tokenService,
         IClientInfoService clientInfoService)
     {
         _externalAuthService = externalAuthService;
-        _userManager = userManager;
+        _externalUserService = externalUserService;
         _tokenService = tokenService;
         _clientInfoService = clientInfoService;
     }
@@ -50,40 +49,20 @@ public class ExternalAuthController : BaseApiController
 
         var info = result.LoginInfo;
 
-        var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
-        if (user is null)
+        var userResult = await _externalUserService.EnsureUserAsync(info);
+        if (!userResult.Succeeded)
         {
-            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-            if (string.IsNullOrEmpty(email)) return Unauthorized();
-
-            user = await _userManager.FindByEmailAsync(email);
-            if (user is null)
+            return userResult.ErrorType switch
             {
-                user = new User
-                {
-                    UserName = email,
-                    Email = email,
-                    EmailConfirmed = true,
-                    FirstName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty
-                };
-                var createResult = await _userManager.CreateAsync(user);
-                if (!createResult.Succeeded)
-                {
-                    var error = createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.";
-                    return Problem(error);
-                }
-            }
-
-            var loginResult = await _userManager.AddLoginAsync(user, info);
-            if (!loginResult.Succeeded)
-            {
-                var error = loginResult.Errors.FirstOrDefault()?.Description ?? "Failed to add external login.";
-                return BadRequest(error);
-            }
+                ExternalUserError.Unauthorized => Unauthorized(),
+                ExternalUserError.BadRequest => BadRequest(userResult.Error),
+                ExternalUserError.Problem => Problem(userResult.Error),
+                _ => Problem(userResult.Error)
+            };
         }
 
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
-        var tokens = await _tokenService.GenerateTokenForUserAsync(user.Id, clientInfo, cancellationToken);
+        var tokens = await _tokenService.GenerateTokenForUserAsync(userResult.UserId!, clientInfo, cancellationToken);
 
         SetRefreshTokenCookie(tokens.RefreshToken, tokens.RefreshTokenExpiryTime);
 
