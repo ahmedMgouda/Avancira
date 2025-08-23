@@ -42,7 +42,8 @@ public class ConfigsController : BaseApiController
             googleMapsApiKey = _googleOptions.ApiKey,
             googleClientId = _googleOptions.ClientId,
             facebookAppId = _facebookOptions.AppId,
-            enabledSocialProviders = _tokenValidators.Select(v => v.Provider)
+            enabledSocialProviders = _tokenValidators
+                .Select(v => v.Provider.ToString().ToLower())
         };
 
         return Ok(config);
