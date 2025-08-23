@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using Avancira.Application.Auth;
+using Avancira.Application.Config;
 
 namespace Avancira.API.Controllers;
 
@@ -39,16 +40,15 @@ public class ConfigsController : BaseApiController
         if (!string.IsNullOrWhiteSpace(_facebookOptions.AppId))
             providers.Add(SocialProvider.Facebook);
 
-        var config = new
+        var config = new Dictionary<ConfigKey, string>
         {
-            stripePublishableKey = _stripeOptions.PublishableKey,
-            payPalClientId = _payPalOptions.ClientId,
-            googleMapsApiKey = _googleOptions.ApiKey,
-            googleClientId = _googleOptions.ClientId,
-            facebookAppId = _facebookOptions.AppId,
-            enabledSocialProviders = providers
+            [ConfigKey.StripePublishableKey] = _stripeOptions.PublishableKey,
+            [ConfigKey.PayPalClientId] = _payPalOptions.ClientId,
+            [ConfigKey.GoogleMapsApiKey] = _googleOptions.ApiKey,
+            [ConfigKey.GoogleClientId] = _googleOptions.ClientId,
+            [ConfigKey.FacebookAppId] = _facebookOptions.AppId
         };
 
-        return Ok(config);
+        return Ok(new { config, enabledSocialProviders = providers });
     }
 }

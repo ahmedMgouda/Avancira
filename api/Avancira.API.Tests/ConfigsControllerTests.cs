@@ -28,13 +28,14 @@ public class ConfigsControllerTests
         var json = JsonSerializer.Serialize(result!.Value, jsonOptions);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
+        var config = root.GetProperty("config");
 
-        root.TryGetProperty("stripePublishableKey", out _).Should().BeTrue();
-        root.TryGetProperty("payPalClientId", out _).Should().BeTrue();
-        root.TryGetProperty("googleMapsApiKey", out _).Should().BeTrue();
-        root.TryGetProperty("googleClientId", out _).Should().BeTrue();
-        root.TryGetProperty("facebookAppId", out _).Should().BeTrue();
-        root.TryGetProperty("googleClientSecret", out _).Should().BeFalse();
+        config.TryGetProperty("stripePublishableKey", out _).Should().BeTrue();
+        config.TryGetProperty("payPalClientId", out _).Should().BeTrue();
+        config.TryGetProperty("googleMapsApiKey", out _).Should().BeTrue();
+        config.TryGetProperty("googleClientId", out _).Should().BeTrue();
+        config.TryGetProperty("facebookAppId", out _).Should().BeTrue();
+        config.TryGetProperty("googleClientSecret", out _).Should().BeFalse();
 
         var providers = root.GetProperty("enabledSocialProviders")
             .EnumerateArray()

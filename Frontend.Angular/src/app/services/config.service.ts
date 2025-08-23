@@ -1,20 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, isDevMode } from '@angular/core';
-import { catchError, Observable, of, tap, throwError, switchMap } from 'rxjs';
+import { catchError, Observable, of, tap, throwError, switchMap, map } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { ConfigKey } from '../models/config-key';
 import { SocialProvider } from '../models/social-provider';
 
+export type Config = Record<ConfigKey, string>;
 
-export interface Config {
-  [ConfigKey.StripePublishableKey]: string;
-  [ConfigKey.PayPalClientId]: string;
-  [ConfigKey.GoogleMapsApiKey]: string;
-  [ConfigKey.GoogleClientId]: string;
-  [ConfigKey.FacebookAppId]: string;
+export interface ConfigResponse {
+  config: Config;
   enabledSocialProviders: SocialProvider[];
-  [key: string]: string | SocialProvider[];
 }
 
 @Injectable({
@@ -22,6 +18,7 @@ export interface Config {
 })
 export class ConfigService {
   private config: Config | null = null;
+  private enabledSocialProviders: SocialProvider[] = [];
 
   constructor(private http: HttpClient) { }
 
@@ -42,16 +39,18 @@ export class ConfigService {
       return of(this.config);
     }
 
-    const fetch$ = this.http.get<Config>(`${environment.apiUrl}/configs`);
+    const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`);
 
     return fetch$.pipe(
-      switchMap(config => this.isConfigValid(config) ? of(config) : fetch$),
-      tap(config => {
-        this.config = config;
+      switchMap(resp => this.isConfigValid(resp.config) ? of(resp) : fetch$),
+      tap(resp => {
+        this.config = resp.config;
+        this.enabledSocialProviders = resp.enabledSocialProviders ?? [];
         if (isDevMode()) {
           console.log('Config loaded:', this.config);
         }
       }),
+      map(resp => resp.config),
       catchError(error => {
         console.error('Failed to load configuration:', error);
         return throwError(() => new Error('Failed to load configuration.'));
@@ -62,16 +61,17 @@ export class ConfigService {
   // Force reload of configuration from backend
   reload(): Observable<Config> {
     this.config = null;
+    this.enabledSocialProviders = [];
     return this.loadConfig();
   }
 
   // Retrieve a specific key from the config
   get(key: ConfigKey): string {
-    return this.getConfig()[key] as string;
+    return this.getConfig()[key];
   }
 
   getEnabledSocialProviders(): SocialProvider[] {
-    return (this.getConfig().enabledSocialProviders ?? []) as SocialProvider[];
+    return this.enabledSocialProviders;
   }
 
   isSocialProviderEnabled(provider: SocialProvider): boolean {
