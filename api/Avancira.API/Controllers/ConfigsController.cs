@@ -43,7 +43,7 @@ public class ConfigsController : BaseApiController
             googleClientId = _googleOptions.ClientId,
             facebookAppId = _facebookOptions.AppId,
             enabledSocialProviders = _tokenValidators
-                .Select(v => v.Provider.ToString().ToLower())
+                .Select(v => v.Provider)
         };
 
         return Ok(config);
