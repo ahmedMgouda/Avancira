@@ -11,8 +11,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { Subject, from, takeUntil } from 'rxjs';
-import { finalize, switchMap } from 'rxjs/operators';
+import { Subject, takeUntil } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
 import { SocialAuthService } from '../../services/social-auth.service';
@@ -21,7 +21,6 @@ import { ValidatorService } from '../../validators/password-validator.service';
 import { passwordComplexityValidator } from '../../validators/password.validators';
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
-import { FacebookAuthService } from '../../services/facebook-auth.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
 
@@ -60,8 +59,7 @@ export class SignupComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private spinner: SpinnerService,
     private toastr: ToastrService,
-    private socialAuth: SocialAuthService,
-    private facebookAuth: FacebookAuthService
+    private socialAuth: SocialAuthService
   ) {
     this.signupForm = this.fb.nonNullable.group<SignupForm>({
       firstName: this.fb.nonNullable.control('', Validators.required),
@@ -145,14 +143,8 @@ export class SignupComponent implements OnInit, OnDestroy {
 
   authenticate(provider: SocialProvider): void {
     this.spinner.show();
-    const auth$ =
-      provider === this.FACEBOOK
-        ? from(this.facebookAuth.ensureInitialized()).pipe(
-            switchMap(() => this.socialAuth.authenticate(provider))
-          )
-        : this.socialAuth.authenticate(provider);
-
-    auth$
+    this.socialAuth
+      .authenticate(provider)
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () => {

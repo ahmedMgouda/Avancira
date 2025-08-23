@@ -9,15 +9,13 @@ import { ToastrService } from 'ngx-toastr';
 import { AlertService } from '../../services/alert.service';
 import { UserService } from '../../services/user.service';
 import { SocialAuthService } from '../../services/social-auth.service';
-import { FacebookAuthService } from '../../services/facebook-auth.service';
-import { GOOGLE } from '../../models/social-provider';
+import { FACEBOOK, GOOGLE } from '../../models/social-provider';
 
 describe('LoginComponent', () => {
   let component: SigninComponent;
   let fixture: ComponentFixture<SigninComponent>;
   let authService: jasmine.SpyObj<AuthService>;
   let socialAuth: jasmine.SpyObj<SocialAuthService>;
-  let facebookAuth: jasmine.SpyObj<FacebookAuthService>;
   let router: jasmine.SpyObj<Router>;
   let spinner: jasmine.SpyObj<SpinnerService>;
   let toastr: jasmine.SpyObj<ToastrService>;
@@ -25,7 +23,6 @@ describe('LoginComponent', () => {
   beforeEach(async () => {
     authService = jasmine.createSpyObj('AuthService', ['login']);
     socialAuth = jasmine.createSpyObj('SocialAuthService', ['authenticate']);
-    facebookAuth = jasmine.createSpyObj('FacebookAuthService', ['ensureInitialized']);
     router = jasmine.createSpyObj('Router', ['navigateByUrl']);
     spinner = jasmine.createSpyObj('SpinnerService', ['show', 'hide']);
     toastr = jasmine.createSpyObj('ToastrService', ['error']);
@@ -35,7 +32,6 @@ describe('LoginComponent', () => {
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: SocialAuthService, useValue: socialAuth },
-        { provide: FacebookAuthService, useValue: facebookAuth },
         { provide: Router, useValue: router },
         { provide: SpinnerService, useValue: spinner },
         { provide: ToastrService, useValue: toastr },
@@ -54,13 +50,24 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should navigate to returnUrl on successful social login', () => {
+  it('should navigate to returnUrl on successful Google login', () => {
     socialAuth.authenticate.and.returnValue(of({} as any));
     component.returnUrl = '/home';
 
     component.authenticate(GOOGLE);
 
     expect(socialAuth.authenticate).toHaveBeenCalledWith(GOOGLE);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
+    expect(spinner.hide).toHaveBeenCalled();
+  });
+
+  it('should navigate to returnUrl on successful Facebook login', () => {
+    socialAuth.authenticate.and.returnValue(of({} as any));
+    component.returnUrl = '/home';
+
+    component.authenticate(FACEBOOK);
+
+    expect(socialAuth.authenticate).toHaveBeenCalledWith(FACEBOOK);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
     expect(spinner.hide).toHaveBeenCalled();
   });

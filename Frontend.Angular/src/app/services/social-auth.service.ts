@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, from } from 'rxjs';
+import { Observable, from, throwError } from 'rxjs';
 import { switchMap, take } from 'rxjs/operators';
 
 import { AuthService } from './auth.service';
@@ -19,17 +19,25 @@ export class SocialAuthService {
   ) {}
 
   authenticate(provider: SocialProvider): Observable<UserProfile> {
-    if (provider === GOOGLE) {
-      return this.config.loadConfig().pipe(
-        take(1),
-        switchMap(() => from(this.google.init(this.config.get('googleClientId')))),
-        switchMap(() => from(this.google.signIn())),
-        switchMap((token) => this.auth.externalLogin(GOOGLE, token))
-      );
-    }
+    return this.config.loadConfig().pipe(
+      take(1),
+      switchMap(() => {
+        if (provider === GOOGLE) {
+          return from(this.google.init(this.config.get('googleClientId'))).pipe(
+            switchMap(() => from(this.google.signIn())),
+            switchMap((token) => this.auth.externalLogin(GOOGLE, token))
+          );
+        }
 
-    return from(this.facebook.login()).pipe(
-      switchMap((token) => this.auth.externalLogin(FACEBOOK, token))
+        if (provider === FACEBOOK) {
+          return from(this.facebook.ensureInitialized()).pipe(
+            switchMap(() => from(this.facebook.login())),
+            switchMap((token) => this.auth.externalLogin(FACEBOOK, token))
+          );
+        }
+
+        return throwError(() => new Error(`Unsupported provider: ${provider}`));
+      })
     );
   }
 }

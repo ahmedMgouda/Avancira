@@ -4,15 +4,13 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { finalize, switchMap } from 'rxjs/operators';
-import { from } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
-import { FacebookAuthService } from '../../services/facebook-auth.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
 
@@ -48,8 +46,7 @@ export class SigninComponent implements OnInit {
     private toastr: ToastrService,
     private alert: AlertService,
     private user: UserService,
-    private socialAuth: SocialAuthService,
-    private facebookAuth: FacebookAuthService
+    private socialAuth: SocialAuthService
   ) {}
 
   ngOnInit(): void {
@@ -87,14 +84,8 @@ export class SigninComponent implements OnInit {
 
   authenticate(provider: SocialProvider): void {
     this.spinner.show();
-    const auth$ =
-      provider === this.FACEBOOK
-        ? from(this.facebookAuth.ensureInitialized()).pipe(
-            switchMap(() => this.socialAuth.authenticate(provider))
-          )
-        : this.socialAuth.authenticate(provider);
-
-    auth$
+    this.socialAuth
+      .authenticate(provider)
       .pipe(finalize(() => this.spinner.hide()))
       .subscribe({
         next: () =>
