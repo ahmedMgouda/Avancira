@@ -1,6 +1,8 @@
+using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 namespace Avancira.API.Controllers;
 
@@ -12,18 +14,21 @@ public class ConfigsController : BaseApiController
     private readonly PayPalOptions _payPalOptions;
     private readonly GoogleOptions _googleOptions;
     private readonly FacebookOptions _facebookOptions;
+    private readonly IEnumerable<IExternalTokenValidator> _tokenValidators;
 
     public ConfigsController(
         IOptions<StripeOptions> stripeOptions,
         IOptions<PayPalOptions> payPalOptions,
         IOptions<GoogleOptions> googleOptions,
-        IOptions<FacebookOptions> facebookOptions
+        IOptions<FacebookOptions> facebookOptions,
+        IEnumerable<IExternalTokenValidator> tokenValidators
     )
     {
         _stripeOptions = stripeOptions.Value;
         _payPalOptions = payPalOptions.Value;
         _googleOptions = googleOptions.Value;
         _facebookOptions = facebookOptions.Value;
+        _tokenValidators = tokenValidators;
     }
 
     // Read
@@ -36,7 +41,8 @@ public class ConfigsController : BaseApiController
             payPalClientId = _payPalOptions.ClientId,
             googleMapsApiKey = _googleOptions.ApiKey,
             googleClientId = _googleOptions.ClientId,
-            facebookAppId = _facebookOptions.AppId
+            facebookAppId = _facebookOptions.AppId,
+            enabledSocialProviders = _tokenValidators.Select(v => v.Provider)
         };
 
         return Ok(config);

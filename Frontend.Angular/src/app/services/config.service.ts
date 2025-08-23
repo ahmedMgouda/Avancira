@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { catchError, Observable, of, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
+import { SocialProvider } from '../models/social-provider';
 
 
 export interface Config {
@@ -11,14 +12,15 @@ export interface Config {
   googleMapsApiKey: string;
   googleClientId: string;
   facebookAppId: string;
-  [key: string]: string;
+  enabledSocialProviders: SocialProvider[];
+  [key: string]: string | SocialProvider[];
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ConfigService {
-  private config: any = null;
+  private config: Config | null = null;
 
   constructor(private http: HttpClient) { }
 
@@ -81,7 +83,15 @@ export class ConfigService {
 
   // Retrieve a specific key from the config
   get(key: string): string {
-    return this.getConfig()[key];
+    return this.getConfig()[key] as string;
+  }
+
+  getEnabledSocialProviders(): SocialProvider[] {
+    return this.getConfig().enabledSocialProviders || [];
+  }
+
+  isSocialProviderEnabled(provider: SocialProvider): boolean {
+    return this.getEnabledSocialProviders().includes(provider);
   }
 
   // Optional: Retrieve the entire configuration object
