@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 public class AuthenticationExtensionsTests
@@ -21,7 +22,7 @@ public class AuthenticationExtensionsTests
             ["Avancira:ExternalServices:Facebook:AppSecret"] = "fbsecret",
         }).Build();
 
-        services.AddExternalAuthentication(configuration);
+        services.AddExternalAuthentication(configuration, NullLogger<AuthenticationExtensions>.Instance);
 
         using var provider = services.BuildServiceProvider();
         var schemes = await provider.GetRequiredService<IAuthenticationSchemeProvider>().GetAllSchemesAsync();
@@ -40,7 +41,7 @@ public class AuthenticationExtensionsTests
             ["Avancira:ExternalServices:Google:ClientSecret"] = "secret",
         }).Build();
 
-        services.AddExternalAuthentication(configuration);
+        services.AddExternalAuthentication(configuration, NullLogger<AuthenticationExtensions>.Instance);
 
         using var provider = services.BuildServiceProvider();
         var schemes = await provider.GetRequiredService<IAuthenticationSchemeProvider>().GetAllSchemesAsync();
@@ -55,7 +56,7 @@ public class AuthenticationExtensionsTests
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
 
-        services.AddExternalAuthentication(configuration);
+        services.AddExternalAuthentication(configuration, NullLogger<AuthenticationExtensions>.Instance);
 
         using var provider = services.BuildServiceProvider();
         var schemes = await provider.GetRequiredService<IAuthenticationSchemeProvider>().GetAllSchemesAsync();
