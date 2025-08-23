@@ -13,6 +13,7 @@ export class SocialLoginButtonsComponent {
   @Output() facebook = new EventEmitter<void>();
   @Input() label: string = 'Login';
   @Input() enabledProviders: SocialProvider[] = [];
+  readonly Provider = SocialProvider;
 
   isEnabled(provider: SocialProvider): boolean {
     return this.enabledProviders.includes(provider);
