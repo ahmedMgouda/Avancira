@@ -54,6 +54,7 @@ public class ExternalUserService : IExternalUserService
             var loginResult = await _userManager.AddLoginAsync(user, info);
             if (!loginResult.Succeeded)
             {
+                await _userManager.DeleteAsync(user);
                 var error = loginResult.Errors.FirstOrDefault()?.Description ?? "Failed to add external login.";
                 return ExternalUserResult.BadRequest(error);
             }

@@ -72,11 +72,14 @@ public class ExternalUserServiceTests
         var userManager = MockUserManager();
         userManager.Setup(m => m.FindByLoginAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User?)null);
         userManager.Setup(m => m.FindByEmailAsync("user@example.com")).ReturnsAsync((User?)null);
+        User? createdUser = null;
         userManager.Setup(m => m.CreateAsync(It.IsAny<User>()))
-            .Callback<User>(u => u.Id = "new-id")
+            .Callback<User>(u => { u.Id = "new-id"; createdUser = u; })
             .ReturnsAsync(IdentityResult.Success);
         userManager.Setup(m => m.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "login-fail" }));
+        userManager.Setup(m => m.DeleteAsync(It.IsAny<User>()))
+            .ReturnsAsync(IdentityResult.Success);
 
         var service = new ExternalUserService(userManager.Object);
         var info = CreateLoginInfo();
@@ -85,6 +88,7 @@ public class ExternalUserServiceTests
         result.Succeeded.Should().BeFalse();
         result.ErrorType.Should().Be(ExternalUserError.BadRequest);
         result.Error.Should().Be("login-fail");
+        userManager.Verify(m => m.DeleteAsync(createdUser!), Times.Once);
     }
 
     [Fact]
