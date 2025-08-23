@@ -16,8 +16,13 @@ export class FacebookAuthService {
   /** Ensures the Facebook SDK is initialized */
   ensureInitialized(): Promise<void> {
     if (!this.initPromise) {
+      const appId = this.config.get('facebookAppId');
+      if (!appId || !appId.trim()) {
+        return Promise.reject(new Error('Facebook App ID is required.'));
+      }
+
       const params: InitParams = {
-        appId: this.config.get('facebookAppId'),
+        appId,
         cookie: true,
         xfbml: true,
         version: 'v21.0',
