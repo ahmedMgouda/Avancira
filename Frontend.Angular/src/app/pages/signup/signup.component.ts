@@ -23,6 +23,7 @@ import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
 import { FacebookAuthService } from '../../services/facebook-auth.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
+import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
 
 interface SignupForm {
   firstName: FormControl<string>;
@@ -49,6 +50,8 @@ export class SignupComponent implements OnInit, OnDestroy {
   referralToken: string | null = null;
   returnUrl = '/';
   private destroy$ = new Subject<void>();
+  readonly GOOGLE = GOOGLE_PROVIDER;
+  readonly FACEBOOK = FACEBOOK_PROVIDER;
 
   constructor(
     private fb: FormBuilder,
@@ -140,10 +143,10 @@ export class SignupComponent implements OnInit, OnDestroy {
       });
   }
 
-  authenticate(provider: 'google' | 'facebook'): void {
+  authenticate(provider: SocialProvider): void {
     this.spinner.show();
     const auth$ =
-      provider === 'facebook'
+      provider === this.FACEBOOK
         ? from(this.facebookAuth.ensureInitialized()).pipe(
             switchMap(() => this.socialAuth.authenticate(provider))
           )

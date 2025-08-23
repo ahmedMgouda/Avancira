@@ -9,6 +9,7 @@ import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, REQUIRES_AUTH, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
+import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 
 interface TokenResponse { token: string; }
@@ -101,7 +102,7 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  externalLogin(provider: 'google' | 'facebook', token: string): Observable<UserProfile> {
+  externalLogin(provider: SocialProvider, token: string): Observable<UserProfile> {
     return this.http.post<TokenResponse>(
       `${this.api}/auth/external-login`,
       { provider, token },
