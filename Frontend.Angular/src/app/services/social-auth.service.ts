@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 import { GoogleAuthService } from './google-auth.service';
 import { FacebookAuthService } from './facebook-auth.service';
-import { FACEBOOK, GOOGLE, SocialProvider } from '../models/social-provider';
+import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 
 @Injectable({ providedIn: 'root' })
@@ -22,17 +22,17 @@ export class SocialAuthService {
     return this.config.loadConfig().pipe(
       take(1),
       switchMap(() => {
-        if (provider === GOOGLE) {
+        if (provider === SocialProvider.Google) {
           return from(this.google.init(this.config.get('googleClientId'))).pipe(
             switchMap(() => from(this.google.signIn())),
-            switchMap((token) => this.auth.externalLogin(GOOGLE, token))
+            switchMap((token) => this.auth.externalLogin(SocialProvider.Google, token))
           );
         }
 
-        if (provider === FACEBOOK) {
+        if (provider === SocialProvider.Facebook) {
           return from(this.facebook.ensureInitialized()).pipe(
             switchMap(() => from(this.facebook.login())),
-            switchMap((token) => this.auth.externalLogin(FACEBOOK, token))
+            switchMap((token) => this.auth.externalLogin(SocialProvider.Facebook, token))
           );
         }
 

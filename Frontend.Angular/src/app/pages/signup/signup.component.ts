@@ -22,7 +22,7 @@ import { passwordComplexityValidator } from '../../validators/password.validator
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 import { RegisterUserRequest } from '../../models/register-user-request';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
-import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
+import { SocialProvider } from '../../models/social-provider';
 
 interface SignupForm {
   firstName: FormControl<string>;
@@ -49,8 +49,7 @@ export class SignupComponent implements OnInit, OnDestroy {
   referralToken: string | null = null;
   returnUrl = '/';
   private destroy$ = new Subject<void>();
-  readonly GOOGLE = GOOGLE_PROVIDER;
-  readonly FACEBOOK = FACEBOOK_PROVIDER;
+  readonly Provider = SocialProvider;
 
   constructor(
     private fb: FormBuilder,

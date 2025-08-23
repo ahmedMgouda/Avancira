@@ -55,7 +55,7 @@ public class ExternalAuthServiceTests
     public async Task ValidateTokenAsync_ReturnsInfo_OnValidGoogleToken()
     {
         var service = CreateService();
-        var result = await service.ValidateTokenAsync("google", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
         result.Succeeded.Should().BeTrue();
         result.LoginInfo.Should().NotBeNull();
         result.LoginInfo!.LoginProvider.Should().Be("Google");
@@ -66,7 +66,7 @@ public class ExternalAuthServiceTests
     {
         var service = CreateService(
             googleValidator: new StubGoogleValidator((_, _) => throw new InvalidJwtException("invalid")));
-        var result = await service.ValidateTokenAsync("google", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
         result.Succeeded.Should().BeFalse();
     }
 
@@ -81,7 +81,7 @@ public class ExternalAuthServiceTests
                 Name = "User Example",
                 EmailVerified = false
             })));
-        var result = await service.ValidateTokenAsync("google", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
         result.Succeeded.Should().BeFalse();
     }
 
@@ -95,7 +95,7 @@ public class ExternalAuthServiceTests
                 Email = "user@example.com",
                 Name = "User Example"
             })));
-        var result = await service.ValidateTokenAsync("google", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Google, "token");
         result.Succeeded.Should().BeFalse();
     }
 
@@ -103,7 +103,7 @@ public class ExternalAuthServiceTests
     public async Task ValidateTokenAsync_ReturnsInfo_OnValidFacebookToken()
     {
         var service = CreateService();
-        var result = await service.ValidateTokenAsync("facebook", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Facebook, "token");
         result.Succeeded.Should().BeTrue();
         result.LoginInfo.Should().NotBeNull();
         result.LoginInfo!.LoginProvider.Should().Be("Facebook");
@@ -119,7 +119,7 @@ public class ExternalAuthServiceTests
             return Task.FromResult(JsonDocument.Parse("{}"));
         });
         var service = CreateService(facebookClient: facebook);
-        var result = await service.ValidateTokenAsync("facebook", "token");
+        var result = await service.ValidateTokenAsync(SocialProvider.Facebook, "token");
         result.Succeeded.Should().BeFalse();
     }
 
@@ -127,7 +127,8 @@ public class ExternalAuthServiceTests
     public async Task ValidateTokenAsync_Fails_OnUnsupportedProvider()
     {
         var service = CreateService();
-        var result = await service.ValidateTokenAsync("linkedin", "token");
+        var unsupported = (SocialProvider)999;
+        var result = await service.ValidateTokenAsync(unsupported, "token");
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Be("Unsupported provider");
     }
@@ -135,9 +136,10 @@ public class ExternalAuthServiceTests
     [Fact]
     public async Task ValidateTokenAsync_Succeeds_OnNewProvider()
     {
-        var githubValidator = new StubTokenValidator("github");
+        var githubProvider = (SocialProvider)998;
+        var githubValidator = new StubTokenValidator(githubProvider, "GitHub");
         var service = CreateService(additionalValidators: new[] { githubValidator });
-        var result = await service.ValidateTokenAsync("github", "token");
+        var result = await service.ValidateTokenAsync(githubProvider, "token");
         result.Succeeded.Should().BeTrue();
         result.LoginInfo.Should().NotBeNull();
         result.LoginInfo!.LoginProvider.Should().Be("GitHub");
@@ -159,13 +161,18 @@ public class ExternalAuthServiceTests
 
     private class StubTokenValidator : IExternalTokenValidator
     {
-        public string Provider { get; }
-        public StubTokenValidator(string provider) => Provider = provider;
+        public SocialProvider Provider { get; }
+        private readonly string _name;
+        public StubTokenValidator(SocialProvider provider, string name)
+        {
+            Provider = provider;
+            _name = name;
+        }
         public Task<ExternalAuthResult> ValidateAsync(string token)
         {
             var claims = new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "user@example.com") };
-            var principal = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(claims, Provider));
-            var info = new Microsoft.AspNetCore.Identity.ExternalLoginInfo(principal, Provider[..1].ToUpper() + Provider[1..], "123", Provider[..1].ToUpper() + Provider[1..]);
+            var principal = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(claims, _name.ToLowerInvariant()));
+            var info = new Microsoft.AspNetCore.Identity.ExternalLoginInfo(principal, _name, "123", _name);
             return Task.FromResult(ExternalAuthResult.Success(info));
         }
     }

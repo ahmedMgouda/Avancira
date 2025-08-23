@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Avancira.Application.Auth;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
@@ -72,7 +73,8 @@ public class ExternalAuthController : BaseApiController
     public class ExternalLoginRequest : IValidatableObject
     {
         [Required]
-        public string Provider { get; set; } = string.Empty;
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public SocialProvider Provider { get; set; }
 
         [Required]
         public string Token { get; set; } = string.Empty;

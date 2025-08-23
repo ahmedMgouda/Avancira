@@ -4,6 +4,6 @@ namespace Avancira.Infrastructure.Auth;
 
 public interface IExternalTokenValidator
 {
-    string Provider { get; }
+    SocialProvider Provider { get; }
     Task<ExternalAuthResult> ValidateAsync(string token);
 }

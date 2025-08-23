@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ToastrService } from 'ngx-toastr';
 import { SocialAuthService } from '../../services/social-auth.service';
-import { FACEBOOK, GOOGLE } from '../../models/social-provider';
+import { SocialProvider } from '../../models/social-provider';
 
 describe('SignupComponent', () => {
   let component: SignupComponent;
@@ -50,9 +50,9 @@ describe('SignupComponent', () => {
     socialAuth.authenticate.and.returnValue(of({} as any));
     component.returnUrl = '/home';
 
-    component.authenticate(GOOGLE);
+    component.authenticate(SocialProvider.Google);
 
-    expect(socialAuth.authenticate).toHaveBeenCalledWith(GOOGLE);
+    expect(socialAuth.authenticate).toHaveBeenCalledWith(SocialProvider.Google);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
     expect(spinner.hide).toHaveBeenCalled();
   });
@@ -61,9 +61,9 @@ describe('SignupComponent', () => {
     socialAuth.authenticate.and.returnValue(of({} as any));
     component.returnUrl = '/home';
 
-    component.authenticate(FACEBOOK);
+    component.authenticate(SocialProvider.Facebook);
 
-    expect(socialAuth.authenticate).toHaveBeenCalledWith(FACEBOOK);
+    expect(socialAuth.authenticate).toHaveBeenCalledWith(SocialProvider.Facebook);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
     expect(spinner.hide).toHaveBeenCalled();
   });
@@ -71,7 +71,7 @@ describe('SignupComponent', () => {
   it('should show error toast and hide spinner on social signup error', () => {
     socialAuth.authenticate.and.returnValue(throwError(() => new Error('fail')));
 
-    component.authenticate(GOOGLE);
+    component.authenticate(SocialProvider.Google);
 
     expect(toastr.error).toHaveBeenCalled();
     expect(spinner.hide).toHaveBeenCalled();

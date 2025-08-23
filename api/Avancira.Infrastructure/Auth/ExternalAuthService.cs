@@ -6,7 +6,7 @@ namespace Avancira.Infrastructure.Auth;
 
 public class ExternalAuthService : IExternalAuthService
 {
-    private readonly Dictionary<string, IExternalTokenValidator> _validators;
+    private readonly Dictionary<SocialProvider, IExternalTokenValidator> _validators;
     private readonly ILogger<ExternalAuthService> _logger;
 
     public ExternalAuthService(
@@ -14,7 +14,7 @@ public class ExternalAuthService : IExternalAuthService
         ILogger<ExternalAuthService> logger)
     {
         _logger = logger;
-        _validators = new(StringComparer.OrdinalIgnoreCase);
+        _validators = new();
 
         foreach (var validator in validators)
         {
@@ -26,7 +26,7 @@ public class ExternalAuthService : IExternalAuthService
         }
     }
 
-    public Task<ExternalAuthResult> ValidateTokenAsync(string provider, string token)
+    public Task<ExternalAuthResult> ValidateTokenAsync(SocialProvider provider, string token)
     {
         if (_validators.TryGetValue(provider, out var validator))
         {
@@ -37,5 +37,5 @@ public class ExternalAuthService : IExternalAuthService
         return Task.FromResult(ExternalAuthResult.Fail("Unsupported provider"));
     }
 
-    public bool SupportsProvider(string provider) => _validators.ContainsKey(provider);
+    public bool SupportsProvider(SocialProvider provider) => _validators.ContainsKey(provider);
 }
