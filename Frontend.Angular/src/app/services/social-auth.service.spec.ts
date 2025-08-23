@@ -48,4 +48,37 @@ describe('SocialAuthService', () => {
       },
     });
   });
+
+  it('should error when strategy init fails', (done) => {
+    config.loadConfig.and.returnValue(of({} as any));
+    config.isSocialProviderEnabled.and.returnValue(true);
+    google.init.and.returnValue(Promise.reject('init error'));
+
+    service.authenticate(SocialProvider.Google).subscribe({
+      next: () => done.fail('expected error'),
+      error: () => {
+        expect(google.init).toHaveBeenCalled();
+        expect(google.login).not.toHaveBeenCalled();
+        expect(auth.externalLogin).not.toHaveBeenCalled();
+        done();
+      },
+    });
+  });
+
+  it('should error when strategy login fails', (done) => {
+    config.loadConfig.and.returnValue(of({} as any));
+    config.isSocialProviderEnabled.and.returnValue(true);
+    google.init.and.returnValue(Promise.resolve());
+    google.login.and.returnValue(Promise.reject('login error'));
+
+    service.authenticate(SocialProvider.Google).subscribe({
+      next: () => done.fail('expected error'),
+      error: () => {
+        expect(google.init).toHaveBeenCalled();
+        expect(google.login).toHaveBeenCalled();
+        expect(auth.externalLogin).not.toHaveBeenCalled();
+        done();
+      },
+    });
+  });
 });

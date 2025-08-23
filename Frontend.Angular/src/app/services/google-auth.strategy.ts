@@ -15,7 +15,11 @@ export class GoogleAuthStrategy implements SocialAuthStrategy {
   ) {}
 
   init(): Promise<void> {
-    return this.googleAuth.init(this.config.get('googleClientId'));
+    const clientId = this.config.get('googleClientId');
+    if (!clientId) {
+      return Promise.reject('Google client ID not configured.');
+    }
+    return this.googleAuth.init(clientId);
   }
 
   login(): Promise<string> {

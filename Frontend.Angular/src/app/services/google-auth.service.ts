@@ -12,13 +12,16 @@ export class GoogleAuthService {
   /** Initializes the Google Identity SDK */
   async init(clientId: string): Promise<void> {
     if (this.initialized) return;
+    if (!clientId) {
+      return Promise.reject('Google Client ID is required.');
+    }
 
     this.clientId = clientId;
     await this.loadGIS();
-
+    const google = (window as any).google;
     google.accounts.id.initialize({
       client_id: this.clientId,
-      callback: (response: google.accounts.id.CredentialResponse) => {
+      callback: (response: any) => {
         if (response.credential) {
           this.resolveFn?.(response.credential);
         } else {
@@ -34,18 +37,23 @@ export class GoogleAuthService {
 
   /** Triggers Google Sign-In popup and resolves ID token */
   async signIn(): Promise<string> {
+    if (!this.initialized) {
+      return Promise.reject('GoogleAuthService not initialized.');
+    }
+
     if (this.signInInProgress) {
       return Promise.reject('Google Sign-In already in progress.');
     }
 
     this.signInInProgress = true;
+    const google = (window as any).google;
 
     return new Promise((resolve, reject) => {
       this.resolveFn = resolve;
       this.rejectFn = reject;
       try {
         google.accounts.id.prompt(
-          (notification: google.accounts.id.PromptMomentNotification) => {
+          (notification: any) => {
             if (notification.isNotDisplayed()) {
               reject('Google Sign-In not displayed.');
               this.clearHandlers();
@@ -68,7 +76,7 @@ export class GoogleAuthService {
   /** Loads Google Identity Services script if needed */
   private loadGIS(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (typeof google !== 'undefined') {
+      if (typeof (window as any).google !== 'undefined') {
         resolve();
         return;
       }
