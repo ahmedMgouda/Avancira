@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Linq;
 using Xunit;
 
@@ -22,7 +23,9 @@ public class ConfigsControllerTests
         var result = controller.GetConfig() as OkObjectResult;
         result.Should().NotBeNull();
 
-        var json = JsonSerializer.Serialize(result!.Value);
+        var jsonOptions = new JsonSerializerOptions();
+        jsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        var json = JsonSerializer.Serialize(result!.Value, jsonOptions);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
