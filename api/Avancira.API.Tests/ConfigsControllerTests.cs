@@ -1,11 +1,10 @@
 using Avancira.API.Controllers;
-using Avancira.Application.Auth;
 using Avancira.Infrastructure.Auth;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Collections.Generic;
 using System.Text.Json;
+using System.Linq;
 using Xunit;
 
 public class ConfigsControllerTests
@@ -17,13 +16,8 @@ public class ConfigsControllerTests
         var payPalOptions = Options.Create(new PayPalOptions { ClientId = "paypal" });
         var googleOptions = Options.Create(new GoogleOptions { ApiKey = "maps", ClientId = "google" });
         var facebookOptions = Options.Create(new FacebookOptions { AppId = "fb", AppSecret = "secret" });
-        var validators = new List<IExternalTokenValidator>
-        {
-            new StubTokenValidator(SocialProvider.Google),
-            new StubTokenValidator(SocialProvider.Facebook)
-        };
 
-        var controller = new ConfigsController(stripeOptions, payPalOptions, googleOptions, facebookOptions, validators);
+        var controller = new ConfigsController(stripeOptions, payPalOptions, googleOptions, facebookOptions);
 
         var result = controller.GetConfig() as OkObjectResult;
         result.Should().NotBeNull();
@@ -37,15 +31,14 @@ public class ConfigsControllerTests
         root.TryGetProperty("googleMapsApiKey", out _).Should().BeTrue();
         root.TryGetProperty("googleClientId", out _).Should().BeTrue();
         root.TryGetProperty("facebookAppId", out _).Should().BeTrue();
-        root.TryGetProperty("enabledSocialProviders", out _).Should().BeTrue();
         root.TryGetProperty("googleClientSecret", out _).Should().BeFalse();
-    }
 
-    private class StubTokenValidator : IExternalTokenValidator
-    {
-        public SocialProvider Provider { get; }
-        public StubTokenValidator(SocialProvider provider) => Provider = provider;
-        public Task<ExternalAuthResult> ValidateAsync(string token) =>
-            Task.FromResult(ExternalAuthResult.Fail(ExternalAuthErrorType.Error, ""));
+        var providers = root.GetProperty("enabledSocialProviders")
+            .EnumerateArray()
+            .Select(e => e.GetString())
+            .ToList();
+
+        providers.Should().Contain("google");
+        providers.Should().Contain("facebook");
     }
 }
