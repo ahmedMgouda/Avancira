@@ -28,6 +28,7 @@ public class ExternalUserService : IExternalUserService
                 _ => bool.TryParse(info.Principal.FindFirstValue("email_verified"), out var verified) && verified
             };
 
+            var userCreated = false;
             user = await _userManager.FindByEmailAsync(email);
             if (user is null)
             {
@@ -44,6 +45,7 @@ public class ExternalUserService : IExternalUserService
                     var error = createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.";
                     return ExternalUserResult.Problem(error);
                 }
+                userCreated = true;
             }
             else if (emailVerified && !user.EmailConfirmed)
             {
@@ -54,7 +56,10 @@ public class ExternalUserService : IExternalUserService
             var loginResult = await _userManager.AddLoginAsync(user, info);
             if (!loginResult.Succeeded)
             {
-                await _userManager.DeleteAsync(user);
+                if (userCreated)
+                {
+                    await _userManager.DeleteAsync(user);
+                }
                 var error = loginResult.Errors.FirstOrDefault()?.Description ?? "Failed to add external login.";
                 return ExternalUserResult.BadRequest(error);
             }
