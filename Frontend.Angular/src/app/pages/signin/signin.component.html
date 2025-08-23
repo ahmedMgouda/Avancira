@@ -51,7 +51,7 @@
               <span class="or-line"></span>
               <span class="span-or">or</span>
             </div>
-            <app-social-login-buttons (google)="authenticate('google')" (facebook)="authenticate('facebook')" [label]="'Login'"></app-social-login-buttons>
+            <app-social-login-buttons (google)="authenticate(GOOGLE)" (facebook)="authenticate(FACEBOOK)" [label]="'Login'"></app-social-login-buttons>
 
             <div class="text-center dont-have">Don’t have an account? <a href="/signup">Register</a></div>
           </form>

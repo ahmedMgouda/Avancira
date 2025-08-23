@@ -174,7 +174,7 @@
               <span class="or-line"></span>
               <span class="span-or">or</span>
             </div>
-            <app-social-login-buttons (google)="authenticate('google')" (facebook)="authenticate('facebook')" [label]="'Signup'"></app-social-login-buttons>
+            <app-social-login-buttons (google)="authenticate(GOOGLE)" (facebook)="authenticate(FACEBOOK)" [label]="'Signup'"></app-social-login-buttons>
 
             <div class="account-footer text-center mt-3">
               Already have an account? <a class="forgot-link mb-0" routerLink="/signin">Login</a>

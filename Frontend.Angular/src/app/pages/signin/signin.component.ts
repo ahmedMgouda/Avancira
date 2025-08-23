@@ -14,6 +14,7 @@ import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 import { FacebookAuthService } from '../../services/facebook-auth.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
+import { FACEBOOK as FACEBOOK_PROVIDER, GOOGLE as GOOGLE_PROVIDER, SocialProvider } from '../../models/social-provider';
 
 @Component({
   selector: 'app-signin',
@@ -24,6 +25,8 @@ import { SocialLoginButtonsComponent } from '../../components/social-login-butto
 export class SigninComponent implements OnInit {
   loginForm!: FormGroup;
   returnUrl = '/';
+  readonly GOOGLE = GOOGLE_PROVIDER;
+  readonly FACEBOOK = FACEBOOK_PROVIDER;
 
   /**
    * Validates and sanitizes a return URL.
@@ -82,10 +85,10 @@ export class SigninComponent implements OnInit {
       });
   }
 
-  authenticate(provider: 'google' | 'facebook'): void {
+  authenticate(provider: SocialProvider): void {
     this.spinner.show();
     const auth$ =
-      provider === 'facebook'
+      provider === this.FACEBOOK
         ? from(this.facebookAuth.ensureInitialized()).pipe(
             switchMap(() => this.socialAuth.authenticate(provider))
           )
