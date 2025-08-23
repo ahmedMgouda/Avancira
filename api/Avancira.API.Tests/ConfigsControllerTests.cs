@@ -19,8 +19,8 @@ public class ConfigsControllerTests
         var facebookOptions = Options.Create(new FacebookOptions { AppId = "fb", AppSecret = "secret" });
         var validators = new List<IExternalTokenValidator>
         {
-            new StubTokenValidator("google"),
-            new StubTokenValidator("facebook")
+            new StubTokenValidator(SocialProvider.Google),
+            new StubTokenValidator(SocialProvider.Facebook)
         };
 
         var controller = new ConfigsController(stripeOptions, payPalOptions, googleOptions, facebookOptions, validators);
@@ -43,8 +43,9 @@ public class ConfigsControllerTests
 
     private class StubTokenValidator : IExternalTokenValidator
     {
-        public string Provider { get; }
-        public StubTokenValidator(string provider) => Provider = provider;
-        public Task<ExternalAuthResult> ValidateAsync(string token) => Task.FromResult(ExternalAuthResult.Fail(""));
+        public SocialProvider Provider { get; }
+        public StubTokenValidator(SocialProvider provider) => Provider = provider;
+        public Task<ExternalAuthResult> ValidateAsync(string token) =>
+            Task.FromResult(ExternalAuthResult.Fail(ExternalAuthErrorType.Error, ""));
     }
 }

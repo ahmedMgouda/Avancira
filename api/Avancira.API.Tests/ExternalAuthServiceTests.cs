@@ -131,6 +131,7 @@ public class ExternalAuthServiceTests
         var result = await service.ValidateTokenAsync(unsupported, "token");
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Be("Unsupported provider");
+        result.ErrorType.Should().Be(ExternalAuthErrorType.UnsupportedProvider);
     }
 
     [Fact]

@@ -46,7 +46,13 @@ public class ExternalAuthController : BaseApiController
         var result = await _externalAuthService.ValidateTokenAsync(request.Provider, request.Token);
 
         if (!result.Succeeded || result.LoginInfo is null)
-            return Unauthorized(result.Error);
+        {
+            return result.ErrorType switch
+            {
+                ExternalAuthErrorType.UnsupportedProvider => BadRequest(result.Error),
+                _ => Unauthorized(result.Error)
+            };
+        }
 
         var info = result.LoginInfo;
 

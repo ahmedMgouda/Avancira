@@ -34,7 +34,8 @@ public class ExternalAuthService : IExternalAuthService
         }
 
         _logger.LogWarning("Unsupported provider {Provider}", provider);
-        return Task.FromResult(ExternalAuthResult.Fail("Unsupported provider"));
+        return Task.FromResult(
+            ExternalAuthResult.Fail(ExternalAuthErrorType.UnsupportedProvider, "Unsupported provider"));
     }
 
     public bool SupportsProvider(SocialProvider provider) => _validators.ContainsKey(provider);

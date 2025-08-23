@@ -56,7 +56,7 @@ public class ExternalLoginRequestTests
         public StubAuthService(params SocialProvider[] providers) =>
             _providers = new HashSet<SocialProvider>(providers);
         public Task<ExternalAuthResult> ValidateTokenAsync(SocialProvider provider, string token) =>
-            Task.FromResult(ExternalAuthResult.Fail(""));
+            Task.FromResult(ExternalAuthResult.Fail(ExternalAuthErrorType.Error, ""));
         public bool SupportsProvider(SocialProvider provider) => _providers.Contains(provider);
     }
 }
