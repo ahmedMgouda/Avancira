@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 using System.Linq;
 using Avancira.Application.Auth;
 using Avancira.Application.Common;
@@ -11,12 +12,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avancira.API.Controllers;
-
-public enum ExternalAuthProvider
-{
-    Google,
-    Facebook
-}
 
 [Route("api/auth")]
 public class ExternalAuthController : BaseApiController
@@ -48,18 +43,7 @@ public class ExternalAuthController : BaseApiController
             return BadRequest(ModelState);
         }
 
-        if (request.Provider is null)
-        {
-            return BadRequest("Provider is required");
-        }
-
-        var provider = Enum.GetName(typeof(ExternalAuthProvider), request.Provider.Value);
-        if (provider is null)
-        {
-            return BadRequest("Unsupported provider");
-        }
-
-        var result = await _externalAuthService.ValidateTokenAsync(provider, request.Token);
+        var result = await _externalAuthService.ValidateTokenAsync(request.Provider, request.Token);
 
         if (!result.Succeeded || result.LoginInfo is null)
             return Unauthorized(result.Error);
@@ -106,13 +90,21 @@ public class ExternalAuthController : BaseApiController
         return Ok(new TokenResponse(tokens.Token));
     }
 
-    public class ExternalLoginRequest
+    public class ExternalLoginRequest : IValidatableObject
     {
         [Required]
-        [EnumDataType(typeof(ExternalAuthProvider))]
-        public ExternalAuthProvider? Provider { get; set; }
+        public string Provider { get; set; } = string.Empty;
 
         [Required]
         public string Token { get; set; } = string.Empty;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var authService = validationContext.GetService(typeof(IExternalAuthService)) as IExternalAuthService;
+            if (authService != null && !authService.SupportsProvider(Provider))
+            {
+                yield return new ValidationResult("Unsupported provider", new[] { nameof(Provider) });
+            }
+        }
     }
 }
