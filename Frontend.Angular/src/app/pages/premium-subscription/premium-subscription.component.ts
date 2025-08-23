@@ -10,6 +10,7 @@ import { AlertService } from '../../services/alert.service';
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { ConfigKey } from '../../models/config-key';
 
 import { Card } from '../../models/card';
 import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
@@ -56,7 +57,7 @@ export class PremiumSubscriptionComponent implements OnInit {
 
   ngOnInit(): void {
     this.isLoggedIn = !!localStorage.getItem('token');
-    this.stripePromise = loadStripe(this.configService.get('stripePublishableKey'));
+    this.stripePromise = loadStripe(this.configService.get(ConfigKey.StripePublishableKey));
   }
 
   goToLogin(): void {

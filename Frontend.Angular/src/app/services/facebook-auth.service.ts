@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { FacebookService, InitParams, LoginResponse } from 'ngx-facebook';
 
 import { ConfigService } from './config.service';
+import { ConfigKey } from '../models/config-key';
 
 @Injectable({ providedIn: 'root' })
 export class FacebookAuthService {
@@ -16,7 +17,7 @@ export class FacebookAuthService {
   /** Ensures the Facebook SDK is initialized */
   ensureInitialized(): Promise<void> {
     if (!this.initPromise) {
-      const appId = this.config.get('facebookAppId');
+      const appId = this.config.get(ConfigKey.FacebookAppId);
       if (!appId || !appId.trim()) {
         return Promise.reject(new Error('Facebook App ID is required.'));
       }

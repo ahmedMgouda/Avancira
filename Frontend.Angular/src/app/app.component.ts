@@ -7,6 +7,7 @@ import { ConfirmationDialogComponent } from "./components/confirmation-dialog/co
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
 import { NotificationService } from './services/notification.service';
+import { ConfigKey } from './models/config-key';
 
 import { NotificationEvent } from './models/enums/notification-event';
 
@@ -31,7 +32,7 @@ export class AppComponent implements OnInit {
     }
 
     this.configService.loadConfig().subscribe({
-      next: () => console.log('Config loaded:', this.configService.get('apiUrl')),
+      next: () => console.log('Config loaded:', this.configService.get(ConfigKey.StripePublishableKey)),
       error: (err) => console.error('Failed to load configuration:', err.message),
     });
 

@@ -1,17 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, isDevMode } from '@angular/core';
-import { catchError, Observable, of, tap, throwError } from 'rxjs';
+import { catchError, Observable, of, tap, throwError, switchMap } from 'rxjs';
 
 import { environment } from '../environments/environment';
+import { ConfigKey } from '../models/config-key';
 import { SocialProvider } from '../models/social-provider';
 
 
 export interface Config {
-  stripePublishableKey: string;
-  payPalClientId: string;
-  googleMapsApiKey: string;
-  googleClientId: string;
-  facebookAppId: string;
+  [ConfigKey.StripePublishableKey]: string;
+  [ConfigKey.PayPalClientId]: string;
+  [ConfigKey.GoogleMapsApiKey]: string;
+  [ConfigKey.GoogleClientId]: string;
+  [ConfigKey.FacebookAppId]: string;
   enabledSocialProviders: SocialProvider[];
   [key: string]: string | SocialProvider[];
 }
@@ -29,28 +30,9 @@ export class ConfigService {
 
   constructor(private http: HttpClient) { }
 
-  private hasValidSocialKeys(config: Config): boolean {
-    const socialKeys = ['googleClientId', 'facebookAppId'];
-    const allKeysExist = socialKeys.every(key => key in config);
-    const allValuesEmpty = socialKeys.every(key => config[key] === '');
-    return allKeysExist && !allValuesEmpty;
-  }
-
-  private hasValidNonSocialKeys(config: Config): boolean {
-    const otherKeys = ['stripePublishableKey', 'payPalClientId', 'googleMapsApiKey'];
-    const allKeysExist = otherKeys.every(key => key in config);
-    const allValuesEmpty = otherKeys.every(key => config[key] === '');
-    return allKeysExist && !allValuesEmpty;
-  }
-
-  // Check if configuration is valid. Social login keys are validated separately
-  // from payment or map keys so social login can proceed even if those are empty.
-  private isConfigValid(config: Config): boolean {
-    if (!config) {
-      return false;
-    }
-
-    return this.hasValidSocialKeys(config) || this.hasValidNonSocialKeys(config);
+  private isConfigKeyValid(config: Config, key: ConfigKey): boolean {
+    const value = config[key];
+    return typeof value === 'string' ? value.trim() !== '' : value !== undefined && value !== null;
   }
 
   private isStoredConfigFresh(timestamp: number): boolean {
@@ -60,8 +42,11 @@ export class ConfigService {
 
   // Load configuration from backend API
   loadConfig(): Observable<Config> {
+    const keys = Object.values(ConfigKey);
+    const allKeysValid = (cfg: Config) => keys.every(key => this.isConfigKeyValid(cfg, key));
+
     // Check if we have a valid config with all required keys
-    if (this.config && this.isConfigValid(this.config)) {
+    if (this.config && allKeysValid(this.config)) {
       return of(this.config);
     }
 
@@ -71,11 +56,11 @@ export class ConfigService {
         const parsed = JSON.parse(storedConfig) as StoredConfig | Config;
         if ('config' in parsed && 'timestamp' in parsed) {
           const stored = parsed as StoredConfig;
-          if (this.isConfigValid(stored.config) && this.isStoredConfigFresh(stored.timestamp)) {
+          if (allKeysValid(stored.config) && this.isStoredConfigFresh(stored.timestamp)) {
             this.config = stored.config;
             return of(this.config);
           }
-        } else if (this.isConfigValid(parsed as Config)) {
+        } else if (allKeysValid(parsed as Config)) {
           // migrate old format without timestamp
           this.config = parsed as Config;
           const migration: StoredConfig = { config: this.config, timestamp: Date.now() };
@@ -88,25 +73,32 @@ export class ConfigService {
       localStorage.removeItem('config');
     }
 
-    return this.http.get<Config>(`${environment.apiUrl}/configs`)
-      .pipe(
-        tap((config) => {
-          this.config = config;
-          const stored: StoredConfig = { config, timestamp: Date.now() };
-          localStorage.setItem('config', JSON.stringify(stored));
-          if (isDevMode()) {
-            console.log('Config loaded:', this.config);
-          }
-        }),
-        catchError((error) => {
-          console.error('Failed to load configuration:', error);
-          return throwError(() => new Error('Failed to load configuration.'));
-        })
-      );
+    const fetch$ = this.http.get<Config>(`${environment.apiUrl}/configs`);
+
+    return fetch$.pipe(
+      switchMap((config) => {
+        if (allKeysValid(config)) {
+          return of(config);
+        }
+        return fetch$;
+      }),
+      tap((config) => {
+        this.config = config;
+        const stored: StoredConfig = { config, timestamp: Date.now() };
+        localStorage.setItem('config', JSON.stringify(stored));
+        if (isDevMode()) {
+          console.log('Config loaded:', this.config);
+        }
+      }),
+      catchError((error) => {
+        console.error('Failed to load configuration:', error);
+        return throwError(() => new Error('Failed to load configuration.'));
+      })
+    );
   }
 
   // Retrieve a specific key from the config
-  get(key: string): string {
+  get(key: ConfigKey): string {
     return this.getConfig()[key] as string;
   }
 
