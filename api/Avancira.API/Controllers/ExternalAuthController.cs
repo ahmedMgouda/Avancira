@@ -10,6 +10,7 @@ using Avancira.Application.Identity.Tokens.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Avancira.API.Controllers;
 
@@ -20,17 +21,20 @@ public class ExternalAuthController : BaseApiController
     private readonly IExternalUserService _externalUserService;
     private readonly ITokenService _tokenService;
     private readonly IClientInfoService _clientInfoService;
+    private readonly ILogger<ExternalAuthController> _logger;
 
     public ExternalAuthController(
         IExternalAuthService externalAuthService,
         IExternalUserService externalUserService,
         ITokenService tokenService,
-        IClientInfoService clientInfoService)
+        IClientInfoService clientInfoService,
+        ILogger<ExternalAuthController> logger)
     {
         _externalAuthService = externalAuthService;
         _externalUserService = externalUserService;
         _tokenService = tokenService;
         _clientInfoService = clientInfoService;
+        _logger = logger;
     }
 
     [HttpPost("external-login")]
@@ -47,11 +51,13 @@ public class ExternalAuthController : BaseApiController
 
         if (!result.Succeeded || result.LoginInfo is null)
         {
-            return result.ErrorType switch
+            if (result.ErrorType == ExternalAuthErrorType.UnsupportedProvider)
             {
-                ExternalAuthErrorType.UnsupportedProvider => BadRequest(result.Error),
-                _ => Unauthorized(result.Error)
-            };
+                return BadRequest(result.Error);
+            }
+
+            _logger.LogWarning("External login validation failed: {Error}", result.Error);
+            return Unauthorized("Invalid external login token");
         }
 
         var info = result.LoginInfo;
