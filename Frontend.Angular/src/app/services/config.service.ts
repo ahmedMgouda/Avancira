@@ -16,6 +16,11 @@ export interface Config {
   [key: string]: string | SocialProvider[];
 }
 
+interface StoredConfig {
+  config: Config;
+  timestamp: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -49,6 +54,11 @@ export class ConfigService {
     return allKeysExist && !allValuesEmpty;
   }
 
+  private isStoredConfigFresh(timestamp: number): boolean {
+    const oneDay = 24 * 60 * 60 * 1000;
+    return Date.now() - timestamp < oneDay;
+  }
+
   // Load configuration from backend API
   loadConfig(): Observable<Config> {
     // Check if we have a valid config with all required keys
@@ -58,12 +68,23 @@ export class ConfigService {
 
     const storedConfig = localStorage.getItem('config');
     if (storedConfig) {
-      const parsedConfig = JSON.parse(storedConfig) as Config;
-      if (this.isConfigValid(parsedConfig)) {
-        this.config = parsedConfig;
-        return of(this.config);
+      try {
+        const parsed = JSON.parse(storedConfig) as StoredConfig | Config;
+        if ('config' in parsed && 'timestamp' in parsed) {
+          if (this.isConfigValid(parsed.config) && this.isStoredConfigFresh(parsed.timestamp)) {
+            this.config = parsed.config;
+            return of(this.config);
+          }
+        } else if (this.isConfigValid(parsed as Config)) {
+          // migrate old format without timestamp
+          this.config = parsed as Config;
+          const migration: StoredConfig = { config: this.config, timestamp: Date.now() };
+          localStorage.setItem('config', JSON.stringify(migration));
+          return of(this.config);
+        }
+      } catch {
+        // fall through to refetch
       }
-      // If stored config is invalid, remove it and fetch fresh
       localStorage.removeItem('config');
     }
 
@@ -71,7 +92,8 @@ export class ConfigService {
       .pipe(
         tap((config) => {
           this.config = config;
-          localStorage.setItem('config', JSON.stringify(config));
+          const stored: StoredConfig = { config, timestamp: Date.now() };
+          localStorage.setItem('config', JSON.stringify(stored));
           if (isDevMode()) {
             console.log('Config loaded:', this.config);
           }
@@ -114,8 +136,13 @@ export class ConfigService {
     // Try loading from localStorage if not in memory
     const storedConfig = localStorage.getItem('config');
     if (storedConfig) {
-      this.config = JSON.parse(storedConfig) as Config;
-      return this.config;
+      try {
+        const parsed = JSON.parse(storedConfig) as StoredConfig | Config;
+        this.config = ('config' in parsed) ? parsed.config : (parsed as Config);
+        return this.config;
+      } catch {
+        // ignore parse errors and fall through
+      }
     }
   
     // If still not found, throw an error
