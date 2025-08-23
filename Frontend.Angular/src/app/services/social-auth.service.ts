@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, from, throwError } from 'rxjs';
+import { Observable, from, of, throwError } from 'rxjs';
 import { switchMap, take } from 'rxjs/operators';
 
 import { AuthService } from './auth.service';
@@ -36,7 +36,11 @@ export class SocialAuthService {
           return throwError(() => new Error(`Unsupported provider: ${provider}`));
         }
 
-        return from(strategy.init()).pipe(
+        const init$ = strategy.initialized
+          ? of(void 0)
+          : from(strategy.init());
+
+        return init$.pipe(
           switchMap(() => from(strategy.login())),
           switchMap((token) => this.auth.externalLogin(provider, token))
         );
