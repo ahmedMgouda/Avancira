@@ -31,7 +31,11 @@ export class FacebookAuthService {
   /** Performs Facebook login and resolves the access token */
   async login(): Promise<string> {
     const res: LoginResponse = await this.fb.login({ scope: 'email,public_profile' });
-    return res.authResponse.accessToken;
+    const token = res.authResponse?.accessToken;
+    if (res.status !== 'connected' || !token) {
+      throw new Error('Facebook login failed or access token missing');
+    }
+    return token;
   }
 }
 
