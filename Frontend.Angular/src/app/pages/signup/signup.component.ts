@@ -15,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
+import { ConfigService } from '../../services/config.service';
 import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
@@ -50,12 +51,14 @@ export class SignupComponent implements OnInit, OnDestroy {
   returnUrl = '/';
   private destroy$ = new Subject<void>();
   readonly Provider = SocialProvider;
+  enabledProviders: SocialProvider[] = [];
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
+    private config: ConfigService,
     private spinner: SpinnerService,
     private toastr: ToastrService,
     private socialAuth: SocialAuthService
@@ -92,6 +95,20 @@ export class SignupComponent implements OnInit, OnDestroy {
       .subscribe((params) => {
         this.referralToken = params['referral'] || null;
         this.returnUrl = params['returnUrl'] || '/';
+      });
+
+    this.config
+      .loadConfig()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        const providers: SocialProvider[] = [];
+        if (this.config.googleEnabled) {
+          providers.push(SocialProvider.Google);
+        }
+        if (this.config.facebookEnabled) {
+          providers.push(SocialProvider.Facebook);
+        }
+        this.enabledProviders = providers;
       });
   }
 

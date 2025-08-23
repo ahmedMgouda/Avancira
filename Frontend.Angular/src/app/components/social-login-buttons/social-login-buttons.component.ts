@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ConfigService } from '../../services/config.service';
 import { SocialProvider } from '../../models/social-provider';
 
 @Component({
@@ -13,10 +12,9 @@ export class SocialLoginButtonsComponent {
   @Output() google = new EventEmitter<void>();
   @Output() facebook = new EventEmitter<void>();
   @Input() label: string = 'Login';
-
-  constructor(private config: ConfigService) {}
+  @Input() enabledProviders: SocialProvider[] = [];
 
   isEnabled(provider: SocialProvider): boolean {
-    return this.config.isSocialProviderEnabled(provider);
+    return this.enabledProviders.includes(provider);
   }
 }
