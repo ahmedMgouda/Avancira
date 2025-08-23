@@ -29,29 +29,28 @@ export class ConfigService {
 
   constructor(private http: HttpClient) { }
 
-  // Check if configuration is valid (all required keys are present and not all empty)
+  private hasValidSocialKeys(config: Config): boolean {
+    const socialKeys = ['googleClientId', 'facebookAppId'];
+    const allKeysExist = socialKeys.every(key => key in config);
+    const allValuesEmpty = socialKeys.every(key => config[key] === '');
+    return allKeysExist && !allValuesEmpty;
+  }
+
+  private hasValidNonSocialKeys(config: Config): boolean {
+    const otherKeys = ['stripePublishableKey', 'payPalClientId', 'googleMapsApiKey'];
+    const allKeysExist = otherKeys.every(key => key in config);
+    const allValuesEmpty = otherKeys.every(key => config[key] === '');
+    return allKeysExist && !allValuesEmpty;
+  }
+
+  // Check if configuration is valid. Social login keys are validated separately
+  // from payment or map keys so social login can proceed even if those are empty.
   private isConfigValid(config: Config): boolean {
     if (!config) {
       return false;
     }
 
-    // Define the required configuration keys that should be loaded from API
-    const requiredKeys = [
-      'stripePublishableKey',
-      'payPalClientId',
-      'googleMapsApiKey',
-      'googleClientId',
-      'facebookAppId'
-    ];
-
-    // Check if all required keys exist in the config object
-    const allKeysExist = requiredKeys.every(key => key in config);
-    
-    // Check if all values are empty strings (this should trigger a reload)
-    const allValuesEmpty = requiredKeys.every(key => config[key] === '');
-    
-    // Config is valid if all keys exist AND not all values are empty
-    return allKeysExist && !allValuesEmpty;
+    return this.hasValidSocialKeys(config) || this.hasValidNonSocialKeys(config);
   }
 
   private isStoredConfigFresh(timestamp: number): boolean {
@@ -71,8 +70,9 @@ export class ConfigService {
       try {
         const parsed = JSON.parse(storedConfig) as StoredConfig | Config;
         if ('config' in parsed && 'timestamp' in parsed) {
-          if (this.isConfigValid(parsed.config) && this.isStoredConfigFresh(parsed.timestamp)) {
-            this.config = parsed.config;
+          const stored = parsed as StoredConfig;
+          if (this.isConfigValid(stored.config) && this.isStoredConfigFresh(stored.timestamp)) {
+            this.config = stored.config;
             return of(this.config);
           }
         } else if (this.isConfigValid(parsed as Config)) {
@@ -138,8 +138,8 @@ export class ConfigService {
     if (storedConfig) {
       try {
         const parsed = JSON.parse(storedConfig) as StoredConfig | Config;
-        this.config = ('config' in parsed) ? parsed.config : (parsed as Config);
-        return this.config;
+        this.config = ('config' in parsed) ? (parsed as StoredConfig).config : (parsed as Config);
+        return this.config as Config;
       } catch {
         // ignore parse errors and fall through
       }
