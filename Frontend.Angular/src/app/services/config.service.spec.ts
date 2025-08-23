@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import { Config, ConfigService } from './config.service';
+import { ConfigKey } from '../models/config-key';
 
 describe('ConfigService', () => {
   let service: ConfigService;
@@ -17,12 +18,11 @@ describe('ConfigService', () => {
   describe('isConfigValid', () => {
     it('should return true when all keys are populated', () => {
       const validConfig: Config = {
-        stripePublishableKey: 'spk',
-        payPalClientId: 'ppid',
-        googleMapsApiKey: 'gmak',
-        googleClientId: 'gid',
-        facebookAppId: 'fid',
-        enabledSocialProviders: []
+        [ConfigKey.StripePublishableKey]: 'spk',
+        [ConfigKey.PayPalClientId]: 'ppid',
+        [ConfigKey.GoogleMapsApiKey]: 'gmak',
+        [ConfigKey.GoogleClientId]: 'gid',
+        [ConfigKey.FacebookAppId]: 'fid'
       };
 
       expect((service as any).isConfigValid(validConfig)).toBeTrue();
@@ -30,12 +30,11 @@ describe('ConfigService', () => {
 
     it('should return false when any key is empty', () => {
       const invalidConfig: Config = {
-        stripePublishableKey: '',
-        payPalClientId: 'ppid',
-        googleMapsApiKey: 'gmak',
-        googleClientId: 'gid',
-        facebookAppId: 'fid',
-        enabledSocialProviders: []
+        [ConfigKey.StripePublishableKey]: '',
+        [ConfigKey.PayPalClientId]: 'ppid',
+        [ConfigKey.GoogleMapsApiKey]: 'gmak',
+        [ConfigKey.GoogleClientId]: 'gid',
+        [ConfigKey.FacebookAppId]: 'fid'
       };
 
       expect((service as any).isConfigValid(invalidConfig)).toBeFalse();
