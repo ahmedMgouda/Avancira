@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Security.Claims;
 using Avancira.Application.Auth;
 using Avancira.Application.Options;
@@ -47,9 +48,17 @@ public class GoogleTokenValidator : ExternalTokenValidatorBase
             var info = new ExternalLoginInfo(principal, "Google", payload.Subject, "Google");
             return ExternalAuthResult.Success(info);
         }
+        catch (InvalidJwtException ex)
+        {
+            return Fail(ExternalAuthErrorType.InvalidToken, "Google", "Invalid Google token", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            return Fail(ExternalAuthErrorType.NetworkError, "Google", "Network error validating Google token", ex);
+        }
         catch (Exception ex)
         {
-            return Fail(ExternalAuthErrorType.InvalidToken, "Google", "Google token validation failed", ex);
+            return Fail(ExternalAuthErrorType.Error, "Google", "Error validating Google token", ex);
         }
     }
 }
