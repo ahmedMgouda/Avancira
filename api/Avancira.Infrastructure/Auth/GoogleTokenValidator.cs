@@ -1,40 +1,41 @@
 using System.Security.Claims;
 using Avancira.Application.Auth;
 using Avancira.Application.Options;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Google.Apis.Auth;
 
 namespace Avancira.Infrastructure.Auth;
 
-public class GoogleTokenValidator : IExternalTokenValidator
+public class GoogleTokenValidator : ExternalTokenValidatorBase
 {
     private readonly GoogleOptions _options;
     private readonly IGoogleJsonWebSignatureValidator _validator;
-    private readonly ILogger<GoogleTokenValidator> _logger;
 
-    public SocialProvider Provider => SocialProvider.Google;
+    public override SocialProvider Provider => SocialProvider.Google;
 
     public GoogleTokenValidator(
         IOptions<GoogleOptions> googleOptions,
         IGoogleJsonWebSignatureValidator validator,
         ILogger<GoogleTokenValidator> logger)
+        : base(logger)
     {
         _options = googleOptions.Value;
         _validator = validator;
-        _logger = logger;
     }
 
-    public async Task<ExternalAuthResult> ValidateAsync(string idToken)
+    public override async Task<ExternalAuthResult> ValidateAsync(string idToken)
     {
         try
         {
             var payload = await _validator.ValidateAsync(idToken, _options.ClientId);
             if (payload.EmailVerified != true)
             {
-                _logger.LogWarning("Google token validation failed: email not verified");
-                return ExternalAuthResult.Fail("Unverified Google email");
+                return Fail(
+                    ExternalAuthErrorType.UnverifiedEmail,
+                    "Google",
+                    "Google token validation failed: email not verified");
             }
 
             var claims = new List<Claim>
@@ -48,8 +49,7 @@ public class GoogleTokenValidator : IExternalTokenValidator
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Google token validation failed");
-            return ExternalAuthResult.Fail("Invalid Google token");
+            return Fail(ExternalAuthErrorType.InvalidToken, "Google", "Google token validation failed", ex);
         }
     }
 }

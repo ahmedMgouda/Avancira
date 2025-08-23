@@ -1,35 +1,34 @@
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Net.Http;
 using Avancira.Application.Auth;
 using Avancira.Application.Options;
+using Facebook;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Facebook;
 
 namespace Avancira.Infrastructure.Auth;
 
-public class FacebookTokenValidator : IExternalTokenValidator
+public class FacebookTokenValidator : ExternalTokenValidatorBase
 {
     private readonly IFacebookClient _facebookClient;
     private readonly FacebookOptions _options;
-    private readonly ILogger<FacebookTokenValidator> _logger;
 
-    public SocialProvider Provider => SocialProvider.Facebook;
+    public override SocialProvider Provider => SocialProvider.Facebook;
 
     public FacebookTokenValidator(
         IFacebookClient facebookClient,
         IOptions<FacebookOptions> facebookOptions,
         ILogger<FacebookTokenValidator> logger)
+        : base(logger)
     {
         _facebookClient = facebookClient;
         _options = facebookOptions.Value;
-        _logger = logger;
     }
 
-    public async Task<ExternalAuthResult> ValidateAsync(string accessToken)
+    public override async Task<ExternalAuthResult> ValidateAsync(string accessToken)
     {
         try
         {
@@ -44,8 +43,7 @@ public class FacebookTokenValidator : IExternalTokenValidator
             var debug = debugDoc.Deserialize<FacebookDebugTokenResponse>();
             if (debug?.Data == null)
             {
-                _logger.LogError("Malformed debug_token response from Facebook");
-                return ExternalAuthResult.Fail("Malformed response from Facebook");
+                return Fail(ExternalAuthErrorType.MalformedResponse, "Facebook", "Malformed debug_token response from Facebook");
             }
 
             var appId = debug.Data.AppId;
@@ -53,8 +51,10 @@ public class FacebookTokenValidator : IExternalTokenValidator
             var expiresAt = debug.Data.ExpiresAt;
             if (appId != _options.AppId || !isValid || DateTimeOffset.FromUnixTimeSeconds(expiresAt) <= DateTimeOffset.UtcNow)
             {
-                _logger.LogWarning("Facebook token invalid: app_id={AppId} is_valid={IsValid} exp={Exp}", appId, isValid, expiresAt);
-                return ExternalAuthResult.Fail("Invalid Facebook token");
+                return Fail(
+                    ExternalAuthErrorType.InvalidToken,
+                    "Facebook",
+                    $"Facebook token invalid: app_id={appId} is_valid={isValid} exp={expiresAt}");
             }
 
             var profileParams = new Dictionary<string, object>
@@ -67,8 +67,7 @@ public class FacebookTokenValidator : IExternalTokenValidator
             var profile = profileDoc.Deserialize<FacebookMeResponse>();
             if (profile == null)
             {
-                _logger.LogError("Malformed me response from Facebook");
-                return ExternalAuthResult.Fail("Malformed response from Facebook");
+                return Fail(ExternalAuthErrorType.MalformedResponse, "Facebook", "Malformed me response from Facebook");
             }
 
             var id = profile.Id ?? string.Empty;
@@ -86,23 +85,19 @@ public class FacebookTokenValidator : IExternalTokenValidator
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Network error validating Facebook token");
-            return ExternalAuthResult.Fail("Network error validating Facebook token");
+            return Fail(ExternalAuthErrorType.NetworkError, "Facebook", "Network error validating Facebook token", ex);
         }
         catch (FacebookApiException ex)
         {
-            _logger.LogError(ex, "Network error validating Facebook token");
-            return ExternalAuthResult.Fail("Network error validating Facebook token");
+            return Fail(ExternalAuthErrorType.NetworkError, "Facebook", "Network error validating Facebook token", ex);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Malformed JSON from Facebook");
-            return ExternalAuthResult.Fail("Malformed response from Facebook");
+            return Fail(ExternalAuthErrorType.MalformedResponse, "Facebook", "Malformed JSON from Facebook", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating Facebook token");
-            return ExternalAuthResult.Fail("Error validating Facebook token");
+            return Fail(ExternalAuthErrorType.Error, "Facebook", "Error validating Facebook token", ex);
         }
     }
 }
