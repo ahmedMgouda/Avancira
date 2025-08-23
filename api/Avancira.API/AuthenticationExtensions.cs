@@ -1,9 +1,5 @@
-using Avancira.Application.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Avancira.API;
 
@@ -12,7 +8,7 @@ public static class AuthenticationExtensions
     public static AuthenticationBuilder AddExternalAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
-        ILogger<AuthenticationExtensions> logger)
+        ILogger logger)
     {
         var builder = services.AddAuthentication(options =>
         {

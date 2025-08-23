@@ -10,20 +10,22 @@ import {
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
 import { Subject, takeUntil } from 'rxjs';
 import { finalize } from 'rxjs/operators';
+import { ToastrService } from 'ngx-toastr';
+
+import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
 import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
+
+import { RegisterUserRequest } from '../../models/register-user-request';
+import { SocialProvider } from '../../models/social-provider';
 import { passwordComplexityValidator } from '../../validators/password.validators';
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
-import { RegisterUserRequest } from '../../models/register-user-request';
-import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
-import { SocialProvider } from '../../models/social-provider';
 
 interface SignupForm {
   firstName: FormControl<string>;

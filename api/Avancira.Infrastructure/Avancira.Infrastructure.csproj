@@ -11,6 +11,7 @@
     <PackageReference Include="Asp.Versioning.Abstractions" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+    <PackageReference Include="Facebook" Version="7.0.6" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <PackageReference Include="Hangfire" Version="1.8.18" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.1" />
@@ -62,7 +63,6 @@
     <PackageReference Include="TimeZoneConverter" Version="7.0.0" />
     <PackageReference Include="UAParser" Version="3.1.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
-    <PackageReference Include="Facebook" Version="15.0.0" />
   </ItemGroup>
 
   <ItemGroup>

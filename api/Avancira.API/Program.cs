@@ -75,7 +75,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
-var authLogger = authLoggerFactory.CreateLogger<AuthenticationExtensions>();
+var authLogger = authLoggerFactory.CreateLogger("Authentication");
 builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 
 var app = builder.Build();

@@ -1,7 +1,5 @@
-using System.Net.Http;
 using System.Security.Claims;
 using Avancira.Application.Auth;
-using Avancira.Application.Options;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;

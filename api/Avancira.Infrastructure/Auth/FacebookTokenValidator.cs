@@ -1,9 +1,6 @@
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
 using Avancira.Application.Auth;
-using Avancira.Application.Options;
 using Facebook;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
