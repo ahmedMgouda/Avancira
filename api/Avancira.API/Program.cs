@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,7 +66,10 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 });
-builder.Services.AddExternalAuthentication(builder.Configuration);
+
+using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+var authLogger = authLoggerFactory.CreateLogger<AuthenticationExtensions>();
+builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 
 var app = builder.Build();
 

@@ -9,17 +9,15 @@ namespace Avancira.API;
 
 public static class AuthenticationExtensions
 {
-    public static AuthenticationBuilder AddExternalAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static AuthenticationBuilder AddExternalAuthentication(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        ILogger<AuthenticationExtensions> logger)
     {
-        services.AddLogging();
-
         var builder = services.AddAuthentication(options =>
         {
             options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         });
-
-        using var provider = services.BuildServiceProvider();
-        var logger = provider.GetRequiredService<ILogger<AuthenticationExtensions>>();
 
         var google = configuration.GetSection("Avancira:ExternalServices:Google").Get<GoogleOptions>();
         if (!string.IsNullOrWhiteSpace(google?.ClientId) && !string.IsNullOrWhiteSpace(google.ClientSecret))
