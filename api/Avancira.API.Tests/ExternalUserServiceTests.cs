@@ -92,6 +92,26 @@ public class ExternalUserServiceTests
     }
 
     [Fact]
+    public async Task EnsureUserAsync_SkipsDeletion_WhenAddLoginFailsForExistingUser()
+    {
+        var existingUser = new User { Id = "existing-id" };
+        var userManager = MockUserManager();
+        userManager.Setup(m => m.FindByLoginAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User?)null);
+        userManager.Setup(m => m.FindByEmailAsync("user@example.com")).ReturnsAsync(existingUser);
+        userManager.Setup(m => m.AddLoginAsync(existingUser, It.IsAny<UserLoginInfo>()))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "login-fail" }));
+
+        var service = new ExternalUserService(userManager.Object);
+        var info = CreateLoginInfo();
+        var result = await service.EnsureUserAsync(info);
+
+        result.Succeeded.Should().BeFalse();
+        result.ErrorType.Should().Be(ExternalUserError.BadRequest);
+        result.Error.Should().Be("login-fail");
+        userManager.Verify(m => m.DeleteAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
     public async Task EnsureUserAsync_ReturnsUnauthorized_WhenEmailMissing()
     {
         var userManager = MockUserManager();
