@@ -3,6 +3,7 @@ using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
 using Avancira.API;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
@@ -43,6 +44,8 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.Converters.Add(
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 });
+
+builder.Services.AddFluentValidationAutoValidation();
 
 // Register your dependencies with Aspire
 
