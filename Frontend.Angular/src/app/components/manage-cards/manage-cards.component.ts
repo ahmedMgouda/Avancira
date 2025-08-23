@@ -6,6 +6,7 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { AlertService } from '../../services/alert.service';
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
+import { ConfigKey } from '../../models/config-key';
 
 import { Card } from '../../models/card';
 import { UserCardType } from '../../models/enums/user-card-type';
@@ -76,7 +77,7 @@ export class ManageCardsComponent implements OnInit {
     }
     this.configService.loadConfig().subscribe({
       next: async () => {
-        this.stripe = await loadStripe(this.configService.get('stripePublishableKey'));
+        this.stripe = await loadStripe(this.configService.get(ConfigKey.StripePublishableKey));
         if (!this.stripe) {
           console.error('Stripe could not be initialized');
           return;

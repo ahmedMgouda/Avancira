@@ -5,6 +5,7 @@ import { loadStripe, Stripe, StripeIbanElement } from '@stripe/stripe-js';
 
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
+import { ConfigKey } from '../../models/config-key';
 
 @Component({
   selector: 'app-manage-banks',
@@ -29,7 +30,7 @@ export class ManageBanksComponent implements OnInit {
   }
 
   async initializeStripeIban(): Promise<void> {
-    this.stripe = await loadStripe(this.configService.get('stripePublishableKey'));
+    this.stripe = await loadStripe(this.configService.get(ConfigKey.StripePublishableKey));
 
     if (!this.stripe) {
       console.error('Stripe is not initialized.');

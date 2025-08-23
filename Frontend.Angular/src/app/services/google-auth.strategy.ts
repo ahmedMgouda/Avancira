@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { SocialProvider } from '../models/social-provider';
+import { ConfigKey } from '../models/config-key';
 import { ConfigService } from './config.service';
 import { GoogleAuthService } from './google-auth.service';
 import { SocialAuthStrategy } from './social-auth-strategy';
@@ -25,7 +26,7 @@ export class GoogleAuthStrategy implements SocialAuthStrategy {
       return this.initPromise;
     }
 
-    const clientId = this.config.get('googleClientId');
+    const clientId = this.config.get(ConfigKey.GoogleClientId);
     if (!clientId) {
       return Promise.reject('Google client ID not configured.');
     }

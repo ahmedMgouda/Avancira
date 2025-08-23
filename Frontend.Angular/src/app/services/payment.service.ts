@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { ConfigKey } from '../models/config-key';
 
 import { environment } from '../environments/environment';
 import { Card } from '../models/card';
@@ -52,7 +53,7 @@ export class PaymentService {
   loadPayPalScript(): Promise<void> {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${this.configService.get('payPalClientId')}&currency=AUD`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${this.configService.get(ConfigKey.PayPalClientId)}&currency=AUD`;
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject('PayPal SDK could not be loaded.');
