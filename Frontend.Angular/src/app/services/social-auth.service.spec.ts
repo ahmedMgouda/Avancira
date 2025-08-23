@@ -16,8 +16,14 @@ describe('SocialAuthService', () => {
   let facebook: jasmine.SpyObj<FacebookAuthStrategy>;
 
   beforeEach(() => {
-    google = jasmine.createSpyObj('GoogleAuthStrategy', ['init', 'login'], { provider: SocialProvider.Google });
-    facebook = jasmine.createSpyObj('FacebookAuthStrategy', ['init', 'login'], { provider: SocialProvider.Facebook });
+    google = jasmine.createSpyObj<GoogleAuthStrategy>('GoogleAuthStrategy', ['init', 'login'], {
+      provider: SocialProvider.Google,
+      initialized: false,
+    });
+    facebook = jasmine.createSpyObj<FacebookAuthStrategy>('FacebookAuthStrategy', ['init', 'login'], {
+      provider: SocialProvider.Facebook,
+      initialized: false,
+    });
     config = jasmine.createSpyObj('ConfigService', ['loadConfig', 'isSocialProviderEnabled']);
     auth = jasmine.createSpyObj('AuthService', ['externalLogin']);
 
@@ -79,6 +85,31 @@ describe('SocialAuthService', () => {
         expect(auth.externalLogin).not.toHaveBeenCalled();
         done();
       },
+    });
+  });
+
+  it('should reuse initialization on subsequent authenticate calls', (done) => {
+    config.loadConfig.and.returnValue(of({} as any));
+    config.isSocialProviderEnabled.and.returnValue(true);
+    google.init.and.callFake(() => {
+      google.initialized = true;
+      return Promise.resolve();
+    });
+    google.login.and.callFake(() => Promise.resolve('token'));
+    auth.externalLogin.and.returnValue(of({} as any));
+
+    service.authenticate(SocialProvider.Google).subscribe({
+      next: () => {
+        service.authenticate(SocialProvider.Google).subscribe({
+          next: () => {
+            expect(google.init).toHaveBeenCalledTimes(1);
+            expect(google.login).toHaveBeenCalledTimes(2);
+            done();
+          },
+          error: done.fail,
+        });
+      },
+      error: done.fail,
     });
   });
 });
