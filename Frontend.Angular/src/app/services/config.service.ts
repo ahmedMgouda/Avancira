@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { catchError, Observable, of, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
@@ -72,7 +72,9 @@ export class ConfigService {
         tap((config) => {
           this.config = config;
           localStorage.setItem('config', JSON.stringify(config));
-          console.log('Config loaded:', this.config);
+          if (isDevMode()) {
+            console.log('Config loaded:', this.config);
+          }
         }),
         catchError((error) => {
           console.error('Failed to load configuration:', error);
