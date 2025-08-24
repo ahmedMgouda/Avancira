@@ -7,8 +7,8 @@ import { ConfirmationDialogComponent } from "./components/confirmation-dialog/co
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
 import { NotificationService } from './services/notification.service';
-import { ConfigKey } from './models/config-key';
 
+import { ConfigKey } from './models/config-key';
 import { NotificationEvent } from './models/enums/notification-event';
 
 @Component({

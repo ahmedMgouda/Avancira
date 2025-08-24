@@ -1,17 +1,14 @@
-using System.Linq;
-using System;
 using Avancira.Application.Auth;
 using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Avancira.API.Controllers;
 
+[ApiController]
 [Route("api/auth")]
 public class ExternalAuthController : BaseApiController
 {
