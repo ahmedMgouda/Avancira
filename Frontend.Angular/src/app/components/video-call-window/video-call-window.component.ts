@@ -9,7 +9,7 @@ declare var JitsiMeetExternalAPI: any;
 @Component({
   selector: 'app-video-call-window',
   templateUrl: './video-call-window.component.html',
-  styleUrls: ['./video-call-window.component.css']
+  styleUrls: ['./video-call-window.component.scss']
 })
 export class VideoCallWindowComponent implements OnInit, OnDestroy {
   private jitsiApi: any | null = null;
