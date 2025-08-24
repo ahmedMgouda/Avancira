@@ -71,13 +71,13 @@ export class GoogleAuthService {
           if (notification.isNotDisplayed()) {
             this.rejectFn?.('Google Sign-In not displayed.');
             this.clearHandlers();
-          } else if (notification.isDismissed()) {
+          } else if (notification.isDismissedMoment()) {
             this.rejectFn?.('Google Sign-In dismissed.');
             this.clearHandlers();
           } else if (notification.isSkippedMoment()) {
             this.rejectFn?.('Google Sign-In skipped.');
             this.clearHandlers();
-          } else if (notification.isDisplayed?.()) {
+          } else if (!notification.isNotDisplayed()) {
             // Sign-in prompt displayed successfully; actual resolution happens in callback
           }
         });
