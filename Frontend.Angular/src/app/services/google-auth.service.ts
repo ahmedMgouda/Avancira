@@ -30,6 +30,7 @@ export class GoogleAuthService {
         this.clearHandlers();
       },
       ux_mode: 'popup',
+      use_fedcm_for_prompt: true,
     });
 
     this.initialized = true;
@@ -65,20 +66,34 @@ export class GoogleAuthService {
       };
 
       try {
-        google.accounts.id.prompt(
-          (notification: any) => {
-            if (notification.isNotDisplayed()) {
-              this.rejectFn?.('Google Sign-In not displayed.');
+        google.accounts.id.prompt((notification: any) => {
+          switch (notification.getMomentType()) {
+            case 'not_displayed': {
+              const reason = notification.getNotDisplayedReason?.();
+              this.rejectFn?.(
+                `Google Sign-In not displayed${reason ? `: ${reason}` : ''}.`,
+              );
               this.clearHandlers();
-            } else if (notification.isDismissedMoment()) {
-              this.rejectFn?.('Google Sign-In dismissed.');
-              this.clearHandlers();
-            } else if (notification.isSkippedMoment()) {
-              this.rejectFn?.('Google Sign-In skipped.');
-              this.clearHandlers();
+              break;
             }
-          },
-        );
+            case 'dismissed': {
+              const reason = notification.getDismissedReason?.();
+              this.rejectFn?.(
+                `Google Sign-In dismissed${reason ? `: ${reason}` : ''}.`,
+              );
+              this.clearHandlers();
+              break;
+            }
+            case 'skipped': {
+              const reason = notification.getSkippedReason?.();
+              this.rejectFn?.(
+                `Google Sign-In skipped${reason ? `: ${reason}` : ''}.`,
+              );
+              this.clearHandlers();
+              break;
+            }
+          }
+        });
       } catch (e) {
         this.rejectFn?.(e);
         this.clearHandlers();
