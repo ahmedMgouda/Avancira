@@ -67,31 +67,26 @@ export class GoogleAuthService {
 
       try {
         google.accounts.id.prompt((notification: any) => {
-          switch (notification.getMomentType()) {
-            case 'not_displayed': {
-              const reason = notification.getNotDisplayedReason?.();
-              this.rejectFn?.(
-                `Google Sign-In not displayed${reason ? `: ${reason}` : ''}.`,
-              );
-              this.clearHandlers();
-              break;
-            }
-            case 'dismissed': {
-              const reason = notification.getDismissedReason?.();
-              this.rejectFn?.(
-                `Google Sign-In dismissed${reason ? `: ${reason}` : ''}.`,
-              );
-              this.clearHandlers();
-              break;
-            }
-            case 'skipped': {
-              const reason = notification.getSkippedReason?.();
-              this.rejectFn?.(
-                `Google Sign-In skipped${reason ? `: ${reason}` : ''}.`,
-              );
-              this.clearHandlers();
-              break;
-            }
+          if (notification.isNotDisplayed()) {
+            const reason = notification.getNotDisplayedReason?.();
+            this.rejectFn?.(
+              `Google Sign-In not displayed${reason ? `: ${reason}` : ''}.`,
+            );
+            this.clearHandlers();
+          } else if (notification.isDismissed()) {
+            const reason = notification.getDismissedReason?.();
+            this.rejectFn?.(
+              `Google Sign-In dismissed${reason ? `: ${reason}` : ''}.`,
+            );
+            this.clearHandlers();
+          } else if (notification.isSkippedMoment()) {
+            const reason = notification.getSkippedReason?.();
+            this.rejectFn?.(
+              `Google Sign-In skipped${reason ? `: ${reason}` : ''}.`,
+            );
+            this.clearHandlers();
+          } else if (notification.isDisplayed?.()) {
+            // Sign-in prompt displayed successfully; actual resolution happens in callback
           }
         });
       } catch (e) {
