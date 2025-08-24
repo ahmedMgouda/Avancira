@@ -1,103 +1,60 @@
-// src/app/services/google-auth.service.ts
 import { Injectable } from '@angular/core';
+import { from, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import {
+  SocialAuthService as LibSocialAuthService,
+  GoogleLoginProvider,
+  SocialUser,
+} from '@abacritt/angularx-social-login';
+
+import { AuthService } from './auth.service';
+import { ConfigService } from './config.service';
+import { FacebookAuthService } from './facebook-auth.service';
+import { SocialProvider } from '../models/social-provider';
 
 @Injectable({ providedIn: 'root' })
-export class GoogleAuthService {
-  private initialized = false;
-  private clientId = '';
-  private resolveFn?: (token: string) => void;
-  private rejectFn?: (reason?: unknown) => void;
-  private signInInProgress = false;
+export class SocialAuthService {
+  constructor(
+    private config: ConfigService,
+    private auth: AuthService,
+    private social: LibSocialAuthService,
+    private facebook: FacebookAuthService
+  ) {}
 
-  /** Initializes the Google Identity SDK (FedCM-safe) */
-  async init(clientId: string): Promise<void> {
-    if (this.initialized) return;
-    if (!clientId) return Promise.reject('Google Client ID is required.');
-
-    this.clientId = clientId;
-    await this.loadGIS();
-
-    const google = (window as any).google;
-    if (!google?.accounts?.id) throw new Error('Google Identity not available.');
-
-    google.accounts.id.initialize({
-      client_id: this.clientId,
-      callback: (response: any) => {
-        if (response?.credential) {
-          this.resolveFn?.(response.credential);
-        } else {
-          this.rejectFn?.('No credential returned.');
+  authenticate(provider: SocialProvider) {
+    return this.config.loadConfig().pipe(
+      switchMap(() => {
+        if (!this.config.isSocialProviderEnabled(provider)) {
+          return throwError(() => new Error(`${provider} not enabled`));
         }
-        this.clearHandlers();
-      },
-      use_fedcm_for_prompt: true,
-      use_fedcm_for_button: true, // optional but recommended
-      ux_mode: 'popup',
-    });
 
-    this.initialized = true;
-  }
+        if (provider === SocialProvider.Google) {
+          return from(
+            this.social.signIn(GoogleLoginProvider.PROVIDER_ID)
+          ).pipe(
+            switchMap((user: SocialUser) => {
+              const token = user.idToken;
+              if (!token) {
+                return throwError(() => new Error('No ID token'));
+              }
+              return this.auth.externalLogin(provider, token);
+            })
+          );
+        }
 
-  /** Triggers One Tap / FedCM and resolves ID token via the initialize() callback */
-  async signIn(timeoutMs = 15000): Promise<string> {
-    if (!this.initialized) return Promise.reject('GoogleAuthService not initialized.');
-    if (this.signInInProgress) return Promise.reject('Google Sign-In already in progress.');
-    this.signInInProgress = true;
+        if (provider === SocialProvider.Facebook) {
+          return from(
+            this.facebook
+              .ensureInitialized()
+              .then(() => this.facebook.login())
+          ).pipe(
+            switchMap((token) => this.auth.externalLogin(provider, token))
+          );
+        }
 
-    const google = (window as any).google;
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.clearHandlers();
-        reject('Google Sign-In timed out.');
-      }, timeoutMs);
-
-      this.resolveFn = (token: string) => { clearTimeout(timeout); resolve(token); };
-      this.rejectFn  = (reason?: unknown) => { clearTimeout(timeout); reject(reason); };
-
-      try {
-        // IMPORTANT: no prompt callback → no display-moment APIs invoked.
-        google.accounts.id.prompt();
-      } catch (e) {
-        this.rejectFn?.(e);
-        this.clearHandlers();
-      }
-    });
-  }
-
-  /** Optionally render an official Google button anywhere in your UI */
-  renderButton(host: HTMLElement, options?: any): void {
-    const google = (window as any).google;
-    if (!google?.accounts?.id) return;
-    google.accounts.id.renderButton(host, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      shape: 'rectangular',
-      text: 'signin_with',
-      logo_alignment: 'left',
-      ...options,
-    });
-  }
-
-  private loadGIS(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const w = window as any;
-      if (w.google?.accounts?.id) return resolve();
-
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject('Google Identity SDK not loaded.');
-      document.head.appendChild(script);
-    });
-  }
-
-  private clearHandlers(): void {
-    this.resolveFn = undefined;
-    this.rejectFn = undefined;
-    this.signInInProgress = false;
+        return throwError(() => new Error('Unsupported provider'));
+      })
+    );
   }
 }
+
