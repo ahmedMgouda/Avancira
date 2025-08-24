@@ -27,10 +27,6 @@ export class AppComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    if (!this.authService.isAuthenticated()) {
-      return;
-    }
-
     this.configService.loadConfig().subscribe({
       next: () => console.log('Config loaded:', this.configService.get(ConfigKey.StripePublishableKey)),
       error: (err) => console.error('Failed to load configuration:', err.message),
@@ -42,19 +38,21 @@ export class AppComponent implements OnInit {
       }
     });
 
-    this.notificationService.startConnection(this.authService.getAccessToken() ?? "");
+    if (this.authService.isAuthenticated()) {
+      this.notificationService.startConnection(this.authService.getAccessToken() ?? "");
 
-    this.notificationService.onReceiveNotification((notification) => {
-      if (notification.eventName === NotificationEvent.NewMessage) {
-        // Only show toast notification for messages if NOT on the messages page
-        // The message-thread component will handle displaying messages when on the messages page
-        if (this.currentRoute !== '/messages') {
+      this.notificationService.onReceiveNotification((notification) => {
+        if (notification.eventName === NotificationEvent.NewMessage) {
+          // Only show toast notification for messages if NOT on the messages page
+          // The message-thread component will handle displaying messages when on the messages page
+          if (this.currentRoute !== '/messages') {
+            this.toastr.info(notification.data.content, notification.message);
+          }
+        } else {
+          // For all other notification types, show the toast
           this.toastr.info(notification.data.content, notification.message);
         }
-      } else {
-        // For all other notification types, show the toast
-        this.toastr.info(notification.data.content, notification.message);
-      }
-    });
+      });
+    }
   }
 }
