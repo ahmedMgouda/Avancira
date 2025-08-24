@@ -9,51 +9,50 @@ export class GoogleAuthService {
   private rejectFn?: (reason?: unknown) => void;
   private signInInProgress = false;
 
-  /** Initializes the Google Identity SDK */
+  /** Initializes the Google Identity SDK (FedCM-ready) */
   async init(clientId: string): Promise<void> {
     if (this.initialized) return;
-    if (!clientId) {
-      return Promise.reject('Google Client ID is required.');
-    }
+    if (!clientId) return Promise.reject('Google Client ID is required.');
 
     this.clientId = clientId;
     await this.loadGIS();
+
     const google = (window as any).google;
+    if (!google?.accounts?.id) throw new Error('Google Identity not available.');
+
     google.accounts.id.initialize({
       client_id: this.clientId,
       callback: (response: any) => {
-        if (response.credential) {
+        if (response?.credential) {
           this.resolveFn?.(response.credential);
         } else {
           this.rejectFn?.('No credential returned.');
         }
         this.clearHandlers();
       },
-      ux_mode: 'popup',
+      // One Tap uses FedCM; keep popup for button flows
       use_fedcm_for_prompt: true,
+      // Recommended: also enable FedCM for the button if you render it elsewhere
+      use_fedcm_for_button: true,
+      ux_mode: 'popup'
     });
 
     this.initialized = true;
   }
 
-  /** Triggers Google Sign-In popup and resolves ID token */
+  /** Triggers One Tap / FedCM and resolves ID token via the initialize() callback */
   async signIn(): Promise<string> {
-    if (!this.initialized) {
-      return Promise.reject('GoogleAuthService not initialized.');
-    }
-
-    if (this.signInInProgress) {
-      return Promise.reject('Google Sign-In already in progress.');
-    }
+    if (!this.initialized) return Promise.reject('GoogleAuthService not initialized.');
+    if (this.signInInProgress) return Promise.reject('Google Sign-In already in progress.');
 
     this.signInInProgress = true;
     const google = (window as any).google;
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject('Google Sign-In timed out.');
         this.clearHandlers();
-      }, 10000);
+        reject('Google Sign-In timed out.');
+      }, 15000);
 
       this.resolveFn = (token: string) => {
         clearTimeout(timeout);
@@ -66,23 +65,15 @@ export class GoogleAuthService {
       };
 
       try {
-        google.accounts.id.prompt(
-          (notification: google.accounts.id.PromptMomentNotification) => {
-            console.log(notification);
-            if (notification.isNotDisplayed()) {
-              this.rejectFn?.('Google Sign-In not displayed.');
-              this.clearHandlers();
-            } else if (notification.isDismissedMoment()) {
-              this.rejectFn?.('Google Sign-In dismissed.');
-              this.clearHandlers();
-            } else if (notification.isSkippedMoment()) {
-              this.rejectFn?.('Google Sign-In skipped.');
-              this.clearHandlers();
-            } else if (!notification.isNotDisplayed()) {
-              // Sign-in prompt displayed successfully; actual resolution happens in callback
-            }
-          },
-        );
+        // Prompt callback is advisory under FedCM. Don’t branch on removed display-moment APIs.
+        google.accounts.id.prompt((notification: any) => {
+          // If the user explicitly dismisses the UI, fail fast.
+          if (notification?.isDismissedMoment?.()) {
+            this.rejectFn?.('Google Sign-In dismissed.');
+            this.clearHandlers();
+          }
+          // If skipped, just keep waiting for the global credential callback or the timeout.
+        });
       } catch (e) {
         this.rejectFn?.(e);
         this.clearHandlers();
@@ -93,10 +84,8 @@ export class GoogleAuthService {
   /** Loads Google Identity Services script if needed */
   private loadGIS(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (typeof (window as any).google !== 'undefined') {
-        resolve();
-        return;
-      }
+      const w = window as any;
+      if (w.google?.accounts?.id) return resolve();
 
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
