@@ -23,6 +23,12 @@ import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
 
+function initConfig() {
+  return firstValueFrom(
+    inject(ConfigService).loadConfig().pipe(catchError(() => of(null)))
+  );
+}
+
 function initAuth() {
   const auth = inject(AuthService);
   return firstValueFrom(
@@ -51,6 +57,8 @@ export const appConfig: ApplicationConfig = {
     }),
 
     provideAnimationsAsync(),
+
+    provideAppInitializer(initConfig),
 
     {
       provide: 'SocialAuthServiceConfig',
