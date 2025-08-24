@@ -10,7 +10,7 @@ import { provideRouter } from '@angular/router';
 import { catchError, firstValueFrom, of } from 'rxjs';
 import { provideToastr } from 'ngx-toastr';
 import {
-  provideSocialLogin,
+  provideSocialAuthServiceConfig,
   GoogleLoginProvider,
   FacebookLoginProvider,
 } from '@abacritt/angularx-social-login';
@@ -52,7 +52,7 @@ export const appConfig: ApplicationConfig = {
 
     provideAnimationsAsync(),
 
-    provideSocialLogin(() => ({
+    provideSocialAuthServiceConfig(() => ({
       autoLogin: false,
       providers: [
         {
