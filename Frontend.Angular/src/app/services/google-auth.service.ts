@@ -65,15 +65,8 @@ export class GoogleAuthService {
       };
 
       try {
-        // Prompt callback is advisory under FedCM. Don’t branch on removed display-moment APIs.
-        google.accounts.id.prompt((notification: any) => {
-          // If the user explicitly dismisses the UI, fail fast.
-          if (notification?.isDismissedMoment?.()) {
-            this.rejectFn?.('Google Sign-In dismissed.');
-            this.clearHandlers();
-          }
-          // If skipped, just keep waiting for the global credential callback or the timeout.
-        });
+        // Prompt without a callback. Any dismissal will be handled by the timeout or global credential callback.
+        google.accounts.id.prompt();
       } catch (e) {
         this.rejectFn?.(e);
         this.clearHandlers();
