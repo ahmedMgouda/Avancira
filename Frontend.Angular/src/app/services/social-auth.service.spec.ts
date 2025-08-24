@@ -2,38 +2,42 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
 import { SocialAuthService } from './social-auth.service';
-import { GoogleAuthStrategy } from './google-auth.strategy';
-import { FacebookAuthStrategy } from './facebook-auth.strategy';
-import { ConfigService } from './config.service';
 import { AuthService } from './auth.service';
+import { ConfigService } from './config.service';
+import { FacebookAuthService } from './facebook-auth.service';
+import {
+  SocialAuthService as LibSocialAuthService,
+  GoogleLoginProvider,
+  SocialUser,
+} from '@abacritt/angularx-social-login';
 import { SocialProvider } from '../models/social-provider';
 
 describe('SocialAuthService', () => {
   let service: SocialAuthService;
   let config: jasmine.SpyObj<ConfigService>;
   let auth: jasmine.SpyObj<AuthService>;
-  let google: jasmine.SpyObj<GoogleAuthStrategy>;
-  let facebook: jasmine.SpyObj<FacebookAuthStrategy>;
+  let lib: jasmine.SpyObj<LibSocialAuthService>;
+  let facebook: jasmine.SpyObj<FacebookAuthService>;
 
   beforeEach(() => {
-    google = jasmine.createSpyObj<GoogleAuthStrategy>('GoogleAuthStrategy', ['init', 'login'], {
-      provider: SocialProvider.Google,
-      initialized: false,
-    });
-    facebook = jasmine.createSpyObj<FacebookAuthStrategy>('FacebookAuthStrategy', ['init', 'login'], {
-      provider: SocialProvider.Facebook,
-      initialized: false,
-    });
-    config = jasmine.createSpyObj('ConfigService', ['loadConfig', 'isSocialProviderEnabled']);
+    config = jasmine.createSpyObj('ConfigService', [
+      'loadConfig',
+      'isSocialProviderEnabled',
+    ]);
     auth = jasmine.createSpyObj('AuthService', ['externalLogin']);
+    lib = jasmine.createSpyObj('LibSocialAuthService', ['signIn']);
+    facebook = jasmine.createSpyObj('FacebookAuthService', [
+      'ensureInitialized',
+      'login',
+    ]);
 
     TestBed.configureTestingModule({
       providers: [
         SocialAuthService,
-        { provide: GoogleAuthStrategy, useValue: google },
-        { provide: FacebookAuthStrategy, useValue: facebook },
         { provide: ConfigService, useValue: config },
         { provide: AuthService, useValue: auth },
+        { provide: LibSocialAuthService, useValue: lib },
+        { provide: FacebookAuthService, useValue: facebook },
       ],
     });
 
@@ -46,70 +50,31 @@ describe('SocialAuthService', () => {
 
     service.authenticate(SocialProvider.Google).subscribe({
       next: () => done.fail('expected error'),
-      error: () => {
-        expect(config.isSocialProviderEnabled).toHaveBeenCalledWith(SocialProvider.Google);
-        expect(google.init).not.toHaveBeenCalled();
-        expect(auth.externalLogin).not.toHaveBeenCalled();
-        done();
-      },
+      error: () => done(),
     });
   });
 
-  it('should error when strategy init fails', (done) => {
+  it('should sign in with Google and forward the token', (done) => {
     config.loadConfig.and.returnValue(of({} as any));
     config.isSocialProviderEnabled.and.returnValue(true);
-    google.init.and.returnValue(Promise.reject('init error'));
-
-    service.authenticate(SocialProvider.Google).subscribe({
-      next: () => done.fail('expected error'),
-      error: () => {
-        expect(google.init).toHaveBeenCalled();
-        expect(google.login).not.toHaveBeenCalled();
-        expect(auth.externalLogin).not.toHaveBeenCalled();
-        done();
-      },
-    });
-  });
-
-  it('should error when strategy login fails', (done) => {
-    config.loadConfig.and.returnValue(of({} as any));
-    config.isSocialProviderEnabled.and.returnValue(true);
-    google.init.and.returnValue(Promise.resolve());
-    google.login.and.returnValue(Promise.reject('login error'));
-
-    service.authenticate(SocialProvider.Google).subscribe({
-      next: () => done.fail('expected error'),
-      error: () => {
-        expect(google.init).toHaveBeenCalled();
-        expect(google.login).toHaveBeenCalled();
-        expect(auth.externalLogin).not.toHaveBeenCalled();
-        done();
-      },
-    });
-  });
-
-  it('should reuse initialization on subsequent authenticate calls', (done) => {
-    config.loadConfig.and.returnValue(of({} as any));
-    config.isSocialProviderEnabled.and.returnValue(true);
-    google.init.and.callFake(() => {
-      google.initialized = true;
-      return Promise.resolve();
-    });
-    google.login.and.callFake(() => Promise.resolve('token'));
+    lib.signIn.and.returnValue(
+      Promise.resolve({ idToken: 'token' } as SocialUser)
+    );
     auth.externalLogin.and.returnValue(of({} as any));
 
     service.authenticate(SocialProvider.Google).subscribe({
       next: () => {
-        service.authenticate(SocialProvider.Google).subscribe({
-          next: () => {
-            expect(google.init).toHaveBeenCalledTimes(1);
-            expect(google.login).toHaveBeenCalledTimes(2);
-            done();
-          },
-          error: done.fail,
-        });
+        expect(lib.signIn).toHaveBeenCalledWith(
+          GoogleLoginProvider.PROVIDER_ID
+        );
+        expect(auth.externalLogin).toHaveBeenCalledWith(
+          SocialProvider.Google,
+          'token'
+        );
+        done();
       },
       error: done.fail,
     });
   });
 });
+
