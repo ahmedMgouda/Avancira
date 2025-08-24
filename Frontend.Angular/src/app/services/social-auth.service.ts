@@ -4,12 +4,12 @@ import { switchMap } from 'rxjs/operators';
 import {
   SocialAuthService as LibSocialAuthService,
   GoogleLoginProvider,
+  FacebookLoginProvider,
   SocialUser,
 } from '@abacritt/angularx-social-login';
 
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
-import { FacebookAuthService } from './facebook-auth.service';
 import { SocialProvider } from '../models/social-provider';
 
 @Injectable({ providedIn: 'root' })
@@ -17,8 +17,7 @@ export class SocialAuthService {
   constructor(
     private config: ConfigService,
     private auth: AuthService,
-    private social: LibSocialAuthService,
-    private facebook: FacebookAuthService
+    private social: LibSocialAuthService
   ) {}
 
   authenticate(provider: SocialProvider) {
@@ -28,31 +27,31 @@ export class SocialAuthService {
           return throwError(() => new Error(`${provider} not enabled`));
         }
 
-        if (provider === SocialProvider.Google) {
-          return from(
-            this.social.signIn(GoogleLoginProvider.PROVIDER_ID)
-          ).pipe(
-            switchMap((user: SocialUser) => {
-              const token = user.idToken;
-              if (!token) {
-                return throwError(() => new Error('No ID token'));
-              }
-              return this.auth.externalLogin(provider, token);
-            })
-          );
+        let providerId: string;
+        let tokenSelector: (user: SocialUser) => string | undefined;
+
+        switch (provider) {
+          case SocialProvider.Google:
+            providerId = GoogleLoginProvider.PROVIDER_ID;
+            tokenSelector = (u) => u.idToken;
+            break;
+          case SocialProvider.Facebook:
+            providerId = FacebookLoginProvider.PROVIDER_ID;
+            tokenSelector = (u) => u.authToken;
+            break;
+          default:
+            return throwError(() => new Error('Unsupported provider'));
         }
 
-        if (provider === SocialProvider.Facebook) {
-          return from(
-            this.facebook
-              .ensureInitialized()
-              .then(() => this.facebook.login())
-          ).pipe(
-            switchMap((token) => this.auth.externalLogin(provider, token))
-          );
-        }
-
-        return throwError(() => new Error('Unsupported provider'));
+        return from(this.social.signIn(providerId)).pipe(
+          switchMap((user: SocialUser) => {
+            const token = tokenSelector(user);
+            if (!token) {
+              return throwError(() => new Error('No token'));
+            }
+            return this.auth.externalLogin(provider, token);
+          })
+        );
       })
     );
   }
