@@ -1,10 +1,11 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, isDevMode } from '@angular/core';
 import { catchError, Observable, of, tap, throwError, switchMap, map } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { ConfigKey } from '../models/config-key';
 import { SocialProvider } from '../models/social-provider';
+import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
 
 export type Config = Record<ConfigKey, string>;
 
@@ -39,7 +40,9 @@ export class ConfigService {
       return of(this.config);
     }
 
-    const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`);
+    const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`, {
+      context: new HttpContext().set(SKIP_AUTH, true)
+    });
 
     return fetch$.pipe(
       switchMap(resp => this.isConfigValid(resp.config) ? of(resp) : fetch$),
