@@ -66,21 +66,23 @@ export class GoogleAuthService {
       };
 
       try {
-        google.accounts.id.prompt((notification: any) => {
-          console.log(notification);
-          if (notification.isNotDisplayed()) {
-            this.rejectFn?.('Google Sign-In not displayed.');
-            this.clearHandlers();
-          } else if (notification.isDismissedMoment()) {
-            this.rejectFn?.('Google Sign-In dismissed.');
-            this.clearHandlers();
-          } else if (notification.isSkippedMoment()) {
-            this.rejectFn?.('Google Sign-In skipped.');
-            this.clearHandlers();
-          } else if (!notification.isNotDisplayed()) {
-            // Sign-in prompt displayed successfully; actual resolution happens in callback
-          }
-        });
+        google.accounts.id.prompt(
+          (notification: google.accounts.id.PromptMomentNotification) => {
+            console.log(notification);
+            if (notification.isNotDisplayed()) {
+              this.rejectFn?.('Google Sign-In not displayed.');
+              this.clearHandlers();
+            } else if (notification.isDismissedMoment()) {
+              this.rejectFn?.('Google Sign-In dismissed.');
+              this.clearHandlers();
+            } else if (notification.isSkippedMoment()) {
+              this.rejectFn?.('Google Sign-In skipped.');
+              this.clearHandlers();
+            } else if (!notification.isNotDisplayed()) {
+              // Sign-in prompt displayed successfully; actual resolution happens in callback
+            }
+          },
+        );
       } catch (e) {
         this.rejectFn?.(e);
         this.clearHandlers();
