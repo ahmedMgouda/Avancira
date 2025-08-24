@@ -4,10 +4,10 @@ import { of } from 'rxjs';
 import { SocialAuthService } from './social-auth.service';
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
-import { FacebookAuthService } from './facebook-auth.service';
 import {
   SocialAuthService as LibSocialAuthService,
   GoogleLoginProvider,
+  FacebookLoginProvider,
   SocialUser,
 } from '@abacritt/angularx-social-login';
 import { SocialProvider } from '../models/social-provider';
@@ -17,7 +17,6 @@ describe('SocialAuthService', () => {
   let config: jasmine.SpyObj<ConfigService>;
   let auth: jasmine.SpyObj<AuthService>;
   let lib: jasmine.SpyObj<LibSocialAuthService>;
-  let facebook: jasmine.SpyObj<FacebookAuthService>;
 
   beforeEach(() => {
     config = jasmine.createSpyObj('ConfigService', [
@@ -26,10 +25,6 @@ describe('SocialAuthService', () => {
     ]);
     auth = jasmine.createSpyObj('AuthService', ['externalLogin']);
     lib = jasmine.createSpyObj('LibSocialAuthService', ['signIn']);
-    facebook = jasmine.createSpyObj('FacebookAuthService', [
-      'ensureInitialized',
-      'login',
-    ]);
 
     TestBed.configureTestingModule({
       providers: [
@@ -37,7 +32,6 @@ describe('SocialAuthService', () => {
         { provide: ConfigService, useValue: config },
         { provide: AuthService, useValue: auth },
         { provide: LibSocialAuthService, useValue: lib },
-        { provide: FacebookAuthService, useValue: facebook },
       ],
     });
 
@@ -70,6 +64,29 @@ describe('SocialAuthService', () => {
         expect(auth.externalLogin).toHaveBeenCalledWith(
           SocialProvider.Google,
           'token'
+        );
+        done();
+      },
+      error: done.fail,
+    });
+  });
+
+  it('should sign in with Facebook and forward the auth token', (done) => {
+    config.loadConfig.and.returnValue(of({} as any));
+    config.isSocialProviderEnabled.and.returnValue(true);
+    lib.signIn.and.returnValue(
+      Promise.resolve({ authToken: 'fb-token' } as SocialUser)
+    );
+    auth.externalLogin.and.returnValue(of({} as any));
+
+    service.authenticate(SocialProvider.Facebook).subscribe({
+      next: () => {
+        expect(lib.signIn).toHaveBeenCalledWith(
+          FacebookLoginProvider.PROVIDER_ID
+        );
+        expect(auth.externalLogin).toHaveBeenCalledWith(
+          SocialProvider.Facebook,
+          'fb-token'
         );
         done();
       },

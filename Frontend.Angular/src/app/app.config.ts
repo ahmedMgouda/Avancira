@@ -9,7 +9,11 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter } from '@angular/router';
 import { catchError, firstValueFrom, of } from 'rxjs';
 import { provideToastr } from 'ngx-toastr';
-import { provideSocialLogin, GoogleLoginProvider } from '@abacritt/angularx-social-login';
+import {
+  provideSocialLogin,
+  GoogleLoginProvider,
+  FacebookLoginProvider,
+} from '@abacritt/angularx-social-login';
 
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
@@ -55,6 +59,12 @@ export const appConfig: ApplicationConfig = {
           id: GoogleLoginProvider.PROVIDER_ID,
           provider: new GoogleLoginProvider(
             inject(ConfigService).get(ConfigKey.GoogleClientId)
+          ),
+        },
+        {
+          id: FacebookLoginProvider.PROVIDER_ID,
+          provider: new FacebookLoginProvider(
+            inject(ConfigService).get(ConfigKey.FacebookAppId)
           ),
         },
       ],
