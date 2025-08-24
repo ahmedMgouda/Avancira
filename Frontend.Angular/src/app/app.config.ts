@@ -1,5 +1,10 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { APP_INITIALIZER, ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { catchError, firstValueFrom, of } from 'rxjs';
@@ -11,8 +16,9 @@ import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
 
-function initAuth(auth: AuthService) {
-  return () => firstValueFrom(
+function initAuth() {
+  const auth = inject(AuthService);
+  return firstValueFrom(
     auth.getValidAccessToken().pipe(catchError(() => of(null)))
   );
 }
@@ -39,6 +45,6 @@ export const appConfig: ApplicationConfig = {
 
     provideAnimationsAsync(),
 
-    { provide: APP_INITIALIZER, useFactory: initAuth, deps: [AuthService], multi: true },
+    provideAppInitializer(initAuth),
   ]
 };
