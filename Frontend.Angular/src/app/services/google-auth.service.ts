@@ -67,23 +67,15 @@ export class GoogleAuthService {
 
       try {
         google.accounts.id.prompt((notification: any) => {
+          console.log(notification);
           if (notification.isNotDisplayed()) {
-            const reason = notification.getNotDisplayedReason?.();
-            this.rejectFn?.(
-              `Google Sign-In not displayed${reason ? `: ${reason}` : ''}.`,
-            );
+            this.rejectFn?.('Google Sign-In not displayed.');
             this.clearHandlers();
           } else if (notification.isDismissed()) {
-            const reason = notification.getDismissedReason?.();
-            this.rejectFn?.(
-              `Google Sign-In dismissed${reason ? `: ${reason}` : ''}.`,
-            );
+            this.rejectFn?.('Google Sign-In dismissed.');
             this.clearHandlers();
           } else if (notification.isSkippedMoment()) {
-            const reason = notification.getSkippedReason?.();
-            this.rejectFn?.(
-              `Google Sign-In skipped${reason ? `: ${reason}` : ''}.`,
-            );
+            this.rejectFn?.('Google Sign-In skipped.');
             this.clearHandlers();
           } else if (notification.isDisplayed?.()) {
             // Sign-in prompt displayed successfully; actual resolution happens in callback
