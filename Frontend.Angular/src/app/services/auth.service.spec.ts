@@ -1,55 +1,42 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { take } from 'rxjs/operators';
+import { OAuthService } from 'angular-oauth2-oidc';
 
-import { AuthService, AuthStateKind } from './auth.service';
-import { environment } from '../environments/environment';
-import { SocialProvider } from '../models/social-provider';
-
-function makeToken(payload: any): string {
-  const header = { alg: 'none', typ: 'JWT' };
-  const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  return `${encode(header)}.${encode(payload)}.`;
-}
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let http: HttpTestingController;
+  let oauth: jasmine.SpyObj<OAuthService>;
 
   beforeEach(() => {
+    oauth = jasmine.createSpyObj('OAuthService', [
+      'configure',
+      'loadDiscoveryDocumentAndTryLogin',
+      'setupAutomaticSilentRefresh',
+      'hasValidAccessToken',
+      'getAccessToken',
+      'refreshToken',
+      'initCodeFlow',
+      'logOut',
+    ]);
+
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule]
+      imports: [HttpClientTestingModule, RouterTestingModule],
+      providers: [{ provide: OAuthService, useValue: oauth }],
     });
+
     service = TestBed.inject(AuthService);
-    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    http.verify();
+  it('should be created', () => {
+    expect(service).toBeTruthy();
   });
 
-  it('should set auth state and profile on external login', (done) => {
-    const token = makeToken({ sub: '2', email: 'c@d.com', exp: Math.floor(Date.now() / 1000) + 3600 });
-
-    document.cookie = 'CSRF-TOKEN=csrf123';
-
-    service.externalLogin(SocialProvider.Google, 'social-token').subscribe(profile => {
-      expect(profile.email).toBe('c@d.com');
-      expect(profile.permissions).toEqual(['perm2']);
-      service.authState$.pipe(take(1)).subscribe(state => {
-        expect(state).toBe(AuthStateKind.Authenticated);
-        expect(service.isAuthenticated()).toBeTrue();
-        done();
-      });
-    });
-
-    const req = http.expectOne(`${environment.apiUrl}/auth/external-login`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.headers.get('X-CSRF-TOKEN')).toBe('csrf123');
-    req.flush({ token });
-
-    const perms = http.expectOne(`${environment.apiUrl}/users/permissions`);
-    perms.flush(['perm2']);
+  it('init should load discovery document', async () => {
+    oauth.loadDiscoveryDocumentAndTryLogin.and.returnValue(Promise.resolve(true));
+    await service.init();
+    expect(oauth.setupAutomaticSilentRefresh).toHaveBeenCalled();
   });
 });
+
