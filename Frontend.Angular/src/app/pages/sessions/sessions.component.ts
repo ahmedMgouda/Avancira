@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 
 import { TableComponent } from '../../layout/shared/table/table.component';
 import { Session } from '../../models/session';
@@ -20,20 +20,11 @@ export class SessionsComponent implements OnInit {
   pageSize = 10;
   pageSizeOptions = [5, 10, 50, 100];
   totalResults = 0;
+  @ViewChild('selectCell', { static: true }) selectCell!: TemplateRef<any>;
 
-  sessionColumns = [
-    { key: 'device', label: 'Device' },
-    { key: 'operatingSystem', label: 'OS' },
-    { key: 'userAgent', label: 'Agent' },
-    { key: 'ipAddress', label: 'IP Address' },
-    { key: 'country', label: 'Country' },
-    { key: 'city', label: 'City' },
-    {
-      key: 'lastActivityUtc',
-      label: 'Last Active',
-      formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
-    }
-  ];
+  sessionColumns: any[] = [];
+
+  selectedSessions = new Set<string>();
 
   sessionActions = [
     {
@@ -47,6 +38,20 @@ export class SessionsComponent implements OnInit {
   constructor(private sessionService: SessionService) {}
 
   ngOnInit(): void {
+    this.sessionColumns = [
+      { key: 'select', label: '', cellTemplate: this.selectCell },
+      { key: 'device', label: 'Device' },
+      { key: 'operatingSystem', label: 'OS' },
+      { key: 'userAgent', label: 'Agent' },
+      { key: 'ipAddress', label: 'IP Address' },
+      { key: 'country', label: 'Country' },
+      { key: 'city', label: 'City' },
+      {
+        key: 'lastActivityUtc',
+        label: 'Last Active',
+        formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
+      }
+    ];
     this.loadSessions();
   }
 
@@ -57,6 +62,7 @@ export class SessionsComponent implements OnInit {
         this.sessions = s;
         this.totalResults = s.length;
         this.updatePagedSessions();
+        this.selectedSessions.clear();
         this.loading = false;
       },
       error: () => {
@@ -81,12 +87,32 @@ export class SessionsComponent implements OnInit {
     this.updatePagedSessions();
   }
 
+  onSelectSession(id: string, checked: boolean): void {
+    if (checked) {
+      this.selectedSessions.add(id);
+    } else {
+      this.selectedSessions.delete(id);
+    }
+  }
+
+  revokeSelected(): void {
+    const ids = Array.from(this.selectedSessions);
+    if (ids.length === 0) {
+      return;
+    }
+    this.sessionService.revokeSessions(ids).subscribe({
+      next: () => {
+        this.selectedSessions.clear();
+        this.loadSessions();
+      }
+    });
+  }
+
   revoke(session: Session): void {
     this.sessionService.revokeSession(session.id).subscribe({
       next: () => {
-        this.sessions = this.sessions.filter(x => x.id !== session.id);
-        this.totalResults = this.sessions.length;
-        this.updatePagedSessions();
+        this.selectedSessions.delete(session.id);
+        this.loadSessions();
       }
     });
   }

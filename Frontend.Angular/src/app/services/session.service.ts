@@ -23,4 +23,10 @@ export class SessionService {
       context: new HttpContext().set(REQUIRES_AUTH, true).set(INCLUDE_CREDENTIALS, true)
     });
   }
+
+  revokeSessions(ids: string[]): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/sessions/batch`, ids, {
+      context: new HttpContext().set(REQUIRES_AUTH, true).set(INCLUDE_CREDENTIALS, true)
+    });
+  }
 }
