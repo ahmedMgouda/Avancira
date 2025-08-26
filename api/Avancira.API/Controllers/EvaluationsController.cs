@@ -28,6 +28,10 @@ public class EvaluationsController : BaseApiController
     public async Task<IActionResult> LeaveReviewAsync([FromBody] ReviewDto reviewDto)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
 
         // Validate the input
         if (reviewDto == null)
@@ -57,6 +61,10 @@ public class EvaluationsController : BaseApiController
     public async Task<IActionResult> SubmitRecommendation([FromBody] ReviewDto dto)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
 
         if (string.IsNullOrEmpty(dto.RevieweeId) || string.IsNullOrEmpty(dto.Feedback))
             return BadRequest("Invalid data.");
@@ -79,6 +87,10 @@ public class EvaluationsController : BaseApiController
     public async Task<IActionResult> GetEvaluationsAsync()
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
 
         // Identify pending reviews based on the user's role
         var pendingReviews = await _evaluationService.GetPendingReviewsAsync(userId);

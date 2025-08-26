@@ -24,6 +24,10 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var sessions = await _mediator.Send(new GetSessionsQuery(userId), cancellationToken);
         return Ok(sessions);
     }
@@ -33,6 +37,10 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _mediator.Send(new RevokeSessionCommand(id, userId), cancellationToken);
         return NoContent();
     }
@@ -42,6 +50,10 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _sessionService.RevokeSessionsAsync(userId, sessionIds);
         return NoContent();
     }

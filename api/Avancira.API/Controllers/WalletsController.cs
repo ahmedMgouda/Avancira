@@ -45,6 +45,10 @@ public class WalletsController : BaseApiController
         try
         {
             var userId = GetUserId();
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
             var result = await _walletService.GetWalletBalanceAsync(userId);
             return Ok(new { Balance = result.Balance, LastUpdated = result.LastUpdated });
         }

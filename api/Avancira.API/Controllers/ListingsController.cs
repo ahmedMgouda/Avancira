@@ -30,6 +30,10 @@ public class ListingsController : BaseApiController
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
 
         return Ok(new
@@ -55,6 +59,10 @@ public class ListingsController : BaseApiController
         }
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var listing = await _listingService.CreateListingAsync(model, userId, ct);
 
         return CreatedAtAction(nameof(GetListingById), new { id = listing.Id }, new
@@ -73,6 +81,10 @@ public class ListingsController : BaseApiController
         model.Id = id;
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var updatedListing = await _listingService.UpdateListingAsync(model, userId, ct);
 
         return Ok(new
@@ -114,6 +126,10 @@ public class ListingsController : BaseApiController
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
         return Ok(listings);
     }
@@ -134,6 +150,10 @@ public class ListingsController : BaseApiController
     public async Task<IActionResult> ToggleVisibility(Guid id, CancellationToken ct = default)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ToggleListingVisibilityAsync(id, userId, ct);
         if (!success)
             return NotFound($"Listing with ID {id} not found or unauthorized.");
@@ -149,6 +169,10 @@ public class ListingsController : BaseApiController
             return BadRequest("Title is required.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ModifyListingTitleAsync(id, userId, dto.Title.Trim(), ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -180,6 +204,10 @@ public class ListingsController : BaseApiController
             return BadRequest("At least one location is required.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations, ct);
         if (!success)
             return BadRequest("Failed to update locations.");
@@ -195,6 +223,10 @@ public class ListingsController : BaseApiController
             return BadRequest("Payload is required.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ModifyListingDescriptionAsync(id, userId, dto.AboutLesson, dto.AboutYou, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -210,6 +242,10 @@ public class ListingsController : BaseApiController
             return BadRequest("Payload is required.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ModifyListingRatesAsync(id, userId, dto, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -225,6 +261,10 @@ public class ListingsController : BaseApiController
             return BadRequest("Valid category is required.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.ModifyListingCategoryAsync(id, userId, dto.LessonCategoryId, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -241,6 +281,10 @@ public class ListingsController : BaseApiController
             return NotFound($"Listing with ID {id} not found.");
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _listingService.DeleteListingAsync(id, userId, ct);
         if (!success)
             return BadRequest("Failed to delete listing.");

@@ -28,6 +28,10 @@ public class SubscriptionsController : BaseApiController
         try
         {
             var userId = GetUserId();
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
             var (subscriptionId, transactionId) = await _subscriptionService.CreateSubscriptionAsync(request, userId);
             return Ok(new { SubscriptionId = subscriptionId, TransactionId = transactionId });
         }
@@ -47,6 +51,10 @@ public class SubscriptionsController : BaseApiController
     public async Task<IActionResult> CheckActiveSubscription()
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
         return Ok(new { IsActive = hasActiveSubscription });
     }
@@ -56,6 +64,10 @@ public class SubscriptionsController : BaseApiController
     public async Task<IActionResult> GetUserSubscriptions([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var subscriptions = await _subscriptionService.ListUserSubscriptionsAsync(userId, page, pageSize);
 
         if (subscriptions == null || subscriptions.TotalResults == 0)
@@ -88,6 +100,10 @@ public class SubscriptionsController : BaseApiController
     public async Task<IActionResult> GetSubscriptionDetails()
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var details = await _subscriptionService.FetchSubscriptionDetailsAsync(userId);
         if (details == null) return NotFound(new { Message = "No active subscription found." });
 
@@ -100,6 +116,10 @@ public class SubscriptionsController : BaseApiController
     public async Task<IActionResult> ChangeBillingFrequency([FromBody] ChangeFrequencyRequestDto request)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _subscriptionService.ChangeBillingFrequencyAsync(userId, request.NewFrequency);
 
         if (!success)
@@ -114,6 +134,10 @@ public class SubscriptionsController : BaseApiController
     public async Task<IActionResult> CancelSubscription()
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var success = await _subscriptionService.CancelSubscriptionAsync(userId);
 
         if (!success)
