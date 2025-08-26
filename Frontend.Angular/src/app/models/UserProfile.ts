@@ -8,6 +8,7 @@ export interface UserProfile {
   ipAddress?: string;
   imageUrl?: string;
   deviceId?: string;
+  sessionId?: string;
   country?: string;
   city?: string;
   roles: string[];        // multiple roles

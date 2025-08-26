@@ -11,6 +11,7 @@ import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
 import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
+import { SessionService } from './session.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly oauth: OAuthService,
     private readonly http: HttpClient,
     private readonly router: Router,
+    private readonly sessionService: SessionService,
   ) {
     this.oauth.configure({
       issuer: environment.baseApiUrl,
@@ -63,10 +65,25 @@ export class AuthService {
   }
 
   logout(navigate = true): void {
-    this.oauth.logOut();
-    if (navigate) {
-      this.router.navigateByUrl(this.redirectToSignIn());
-    }
+    const sessionId = this.decode()?.sessionId;
+    const revoke$ = sessionId
+      ? this.sessionService.revokeSession(sessionId)
+      : of(void 0);
+
+    revoke$.subscribe({
+      next: () => {
+        this.oauth.logOut();
+        if (navigate) {
+          this.router.navigateByUrl(this.redirectToSignIn());
+        }
+      },
+      error: () => {
+        this.oauth.logOut();
+        if (navigate) {
+          this.router.navigateByUrl(this.redirectToSignIn());
+        }
+      }
+    });
   }
 
   register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
@@ -108,6 +125,7 @@ export class AuthService {
         ipAddress: payload.ip_address,
         imageUrl: payload.image,
         deviceId: payload.device_id,
+        sessionId: payload.sid ?? payload.session_id,
         country: payload.country,
         city: payload.city,
         roles,
