@@ -1,39 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 import { SigninComponent } from './signin.component';
 import { AuthService } from '../../services/auth.service';
-import { SpinnerService } from '../../services/spinner.service';
 import { ToastrService } from 'ngx-toastr';
 import { AlertService } from '../../services/alert.service';
 import { UserService } from '../../services/user.service';
-import { SocialAuthService } from '../../services/social-auth.service';
 import { SocialProvider } from '../../models/social-provider';
 
 describe('LoginComponent', () => {
   let component: SigninComponent;
   let fixture: ComponentFixture<SigninComponent>;
   let authService: jasmine.SpyObj<AuthService>;
-  let socialAuth: jasmine.SpyObj<SocialAuthService>;
   let router: jasmine.SpyObj<Router>;
-  let spinner: jasmine.SpyObj<SpinnerService>;
   let toastr: jasmine.SpyObj<ToastrService>;
 
   beforeEach(async () => {
     authService = jasmine.createSpyObj('AuthService', ['startLogin']);
-    socialAuth = jasmine.createSpyObj('SocialAuthService', ['authenticate']);
     router = jasmine.createSpyObj('Router', ['navigateByUrl']);
-    spinner = jasmine.createSpyObj('SpinnerService', ['show', 'hide']);
     toastr = jasmine.createSpyObj('ToastrService', ['error']);
 
     await TestBed.configureTestingModule({
       imports: [SigninComponent],
       providers: [
         { provide: AuthService, useValue: authService },
-        { provide: SocialAuthService, useValue: socialAuth },
         { provide: Router, useValue: router },
-        { provide: SpinnerService, useValue: spinner },
         { provide: ToastrService, useValue: toastr },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
         { provide: AlertService, useValue: {} },
@@ -50,34 +42,21 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should navigate to returnUrl on successful Google login', () => {
-    socialAuth.authenticate.and.returnValue(of({} as any));
+  it('should initiate Google login flow', async () => {
+    authService.startLogin.and.returnValue(Promise.resolve());
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Google);
 
-    expect(socialAuth.authenticate).toHaveBeenCalledWith(SocialProvider.Google);
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
-    expect(spinner.hide).toHaveBeenCalled();
+    expect(authService.startLogin).toHaveBeenCalledWith('/home', SocialProvider.Google);
   });
 
-  it('should navigate to returnUrl on successful Facebook login', () => {
-    socialAuth.authenticate.and.returnValue(of({} as any));
+  it('should initiate Facebook login flow', async () => {
+    authService.startLogin.and.returnValue(Promise.resolve());
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Facebook);
 
-    expect(socialAuth.authenticate).toHaveBeenCalledWith(SocialProvider.Facebook);
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
-    expect(spinner.hide).toHaveBeenCalled();
-  });
-
-  it('should show error toast and hide spinner on social login error', () => {
-    socialAuth.authenticate.and.returnValue(throwError(() => new Error('fail')));
-
-    component.authenticate(SocialProvider.Google);
-
-    expect(toastr.error).toHaveBeenCalled();
-    expect(spinner.hide).toHaveBeenCalled();
+    expect(authService.startLogin).toHaveBeenCalledWith('/home', SocialProvider.Facebook);
   });
 });
