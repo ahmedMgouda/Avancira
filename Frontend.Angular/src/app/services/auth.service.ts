@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
@@ -32,7 +32,12 @@ export class AuthService {
       redirectUri: `${environment.frontendUrl}/signin-callback`,
     });
 
-    this.oauth.requester = (method, url, body, headers) =>
+    this.oauth.requester = (
+      method: string,
+      url: string,
+      body: unknown,
+      headers?: HttpHeaders | { [header: string]: string | string[] }
+    ) =>
       this.http.request(method, url, {
         body,
         headers,
