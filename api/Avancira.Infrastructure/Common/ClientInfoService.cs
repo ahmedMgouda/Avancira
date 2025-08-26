@@ -2,6 +2,7 @@ using Avancira.Application.Common;
 using Avancira.Application.Catalog;
 using Avancira.Infrastructure.Common.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using UAParser;
 using ClientInfo = Avancira.Application.Common.ClientInfo;
 
@@ -12,12 +13,18 @@ public class ClientInfoService : IClientInfoService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IGeolocationService _geolocationService;
     private readonly Parser _parser;
+    private readonly IHostEnvironment _environment;
 
-    public ClientInfoService(IHttpContextAccessor httpContextAccessor, IGeolocationService geolocationService, Parser parser)
+    public ClientInfoService(
+        IHttpContextAccessor httpContextAccessor,
+        IGeolocationService geolocationService,
+        Parser parser,
+        IHostEnvironment environment)
     {
         _httpContextAccessor = httpContextAccessor;
         _geolocationService = geolocationService;
         _parser = parser;
+        _environment = environment;
     }
 
     public async Task<ClientInfo> GetClientInfoAsync()
@@ -31,7 +38,7 @@ public class ClientInfoService : IClientInfoService
             context.Response.Cookies.Append("device_id", deviceId, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = !_environment.IsDevelopment(),
                 SameSite = SameSiteMode.None,
                 Expires = DateTime.UtcNow.AddYears(1),
                 Path = "/"
