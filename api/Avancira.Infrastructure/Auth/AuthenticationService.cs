@@ -123,12 +123,12 @@ public class AuthenticationService : IAuthenticationService
         var existingSession = await _dbContext.Sessions
             .Include(s => s.RefreshTokens)
             .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+        await using var tx = await _dbContext.Database.BeginTransactionAsync();
 
         if (existingSession != null)
         {
             _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
             _dbContext.Sessions.Remove(existingSession);
-            await _dbContext.SaveChangesAsync();
         }
 
         var now = DateTime.UtcNow;
@@ -156,6 +156,7 @@ public class AuthenticationService : IAuthenticationService
 
         _dbContext.Sessions.Add(session);
         await _dbContext.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return new TokenPair(token, refresh, refreshExpiry);
     }
