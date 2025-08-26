@@ -41,64 +41,7 @@ public class AuthenticationService : IAuthenticationService
         var response = await _httpClient.PostAsync("/connect/token", content);
         response.EnsureSuccessStatusCode();
 
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        var root = document.RootElement;
-
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
-        DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
-        {
-            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
-        }
-        else
-        {
-            refreshExpiry = DateTime.UtcNow.AddDays(7);
-        }
-
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
-        var userId = jwt.Subject;
-
-        var existingSession = await _dbContext.Sessions
-            .Include(s => s.RefreshTokens)
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
-
-        if (existingSession != null)
-        {
-            _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
-            _dbContext.Sessions.Remove(existingSession);
-            await _dbContext.SaveChangesAsync();
-        }
-
-        var now = DateTime.UtcNow;
-        var session = new Session
-        {
-            UserId = userId,
-            Device = clientInfo.DeviceId,
-            UserAgent = clientInfo.UserAgent,
-            OperatingSystem = clientInfo.OperatingSystem,
-            IpAddress = clientInfo.IpAddress,
-            Country = clientInfo.Country,
-            City = clientInfo.City,
-            CreatedUtc = now,
-            LastActivityUtc = now,
-            LastRefreshUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry
-        };
-
-        session.RefreshTokens.Add(new RefreshToken
-        {
-            TokenHash = HashToken(refresh),
-            CreatedUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry
-        });
-
-        _dbContext.Sessions.Add(session);
-        await _dbContext.SaveChangesAsync();
-
-        return new TokenPair(token, refresh, refreshExpiry);
+        return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
@@ -116,6 +59,11 @@ public class AuthenticationService : IAuthenticationService
         var response = await _httpClient.PostAsync("/connect/token", content);
         response.EnsureSuccessStatusCode();
 
+        return await HandleTokenResponseAsync(response, clientInfo, userId);
+    }
+
+    private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
+    {
         using var stream = await response.Content.ReadAsStreamAsync();
         using var document = await JsonDocument.ParseAsync(stream);
         var root = document.RootElement;
@@ -130,6 +78,13 @@ public class AuthenticationService : IAuthenticationService
         else
         {
             refreshExpiry = DateTime.UtcNow.AddDays(7);
+        }
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+            userId = jwt.Subject;
         }
 
         var existingSession = await _dbContext.Sessions
