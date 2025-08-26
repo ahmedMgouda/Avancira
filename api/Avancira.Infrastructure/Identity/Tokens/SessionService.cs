@@ -2,6 +2,7 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Infrastructure.Persistence;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
@@ -27,21 +28,29 @@ public class SessionService : ISessionService
         return sessions;
     }
 
-    public async Task RevokeSessionAsync(string userId, Guid sessionId)
-    {
-        var session = await _dbContext.Sessions
-            .Include(s => s.RefreshTokens)
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+    public Task RevokeSessionAsync(string userId, Guid sessionId) =>
+        RevokeSessionsAsync(userId, new[] { sessionId });
 
-        if (session is null)
+    public async Task RevokeSessionsAsync(string userId, IEnumerable<Guid> sessionIds)
+    {
+        var sessions = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .Where(s => s.UserId == userId && sessionIds.Contains(s.Id))
+            .ToListAsync();
+
+        if (sessions.Count == 0)
             return;
 
         var now = DateTime.UtcNow;
-        session.RevokedUtc = now;
 
-        foreach (var token in session.RefreshTokens.Where(rt => rt.RevokedUtc == null))
+        foreach (var session in sessions)
         {
-            token.RevokedUtc = now;
+            session.RevokedUtc = now;
+
+            foreach (var token in session.RefreshTokens.Where(rt => rt.RevokedUtc == null))
+            {
+                token.RevokedUtc = now;
+            }
         }
 
         await _dbContext.SaveChangesAsync();
