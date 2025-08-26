@@ -22,7 +22,8 @@ describe('AuthService', () => {
       'getAccessToken',
       'refreshToken',
       'initCodeFlow',
-      'logOut'
+      'logOut',
+      'getIdentityClaims'
     ]);
 
     routerSpy = jasmine.createSpyObj('Router', ['navigateByUrl', 'createUrlTree']);
@@ -80,4 +81,32 @@ describe('AuthService', () => {
     expect(results).toEqual(['new-token', 'new-token']);
     expect(oauthSpy.refreshToken).toHaveBeenCalledTimes(1);
   }));
+
+  describe('decode', () => {
+    it('normalizes single role and permission claims to arrays', () => {
+      oauthSpy.getIdentityClaims.and.returnValue({
+        sub: '1',
+        role: 'admin',
+        permission: 'read'
+      });
+
+      const profile = service.decode();
+
+      expect(profile?.roles).toEqual(['admin']);
+      expect(profile?.permissions).toEqual(['read']);
+    });
+
+    it('returns role and permission claims as arrays when already arrays', () => {
+      oauthSpy.getIdentityClaims.and.returnValue({
+        sub: '1',
+        role: ['admin', 'user'],
+        permission: ['read', 'write']
+      });
+
+      const profile = service.decode();
+
+      expect(profile?.roles).toEqual(['admin', 'user']);
+      expect(profile?.permissions).toEqual(['read', 'write']);
+    });
+  });
 });
