@@ -34,7 +34,10 @@ public class AuthenticationService : IAuthenticationService
             ["grant_type"] = "authorization_code",
             ["code"] = code,
             ["redirect_uri"] = redirectUri,
-            ["code_verifier"] = codeVerifier
+            ["code_verifier"] = codeVerifier,
+            ["device_id"] = clientInfo.DeviceId,
+            ["country"] = clientInfo.Country,
+            ["city"] = clientInfo.City
         });
 
         var response = await _httpClient.PostAsync("/connect/token", content);
@@ -97,7 +100,10 @@ public class AuthenticationService : IAuthenticationService
         {
             ["grant_type"] = "user_id",
             ["user_id"] = userId,
-            ["scope"] = "api offline_access"
+            ["scope"] = "api offline_access",
+            ["device_id"] = clientInfo.DeviceId,
+            ["country"] = clientInfo.Country,
+            ["city"] = clientInfo.City
         });
 
         var response = await _httpClient.PostAsync("/connect/token", content);

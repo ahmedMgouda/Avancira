@@ -10,6 +10,7 @@ import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
 import { SocialProvider } from '../models/social-provider';
+import { UserProfile } from '../models/UserProfile';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -76,6 +77,47 @@ export class AuthService {
         context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
       },
     );
+  }
+
+  decode(): UserProfile | null {
+    const token = this.oauth.getAccessToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const roles = payload.role
+        ? Array.isArray(payload.role)
+          ? payload.role
+          : [payload.role]
+        : [];
+      const permissions = payload.permission
+        ? Array.isArray(payload.permission)
+          ? payload.permission
+          : [payload.permission]
+        : [];
+
+      const profile: UserProfile = {
+        id: payload.sub,
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        fullName: payload.name,
+        timeZoneId: payload.timezone,
+        ipAddress: payload.ip_address,
+        imageUrl: payload.image,
+        deviceId: payload.device_id,
+        country: payload.country,
+        city: payload.city,
+        roles,
+        permissions,
+        exp: payload.exp,
+      };
+      return profile;
+    } catch {
+      return null;
+    }
   }
 
   redirectToSignIn(returnUrl: string = this.router.url): UrlTree {

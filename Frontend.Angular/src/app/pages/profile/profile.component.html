@@ -15,6 +15,10 @@
                 <form (ngSubmit)="saveProfile()" #profileForm="ngForm" novalidate enctype="multipart/form-data">
 
                     <div class="row form-row">
+                        <div class="col-12 mb-3">
+                            <p><strong>Device:</strong> {{ currentSession?.deviceId || 'N/A' }}</p>
+                            <p><strong>Location:</strong> {{ currentSession?.city || 'Unknown' }}, {{ currentSession?.country || 'Unknown' }}</p>
+                        </div>
                         <div class="col-12 col-md-12">
                             <div class="form-group">
                                 <div class="change-avatar">
