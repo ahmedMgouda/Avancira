@@ -9,7 +9,5 @@ public class GenerateTokenValidator : AbstractValidator<TokenGenerationDto>
         RuleFor(p => p.Email).Cascade(CascadeMode.Stop).NotEmpty().EmailAddress();
 
         RuleFor(p => p.Password).Cascade(CascadeMode.Stop).NotEmpty();
-
-        RuleFor(p => p.RememberMe).NotNull();
     }
 }
