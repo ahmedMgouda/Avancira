@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { BehaviorSubject, Observable, of, Subscription, throwError, timer } from 'rxjs';
@@ -12,12 +12,16 @@ import { RegisterUserResponseDto } from '../models/register-user-response';
 import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 
-interface TokenResponse { token: string; }
+interface TokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
 
 // Light, internal constants (you can move to env later if you want)
 const CLOCK_SKEW_MS    = 30_000;
 const EARLY_REFRESH_MS = 120_000;
 const JITTER_MAX_MS    = 20_000;
+const PKCE_VERIFIER_KEY = 'pkce_verifier';
 
 /** Internal auth state (strongly typed, no strings) */
 export enum AuthStateKind {
@@ -31,9 +35,11 @@ export enum AuthStateKind {
 export class AuthService implements OnDestroy {
   private readonly PROFILE_KEY = 'user_profile';
   private readonly api = environment.apiUrl;
+  private readonly base = environment.baseApiUrl;
 
-  // In-memory token (not persisted)
+  // In-memory tokens (not persisted)
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
   private tokenExpiryMs: number | null = null;
 
   /** Early refresh timer */
@@ -89,12 +95,38 @@ export class AuthService implements OnDestroy {
     return this.refreshAccessToken(); // normal path (not forced)
   }
 
-  login(email: string, password: string, rememberMe = false): Observable<UserProfile> {
-    return this.handleLoginResponse(
+  async startLogin(returnUrl = this.router.url): Promise<void> {
+    const verifier = this.generateVerifier();
+    sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+    const challenge = await this.generateChallenge(verifier);
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: 'frontend',
+      scope: 'api offline_access',
+      redirect_uri: `${environment.frontendUrl}/signin-callback`,
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      state: returnUrl
+    });
+    window.location.href = `${this.base}/connect/authorize?${params.toString()}`;
+  }
+
+  completeLogin(code: string): Observable<UserProfile> {
+    const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+    if (!verifier) return throwError(() => new Error('MISSING_VERIFIER'));
+    const body = new HttpParams()
+      .set('grant_type', 'authorization_code')
+      .set('code', code)
+      .set('redirect_uri', `${environment.frontendUrl}/signin-callback`)
+      .set('code_verifier', verifier);
+    return this.handleCodeExchange(
       this.http.post<TokenResponse>(
-        `${this.api}/auth/token`,
-        { email, password, rememberMe },
-        { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+        `${this.base}/connect/token`,
+        body.toString(),
+        {
+          headers: new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+          context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true)
+        }
       )
     );
   }
@@ -105,15 +137,17 @@ export class AuthService implements OnDestroy {
     if (csrf) {
       headers = headers.set('X-CSRF-TOKEN', csrf);
     }
-    return this.handleLoginResponse(
-      this.http.post<TokenResponse>(
-        `${this.api}/auth/external-login`,
-        { provider, token },
-        {
-          context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
-          headers
-        }
-      )
+    return this.handleCodeExchange(
+      this.http
+        .post<{ token: string }>(
+          `${this.api}/auth/external-login`,
+          { provider, token },
+          {
+            context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
+            headers
+          }
+        )
+        .pipe(map(res => ({ access_token: res.token } as TokenResponse)))
     );
   }
 
@@ -149,16 +183,24 @@ export class AuthService implements OnDestroy {
   /* ---------------- Refresh (single-flight; no navigation on failure) ---------------- */
 
   private refreshAccessToken(force = false): Observable<string> {
-    // Race-safety: if not forcing and token became valid in the meantime, bail out
     if (!force && this.isAuthenticated()) return of(this.accessToken as string);
     if (this.authLocked) return throwError(() => new Error('AUTH_LOCKED'));
+    if (!this.refreshToken) return throwError(() => new Error('NO_REFRESH_TOKEN'));
     if (this.refresh$) return this.refresh$;
 
     this.setState(AuthStateKind.Refreshing);
 
+    const body = new HttpParams()
+      .set('grant_type', 'refresh_token')
+      .set('refresh_token', this.refreshToken);
+
     this.refresh$ = this.http.post<TokenResponse>(
-      `${this.api}/auth/refresh`, {},
-      { context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true) }
+      `${this.base}/connect/token`,
+      body.toString(),
+      {
+        headers: new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true)
+      }
     ).pipe(
       retry({
         count: 2,
@@ -171,10 +213,10 @@ export class AuthService implements OnDestroy {
         resetOnSuccess: true
       }),
       map(res => {
-        if (!res?.token) throw new Error('NO_TOKEN_REFRESH');
-        this.applyToken(res.token);
+        if (!res?.access_token) throw new Error('NO_TOKEN_REFRESH');
+        this.applyToken(res.access_token, res.refresh_token);
         this.setState(AuthStateKind.Authenticated);
-        return res.token;
+        return res.access_token;
       }),
       shareReplay({ bufferSize: 1, refCount: true }),
       catchError(err => { this.onRefreshFailed(); return throwError(() => err); }),
@@ -186,21 +228,22 @@ export class AuthService implements OnDestroy {
 
   /* ---------------- Internals ---------------- */
 
-  private handleLoginResponse(source: Observable<TokenResponse>): Observable<UserProfile> {
+  private handleCodeExchange(source: Observable<TokenResponse>): Observable<UserProfile> {
     return source.pipe(
-      tap(res => { if (!res?.token) throw new Error('NO_TOKEN'); this.applyToken(res.token); }),
+      tap(res => { if (!res?.access_token) throw new Error('NO_TOKEN'); this.applyToken(res.access_token, res.refresh_token); }),
       switchMap(() => this.http.get<string[]>(`${this.api}/users/permissions`).pipe(catchError(() => of([])))),
       tap(perms => this.patchProfile({ permissions: perms } as Partial<UserProfile>)),
       map(() => { this.setState(AuthStateKind.Authenticated); return this.profileSubject.value as UserProfile; })
     );
   }
 
-  private applyToken(token: string): void {
+  private applyToken(token: string, refresh?: string): void {
     const mapped = this.decode(token);
     if (!mapped) throw new Error('INVALID_TOKEN');
 
     this.authLocked = false;
     this.accessToken = token;
+    if (refresh) this.refreshToken = refresh;
 
     const exp = (mapped as any).exp as number | undefined;
     this.tokenExpiryMs = exp ? exp * 1000 : null;
@@ -256,6 +299,7 @@ export class AuthService implements OnDestroy {
 
   private clearSession(next: AuthStateKind): void {
     this.accessToken = null;
+    this.refreshToken = null;
     this.tokenExpiryMs = null;
     this.profileSubject.next(null);
     try { localStorage.removeItem(this.PROFILE_KEY); } catch {}
@@ -272,6 +316,23 @@ export class AuthService implements OnDestroy {
   private setState(s: AuthStateKind) { this.stateSubject.next(s); }
 
   private arr(v: any): string[] { return Array.isArray(v) ? v : v ? [v] : []; }
+
+  private generateVerifier(): string {
+    const data = new Uint8Array(32);
+    crypto.getRandomValues(data);
+    return this.base64UrlEncode(data);
+  }
+
+  private async generateChallenge(verifier: string): Promise<string> {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    return this.base64UrlEncode(digest);
+    }
+
+  private base64UrlEncode(data: ArrayBuffer | Uint8Array): string {
+    const arr = data instanceof Uint8Array ? data : new Uint8Array(data);
+    return btoa(String.fromCharCode(...arr))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
 
   ngOnDestroy(): void { this.refreshTimer?.unsubscribe(); }
 }

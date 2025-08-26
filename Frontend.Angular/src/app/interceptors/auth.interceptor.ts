@@ -17,7 +17,7 @@ import { environment } from '../environments/environment';
 
 /**
  * Bypass auth mechanics entirely for this request (no pre-wait, no Authorization, no 401 retry).
- * Use for /auth/token and /auth/refresh to avoid recursion.
+ * Use for /connect/token or other login endpoints to avoid recursion.
  */
 export const SKIP_AUTH = new HttpContextToken<boolean>(() => false);
 

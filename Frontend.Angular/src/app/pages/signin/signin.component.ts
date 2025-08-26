@@ -78,22 +78,7 @@ export class SigninComponent implements OnInit {
 
   /** Regular login */
   onLogin(): void {
-    if (this.loginForm.invalid) return;
-
-    const { email, password, rememberMe } = this.loginForm.value;
-    this.spinner.show();
-
-    this.authService
-      .login(email, password, rememberMe)
-      .pipe(finalize(() => this.spinner.hide()))
-      .subscribe({
-        next: () => {
-          this.router.navigateByUrl(this.sanitizeReturnUrl(this.returnUrl));
-        },
-        error: () => {
-          this.toastr.error('Invalid credentials', 'Login Failed');
-        },
-      });
+    void this.authService.startLogin(this.returnUrl);
   }
 
   authenticate(provider: SocialProvider): void {
