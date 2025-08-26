@@ -18,6 +18,13 @@ public class SessionService : ISessionService
         _dbContext = dbContext;
     }
 
+    public Task<bool> ValidateSessionAsync(string userId, Guid sessionId) =>
+        _dbContext.Sessions.AnyAsync(s =>
+            s.UserId == userId &&
+            s.Id == sessionId &&
+            s.RevokedUtc == null &&
+            s.AbsoluteExpiryUtc > DateTime.UtcNow);
+
     public async Task<List<SessionDto>> GetActiveSessionsAsync(string userId)
     {
         var sessions = await _dbContext.Sessions
