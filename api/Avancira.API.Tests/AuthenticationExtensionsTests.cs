@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 using Xunit;
 
 public class AuthenticationExtensionsTests
@@ -63,6 +66,21 @@ public class AuthenticationExtensionsTests
 
         schemes.Should().NotContain(s => s.Name == "Google");
         schemes.Should().NotContain(s => s.Name == "Facebook");
+    }
+
+    [Fact]
+    public void UsesOpenIddictDefaults()
+    {
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().Build();
+
+        services.AddExternalAuthentication(configuration, NullLogger<AuthenticationExtensions>.Instance);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+
+        options.DefaultScheme.Should().Be(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+        options.DefaultSignInScheme.Should().Be(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 }
 
