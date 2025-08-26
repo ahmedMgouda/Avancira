@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Avancira.Application.Common;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Infrastructure.Identity.Tokens;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +58,44 @@ public class AuthenticationServiceTests
         (await dbContext.Sessions.CountAsync()).Should().Be(1);
         (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
         (await dbContext.Sessions.SingleAsync()).Id.Should().NotBe(firstSessionId);
+    }
+
+    [Fact]
+    public async Task RotateRefreshTokenAsync_UpdatesLastActivityUtc()
+    {
+        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var dbContext = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
+        var service = new SessionService(dbContext);
+
+        var oldTime = DateTime.UtcNow.AddMinutes(-10);
+        var session = new Session
+        {
+            UserId = "user1",
+            Device = "device1",
+            IpAddress = "127.0.0.1",
+            CreatedUtc = oldTime,
+            LastRefreshUtc = oldTime,
+            LastActivityUtc = oldTime,
+            AbsoluteExpiryUtc = oldTime.AddHours(1)
+        };
+        var token = new RefreshToken
+        {
+            TokenHash = "old",
+            CreatedUtc = oldTime,
+            AbsoluteExpiryUtc = oldTime.AddHours(1)
+        };
+        session.RefreshTokens.Add(token);
+        dbContext.Sessions.Add(session);
+        await dbContext.SaveChangesAsync();
+
+        var newExpiry = DateTime.UtcNow.AddHours(2);
+        await service.RotateRefreshTokenAsync(token.Id, "new", newExpiry);
+
+        var updatedSession = await dbContext.Sessions.SingleAsync();
+        updatedSession.LastActivityUtc.Should().BeAfter(oldTime);
+        updatedSession.LastActivityUtc.Should().Be(updatedSession.LastRefreshUtc);
     }
 
     private class StubClientInfoService : IClientInfoService

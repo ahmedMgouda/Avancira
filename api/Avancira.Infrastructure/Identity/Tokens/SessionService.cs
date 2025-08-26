@@ -90,6 +90,7 @@ public class SessionService : ISessionService
 
         var session = token.Session;
         session.LastRefreshUtc = now;
+        session.LastActivityUtc = now;
         session.AbsoluteExpiryUtc = newExpiry;
 
         session.RefreshTokens.Add(new RefreshToken
