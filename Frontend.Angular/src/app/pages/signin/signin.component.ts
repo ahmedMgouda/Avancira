@@ -50,7 +50,6 @@ export class SigninComponent implements OnInit {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
-      rememberMe: [false],
     });
 
     this.route.queryParams.subscribe((params) => {
