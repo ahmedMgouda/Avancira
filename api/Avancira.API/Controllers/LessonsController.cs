@@ -26,6 +26,10 @@ public class LessonsController : BaseApiController
     public async Task<IActionResult> ProposeLessonAsync([FromBody] LessonDto lessonDto)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var result = await _lessonService.ProposeLessonAsync(lessonDto, userId);
         return Ok(new { Message = "Lesson proposed successfully.", Lesson = result });
     }
@@ -36,6 +40,10 @@ public class LessonsController : BaseApiController
     public async Task<IActionResult> GetLessonsAsync(string contactId, Guid listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
         return Ok(new { Lessons = lessons });
     }
@@ -50,6 +58,10 @@ public class LessonsController : BaseApiController
         }
 
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var lessons = await _lessonService.GetAllLessonsAsync(userId, filters);
         return Ok(new { Lessons = lessons });
     }
@@ -60,6 +72,10 @@ public class LessonsController : BaseApiController
     public async Task<IActionResult> RespondToPropositionAsync(Guid lessonId, [FromBody] bool accept)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         LessonDto updatedLesson;
         try
         {
@@ -89,6 +105,10 @@ public class LessonsController : BaseApiController
         try
         {
             var userId = GetUserId();
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
             var canceledLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, false, userId);
 
             return Ok(new

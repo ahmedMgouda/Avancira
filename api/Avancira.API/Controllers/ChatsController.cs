@@ -31,6 +31,10 @@ public class ChatsController : BaseApiController
     public IActionResult GetUserChats()
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var chats = _chatService.GetUserChats(userId);
         return Ok(chats);
     }
@@ -40,6 +44,10 @@ public class ChatsController : BaseApiController
     public IActionResult GetChatById(Guid id)
     {
         var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var chat = _chatService.GetChat(id, userId);
         if (chat.Id == Guid.Empty)
         {
@@ -69,6 +77,10 @@ public class ChatsController : BaseApiController
 
         // Check if a chat already exists
         var senderId = GetUserId();
+        if (senderId is null)
+        {
+            return Unauthorized();
+        }
 
         if (!await _chatService.SendMessageAsync(messageDto, senderId))
         {

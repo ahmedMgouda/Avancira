@@ -52,7 +52,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetUserProfile(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var userProfile = await _userService.GetAsync(userId, cancellationToken);
         return Ok(userProfile);
     }
@@ -63,12 +66,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetUserPermissionsAsync(CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         if (string.IsNullOrWhiteSpace(userId))
         {
-            throw new UnauthorizedException();
+            return Unauthorized();
         }
-
         var permissions = await _userService.GetPermissionsAsync(userId, cancellationToken);
         return Ok(permissions);
     }
@@ -169,7 +170,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto command, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _userService.ChangePasswordAsync(command, userId);
         return Ok("Password changed successfully.");
     }
@@ -204,7 +208,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> UpdateUserProfile([FromForm] UpdateUserDto request)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _userService.UpdateAsync(request, userId);
         return Ok("User profile updated successfully.");
     }
@@ -247,10 +254,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-
         if (string.IsNullOrWhiteSpace(userId))
-            throw new UnauthorizedException();
-
+        {
+            return Unauthorized();
+        }
         var user = await _userService.GetAsync(userId, cancellationToken);
         return Ok(user);
     }
@@ -261,13 +268,15 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetProfileImage(CancellationToken cancellationToken)
     {
         var currentUserId = User.GetUserId();
-
         if (string.IsNullOrWhiteSpace(currentUserId))
-            throw new UnauthorizedException();
-
+        {
+            return Unauthorized();
+        }
         var user = await _userService.GetAsync(currentUserId, cancellationToken);
         if (user == null)
-            throw new UnauthorizedException();
+        {
+            return Unauthorized();
+        }
 
         var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "UserImages", $"{currentUserId}.jpg");
 

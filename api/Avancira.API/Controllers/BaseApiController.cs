@@ -13,19 +13,14 @@ public abstract class BaseApiController : ControllerBase
     /// <summary>
     /// Gets the current user's ID from JWT claims
     /// </summary>
-    /// <returns>User ID if authenticated, otherwise throws UnauthorizedAccessException</returns>
-    protected string GetUserId()
+    /// <returns>User ID if authenticated, otherwise null</returns>
+    protected string? GetUserId()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                    ?? User.FindFirst("sub")?.Value 
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value
                     ?? User.FindFirst("userId")?.Value;
-        
-        if (string.IsNullOrEmpty(userId))
-        {
-            throw new UnauthorizedAccessException("User ID not found in token claims");
-        }
-        
-        return userId;
+
+        return string.IsNullOrEmpty(userId) ? null : userId;
     }
 
     /// <summary>
