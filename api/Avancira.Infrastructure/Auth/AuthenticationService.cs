@@ -62,6 +62,39 @@ public class AuthenticationService : IAuthenticationService
         return await HandleTokenResponseAsync(response, clientInfo, userId);
     }
 
+    public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
+    {
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
+
+        var content = new FormUrlEncodedContent(new Dictionary<string, string?>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken,
+            ["device_id"] = clientInfo.DeviceId
+        });
+
+        var response = await _httpClient.PostAsync("/connect/token", content);
+        response.EnsureSuccessStatusCode();
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var document = await JsonDocument.ParseAsync(stream);
+        var root = document.RootElement;
+
+        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
+        var newRefresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
+        DateTime refreshExpiry = DateTime.UtcNow;
+        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
+        {
+            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
+        }
+        else
+        {
+            refreshExpiry = DateTime.UtcNow.AddDays(7);
+        }
+
+        return new TokenPair(token, newRefresh, refreshExpiry);
+    }
+
     private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
     {
         using var stream = await response.Content.ReadAsStreamAsync();

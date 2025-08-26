@@ -6,6 +6,7 @@ using Avancira.Application.Auth;
 using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Identity;
 using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Application.Identity.Tokens;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +22,9 @@ public class AuthControllerTests
         var externalAuth = new Mock<IExternalAuthService>();
         var externalUser = new Mock<IExternalUserService>();
         var authService = new Mock<IAuthenticationService>();
+        var sessionService = new Mock<ISessionService>();
 
-        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object);
+        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object, sessionService.Object);
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
@@ -53,8 +55,9 @@ public class AuthControllerTests
         var externalAuth = new Mock<IExternalAuthService>();
         var externalUser = new Mock<IExternalUserService>();
         var authService = new Mock<IAuthenticationService>();
+        var sessionService = new Mock<ISessionService>();
 
-        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object);
+        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object, sessionService.Object);
 
         externalAuth.Setup(s => s.ValidateTokenAsync(SocialProvider.Google, "bad"))
             .ReturnsAsync(ExternalAuthResult.Fail(ExternalAuthErrorType.InvalidToken, "invalid"));
@@ -72,8 +75,9 @@ public class AuthControllerTests
         var externalAuth = new Mock<IExternalAuthService>();
         var externalUser = new Mock<IExternalUserService>();
         var authService = new Mock<IAuthenticationService>();
+        var sessionService = new Mock<ISessionService>();
 
-        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object);
+        var controller = new AuthController(authService.Object, externalAuth.Object, externalUser.Object, sessionService.Object);
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Email, "user@example.com") }, "Google"));
         var loginInfo = new ExternalLoginInfo(principal, "Google", "123", "Google");

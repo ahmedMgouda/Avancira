@@ -1,6 +1,7 @@
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Domain.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +60,45 @@ public class SessionService : ISessionService
                 token.RevokedUtc = now;
             }
         }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string tokenHash)
+    {
+        var token = await _dbContext.RefreshTokens
+            .Include(rt => rt.Session)
+            .SingleOrDefaultAsync(rt => rt.TokenHash == tokenHash && rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow);
+
+        if (token == null)
+            return null;
+
+        return (token.Session.UserId, token.Id);
+    }
+
+    public async Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, DateTime newExpiry)
+    {
+        var token = await _dbContext.RefreshTokens
+            .Include(rt => rt.Session)
+            .SingleOrDefaultAsync(rt => rt.Id == refreshTokenId);
+
+        if (token == null)
+            return;
+
+        var now = DateTime.UtcNow;
+        token.RevokedUtc = now;
+
+        var session = token.Session;
+        session.LastRefreshUtc = now;
+        session.AbsoluteExpiryUtc = newExpiry;
+
+        session.RefreshTokens.Add(new RefreshToken
+        {
+            TokenHash = newRefreshTokenHash,
+            CreatedUtc = now,
+            AbsoluteExpiryUtc = newExpiry,
+            RotatedFromId = token.Id
+        });
 
         await _dbContext.SaveChangesAsync();
     }
