@@ -10,15 +10,9 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter } from '@angular/router';
 import { catchError, firstValueFrom, from, of } from 'rxjs';
 import { provideToastr } from 'ngx-toastr';
-import {
-  SocialAuthServiceConfig,
-  GoogleLoginProvider,
-  FacebookLoginProvider,
-} from '@abacritt/angularx-social-login';
 
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
-import { ConfigKey } from './models/config-key';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -63,29 +57,6 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(OAuthModule.forRoot()),
 
     provideAppInitializer(initConfig),
-
-    {
-      provide: 'SocialAuthServiceConfig',
-      useFactory: () =>
-        ({
-          autoLogin: false,
-          providers: [
-            {
-              id: GoogleLoginProvider.PROVIDER_ID,
-              provider: new GoogleLoginProvider(
-                inject(ConfigService).get(ConfigKey.GoogleClientId)
-              ),
-            },
-            {
-              id: FacebookLoginProvider.PROVIDER_ID,
-              provider: new FacebookLoginProvider(
-                inject(ConfigService).get(ConfigKey.FacebookAppId)
-              ),
-            },
-          ],
-        }) as SocialAuthServiceConfig,
-    },
-
     provideAppInitializer(initAuth),
   ]
 };

@@ -18,7 +18,6 @@ import { SocialLoginButtonsComponent } from '../../components/social-login-butto
 
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
-import { SocialAuthService } from '../../services/social-auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { ValidatorService } from '../../validators/password-validator.service';
 
@@ -62,8 +61,7 @@ export class SignupComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private config: ConfigService,
     private spinner: SpinnerService,
-    private toastr: ToastrService,
-    private socialAuth: SocialAuthService
+    private toastr: ToastrService
   ) {
     this.signupForm = this.fb.nonNullable.group<SignupForm>({
       firstName: this.fb.nonNullable.control('', Validators.required),
@@ -153,19 +151,7 @@ export class SignupComponent implements OnInit, OnDestroy {
   }
 
   authenticate(provider: SocialProvider): void {
-    this.spinner.show();
-    this.socialAuth
-      .authenticate(provider)
-      .pipe(finalize(() => this.spinner.hide()))
-      .subscribe({
-        next: () => {
-          this.router.navigateByUrl(this.returnUrl);
-        },
-        error: (err) => {
-          console.error(`${provider} signup error:`, err);
-          this.toastr.error(`${provider} signup failed.`, 'Error');
-        },
-      });
+    void this.authService.startLogin(this.returnUrl, provider);
   }
 
   ngOnDestroy(): void {

@@ -4,13 +4,10 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { finalize } from 'rxjs/operators';
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { ConfigService } from '../../services/config.service';
-import { SocialAuthService } from '../../services/social-auth.service';
-import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 import { SocialLoginButtonsComponent } from '../../components/social-login-buttons/social-login-buttons.component';
 import { SocialProvider } from '../../models/social-provider';
@@ -44,11 +41,9 @@ export class SigninComponent implements OnInit {
     private route: ActivatedRoute,
     private authService: AuthService,
     private config: ConfigService,
-    private spinner: SpinnerService,
     private toastr: ToastrService,
     private alert: AlertService,
-    private user: UserService,
-    private socialAuth: SocialAuthService
+    private user: UserService
   ) {}
 
   ngOnInit(): void {
@@ -82,18 +77,7 @@ export class SigninComponent implements OnInit {
   }
 
   authenticate(provider: SocialProvider): void {
-    this.spinner.show();
-    this.socialAuth
-      .authenticate(provider)
-      .pipe(finalize(() => this.spinner.hide()))
-      .subscribe({
-        next: () =>
-          this.router.navigateByUrl(this.sanitizeReturnUrl(this.returnUrl)),
-        error: (err) => {
-          console.error(`${provider} login failed:`, err);
-          this.toastr.error(`${provider} login failed.`, 'Error');
-        },
-      });
+    void this.authService.startLogin(this.returnUrl, provider);
   }
 
   /** Password reset prompt */
