@@ -2,7 +2,7 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
-import { Observable, from, of } from 'rxjs';
+import { Observable, Subject, from, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
@@ -16,6 +16,7 @@ import { SessionService } from './session.service';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = environment.apiUrl;
+  private refresh$?: Subject<unknown>;
 
   constructor(
     private readonly oauth: OAuthService,
@@ -51,7 +52,7 @@ export class AuthService {
   }
 
   waitForRefresh(): Observable<unknown> {
-    return of(null);
+    return this.refresh$ ? this.refresh$.asObservable() : of(null);
   }
 
   getAccessToken(): string | null {
@@ -62,9 +63,24 @@ export class AuthService {
     if (this.oauth.hasValidAccessToken()) {
       return of(this.oauth.getAccessToken() as string);
     }
-    return from(this.oauth.refreshToken()).pipe(
-      map(() => this.oauth.getAccessToken() as string)
-    );
+
+    if (!this.refresh$) {
+      this.refresh$ = new Subject<unknown>();
+
+      from(this.oauth.refreshToken()).subscribe({
+        next: () => {
+          this.refresh$?.next(null);
+          this.refresh$?.complete();
+          this.refresh$ = undefined;
+        },
+        error: err => {
+          this.refresh$?.error(err);
+          this.refresh$ = undefined;
+        }
+      });
+    }
+
+    return this.waitForRefresh().pipe(map(() => this.oauth.getAccessToken() as string));
   }
 
   startLogin(returnUrl = this.router.url, provider?: SocialProvider): Promise<void> {
