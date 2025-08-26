@@ -72,7 +72,16 @@ export class SigninComponent implements OnInit {
 
   /** Regular login */
   onLogin(): void {
-    this.authService.startLogin(this.returnUrl);
+    const { email, password } = this.loginForm.value;
+    this.authService.login(email, password, this.returnUrl).subscribe({
+      next: () => {
+        this.router.navigateByUrl(this.returnUrl);
+      },
+      error: (err) => {
+        console.error('Login failed:', err);
+        this.toastr.error('Invalid email or password.', 'Login Failed');
+      },
+    });
   }
 
   authenticate(provider: SocialProvider): void {
