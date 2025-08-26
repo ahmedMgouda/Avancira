@@ -90,6 +90,65 @@ public class AuthenticationService : IAuthenticationService
         return new TokenPair(token, refresh, refreshExpiry);
     }
 
+    public async Task<TokenPair> GenerateTokenAsync(string userId)
+    {
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
+
+        var content = new FormUrlEncodedContent(new Dictionary<string, string?>
+        {
+            ["grant_type"] = "user_id",
+            ["user_id"] = userId,
+            ["scope"] = "api offline_access"
+        });
+
+        var response = await _httpClient.PostAsync("/connect/token", content);
+        response.EnsureSuccessStatusCode();
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var document = await JsonDocument.ParseAsync(stream);
+        var root = document.RootElement;
+
+        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
+        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
+        DateTime refreshExpiry = DateTime.UtcNow;
+        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
+        {
+            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
+        }
+        else
+        {
+            refreshExpiry = DateTime.UtcNow.AddDays(7);
+        }
+
+        var now = DateTime.UtcNow;
+        var session = new Session
+        {
+            UserId = userId,
+            Device = clientInfo.DeviceId,
+            UserAgent = clientInfo.UserAgent,
+            OperatingSystem = clientInfo.OperatingSystem,
+            IpAddress = clientInfo.IpAddress,
+            Country = clientInfo.Country,
+            City = clientInfo.City,
+            CreatedUtc = now,
+            LastActivityUtc = now,
+            LastRefreshUtc = now,
+            AbsoluteExpiryUtc = refreshExpiry
+        };
+
+        session.RefreshTokens.Add(new RefreshToken
+        {
+            TokenHash = HashToken(refresh),
+            CreatedUtc = now,
+            AbsoluteExpiryUtc = refreshExpiry
+        });
+
+        _dbContext.Sessions.Add(session);
+        await _dbContext.SaveChangesAsync();
+
+        return new TokenPair(token, refresh, refreshExpiry);
+    }
+
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
