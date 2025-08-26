@@ -58,6 +58,15 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
 
+## Authentication notes
+
+The application configures `OAuthService` with a custom requester so that token and refresh calls
+send cookies by default. These requests automatically skip the standard auth interceptor and set
+`withCredentials: true` via the `INCLUDE_CREDENTIALS` context token. If you need to provide your own
+OAuth implementation, ensure token requests either use a similar requester or include the
+`tokenInterceptor` from `src/app/interceptors/token.interceptor.ts` before the main auth
+interceptor.
+
 docker build -t "mirotivo/avancira-frontend:latest" -f Frontend.Angular/Dockerfile Frontend.Angular
 docker-compose build frontend-container
 docker build -t "mirotivo/avancira-frontend:latest" .

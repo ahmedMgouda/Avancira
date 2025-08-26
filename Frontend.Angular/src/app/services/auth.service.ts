@@ -30,6 +30,14 @@ export class AuthService {
       scope: 'api offline_access',
       redirectUri: `${environment.frontendUrl}/signin-callback`,
     });
+
+    this.oauth.requester = (method, url, body, headers) =>
+      this.http.request(method, url, {
+        body,
+        headers,
+        withCredentials: true,
+        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
+      });
   }
 
   init(): Promise<void> {
