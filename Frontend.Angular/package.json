@@ -50,6 +50,7 @@
     "feather-icons": "^4.29.2",
     "jquery": "^3.7.1",
     "jwt-decode": "^4.0.0",
+    "angular-oauth2-oidc": "^19.0.0",
     "ng-apexcharts": "1.15.0",
     "ngx-bootstrap": "^19.0.2",
     "ngx-countup": "^13.2.0",

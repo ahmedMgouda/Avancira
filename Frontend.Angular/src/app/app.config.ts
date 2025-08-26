@@ -1,13 +1,14 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
+  importProvidersFrom,
   inject,
   provideAppInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
-import { catchError, firstValueFrom, of } from 'rxjs';
+import { catchError, firstValueFrom, from, of } from 'rxjs';
 import { provideToastr } from 'ngx-toastr';
 import {
   SocialAuthServiceConfig,
@@ -22,6 +23,7 @@ import { ConfigKey } from './models/config-key';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
+import { OAuthModule } from 'angular-oauth2-oidc';
 
 function initConfig() {
   return firstValueFrom(
@@ -32,7 +34,7 @@ function initConfig() {
 function initAuth() {
   const auth = inject(AuthService);
   return firstValueFrom(
-    auth.getValidAccessToken().pipe(catchError(() => of(null)))
+    from(auth.init()).pipe(catchError(() => of(null)))
   );
 }
 
@@ -57,6 +59,8 @@ export const appConfig: ApplicationConfig = {
     }),
 
     provideAnimationsAsync(),
+
+    importProvidersFrom(OAuthModule.forRoot()),
 
     provideAppInitializer(initConfig),
 
