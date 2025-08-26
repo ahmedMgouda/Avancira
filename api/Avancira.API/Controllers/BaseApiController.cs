@@ -63,7 +63,7 @@ public abstract class BaseApiController : ControllerBase
         {
             HttpOnly = true,
             SameSite = SameSiteMode.None,
-            Path = "/api/auth"
+            Path = "/"
         };
 
         if (expires.HasValue)

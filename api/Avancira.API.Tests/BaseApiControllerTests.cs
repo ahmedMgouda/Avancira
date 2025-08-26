@@ -39,7 +39,7 @@ public class BaseApiControllerTests
 
         var setCookie = httpContext.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
         setCookie.Should().Contain("refreshtoken=token123");
-        setCookie.Should().Contain("path=/api/auth");
+        setCookie.Should().Contain("path=/");
         setCookie.Should().Contain("httponly");
         setCookie.Should().Contain("samesite=none");
         setCookie.Should().Contain("secure");
@@ -65,7 +65,7 @@ public class BaseApiControllerTests
 
         var setCookie = httpContext.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
         setCookie.Should().Contain("refreshtoken=token456");
-        setCookie.Should().Contain("path=/api/auth");
+        setCookie.Should().Contain("path=/");
         setCookie.Should().Contain("httponly");
         setCookie.Should().Contain("samesite=none");
         setCookie.Should().Contain("secure");
