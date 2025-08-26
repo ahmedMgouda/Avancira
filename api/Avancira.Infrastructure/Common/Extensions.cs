@@ -10,6 +10,7 @@ using Avancira.Application.Payments;
 using Avancira.Application.Subscriptions;
 using Avancira.Application.Common;
 using Avancira.Application.Auth;
+using Avancira.Application.Identity;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Billing;
 using Avancira.Infrastructure.Identity.Audit;
@@ -56,6 +57,7 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IExternalTokenValidator, FacebookTokenValidator>();
             services.AddTransient<IExternalAuthService, ExternalAuthService>();
             services.AddTransient<IExternalUserService, ExternalUserService>();
+            services.AddTransient<IAuthenticationService, AuthenticationService>();
             services.AddTransient<IGeolocationService, GeolocationService>();
             services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();

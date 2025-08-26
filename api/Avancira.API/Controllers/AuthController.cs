@@ -1,40 +1,34 @@
+using Avancira.Application.Identity;
 using Avancira.Application.Identity.Tokens.Dtos;
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Collections.Generic;
 
 namespace Avancira.API.Controllers;
 
 [Route("api/auth")]
 public class AuthController : BaseApiController
 {
-    private readonly HttpClient _httpClient;
+    private readonly IAuthenticationService _authenticationService;
 
-    public AuthController(IHttpClientFactory httpClientFactory)
+    public AuthController(IAuthenticationService authenticationService)
     {
-        _httpClient = httpClientFactory.CreateClient();
+        _authenticationService = authenticationService;
     }
 
     [HttpPost("token")]
     [AllowAnonymous]
-    public async Task<IActionResult> GenerateToken([FromBody] TokenGenerationDto request)
+    public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request)
     {
-        var content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "password",
-            ["username"] = request.Email,
-            ["password"] = request.Password
-        });
-
-        var response = await _httpClient.PostAsync("/connect/token", content);
-        var body = await response.Content.ReadAsStringAsync();
-        return Content(body, "application/json");
+        var pair = await _authenticationService.GenerateTokenAsync(request);
+        DateTime? expires = request.RememberMe ? pair.RefreshTokenExpiryTime : null;
+        SetRefreshTokenCookie(pair.RefreshToken, expires);
+        return Ok(new TokenResponse(pair.Token));
     }
 
     [HttpPost("refresh")]
     [AllowAnonymous]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto? request)
+    public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto? request)
     {
         var refreshToken = request?.Token ?? Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -42,14 +36,9 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        var content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "refresh_token",
-            ["refresh_token"] = refreshToken
-        });
-
-        var response = await _httpClient.PostAsync("/connect/token", content);
-        var body = await response.Content.ReadAsStringAsync();
-        return Content(body, "application/json");
+        var pair = await _authenticationService.RefreshTokenAsync(refreshToken);
+        SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        return Ok(new TokenResponse(pair.Token));
     }
 }
+
