@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Observable, Subject, from, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { finalize, map } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -94,20 +94,16 @@ export class AuthService {
       ? this.sessionService.revokeSession(sessionId)
       : of(void 0);
 
-    revoke$.subscribe({
-      next: () => {
-        this.oauth.logOut();
-        if (navigate) {
-          this.router.navigateByUrl(this.redirectToSignIn());
-        }
-      },
-      error: () => {
-        this.oauth.logOut();
-        if (navigate) {
-          this.router.navigateByUrl(this.redirectToSignIn());
-        }
-      }
-    });
+    revoke$
+      .pipe(
+        finalize(() => {
+          this.oauth.logOut();
+          if (navigate) {
+            this.router.navigateByUrl(this.redirectToSignIn());
+          }
+        }),
+      )
+      .subscribe();
   }
 
   register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
