@@ -2,8 +2,8 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
-import { Observable, Subject, from, of } from 'rxjs';
-import { finalize, map } from 'rxjs/operators';
+import { Observable, Subject, from, of, throwError } from 'rxjs';
+import { finalize, map, catchError } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -67,17 +67,25 @@ export class AuthService {
     if (!this.refresh$) {
       this.refresh$ = new Subject<unknown>();
 
-      from(this.oauth.refreshToken()).subscribe({
-        next: () => {
-          this.refresh$?.next(null);
-          this.refresh$?.complete();
-          this.refresh$ = undefined;
-        },
-        error: err => {
-          this.refresh$?.error(err);
-          this.refresh$ = undefined;
-        }
-      });
+      from(this.oauth.refreshToken())
+        .pipe(
+          catchError(err => {
+            this.logout();
+            this.refresh$?.error(err);
+            this.refresh$ = undefined;
+            return throwError(() => err);
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.refresh$?.next(null);
+            this.refresh$?.complete();
+            this.refresh$ = undefined;
+          },
+          error: () => {
+            /* no-op */
+          },
+        });
     }
 
     return this.waitForRefresh().pipe(map(() => this.oauth.getAccessToken() as string));
