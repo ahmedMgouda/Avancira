@@ -69,7 +69,7 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
                 }
 
                 // Invoked when a WebSocket or Long Polling request is received.
-                Log.Debug("Message received: " + context.Token);
+                Log.Debug("Message received. Token present: {TokenPresent}", !string.IsNullOrEmpty(context.Token));
                 return Task.CompletedTask;
             },
             OnChallenge = context =>
