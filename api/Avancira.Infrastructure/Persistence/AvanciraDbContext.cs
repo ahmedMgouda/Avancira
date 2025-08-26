@@ -18,6 +18,7 @@ using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Notifications;
+using OpenIddict.EntityFrameworkCore.Models;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<
@@ -62,6 +63,11 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<Wallet> Wallets { get; set; }
     public DbSet<WalletLog> WalletLogs { get; set; }
 
+    public DbSet<OpenIddictApplication> OpenIddictApplications { get; set; }
+    public DbSet<OpenIddictAuthorization> OpenIddictAuthorizations { get; set; }
+    public DbSet<OpenIddictScope> OpenIddictScopes { get; set; }
+    public DbSet<OpenIddictToken> OpenIddictTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Apply soft delete global filter
@@ -69,6 +75,7 @@ public class AvanciraDbContext : IdentityDbContext<
 
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.UseOpenIddict();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AvanciraDbContext).Assembly);
     }
 
