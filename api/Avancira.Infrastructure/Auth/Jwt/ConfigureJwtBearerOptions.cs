@@ -1,9 +1,12 @@
 ﻿using Avancira.Application.Auth.Jwt;
+using Avancira.Application.Identity.Tokens;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System;
 using System.Security.Claims;
 using System.Text;
 
@@ -52,12 +55,27 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
                 Log.Debug("Authentication failed: " + context.Exception.Message);
                 return Task.CompletedTask;
             },
-            OnTokenValidated = context =>
+            OnTokenValidated = async context =>
             {
-                // Token validation succeeded
-                if (context != null && context.Principal != null && context.Principal.Identity != null)
+                var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var sessionClaim = context.Principal?.FindFirst("sid")?.Value;
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(sessionClaim) || !Guid.TryParse(sessionClaim, out var sessionId))
+                {
+                    context.Fail("Session revoked");
+                    return;
+                }
+
+                var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
+                if (!await sessionService.ValidateSessionAsync(userId, sessionId))
+                {
+                    context.Fail("Session revoked");
+                    return;
+                }
+
+                if (context.Principal?.Identity != null)
+                {
                     Log.Debug("Token validated: " + context.Principal.Identity.Name);
-                return Task.CompletedTask;
+                }
             },
             OnMessageReceived = context =>
             {
