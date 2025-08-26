@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Server;
@@ -16,19 +17,24 @@ public static class OpenIddictSetup
             .AddServer(options =>
             {
                 options.SetAuthorizationEndpointUris("/connect/authorize")
-                       .SetTokenEndpointUris("/connect/token");
+                       .SetTokenEndpointUris("/connect/token")
+                       .SetRevocationEndpointUris("/connect/revocation")
+                       .SetIssuer(new Uri("https://localhost:9000/"));
 
                 options.AllowPasswordFlow()
                        .AllowRefreshTokenFlow()
                        .AllowAuthorizationCodeFlow()
                        .RequireProofKeyForCodeExchange();
 
+                options.RegisterScopes("api");
+
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
                 options.UseAspNetCore()
                        .EnableAuthorizationEndpointPassthrough()
-                       .EnableTokenEndpointPassthrough();
+                       .EnableTokenEndpointPassthrough()
+                       .EnableRevocationEndpointPassthrough();
 
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<ExternalLoginHandler>());
