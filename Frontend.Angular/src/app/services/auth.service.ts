@@ -124,6 +124,16 @@ export class AuthService {
     );
   }
 
+  private normalizeClaim(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value as string[];
+    }
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return [];
+  }
+
   decode(): UserProfile | null {
     const claims = this.oauth.getIdentityClaims() as Record<string, unknown> | null;
     if (!claims || typeof claims !== 'object' || !('sub' in claims)) {
@@ -144,8 +154,8 @@ export class AuthService {
         sessionId: (claims['sid'] ?? claims['session_id']) as string,
         country: claims['country'] as string,
         city: claims['city'] as string,
-        roles: (claims['role'] ?? []) as string[],
-        permissions: (claims['permission'] ?? []) as string[],
+        roles: this.normalizeClaim(claims['role']),
+        permissions: this.normalizeClaim(claims['permission']),
         exp: claims['exp'] as number,
       };
       return profile;
