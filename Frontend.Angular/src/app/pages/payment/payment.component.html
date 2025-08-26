@@ -27,7 +27,7 @@
                     </div>
                 </div>
 
-                <div class="card" *ngIf="isLoggedIn; else notLoggedIn">
+                <div class="card" *ngIf="authService.isAuthenticated(); else notLoggedIn">
                     <div class="card-body">
                         <!-- Subscription Form -->
                         <div class="payment-widget">
