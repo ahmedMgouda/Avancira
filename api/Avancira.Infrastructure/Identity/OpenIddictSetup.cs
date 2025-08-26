@@ -23,6 +23,7 @@ public static class OpenIddictSetup
 
                 options.AllowRefreshTokenFlow()
                        .AllowAuthorizationCodeFlow()
+                       .AllowPasswordFlow()
                        .RequireProofKeyForCodeExchange();
 
                 options.RegisterScopes("api");
@@ -39,6 +40,8 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<ExternalLoginHandler>());
                 options.AddEventHandler<ProcessSignInContext>(builder =>
                     builder.UseScopedHandler<DeviceInfoClaimsHandler>());
+                options.AddEventHandler<HandleTokenRequestContext>(builder =>
+                    builder.UseScopedHandler<PasswordGrantHandler>());
             })
             .AddValidation(options =>
             {
