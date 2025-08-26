@@ -2,6 +2,7 @@ using Avancira.Application.Identity;
 using Avancira.Application.Auth;
 using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Identity.Tokens;
+using Avancira.Application.Identity.Users.Dtos;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -29,6 +30,20 @@ public class AuthController : BaseApiController
         _externalAuthService = externalAuthService;
         _externalUserService = externalUserService;
         _sessionService = sessionService;
+    }
+
+    [HttpPost("login")]
+    [AllowAnonymous]
+    public async Task<ActionResult<TokenResponse>> Login([FromBody] LoginRequestDto request)
+    {
+        var pair = await _authenticationService.PasswordSignInAsync(request.Email, request.Password);
+        if (pair is null)
+        {
+            return Unauthorized();
+        }
+
+        SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        return Ok(new TokenResponse(pair.Token));
     }
 
     [HttpPost("external-login")]

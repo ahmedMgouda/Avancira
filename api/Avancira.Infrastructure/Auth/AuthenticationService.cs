@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -17,12 +18,21 @@ public class AuthenticationService : IAuthenticationService
     private readonly HttpClient _httpClient;
     private readonly IClientInfoService _clientInfoService;
     private readonly AvanciraDbContext _dbContext;
+    private readonly UserManager<User> _userManager;
+    private readonly SignInManager<User> _signInManager;
 
-    public AuthenticationService(IHttpClientFactory httpClientFactory, IClientInfoService clientInfoService, AvanciraDbContext dbContext)
+    public AuthenticationService(
+        IHttpClientFactory httpClientFactory,
+        IClientInfoService clientInfoService,
+        AvanciraDbContext dbContext,
+        UserManager<User> userManager,
+        SignInManager<User> signInManager)
     {
         _httpClient = httpClientFactory.CreateClient();
         _clientInfoService = clientInfoService;
         _dbContext = dbContext;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -42,6 +52,23 @@ public class AuthenticationService : IAuthenticationService
         response.EnsureSuccessStatusCode();
 
         return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
+    }
+
+    public async Task<TokenPair?> PasswordSignInAsync(string email, string password)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            return null;
+        }
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
+        if (!result.Succeeded)
+        {
+            return null;
+        }
+
+        return await GenerateTokenAsync(user.Id);
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
