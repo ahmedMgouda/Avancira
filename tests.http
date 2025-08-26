@@ -17,3 +17,12 @@ Accept: application/json
 ### Get categories using the token
 GET https://localhost:9000/api/listings/-1211748162
 Accept: application/json
+
+### Revoke multiple sessions
+POST https://localhost:9000/api/auth/sessions/batch
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+[
+  "00000000-0000-0000-0000-000000000000"
+]

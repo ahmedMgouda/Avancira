@@ -17,3 +17,9 @@ Google and Facebook authentication handlers are added only when their configurat
 
 If a provider's configuration is missing or incomplete, the application logs a warning and continues without registering that provider.
 
+## Session management
+
+- `GET /api/auth/sessions` – retrieve active sessions for the current user.
+- `DELETE /api/auth/sessions/{id}` – revoke a single session by its ID.
+- `POST /api/auth/sessions/batch` – revoke multiple sessions by providing a list of session IDs.
+
