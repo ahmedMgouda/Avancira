@@ -54,6 +54,17 @@ export class SignupComponent implements OnInit, OnDestroy {
   readonly Provider = SocialProvider;
   enabledProviders: SocialProvider[] = [];
 
+  /**
+   * Validates and sanitizes a return URL.
+   * Ensures the URL is a relative path within the app.
+   * Defaults to '/' if validation fails.
+   */
+  private sanitizeReturnUrl(url?: string): string {
+    if (!url) return '/';
+    const isRelative = /^\/(?!\/)/.test(url) && !url.includes('://');
+    return isRelative ? url : '/';
+  }
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -94,7 +105,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((params) => {
         this.referralToken = params['referral'] || null;
-        this.returnUrl = params['returnUrl'] || '/';
+        this.returnUrl = this.sanitizeReturnUrl(params['returnUrl']);
       });
 
     this.config
