@@ -83,6 +83,7 @@ var facebookSection = builder.Configuration.GetSection("Avancira:ExternalService
 var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
 });
 
 if (!string.IsNullOrWhiteSpace(googleSection["ClientId"]) && !string.IsNullOrWhiteSpace(googleSection["ClientSecret"]))
@@ -91,6 +92,7 @@ if (!string.IsNullOrWhiteSpace(googleSection["ClientId"]) && !string.IsNullOrWhi
     {
         o.ClientId = googleSection["ClientId"]!;
         o.ClientSecret = googleSection["ClientSecret"]!;
+        o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
     });
 }
 else
@@ -104,6 +106,7 @@ if (!string.IsNullOrWhiteSpace(facebookSection["AppId"]) && !string.IsNullOrWhit
     {
         o.AppId = facebookSection["AppId"]!;
         o.AppSecret = facebookSection["AppSecret"]!;
+        o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
     });
 }
 else
