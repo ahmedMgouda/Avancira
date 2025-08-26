@@ -6,8 +6,6 @@ using Avancira.Application.Identity;
 using Avancira.Domain.Identity;
 using Avancira.Infrastructure.Persistence;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 
@@ -176,7 +174,7 @@ public class AuthenticationService : IAuthenticationService
 
         session.RefreshTokens.Add(new RefreshToken
         {
-            TokenHash = HashToken(refresh),
+            TokenHash = TokenUtilities.HashToken(refresh),
             CreatedUtc = now,
             AbsoluteExpiryUtc = refreshExpiry
         });
@@ -188,11 +186,5 @@ public class AuthenticationService : IAuthenticationService
         return new TokenPair(token, refresh, refreshExpiry);
     }
 
-    private static string HashToken(string token)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(bytes);
-    }
 }
 

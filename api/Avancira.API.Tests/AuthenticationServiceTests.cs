@@ -48,6 +48,8 @@ public class AuthenticationServiceTests
 
         var userId = "user1";
         await service.GenerateTokenAsync(userId);
+        var storedToken = await dbContext.RefreshTokens.SingleAsync();
+        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh"));
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
 
         await service.GenerateTokenAsync(userId);
