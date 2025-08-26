@@ -1,3 +1,4 @@
+using Avancira.Application.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +12,14 @@ public class ExternalAuthController : BaseApiController
     [AllowAnonymous]
     public IActionResult ExternalLogin([FromQuery] string provider)
     {
-        return Redirect($"/connect/authorize?provider={provider}");
+        if (string.IsNullOrWhiteSpace(provider) ||
+            !Enum.TryParse<SocialProvider>(provider, true, out var parsed))
+        {
+            return BadRequest();
+        }
+
+        var normalized = parsed.ToString().ToLowerInvariant();
+
+        return Redirect($"/connect/authorize?provider={normalized}");
     }
 }
