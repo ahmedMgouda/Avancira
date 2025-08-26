@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Avancira.API.Controllers;
 
@@ -65,7 +67,6 @@ public abstract class BaseApiController : ControllerBase
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
             SameSite = SameSiteMode.None,
             Path = "/api/auth"
         };
@@ -74,6 +75,8 @@ public abstract class BaseApiController : ControllerBase
         {
             cookieOptions.Expires = expires.Value;
         }
+        var env = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+        cookieOptions.Secure = !env.IsDevelopment();
 
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
