@@ -117,40 +117,28 @@ export class AuthService {
   }
 
   decode(): UserProfile | null {
-    const token = this.oauth.getAccessToken();
-    if (!token) {
+    const claims = this.oauth.getIdentityClaims() as Record<string, unknown> | null;
+    if (!claims || typeof claims !== 'object' || !('sub' in claims)) {
       return null;
     }
 
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const roles = payload.role
-        ? Array.isArray(payload.role)
-          ? payload.role
-          : [payload.role]
-        : [];
-      const permissions = payload.permission
-        ? Array.isArray(payload.permission)
-          ? payload.permission
-          : [payload.permission]
-        : [];
-
       const profile: UserProfile = {
-        id: payload.sub,
-        email: payload.email,
-        firstName: payload.given_name,
-        lastName: payload.family_name,
-        fullName: payload.name,
-        timeZoneId: payload.timezone,
-        ipAddress: payload.ip_address,
-        imageUrl: payload.image,
-        deviceId: payload.device_id,
-        sessionId: payload.sid ?? payload.session_id,
-        country: payload.country,
-        city: payload.city,
-        roles,
-        permissions,
-        exp: payload.exp,
+        id: claims['sub'] as string,
+        email: claims['email'] as string,
+        firstName: claims['given_name'] as string,
+        lastName: claims['family_name'] as string,
+        fullName: claims['name'] as string,
+        timeZoneId: claims['timezone'] as string,
+        ipAddress: claims['ip_address'] as string,
+        imageUrl: claims['image'] as string,
+        deviceId: claims['device_id'] as string,
+        sessionId: (claims['sid'] ?? claims['session_id']) as string,
+        country: claims['country'] as string,
+        city: claims['city'] as string,
+        roles: (claims['role'] ?? []) as string[],
+        permissions: (claims['permission'] ?? []) as string[],
+        exp: claims['exp'] as number,
       };
       return profile;
     } catch {
