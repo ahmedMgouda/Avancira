@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Server;
@@ -32,22 +31,7 @@ public static class OpenIddictSetup
                        .EnableTokenEndpointPassthrough();
 
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
-                    builder.UseInlineHandler(async context =>
-                    {
-                        var provider = context.HttpContext.Request.Query["provider"].ToString();
-                        if (!context.HttpContext.User.Identity?.IsAuthenticated ?? true)
-                        {
-                            if (string.Equals(provider, "google", StringComparison.OrdinalIgnoreCase))
-                            {
-                                await context.HttpContext.ChallengeAsync("Google");
-                            }
-                            else if (string.Equals(provider, "facebook", StringComparison.OrdinalIgnoreCase))
-                            {
-                                await context.HttpContext.ChallengeAsync("Facebook");
-                            }
-                            context.HandleRequest();
-                        }
-                    }));
+                    builder.UseScopedHandler<ExternalLoginHandler>());
             })
             .AddValidation(options =>
             {
