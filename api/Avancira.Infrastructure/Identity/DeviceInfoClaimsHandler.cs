@@ -16,20 +16,10 @@ public class DeviceInfoClaimsHandler : IOpenIddictServerHandler<ProcessSignInCon
         }
 
         var deviceId = (string?)request["device_id"];
-        var country = (string?)request["country"];
-        var city = (string?)request["city"];
 
         if (!string.IsNullOrEmpty(deviceId))
         {
             context.Principal.SetClaim("device_id", deviceId);
-        }
-        if (!string.IsNullOrEmpty(country))
-        {
-            context.Principal.SetClaim("country", country);
-        }
-        if (!string.IsNullOrEmpty(city))
-        {
-            context.Principal.SetClaim("city", city);
         }
 
         return ValueTask.CompletedTask;
