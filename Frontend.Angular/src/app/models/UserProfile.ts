@@ -7,6 +7,9 @@ export interface UserProfile {
   timeZoneId?: string;
   ipAddress?: string;
   imageUrl?: string;
+  deviceId?: string;
+  country?: string;
+  city?: string;
   roles: string[];        // multiple roles
   permissions: string[];  // permissions as strings
   exp?: number;           // token expiration (epoch seconds)

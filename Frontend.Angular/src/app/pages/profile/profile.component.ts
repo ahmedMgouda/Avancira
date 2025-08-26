@@ -7,7 +7,7 @@ import { MapAddressComponent } from '../../components/map-address/map-address.co
 
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
-import { SpinnerService } from '../../services/spinner.service'; 
+import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
 import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
@@ -17,6 +17,7 @@ import { ImageFallbackDirective } from '../../directives/image-fallback.directiv
 import { UserDiplomaStatus } from '../../models/enums/user-diploma-status';
 
 import { Address, User } from '../../models/user';
+import { UserProfile } from '../../models/UserProfile';
 
 
 @Component({
@@ -36,6 +37,7 @@ export class ProfileComponent implements OnInit {
   profile: User = {} as User;
   profileImageFile: File | null = null;
   changePasswordForm: FormGroup;
+  currentSession?: UserProfile | null;
 
   // Notifications
   notifications = {
@@ -58,7 +60,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private alertService: AlertService,
-    private authService: AuthService,
+    public authService: AuthService,
     private userService: UserService,
     private spinnerService: SpinnerService,
     private router: Router,
@@ -88,6 +90,7 @@ export class ProfileComponent implements OnInit {
     this.fetchDiplomaStatus();
     this.loadUserProfile();
     this.loadTimezones();
+    this.currentSession = this.authService.decode();
   }
 
   loadTimezones(): void {

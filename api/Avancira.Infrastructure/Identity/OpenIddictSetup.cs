@@ -37,6 +37,8 @@ public static class OpenIddictSetup
 
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<ExternalLoginHandler>());
+                options.AddEventHandler<ProcessSignInContext>(builder =>
+                    builder.UseScopedHandler<DeviceInfoClaimsHandler>());
             })
             .AddValidation(options =>
             {
