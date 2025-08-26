@@ -42,8 +42,8 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initiate Google login flow', async () => {
-    authService.startLogin.and.returnValue(Promise.resolve());
+  it('should initiate Google login flow', () => {
+    authService.startLogin.and.stub();
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Google);
@@ -51,8 +51,8 @@ describe('LoginComponent', () => {
     expect(authService.startLogin).toHaveBeenCalledWith('/home', SocialProvider.Google);
   });
 
-  it('should initiate Facebook login flow', async () => {
-    authService.startLogin.and.returnValue(Promise.resolve());
+  it('should initiate Facebook login flow', () => {
+    authService.startLogin.and.stub();
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Facebook);
