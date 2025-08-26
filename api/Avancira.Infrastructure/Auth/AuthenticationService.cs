@@ -61,6 +61,17 @@ public class AuthenticationService : IAuthenticationService
         var jwt = handler.ReadJwtToken(token);
         var userId = jwt.Subject;
 
+        var existingSession = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+
+        if (existingSession != null)
+        {
+            _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
+            _dbContext.Sessions.Remove(existingSession);
+            await _dbContext.SaveChangesAsync();
+        }
+
         var now = DateTime.UtcNow;
         var session = new Session
         {
@@ -119,6 +130,17 @@ public class AuthenticationService : IAuthenticationService
         else
         {
             refreshExpiry = DateTime.UtcNow.AddDays(7);
+        }
+
+        var existingSession = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+
+        if (existingSession != null)
+        {
+            _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
+            _dbContext.Sessions.Remove(existingSession);
+            await _dbContext.SaveChangesAsync();
         }
 
         var now = DateTime.UtcNow;
