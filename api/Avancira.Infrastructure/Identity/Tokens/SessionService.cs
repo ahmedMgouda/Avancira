@@ -1,6 +1,8 @@
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Infrastructure.Persistence;
+using System;
+using System.Linq;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,5 +25,25 @@ public class SessionService : ISessionService
             .ToListAsync();
 
         return sessions;
+    }
+
+    public async Task RevokeSessionAsync(string userId, Guid sessionId)
+    {
+        var session = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+
+        if (session is null)
+            return;
+
+        var now = DateTime.UtcNow;
+        session.RevokedUtc = now;
+
+        foreach (var token in session.RefreshTokens.Where(rt => rt.RevokedUtc == null))
+        {
+            token.RevokedUtc = now;
+        }
+
+        await _dbContext.SaveChangesAsync();
     }
 }
