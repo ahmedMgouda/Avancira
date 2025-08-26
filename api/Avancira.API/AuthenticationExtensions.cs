@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 
 namespace Avancira.API;
 
@@ -12,7 +13,8 @@ public static class AuthenticationExtensions
     {
         var builder = services.AddAuthentication(options =>
         {
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
         });
 
         var google = configuration.GetSection("Avancira:ExternalServices:Google").Get<GoogleOptions>();
@@ -22,6 +24,7 @@ public static class AuthenticationExtensions
             {
                 o.ClientId = google.ClientId;
                 o.ClientSecret = google.ClientSecret;
+                o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
             });
         }
         else
@@ -36,6 +39,7 @@ public static class AuthenticationExtensions
             {
                 o.AppId = facebook.AppId;
                 o.AppSecret = facebook.AppSecret;
+                o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
             });
         }
         else
