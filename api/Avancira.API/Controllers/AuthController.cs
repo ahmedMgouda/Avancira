@@ -3,6 +3,7 @@ using Avancira.Application.Auth;
 using Avancira.Application.Auth.Dtos;
 using Avancira.Application.Identity.Tokens;
 using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
@@ -78,6 +79,13 @@ public class AuthController : BaseApiController
         }
 
         var pair = await _authenticationService.RefreshTokenAsync(refreshToken);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(pair.Token);
+        if (jwtToken.Subject != info.Value.UserId)
+        {
+            return Unauthorized();
+        }
 
         await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, HashToken(pair.RefreshToken), pair.RefreshTokenExpiryTime);
         SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
