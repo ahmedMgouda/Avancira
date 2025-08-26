@@ -1,15 +1,12 @@
 ﻿using Avancira.Application;
-using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Jobs;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
-using Avancira.Infrastructure.Auth.Jwt;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Cors;
 using Avancira.Infrastructure.Exceptions;
 using Avancira.Infrastructure.Identity;
-using Avancira.Infrastructure.Identity.Tokens;
 using Avancira.Infrastructure.Jobs;
 using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Mail;
@@ -43,7 +40,6 @@ public static class Extensions
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();
-        builder.Services.ConfigureJwtAuth();
         builder.Services.ConfigureOpenApi();
         builder.Services.ConfigureJobs(builder.Configuration);
         builder.Services.ConfigureMailing();
@@ -57,7 +53,6 @@ public static class Extensions
 
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));
-        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Avancira:Jwt"));
         builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Avancira:Payments:Stripe"));
         builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection("Avancira:Payments:PayPal"));
         builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Avancira:Notifications:Email"));
@@ -68,7 +63,6 @@ public static class Extensions
         builder.Services.Configure<JitsiOptions>(builder.Configuration.GetSection("Avancira:Jitsi"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Google"));
         builder.Services.Configure<FacebookOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Facebook"));
-        builder.Services.Configure<TokenCleanupOptions>(builder.Configuration.GetSection(nameof(TokenCleanupOptions)));
 
 
         // Configure Mappings

@@ -118,7 +118,9 @@ builder.Services.AddOpenIddict()
         options.SetAuthorizationEndpointUris("/connect/authorize")
                .SetTokenEndpointUris("/connect/token");
 
-        options.AllowAuthorizationCodeFlow()
+        options.AllowPasswordFlow()
+               .AllowRefreshTokenFlow()
+               .AllowAuthorizationCodeFlow()
                .RequireProofKeyForCodeExchange();
 
         options.AddDevelopmentEncryptionCertificate()
