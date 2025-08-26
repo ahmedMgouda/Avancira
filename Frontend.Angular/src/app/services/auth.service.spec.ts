@@ -1,5 +1,5 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 
@@ -62,4 +62,22 @@ describe('AuthService', () => {
     expect(oauthSpy.logOut).toHaveBeenCalled();
     expect(routerSpy.navigateByUrl).toHaveBeenCalled();
   });
+
+  it('shares refresh token requests between concurrent calls', fakeAsync(() => {
+    oauthSpy.hasValidAccessToken.and.returnValue(false);
+    oauthSpy.refreshToken.and.callFake(() => {
+      oauthSpy.hasValidAccessToken.and.returnValue(true);
+      oauthSpy.getAccessToken.and.returnValue('new-token');
+      return Promise.resolve();
+    });
+
+    const results: string[] = [];
+    service.getValidAccessToken().subscribe(t => results.push(t));
+    service.getValidAccessToken().subscribe(t => results.push(t));
+
+    flushMicrotasks();
+
+    expect(results).toEqual(['new-token', 'new-token']);
+    expect(oauthSpy.refreshToken).toHaveBeenCalledTimes(1);
+  }));
 });
