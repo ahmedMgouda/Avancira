@@ -3,8 +3,7 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Users.Dtos;
 using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
+using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -47,7 +46,7 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        var hash = HashToken(refreshToken);
+        var hash = TokenUtilities.HashToken(refreshToken);
         var info = await _sessionService.GetRefreshTokenInfoAsync(hash);
         if (info is null)
         {
@@ -63,16 +62,10 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, HashToken(pair.RefreshToken), pair.RefreshTokenExpiryTime);
+        await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, TokenUtilities.HashToken(pair.RefreshToken), pair.RefreshTokenExpiryTime);
         SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
         return Ok(new TokenResponse(pair.Token));
     }
 
-    private static string HashToken(string token)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(bytes);
-    }
 }
 
