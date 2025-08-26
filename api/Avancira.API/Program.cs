@@ -8,9 +8,8 @@ using System.Threading.RateLimiting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
-using OpenIddict.Server;
-using OpenIddict.Server.Events;
 using OpenIddict.Validation.AspNetCore;
+using Avancira.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -112,47 +111,7 @@ else
     authLogger.LogWarning("Facebook OAuth configuration is missing or incomplete. Facebook authentication will not be available.");
 }
 
-builder.Services.AddOpenIddict()
-    .AddServer(options =>
-    {
-        options.SetAuthorizationEndpointUris("/connect/authorize")
-               .SetTokenEndpointUris("/connect/token");
-
-        options.AllowPasswordFlow()
-               .AllowRefreshTokenFlow()
-               .AllowAuthorizationCodeFlow()
-               .RequireProofKeyForCodeExchange();
-
-        options.AddDevelopmentEncryptionCertificate()
-               .AddDevelopmentSigningCertificate();
-
-        options.UseAspNetCore()
-               .EnableAuthorizationEndpointPassthrough()
-               .EnableTokenEndpointPassthrough();
-
-        options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
-            builder.UseInlineHandler(async context =>
-            {
-                var provider = context.HttpContext.Request.Query["provider"].ToString();
-                if (!context.HttpContext.User.Identity?.IsAuthenticated ?? true)
-                {
-                    if (string.Equals(provider, "google", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await context.HttpContext.ChallengeAsync("Google");
-                    }
-                    else if (string.Equals(provider, "facebook", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await context.HttpContext.ChallengeAsync("Facebook");
-                    }
-                    context.HandleRequest();
-                }
-            }));
-    })
-    .AddValidation(options =>
-    {
-        options.UseLocalServer();
-        options.UseAspNetCore();
-    });
+builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
 var app = builder.Build();
 
