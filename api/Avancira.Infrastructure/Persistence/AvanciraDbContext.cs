@@ -18,7 +18,6 @@ using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Notifications;
-using Avancira.Infrastructure.Identity.Tokens;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<
@@ -62,8 +61,6 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Wallet> Wallets { get; set; }
     public DbSet<WalletLog> WalletLogs { get; set; }
-    public DbSet<RefreshToken> RefreshTokens { get; set; }
-    public DbSet<Session> Sessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,7 +1,6 @@
 ﻿using Avancira.Application.Audit;
 using Avancira.Application.Billing;
 using Avancira.Application.Identity.Roles;
-using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
 using Avancira.Application.Catalog;
 using Avancira.Application.Identity.Users.Abstractions;
@@ -15,7 +14,6 @@ using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Billing;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Roles;
-using Avancira.Infrastructure.Identity.Tokens;
 using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Persistence;
@@ -51,7 +49,6 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<INotificationService, NotificationService>();
             services.AddTransient<IWalletService, WalletService>();
             services.AddTransient<ILessonService, LessonService>();
-            services.AddTransient<IJwtTokenService, JwtTokenService>();
             services.AddHttpClient();
             services.AddSingleton<IGoogleJsonWebSignatureValidator, GoogleJsonWebSignatureValidator>();
             services.AddSingleton<IFacebookClient, FacebookClientWrapper>();

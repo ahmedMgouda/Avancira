@@ -23,7 +23,6 @@ namespace Avancira.Infrastructure.Catalog
         private readonly INotificationService _notificationService;
         private readonly IChatService _chatService;
         private readonly IPaymentService _paymentService;
-        private readonly IJwtTokenService _jwtTokenService;
         private readonly ILogger<LessonService> _logger;
 
         public LessonService(
@@ -31,7 +30,6 @@ namespace Avancira.Infrastructure.Catalog
             INotificationService notificationService,
             IChatService chatService,
             IPaymentService paymentService,
-            IJwtTokenService jwtTokenService,
             ILogger<LessonService> logger
         )
         {
@@ -39,7 +37,6 @@ namespace Avancira.Infrastructure.Catalog
             _notificationService = notificationService;
             _chatService = chatService;
             _paymentService = paymentService;
-            _jwtTokenService = jwtTokenService;
             _logger = logger;
         }
 
@@ -304,15 +301,7 @@ namespace Avancira.Infrastructure.Catalog
                         // Process payment using the shared method
                         var capturedTransaction = await _paymentService.CapturePaymentAsync(lesson.TransactionId, transaction?.PaymentMethod.ToString() ?? "Unknown", listing?.UserId);
 
-                        // Generate meeting token and URL
-                        var student = await _dbContext.Users.FindAsync(lesson.StudentId);
-                        var username = $"{student?.FirstName} {student?.LastName}".Trim();
-                        if (string.IsNullOrEmpty(username)) username = "Student";
-                        
-                        var roomName = listing?.Name.Replace(" ", "_") ?? "Lesson";
-                        var meeting = _jwtTokenService.GetMeeting(username, roomName);
-                        
-                        // Update lesson with meeting details
+                        // Update lesson status after payment is captured
                         lesson.ChangeStatus(LessonStatus.Booked);
                     }
                     catch (Exception ex)
