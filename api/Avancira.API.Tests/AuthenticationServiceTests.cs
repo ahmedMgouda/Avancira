@@ -12,6 +12,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
+using Microsoft.AspNetCore.Identity;
+using Avancira.Domain.Identity;
 
 public class AuthenticationServiceTests
 {
@@ -36,7 +38,13 @@ public class AuthenticationServiceTests
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
 
-        var service = new AuthenticationService(httpFactory, clientInfoService, dbContext);
+        var userStore = new Mock<IUserStore<User>>();
+        var userManager = new Mock<UserManager<User>>(userStore.Object, null, null, null, null, null, null, null, null);
+        var contextAccessor = new Mock<IHttpContextAccessor>();
+        var claimsFactory = new Mock<IUserClaimsPrincipalFactory<User>>();
+        var signInManager = new Mock<SignInManager<User>>(userManager.Object, contextAccessor.Object, claimsFactory.Object, null, null, null, null);
+
+        var service = new AuthenticationService(httpFactory, clientInfoService, dbContext, userManager.Object, signInManager.Object);
 
         var userId = "user1";
         await service.GenerateTokenAsync(userId);
