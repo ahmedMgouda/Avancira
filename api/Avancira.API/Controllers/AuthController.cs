@@ -1,5 +1,4 @@
 using Avancira.Application.Identity;
-using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Application.Auth;
 using Avancira.Application.Auth.Dtos;
 using System;
@@ -23,31 +22,6 @@ public class AuthController : BaseApiController
         _authenticationService = authenticationService;
         _externalAuthService = externalAuthService;
         _externalUserService = externalUserService;
-    }
-
-    [HttpPost("token")]
-    [AllowAnonymous]
-    public async Task<ActionResult<TokenResponse>> GenerateToken([FromBody] TokenGenerationDto request)
-    {
-        var pair = await _authenticationService.GenerateTokenAsync(request);
-        DateTime? expires = request.RememberMe ? pair.RefreshTokenExpiryTime : null;
-        SetRefreshTokenCookie(pair.RefreshToken, expires);
-        return Ok(new TokenResponse(pair.Token));
-    }
-
-    [HttpPost("refresh")]
-    [AllowAnonymous]
-    public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenDto? request)
-    {
-        var refreshToken = request?.Token ?? Request.Cookies["refreshToken"];
-        if (string.IsNullOrWhiteSpace(refreshToken))
-        {
-            return Unauthorized();
-        }
-
-        var pair = await _authenticationService.RefreshTokenAsync(refreshToken);
-        SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
-        return Ok(new TokenResponse(pair.Token));
     }
 
     [HttpPost("external-login")]

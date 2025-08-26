@@ -21,8 +21,7 @@ public static class OpenIddictSetup
                        .SetRevocationEndpointUris("/connect/revocation")
                        .SetIssuer(new Uri("https://localhost:9000/"));
 
-                options.AllowPasswordFlow()
-                       .AllowRefreshTokenFlow()
+                options.AllowRefreshTokenFlow()
                        .AllowAuthorizationCodeFlow()
                        .RequireProofKeyForCodeExchange();
 

@@ -21,7 +21,7 @@ describe('LoginComponent', () => {
   let toastr: jasmine.SpyObj<ToastrService>;
 
   beforeEach(async () => {
-    authService = jasmine.createSpyObj('AuthService', ['login']);
+    authService = jasmine.createSpyObj('AuthService', ['startLogin']);
     socialAuth = jasmine.createSpyObj('SocialAuthService', ['authenticate']);
     router = jasmine.createSpyObj('Router', ['navigateByUrl']);
     spinner = jasmine.createSpyObj('SpinnerService', ['show', 'hide']);
