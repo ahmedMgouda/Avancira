@@ -72,11 +72,11 @@ export class SigninComponent implements OnInit {
 
   /** Regular login */
   onLogin(): void {
-    void this.authService.startLogin(this.returnUrl);
+    this.authService.startLogin(this.returnUrl);
   }
 
   authenticate(provider: SocialProvider): void {
-    void this.authService.startLogin(this.returnUrl, provider);
+    this.authService.startLogin(this.returnUrl, provider);
   }
 
   /** Password reset prompt */

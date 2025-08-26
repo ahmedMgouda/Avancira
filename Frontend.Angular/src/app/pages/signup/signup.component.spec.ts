@@ -43,7 +43,7 @@ describe('SignupComponent', () => {
   });
 
   it('should initiate Google signup flow', () => {
-    authService.startLogin.and.returnValue(Promise.resolve());
+    authService.startLogin.and.stub();
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Google);
@@ -52,7 +52,7 @@ describe('SignupComponent', () => {
   });
 
   it('should initiate Facebook signup flow', () => {
-    authService.startLogin.and.returnValue(Promise.resolve());
+    authService.startLogin.and.stub();
     component.returnUrl = '/home';
 
     component.authenticate(SocialProvider.Facebook);

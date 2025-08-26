@@ -83,9 +83,9 @@ export class AuthService {
     return this.waitForRefresh().pipe(map(() => this.oauth.getAccessToken() as string));
   }
 
-  startLogin(returnUrl = this.router.url, provider?: SocialProvider): Promise<void> {
+  startLogin(returnUrl = this.router.url, provider?: SocialProvider): void {
     this.oauth.customQueryParams = provider ? { provider } : {};
-    return Promise.resolve(this.oauth.initCodeFlow(returnUrl));
+    this.oauth.initCodeFlow(returnUrl);
   }
 
   logout(navigate = true): void {
