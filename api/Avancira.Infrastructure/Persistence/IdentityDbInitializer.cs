@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenIddict.Abstractions;
 
 namespace Avancira.Infrastructure.Persistence;
 internal sealed class IdentityDbInitializer(
@@ -15,12 +16,14 @@ internal sealed class IdentityDbInitializer(
     RoleManager<Role> roleManager,
     UserManager<User> userManager,
     TimeProvider timeProvider,
-    IOptions<OriginOptions> originSettings) : IDbInitializer
+    IOptions<OriginOptions> originSettings,
+    IOpenIddictApplicationManager applicationManager) : IDbInitializer
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
         await SeedRolesAsync();
         await SeedAdminUserAsync();
+        await SeedOpenIddictApplicationsAsync();
 
         CountrySeeder.Seed(context, userManager);
         UserSeeder.Seed(context, userManager);
@@ -34,6 +37,29 @@ internal sealed class IdentityDbInitializer(
         // ChatSeeder.Seed(context);
         // MessageSeeder.Seed(context);
 
+    }
+
+    private async Task SeedOpenIddictApplicationsAsync()
+    {
+        const string clientId = "avancira-web";
+        if (await applicationManager.FindByClientIdAsync(clientId) is null)
+        {
+            var descriptor = new OpenIddictApplicationDescriptor
+            {
+                ClientId = clientId,
+                ClientSecret = "client-secret"
+            };
+
+            if (originSettings.Value.OriginUrl is { } origin)
+            {
+                descriptor.RedirectUris.Add(origin);
+            }
+
+            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
+            descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.Password);
+
+            await applicationManager.CreateAsync(descriptor);
+        }
     }
 
     private async Task SeedRolesAsync()
