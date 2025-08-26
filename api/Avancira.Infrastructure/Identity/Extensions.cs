@@ -1,12 +1,14 @@
 ﻿using Avancira.Application.Audit;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Users.Abstractions;
+using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Identity.Users.Services;
+using Avancira.Infrastructure.Identity.Tokens;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +27,7 @@ internal static class Extensions
         services.AddTransient<IdentityLinkBuilder>();
         services.AddTransient<Avancira.Application.Identity.Users.Abstractions.IUserService, UserService>();
         services.AddTransient<IRoleService, RoleService>();
+        services.AddTransient<ISessionService, SessionService>();
         services.AddTransient<IAuditService, AuditService>();
         services.AddScoped<IDbInitializer, IdentityDbInitializer>();
 
