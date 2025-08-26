@@ -11,10 +11,12 @@ namespace Avancira.API.Controllers;
 public class SessionsController : BaseApiController
 {
     private readonly ISender _mediator;
+    private readonly ISessionService _sessionService;
 
-    public SessionsController(ISender mediator)
+    public SessionsController(ISender mediator, ISessionService sessionService)
     {
         _mediator = mediator;
+        _sessionService = sessionService;
     }
 
     [HttpGet]
@@ -32,6 +34,15 @@ public class SessionsController : BaseApiController
     {
         var userId = GetUserId();
         await _mediator.Send(new RevokeSessionCommand(id, userId), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("batch")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        await _sessionService.RevokeSessionsAsync(userId, sessionIds);
         return NoContent();
     }
 }
