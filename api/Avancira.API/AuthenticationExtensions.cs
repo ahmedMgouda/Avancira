@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Facebook;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 
@@ -9,7 +11,7 @@ public static class AuthenticationExtensions
     public static AuthenticationBuilder AddExternalAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
-        ILogger logger)
+        ILogger<AuthenticationExtensions> logger)
     {
         var builder = services.AddAuthentication(options =>
         {
@@ -17,13 +19,13 @@ public static class AuthenticationExtensions
             options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
         });
 
-        var google = configuration.GetSection("Avancira:ExternalServices:Google").Get<GoogleOptions>();
+        var googleSection = configuration.GetSection("Avancira:ExternalServices:Google");
+        services.Configure<GoogleOptions>(googleSection);
+        var google = googleSection.Get<GoogleOptions>();
         if (!string.IsNullOrWhiteSpace(google?.ClientId) && !string.IsNullOrWhiteSpace(google.ClientSecret))
         {
             builder.AddGoogle(o =>
             {
-                o.ClientId = google.ClientId;
-                o.ClientSecret = google.ClientSecret;
                 o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
             });
         }
@@ -32,13 +34,13 @@ public static class AuthenticationExtensions
             logger.LogWarning("Google OAuth configuration is missing or incomplete. Google authentication will not be available.");
         }
 
-        var facebook = configuration.GetSection("Avancira:ExternalServices:Facebook").Get<FacebookOptions>();
+        var facebookSection = configuration.GetSection("Avancira:ExternalServices:Facebook");
+        services.Configure<FacebookOptions>(facebookSection);
+        var facebook = facebookSection.Get<FacebookOptions>();
         if (!string.IsNullOrWhiteSpace(facebook?.AppId) && !string.IsNullOrWhiteSpace(facebook.AppSecret))
         {
             builder.AddFacebook(o =>
             {
-                o.AppId = facebook.AppId;
-                o.AppSecret = facebook.AppSecret;
                 o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
             });
         }
