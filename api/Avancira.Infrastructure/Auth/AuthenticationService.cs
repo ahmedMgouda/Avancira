@@ -3,6 +3,7 @@ using Avancira.Application.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
+using FluentValidation;
 using System;
 using System.Linq;
 
@@ -13,15 +14,18 @@ public class AuthenticationService : IAuthenticationService
     private readonly IClientInfoService _clientInfoService;
     private readonly ITokenEndpointClient _tokenClient;
     private readonly ISessionService _sessionService;
+    private readonly IValidator<TokenRequestParams> _validator;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
         ITokenEndpointClient tokenClient,
-        ISessionService sessionService)
+        ISessionService sessionService,
+        IValidator<TokenRequestParams> validator)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
         _sessionService = sessionService;
+        _validator = validator;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -33,9 +37,10 @@ public class AuthenticationService : IAuthenticationService
             RedirectUri = redirectUri,
             CodeVerifier = codeVerifier
         };
-        var (parameters, clientInfo) = await BuildRequestWithClientInfo(request);
 
-        return await RequestTokenAsync(parameters, async pair =>
+        await _validator.ValidateAndThrowAsync(request);
+
+        return await RequestTokenAsync(request, async (pair, clientInfo) =>
         {
             var userId = GetUserId(pair.Token);
             var sessionId = GetSessionId(pair.Token);
@@ -51,9 +56,10 @@ public class AuthenticationService : IAuthenticationService
             UserId = userId,
             Scope = "api offline_access"
         };
-        var (parameters, clientInfo) = await BuildRequestWithClientInfo(request);
 
-        return await RequestTokenAsync(parameters, pair =>
+        await _validator.ValidateAndThrowAsync(request);
+
+        return await RequestTokenAsync(request, (pair, clientInfo) =>
         {
             var sessionId = GetSessionId(pair.Token);
             return _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
@@ -67,9 +73,10 @@ public class AuthenticationService : IAuthenticationService
             GrantType = AuthConstants.GrantTypes.RefreshToken,
             RefreshToken = refreshToken
         };
-        var (parameters, _) = await BuildRequestWithClientInfo(request);
 
-        return await RequestTokenAsync(parameters, async pair =>
+        await _validator.ValidateAndThrowAsync(request);
+
+        return await RequestTokenAsync(request, async (pair, _) =>
         {
             var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
             var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
@@ -81,22 +88,20 @@ public class AuthenticationService : IAuthenticationService
         });
     }
 
-    private async Task<TokenPair> RequestTokenAsync(TokenRequestParams parameters, Func<TokenPair, Task>? postRequest = null)
-    {
-        var pair = await _tokenClient.RequestTokenAsync(parameters);
-        if (postRequest != null)
-        {
-            await postRequest(pair);
-        }
-
-        return pair;
-    }
-
-    private async Task<(TokenRequestParams Parameters, ClientInfo ClientInfo)> BuildRequestWithClientInfo(TokenRequestParams parameters)
+    private async Task<TokenPair> RequestTokenAsync(
+        TokenRequestParams parameters,
+        Func<TokenPair, ClientInfo, Task>? postProcess = null)
     {
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
         var updated = parameters with { DeviceId = clientInfo.DeviceId };
-        return (updated, clientInfo);
+
+        var pair = await _tokenClient.RequestTokenAsync(updated);
+        if (postProcess != null)
+        {
+            await postProcess(pair, clientInfo);
+        }
+
+        return pair;
     }
 
     private static string GetUserId(string token)
