@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
-using OpenIddict.Server.Events;
 using Avancira.Infrastructure.Identity.Users;
+using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 

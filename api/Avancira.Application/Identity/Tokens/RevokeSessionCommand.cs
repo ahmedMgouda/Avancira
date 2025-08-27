@@ -19,4 +19,9 @@ public class RevokeSessionCommandHandler : IRequestHandler<RevokeSessionCommand>
         await _sessionService.RevokeSessionAsync(request.UserId, request.SessionId);
         return Unit.Value;
     }
+
+    Task IRequestHandler<RevokeSessionCommand>.Handle(RevokeSessionCommand request, CancellationToken cancellationToken)
+    {
+        return Handle(request, cancellationToken);
+    }
 }

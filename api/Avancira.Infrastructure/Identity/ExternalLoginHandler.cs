@@ -1,54 +1,68 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using OpenIddict.Server.AspNetCore;
-using OpenIddict.Server.Events;
+using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 
-public sealed class ExternalLoginHandler : OpenIddictServerAspNetCoreHandler<HandleAuthorizationRequestContext>
+public sealed class ExternalLoginHandler
+    : IOpenIddictServerHandler<HandleAuthorizationRequestContext>
 {
-    public override async ValueTask HandleAsync(HandleAuthorizationRequestContext context)
+    private readonly IHttpContextAccessor _http;
+
+    public ExternalLoginHandler(IHttpContextAccessor http) => _http = http;
+
+    public async ValueTask HandleAsync(HandleAuthorizationRequestContext context)
     {
-        // Try to authenticate using the OpenIddict server scheme to check
-        // whether the external provider already returned a principal.
-        var result = await context.HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        var http = _http.HttpContext;
+        if (http is null) return;
+
+        var result = await http.AuthenticateAsync(IdentityConstants.ExternalScheme);
 
         if (result.Succeeded && result.Principal is not null)
         {
-            var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationType);
+            var identity = new ClaimsIdentity(
+                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                nameType: OpenIddictConstants.Claims.Name,
+                roleType: OpenIddictConstants.Claims.Role);
 
-            var subject = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.NewGuid().ToString();
-            identity.SetClaim(OpenIddictConstants.Claims.Subject, subject);
+            var sub = result.Principal.FindFirstValue(OpenIddictConstants.Claims.Subject)
+                   ?? result.Principal.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? Guid.NewGuid().ToString("N");
+            identity.SetClaim(OpenIddictConstants.Claims.Subject, sub);
 
-            var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-            if (!string.IsNullOrEmpty(name))
-            {
+            var name = result.Principal.FindFirstValue(OpenIddictConstants.Claims.Name)
+                    ?? result.Principal.FindFirstValue(ClaimTypes.Name);
+            if (!string.IsNullOrWhiteSpace(name))
                 identity.SetClaim(OpenIddictConstants.Claims.Name, name);
-            }
 
-            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-            if (!string.IsNullOrEmpty(email))
-            {
+            var email = result.Principal.FindFirstValue(OpenIddictConstants.Claims.Email)
+                     ?? result.Principal.FindFirstValue(ClaimTypes.Email);
+            if (!string.IsNullOrWhiteSpace(email))
                 identity.SetClaim(OpenIddictConstants.Claims.Email, email);
-            }
 
             var principal = new ClaimsPrincipal(identity);
             principal.SetScopes(context.Request.GetScopes());
 
             context.Principal = principal;
             context.HandleRequest();
+
+            await http.SignOutAsync(IdentityConstants.ExternalScheme);
             return;
         }
 
-        // No existing principal found, trigger a challenge to the requested provider.
-        var provider = context.HttpContext.Request.Query["provider"].ToString();
-        if (!string.IsNullOrEmpty(provider))
+        var provider = http.Request.Query["provider"].ToString();
+        if (!string.IsNullOrWhiteSpace(provider))
         {
-            await context.HttpContext.ChallengeAsync(provider);
+            var returnUrl = http.Request.PathBase.Add(http.Request.Path).Value + http.Request.QueryString.Value;
+            var props = new AuthenticationProperties { RedirectUri = returnUrl };
+
+            await http.ChallengeAsync(provider, props);
             context.HandleRequest();
         }
     }
 }
-

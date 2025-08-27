@@ -1,9 +1,6 @@
-using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenIddict.Server;
-using OpenIddict.Server.Events;
-using OpenIddict.Validation.AspNetCore;
+using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -34,7 +31,7 @@ public static class OpenIddictSetup
                 options.UseAspNetCore()
                        .EnableAuthorizationEndpointPassthrough()
                        .EnableTokenEndpointPassthrough()
-                       .EnableRevocationEndpointPassthrough();
+                       .EnableEndSessionEndpointPassthrough();
 
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<ExternalLoginHandler>());

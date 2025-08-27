@@ -1,7 +1,6 @@
-using System.Threading.Tasks;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using OpenIddict.Server.Events;
+using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 

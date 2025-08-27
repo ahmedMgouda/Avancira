@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Avancira.Application.Auth.Jwt;
 using Microsoft.Extensions.Options;
+using Avancira.Infrastructure.Identity.Users;
+using Avancira.Application.Identity.Tokens.Dtos;
 
 namespace Avancira.Infrastructure.Auth;
 

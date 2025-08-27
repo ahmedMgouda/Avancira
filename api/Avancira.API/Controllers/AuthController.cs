@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Avancira.Application.Identity.Tokens.Dtos;
 
 namespace Avancira.API.Controllers;
 
