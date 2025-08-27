@@ -164,6 +164,47 @@ public class AuthenticationServiceTests
     }
 
     [Fact]
+    public async Task RefreshTokenAsync_SessionIdMismatch_DoesNotRotateToken()
+    {
+        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var dbContext = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
+        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
+        var sessionService = new SessionService(dbContext, hashingOptions);
+        var validator = new TokenRequestParamsValidator();
+        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var cookieService = new Mock<IRefreshTokenCookieService>();
+
+        var clientInfo = new ClientInfo
+        {
+            DeviceId = "device1",
+            IpAddress = "127.0.0.1",
+            UserAgent = "agent",
+            OperatingSystem = "os"
+        };
+        var clientInfoService = new StubClientInfoService(clientInfo);
+
+        var sid1 = Guid.NewGuid();
+        var sid2 = Guid.NewGuid();
+        var pair1 = new TokenPair(CreateToken("user1", sid1), "refresh1", DateTime.UtcNow.AddHours(1));
+        var pair2 = new TokenPair(CreateToken("user1", sid2), "refresh2", DateTime.UtcNow.AddHours(1));
+        var tokenClient = new StubTokenEndpointClient(pair1, pair2);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
+
+        await service.GenerateTokenAsync("user1");
+        var originalHash = TokenUtilities.HashToken("refresh1", "secret");
+
+        await service.RefreshTokenAsync("refresh1");
+
+        (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
+        var storedToken = await dbContext.RefreshTokens.SingleAsync();
+        storedToken.TokenHash.Should().Be(originalHash);
+        storedToken.RevokedUtc.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GenerateTokenAsync_ExpiredToken_ThrowsSecurityTokenException()
     {
         var clientInfoService = new StubClientInfoService(new ClientInfo());
