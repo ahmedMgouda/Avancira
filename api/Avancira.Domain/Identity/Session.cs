@@ -10,6 +10,11 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
         RefreshTokens = new List<RefreshToken>();
     }
 
+    public Session(Guid id) : this()
+    {
+        Id = id;
+    }
+
     public string UserId { get; set; } = default!;
     public string Device { get; set; } = default!;
     public string? UserAgent { get; set; }

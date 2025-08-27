@@ -3,6 +3,8 @@ using Avancira.Application.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
+using System;
+using System.Linq;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -36,7 +38,8 @@ public class AuthenticationService : IAuthenticationService
         return await RequestTokenAsync(parameters, async pair =>
         {
             var userId = GetUserId(pair.Token);
-            await _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+            var sessionId = GetSessionId(pair.Token);
+            await _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
         });
     }
 
@@ -51,7 +54,10 @@ public class AuthenticationService : IAuthenticationService
         var (parameters, clientInfo) = await BuildRequestWithClientInfo(request);
 
         return await RequestTokenAsync(parameters, pair =>
-            _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime));
+        {
+            var sessionId = GetSessionId(pair.Token);
+            return _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        });
     }
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
@@ -98,5 +104,13 @@ public class AuthenticationService : IAuthenticationService
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token);
         return jwt.Subject ?? string.Empty;
+    }
+
+    private static Guid GetSessionId(string token)
+    {
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        var sid = jwt.Claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
+        return Guid.TryParse(sid, out var id) ? id : Guid.Empty;
     }
 }

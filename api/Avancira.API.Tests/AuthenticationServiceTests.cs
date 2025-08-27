@@ -1,4 +1,7 @@
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
@@ -30,23 +33,29 @@ public class AuthenticationServiceTests
         };
         var clientInfoService = new StubClientInfoService(clientInfo);
 
-        var pair = new TokenPair("token", "refresh", DateTime.UtcNow.AddHours(1));
-        var tokenClient = new StubTokenEndpointClient(pair);
+        var userId = "user1";
+        var sid1 = Guid.NewGuid();
+        var sid2 = Guid.NewGuid();
+        var pair1 = new TokenPair(CreateToken(userId, sid1), "refresh1", DateTime.UtcNow.AddHours(1));
+        var pair2 = new TokenPair(CreateToken(userId, sid2), "refresh2", DateTime.UtcNow.AddHours(1));
+        var tokenClient = new StubTokenEndpointClient(pair1, pair2);
 
         var sessionService = new SessionService(dbContext);
         var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
 
-        var userId = "user1";
         await service.GenerateTokenAsync(userId);
         var storedToken = await dbContext.RefreshTokens.SingleAsync();
-        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh"));
+        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1"));
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
+        firstSessionId.Should().Be(sid1);
 
         await service.GenerateTokenAsync(userId);
 
         (await dbContext.Sessions.CountAsync()).Should().Be(1);
         (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
-        (await dbContext.Sessions.SingleAsync()).Id.Should().NotBe(firstSessionId);
+        var secondSessionId = (await dbContext.Sessions.SingleAsync()).Id;
+        secondSessionId.Should().Be(sid2);
+        secondSessionId.Should().NotBe(firstSessionId);
     }
 
     [Fact]
@@ -121,10 +130,10 @@ public class AuthenticationServiceTests
 
     private class StubTokenEndpointClient : ITokenEndpointClient
     {
-        private readonly TokenPair? _pair;
+        private readonly Queue<TokenPair>? _pairs;
         private readonly Exception? _exception;
 
-        public StubTokenEndpointClient(TokenPair pair) => _pair = pair;
+        public StubTokenEndpointClient(params TokenPair[] pairs) => _pairs = new Queue<TokenPair>(pairs);
         public StubTokenEndpointClient(Exception exception) => _exception = exception;
 
         public Task<TokenPair> RequestTokenAsync(TokenRequestParams parameters)
@@ -133,7 +142,18 @@ public class AuthenticationServiceTests
             {
                 return Task.FromException<TokenPair>(_exception);
             }
-            return Task.FromResult(_pair!);
+            return Task.FromResult(_pairs!.Dequeue());
         }
+    }
+
+    private static string CreateToken(string userId, Guid sessionId)
+    {
+        var handler = new JwtSecurityTokenHandler();
+        var token = new JwtSecurityToken(claims: new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
+            new Claim(AuthConstants.Claims.SessionId, sessionId.ToString())
+        });
+        return handler.WriteToken(token);
     }
 }

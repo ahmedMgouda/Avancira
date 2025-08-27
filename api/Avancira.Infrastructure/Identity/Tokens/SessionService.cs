@@ -21,7 +21,7 @@ public class SessionService : ISessionService
         _dbContext = dbContext;
     }
 
-    public async Task StoreSessionAsync(string userId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
+    public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
     {
         var existingSession = await _dbContext.Sessions
             .Include(s => s.RefreshTokens)
@@ -35,7 +35,7 @@ public class SessionService : ISessionService
         }
 
         var now = DateTime.UtcNow;
-        var session = new Session
+        var session = new Session(sessionId)
         {
             UserId = userId,
             Device = clientInfo.DeviceId,
