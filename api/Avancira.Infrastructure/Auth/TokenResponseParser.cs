@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Domain.Common.Exceptions;
 using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Auth;
@@ -16,12 +17,36 @@ public class TokenResponseParser : ITokenResponseParser
 
     public async Task<TokenPair> ParseAsync(Stream stream)
     {
-        var response = await JsonSerializer.DeserializeAsync<InternalTokenResponse>(stream);
+        InternalTokenResponse? response;
 
-        var token = response?.AccessToken ?? string.Empty;
-        var refresh = response?.RefreshToken ?? string.Empty;
+        try
+        {
+            response = await JsonSerializer.DeserializeAsync<InternalTokenResponse>(stream);
+        }
+        catch (JsonException)
+        {
+            throw new TokenResponseParseException("Failed to parse token response JSON.");
+        }
 
-        var refreshExpiry = response?.RefreshTokenExpiresIn is int expiresIn
+        if (response is null)
+        {
+            throw new TokenResponseParseException("Token response is null.");
+        }
+
+        if (string.IsNullOrWhiteSpace(response.AccessToken))
+        {
+            throw new TokenResponseParseException("Access token is missing in the token response.");
+        }
+
+        if (string.IsNullOrWhiteSpace(response.RefreshToken))
+        {
+            throw new TokenResponseParseException("Refresh token is missing in the token response.");
+        }
+
+        var token = response.AccessToken;
+        var refresh = response.RefreshToken;
+
+        var refreshExpiry = response.RefreshTokenExpiresIn is int expiresIn
             ? DateTime.UtcNow.AddSeconds(expiresIn)
             : DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDefaultDays);
 
