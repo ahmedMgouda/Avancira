@@ -31,18 +31,24 @@ public class PasswordGrantHandler : IOpenIddictServerHandler<HandleTokenRequestC
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
+            context.Reject(OpenIddictConstants.Errors.InvalidGrant,
+                "The username or password cannot be empty.");
             return;
         }
 
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
         {
+            context.Reject(OpenIddictConstants.Errors.InvalidGrant,
+                "The username or password is invalid.");
             return;
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
         if (!result.Succeeded)
         {
+            context.Reject(OpenIddictConstants.Errors.InvalidGrant,
+                "The username or password is invalid.");
             return;
         }
 
