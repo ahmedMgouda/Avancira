@@ -24,9 +24,8 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
     {
-        var builder = TokenRequestBuilder.BuildAuthorizationCodeRequest(code, codeVerifier, redirectUri);
-        var clientInfo = await _clientInfoService.GetClientInfoAsync();
-        builder.WithDeviceId(clientInfo.DeviceId);
+        var (builder, clientInfo) = await BuildRequestWithClientInfo(
+            TokenRequestBuilder.BuildAuthorizationCodeRequest(code, codeVerifier, redirectUri));
 
         return await RequestTokenAsync(builder, async pair =>
         {
@@ -37,9 +36,8 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
     {
-        var builder = TokenRequestBuilder.BuildUserIdGrantRequest(userId);
-        var clientInfo = await _clientInfoService.GetClientInfoAsync();
-        builder.WithDeviceId(clientInfo.DeviceId);
+        var (builder, clientInfo) = await BuildRequestWithClientInfo(
+            TokenRequestBuilder.BuildUserIdGrantRequest(userId));
 
         return await RequestTokenAsync(builder, pair =>
             _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime));
@@ -47,7 +45,8 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
-        var builder = TokenRequestBuilder.BuildRefreshTokenRequest(refreshToken);
+        var (builder, _) = await BuildRequestWithClientInfo(
+            TokenRequestBuilder.BuildRefreshTokenRequest(refreshToken));
 
         return await RequestTokenAsync(builder, async pair =>
         {
@@ -70,6 +69,13 @@ public class AuthenticationService : IAuthenticationService
         }
 
         return pair;
+    }
+
+    private async Task<(TokenRequestBuilder Builder, ClientInfo ClientInfo)> BuildRequestWithClientInfo(TokenRequestBuilder builder)
+    {
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
+        builder.WithDeviceId(clientInfo.DeviceId);
+        return (builder, clientInfo);
     }
 
     private static string GetUserId(string token)
