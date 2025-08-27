@@ -7,11 +7,12 @@ public static class TokenRequestBuilder
 {
     public static FormUrlEncodedContent Build(TokenRequestParams parameters)
     {
-        var values = new Dictionary<string, string?>
-        {
-            [AuthConstants.Parameters.GrantType] = parameters.GrantType
-        };
+        var values = new Dictionary<string, string>();
 
+        if (!string.IsNullOrEmpty(parameters.GrantType))
+        {
+            values[AuthConstants.Parameters.GrantType] = parameters.GrantType;
+        }
         if (!string.IsNullOrEmpty(parameters.Code))
         {
             values[AuthConstants.Parameters.Code] = parameters.Code;
@@ -41,6 +42,6 @@ public static class TokenRequestBuilder
             values[AuthConstants.Parameters.RefreshToken] = parameters.RefreshToken;
         }
 
-        return new FormUrlEncodedContent(values!);
+        return new FormUrlEncodedContent(values);
     }
 }
