@@ -18,6 +18,19 @@ public class AuthenticationService : IAuthenticationService
     private readonly JwtOptions _jwtOptions;
     private readonly ISessionService _sessionService;
 
+    private const string TokenEndpoint = "/connect/token";
+    private const string GrantType = "grant_type";
+    private const string Code = "code";
+    private const string RedirectUri = "redirect_uri";
+    private const string CodeVerifier = "code_verifier";
+    private const string DeviceId = "device_id";
+    private const string UserId = "user_id";
+    private const string Scope = "scope";
+    private const string RefreshToken = "refresh_token";
+    private const string AuthorizationCodeGrant = "authorization_code";
+    private const string UserIdGrant = "user_id";
+    private const string RefreshTokenGrant = "refresh_token";
+
     public AuthenticationService(
         IHttpClientFactory httpClientFactory,
         IClientInfoService clientInfoService,
@@ -32,54 +45,36 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
     {
-        var clientInfo = await _clientInfoService.GetClientInfoAsync();
-
-        var content = BuildTokenRequest(new Dictionary<string, string?>
+        var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            ["grant_type"] = "authorization_code",
-            ["code"] = code,
-            ["redirect_uri"] = redirectUri,
-            ["code_verifier"] = codeVerifier,
-            ["device_id"] = clientInfo.DeviceId
+            [GrantType] = AuthorizationCodeGrant,
+            [Code] = code,
+            [RedirectUri] = redirectUri,
+            [CodeVerifier] = codeVerifier
         });
-
-        var response = await _httpClient.PostAsync("/connect/token", content);
-        response.EnsureSuccessStatusCode();
 
         return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
     {
-        var clientInfo = await _clientInfoService.GetClientInfoAsync();
-
-        var content = BuildTokenRequest(new Dictionary<string, string?>
+        var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            ["grant_type"] = "user_id",
-            ["user_id"] = userId,
-            ["scope"] = "api offline_access",
-            ["device_id"] = clientInfo.DeviceId
+            [GrantType] = UserIdGrant,
+            [UserId] = userId,
+            [Scope] = "api offline_access"
         });
-
-        var response = await _httpClient.PostAsync("/connect/token", content);
-        response.EnsureSuccessStatusCode();
 
         return await HandleTokenResponseAsync(response, clientInfo, userId);
     }
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
-        var clientInfo = await _clientInfoService.GetClientInfoAsync();
-
-        var content = BuildTokenRequest(new Dictionary<string, string?>
+        var (response, _) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            ["grant_type"] = "refresh_token",
-            ["refresh_token"] = refreshToken,
-            ["device_id"] = clientInfo.DeviceId
+            [GrantType] = RefreshTokenGrant,
+            [RefreshToken] = refreshToken
         });
-
-        var response = await _httpClient.PostAsync("/connect/token", content);
-        response.EnsureSuccessStatusCode();
 
         var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
 
@@ -92,6 +87,18 @@ public class AuthenticationService : IAuthenticationService
         }
 
         return new TokenPair(token, newRefresh, refreshExpiry);
+    }
+
+    private async Task<(HttpResponseMessage Response, ClientInfo ClientInfo)> RequestTokenAsync(Dictionary<string, string?> values)
+    {
+        var clientInfo = await _clientInfoService.GetClientInfoAsync();
+        values[DeviceId] = clientInfo.DeviceId;
+
+        var content = BuildTokenRequest(values);
+        var response = await _httpClient.PostAsync(TokenEndpoint, content);
+        response.EnsureSuccessStatusCode();
+
+        return (response, clientInfo);
     }
 
     private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
@@ -120,7 +127,7 @@ public class AuthenticationService : IAuthenticationService
         var root = document.RootElement;
 
         var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
+        var refresh = root.GetProperty(RefreshToken).GetString() ?? string.Empty;
         DateTime refreshExpiry = DateTime.UtcNow;
         if (root.TryGetProperty("refresh_token_expires_in", out var exp))
         {
