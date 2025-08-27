@@ -1,23 +1,16 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using OpenIddict.Server.AspNetCore;
-using Avancira.Infrastructure.Identity.Users;
+using Avancira.Application.Identity;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 
 public class PasswordGrantHandler : IOpenIddictServerHandler<HandleTokenRequestContext>
 {
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
+    private readonly IUserAuthenticationService _userAuthenticationService;
 
-    public PasswordGrantHandler(UserManager<User> userManager, SignInManager<User> signInManager)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-    }
+    public PasswordGrantHandler(IUserAuthenticationService userAuthenticationService)
+        => _userAuthenticationService = userAuthenticationService;
 
     public async ValueTask HandleAsync(HandleTokenRequestContext context)
     {
@@ -36,7 +29,7 @@ public class PasswordGrantHandler : IOpenIddictServerHandler<HandleTokenRequestC
             return;
         }
 
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userAuthenticationService.ValidateCredentialsAsync(email, password);
         if (user is null)
         {
             context.Reject(OpenIddictConstants.Errors.InvalidGrant,
@@ -44,26 +37,7 @@ public class PasswordGrantHandler : IOpenIddictServerHandler<HandleTokenRequestC
             return;
         }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
-        if (!result.Succeeded)
-        {
-            context.Reject(OpenIddictConstants.Errors.InvalidGrant,
-                "The username or password is invalid.");
-            return;
-        }
-
-        var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationType);
-        identity.SetClaim(OpenIddictConstants.Claims.Subject, user.Id);
-        if (!string.IsNullOrEmpty(user.Email))
-        {
-            identity.SetClaim(OpenIddictConstants.Claims.Email, user.Email);
-        }
-        if (!string.IsNullOrEmpty(user.UserName))
-        {
-            identity.SetClaim(OpenIddictConstants.Claims.Name, user.UserName);
-        }
-
-        var principal = new ClaimsPrincipal(identity);
+        var principal = await _userAuthenticationService.CreatePrincipalAsync(user);
         principal.SetScopes(context.Request.GetScopes());
 
         context.Principal = principal;
