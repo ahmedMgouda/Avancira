@@ -66,7 +66,7 @@ describe('AuthService', () => {
     expect(routerSpy.navigateByUrl).toHaveBeenCalled();
   });
 
-  it('shares refresh token requests between concurrent calls', fakeAsync(() => {
+  it('performs a single refresh for concurrent calls', fakeAsync(() => {
     oauthSpy.hasValidAccessToken.and.returnValue(false);
     oauthSpy.refreshToken.and.callFake(() => {
       oauthSpy.hasValidAccessToken.and.returnValue(true);
@@ -82,6 +82,22 @@ describe('AuthService', () => {
 
     expect(results).toEqual(['new-token', 'new-token']);
     expect(oauthSpy.refreshToken).toHaveBeenCalledTimes(1);
+  }));
+
+  it('propagates refresh errors to all callers and logs out once', fakeAsync(() => {
+    const err = new Error('bad');
+    oauthSpy.hasValidAccessToken.and.returnValue(false);
+    oauthSpy.refreshToken.and.returnValue(Promise.reject(err));
+
+    const errors: unknown[] = [];
+    service.getValidAccessToken().subscribe({ error: e => errors.push(e) });
+    service.getValidAccessToken().subscribe({ error: e => errors.push(e) });
+
+    flushMicrotasks();
+
+    expect(errors).toEqual([err, err]);
+    expect(oauthSpy.refreshToken).toHaveBeenCalledTimes(1);
+    expect(oauthSpy.logOut).toHaveBeenCalledTimes(1);
   }));
 
   describe('decode', () => {
