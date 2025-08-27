@@ -3,48 +3,44 @@ using System.Net.Http;
 
 namespace Avancira.Infrastructure.Auth;
 
-public class TokenRequestBuilder
+public static class TokenRequestBuilder
 {
-    private readonly Dictionary<string, string?> _values = new();
-
-    private TokenRequestBuilder() { }
-
-    public static TokenRequestBuilder BuildAuthorizationCodeRequest(string code, string codeVerifier, string redirectUri)
+    public static FormUrlEncodedContent Build(TokenRequestParams parameters)
     {
-        var builder = new TokenRequestBuilder();
-        builder._values[AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.AuthorizationCode;
-        builder._values[AuthConstants.Parameters.Code] = code;
-        builder._values[AuthConstants.Parameters.RedirectUri] = redirectUri;
-        builder._values[AuthConstants.Parameters.CodeVerifier] = codeVerifier;
-        return builder;
-    }
+        var values = new Dictionary<string, string?>
+        {
+            [AuthConstants.Parameters.GrantType] = parameters.GrantType
+        };
 
-    public static TokenRequestBuilder BuildUserIdGrantRequest(string userId)
-    {
-        var builder = new TokenRequestBuilder();
-        builder._values[AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.UserId;
-        builder._values[AuthConstants.Parameters.UserId] = userId;
-        builder._values[AuthConstants.Parameters.Scope] = "api offline_access";
-        return builder;
-    }
+        if (!string.IsNullOrEmpty(parameters.Code))
+        {
+            values[AuthConstants.Parameters.Code] = parameters.Code;
+        }
+        if (!string.IsNullOrEmpty(parameters.RedirectUri))
+        {
+            values[AuthConstants.Parameters.RedirectUri] = parameters.RedirectUri;
+        }
+        if (!string.IsNullOrEmpty(parameters.CodeVerifier))
+        {
+            values[AuthConstants.Parameters.CodeVerifier] = parameters.CodeVerifier;
+        }
+        if (!string.IsNullOrEmpty(parameters.DeviceId))
+        {
+            values[AuthConstants.Parameters.DeviceId] = parameters.DeviceId;
+        }
+        if (!string.IsNullOrEmpty(parameters.UserId))
+        {
+            values[AuthConstants.Parameters.UserId] = parameters.UserId;
+        }
+        if (!string.IsNullOrEmpty(parameters.Scope))
+        {
+            values[AuthConstants.Parameters.Scope] = parameters.Scope;
+        }
+        if (!string.IsNullOrEmpty(parameters.RefreshToken))
+        {
+            values[AuthConstants.Parameters.RefreshToken] = parameters.RefreshToken;
+        }
 
-    public static TokenRequestBuilder BuildRefreshTokenRequest(string refreshToken)
-    {
-        var builder = new TokenRequestBuilder();
-        builder._values[AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.RefreshToken;
-        builder._values[AuthConstants.Parameters.RefreshToken] = refreshToken;
-        return builder;
-    }
-
-    public TokenRequestBuilder WithDeviceId(string deviceId)
-    {
-        _values[AuthConstants.Parameters.DeviceId] = deviceId;
-        return this;
-    }
-
-    public FormUrlEncodedContent Build()
-    {
-        return new FormUrlEncodedContent(_values!);
+        return new FormUrlEncodedContent(values!);
     }
 }
-

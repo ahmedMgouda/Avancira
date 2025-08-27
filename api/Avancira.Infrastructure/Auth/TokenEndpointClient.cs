@@ -17,9 +17,9 @@ public class TokenEndpointClient : ITokenEndpointClient
         _parser = parser;
     }
 
-    public async Task<TokenPair> RequestTokenAsync(TokenRequestBuilder builder)
+    public async Task<TokenPair> RequestTokenAsync(TokenRequestParams parameters)
     {
-        var content = builder.Build();
+        var content = TokenRequestBuilder.Build(parameters);
         using var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -37,4 +37,3 @@ public class TokenEndpointClient : ITokenEndpointClient
         return await _parser.ParseAsync(stream);
     }
 }
-

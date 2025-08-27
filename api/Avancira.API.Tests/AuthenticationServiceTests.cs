@@ -127,7 +127,7 @@ public class AuthenticationServiceTests
         public StubTokenEndpointClient(TokenPair pair) => _pair = pair;
         public StubTokenEndpointClient(Exception exception) => _exception = exception;
 
-        public Task<TokenPair> RequestTokenAsync(TokenRequestBuilder builder)
+        public Task<TokenPair> RequestTokenAsync(TokenRequestParams parameters)
         {
             if (_exception != null)
             {
@@ -137,4 +137,3 @@ public class AuthenticationServiceTests
         }
     }
 }
-
