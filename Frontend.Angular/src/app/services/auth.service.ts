@@ -3,13 +3,12 @@ import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Observable, defer, from, of, throwError } from 'rxjs';
-import { finalize, map, catchError, switchMap, shareReplay, tap } from 'rxjs/operators';
+import { finalize, catchError, switchMap, shareReplay, tap } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
-import { TokenResponse } from '../models/token-response';
 import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 import { SessionService } from './session.service';
@@ -94,27 +93,11 @@ export class AuthService {
     email: string,
     password: string,
     returnUrl = this.router.url
-  ): Observable<TokenResponse> {
-    return this.http
-      .post<TokenResponse>(
-        `${this.api}/auth/login`,
-        { email, password },
-        {
-          context: new HttpContext()
-            .set(SKIP_AUTH, true)
-            .set(INCLUDE_CREDENTIALS, true),
-        }
-      )
-      .pipe(
-        switchMap(resp =>
-          from(this.oauth.processIdToken(resp.token)).pipe(
-            switchMap(() => from(this.oauth.tryLogin())),
-            tap(() => this.router.navigateByUrl(returnUrl)),
-            map(() => resp),
-          ),
-        ),
-        catchError(err => throwError(() => err)),
-      );
+  ): Observable<void> {
+    return defer(() => from(this.oauth.fetchTokenUsingPasswordFlow(email, password))).pipe(
+      tap(() => this.router.navigateByUrl(returnUrl)),
+      catchError(err => throwError(() => err)),
+    );
   }
 
   startLogin(returnUrl = this.router.url, provider?: SocialProvider): void {

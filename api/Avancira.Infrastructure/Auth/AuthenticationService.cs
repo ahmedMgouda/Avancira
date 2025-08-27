@@ -3,9 +3,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using Avancira.Application.Common;
 using Avancira.Application.Identity;
-using Avancira.Domain.Identity;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Identity;
 using Avancira.Application.Auth.Jwt;
 using Microsoft.Extensions.Options;
 using Avancira.Application.Identity.Tokens;
@@ -17,23 +15,17 @@ public class AuthenticationService : IAuthenticationService
 {
     private readonly HttpClient _httpClient;
     private readonly IClientInfoService _clientInfoService;
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
     private readonly JwtOptions _jwtOptions;
     private readonly ISessionService _sessionService;
 
     public AuthenticationService(
         IHttpClientFactory httpClientFactory,
         IClientInfoService clientInfoService,
-        UserManager<User> userManager,
-        SignInManager<User> signInManager,
         IOptions<JwtOptions> jwtOptions,
         ISessionService sessionService)
     {
         _httpClient = httpClientFactory.CreateClient();
         _clientInfoService = clientInfoService;
-        _userManager = userManager;
-        _signInManager = signInManager;
         _jwtOptions = jwtOptions.Value;
         _sessionService = sessionService;
     }
@@ -55,23 +47,6 @@ public class AuthenticationService : IAuthenticationService
         response.EnsureSuccessStatusCode();
 
         return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
-    }
-
-    public async Task<TokenPair?> PasswordSignInAsync(string email, string password)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
-        {
-            return null;
-        }
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
-        if (!result.Succeeded)
-        {
-            return null;
-        }
-
-        return await GenerateTokenAsync(user.Id);
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
