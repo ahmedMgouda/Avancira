@@ -81,57 +81,49 @@ public class AuthenticationService : IAuthenticationService
         var response = await _httpClient.PostAsync("/connect/token", content);
         response.EnsureSuccessStatusCode();
 
-        var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
+        var tokenResponse = await ParseTokenResponseAsync(response);
 
         var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
         var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
         if (info != null)
         {
-            var newRefreshHash = TokenUtilities.HashToken(newRefresh);
-            await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, refreshExpiry);
+            var newRefreshHash = TokenUtilities.HashToken(tokenResponse.RefreshToken);
+            await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, tokenResponse.RefreshExpiry);
         }
 
-        return new TokenPair(token, newRefresh, refreshExpiry);
+        return new TokenPair(tokenResponse.Token, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
     }
 
     private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
     {
-        var (token, refresh, refreshExpiry) = await ParseTokenResponseAsync(response);
+        var tokenResponse = await ParseTokenResponseAsync(response);
 
         if (string.IsNullOrEmpty(userId))
         {
             var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.ReadJwtToken(token);
+            var jwt = handler.ReadJwtToken(tokenResponse.Token);
             userId = jwt.Subject;
         }
 
-        await _sessionService.StoreSessionAsync(userId, clientInfo, refresh, refreshExpiry);
+        await _sessionService.StoreSessionAsync(userId, clientInfo, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
 
-        return new TokenPair(token, refresh, refreshExpiry);
+        return new TokenPair(tokenResponse.Token, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
     }
 
     private static FormUrlEncodedContent BuildTokenRequest(Dictionary<string, string?> values) =>
         new(values);
 
-    private async Task<(string Token, string RefreshToken, DateTime RefreshExpiry)> ParseTokenResponseAsync(HttpResponseMessage response)
+    private async Task<TokenResponse> ParseTokenResponseAsync(HttpResponseMessage response)
     {
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        var root = document.RootElement;
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        var tokenResponse = await JsonSerializer.DeserializeAsync<TokenResponse>(stream) ?? new TokenResponse();
 
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
-        DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
-        {
-            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
-        }
-        else
-        {
-            refreshExpiry = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDefaultDays);
-        }
+        var expirySeconds = tokenResponse.RefreshTokenExpiresIn;
+        var refreshExpiry = expirySeconds.HasValue
+            ? DateTime.UtcNow.AddSeconds(expirySeconds.Value)
+            : DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDefaultDays);
 
-        return (token, refresh, refreshExpiry);
+        return tokenResponse with { RefreshExpiry = refreshExpiry };
     }
 
 }
