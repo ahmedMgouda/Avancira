@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using UAParser;
 using Xunit;
 using Moq;
+using Avancira.Infrastructure.Auth;
 
 public class ClientInfoServiceTests
 {
@@ -29,7 +30,7 @@ public class ClientInfoServiceTests
         await service.GetClientInfoAsync();
 
         var cookie = context.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
-        cookie.Should().Contain("device_id=");
+        cookie.Should().Contain($"{AuthConstants.Claims.DeviceId}=");
         cookie.Should().NotContain("secure");
     }
 }
