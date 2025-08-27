@@ -1,4 +1,5 @@
 using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Application.Common;
 using System;
 using System.Collections.Generic;
 
@@ -13,4 +14,5 @@ public interface ISessionService
     Task<bool> ValidateSessionAsync(string userId, Guid sessionId);
     Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string tokenHash);
     Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, DateTime newExpiry);
+    Task StoreSessionAsync(string userId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry);
 }
