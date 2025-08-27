@@ -28,10 +28,11 @@ public class AuthenticationService : IAuthenticationService
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
         builder.WithDeviceId(clientInfo.DeviceId);
 
-        var pair = await _tokenClient.RequestTokenAsync(builder);
-        var userId = GetUserId(pair.Token);
-        await _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
-        return pair;
+        return await RequestTokenAsync(builder, async pair =>
+        {
+            var userId = GetUserId(pair.Token);
+            await _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        });
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
@@ -40,22 +41,32 @@ public class AuthenticationService : IAuthenticationService
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
         builder.WithDeviceId(clientInfo.DeviceId);
 
-        var pair = await _tokenClient.RequestTokenAsync(builder);
-        await _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
-        return pair;
+        return await RequestTokenAsync(builder, pair =>
+            _sessionService.StoreSessionAsync(userId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime));
     }
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
         var builder = TokenRequestBuilder.BuildRefreshTokenRequest(refreshToken);
-        var pair = await _tokenClient.RequestTokenAsync(builder);
 
-        var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
-        var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
-        if (info != null)
+        return await RequestTokenAsync(builder, async pair =>
         {
-            var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken);
-            await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
+            var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
+            var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
+            if (info != null)
+            {
+                var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken);
+                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
+            }
+        });
+    }
+
+    private async Task<TokenPair> RequestTokenAsync(TokenRequestBuilder builder, Func<TokenPair, Task>? postRequest = null)
+    {
+        var pair = await _tokenClient.RequestTokenAsync(builder);
+        if (postRequest != null)
+        {
+            await postRequest(pair);
         }
 
         return pair;
