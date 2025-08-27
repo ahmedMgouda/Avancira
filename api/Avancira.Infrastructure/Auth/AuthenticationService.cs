@@ -6,6 +6,7 @@ using Avancira.Application.Identity.Tokens.Dtos;
 using FluentValidation;
 using System;
 using System.Linq;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -15,17 +16,20 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITokenEndpointClient _tokenClient;
     private readonly ISessionService _sessionService;
     private readonly IValidator<TokenRequestParams> _validator;
+    private readonly TokenHashingOptions _options;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
         ITokenEndpointClient tokenClient,
         ISessionService sessionService,
-        IValidator<TokenRequestParams> validator)
+        IValidator<TokenRequestParams> validator,
+        IOptions<TokenHashingOptions> options)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
         _sessionService = sessionService;
         _validator = validator;
+        _options = options.Value;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -78,11 +82,11 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, _) =>
         {
-            var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
+            var oldRefreshHash = TokenUtilities.HashToken(refreshToken, _options.Secret);
             var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
             if (info != null)
             {
-                var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken);
+                var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken, _options.Secret);
                 await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
             }
         });

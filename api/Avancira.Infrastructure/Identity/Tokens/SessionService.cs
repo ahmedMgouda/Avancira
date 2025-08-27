@@ -9,16 +9,19 @@ using System.Collections.Generic;
 using System.Linq;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 
 public class SessionService : ISessionService
 {
     private readonly AvanciraDbContext _dbContext;
+    private readonly TokenHashingOptions _options;
 
-    public SessionService(AvanciraDbContext dbContext)
+    public SessionService(AvanciraDbContext dbContext, IOptions<TokenHashingOptions> options)
     {
         _dbContext = dbContext;
+        _options = options.Value;
     }
 
     public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
@@ -52,7 +55,7 @@ public class SessionService : ISessionService
 
         session.RefreshTokens.Add(new RefreshToken
         {
-            TokenHash = TokenUtilities.HashToken(refreshToken),
+            TokenHash = TokenUtilities.HashToken(refreshToken, _options.Secret),
             CreatedUtc = now,
             AbsoluteExpiryUtc = refreshExpiry
         });

@@ -11,6 +11,7 @@ using Avancira.Infrastructure.Identity.Tokens;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -40,12 +41,14 @@ public class AuthenticationServiceTests
         var pair2 = new TokenPair(CreateToken(userId, sid2), "refresh2", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair1, pair2);
 
-        var sessionService = new SessionService(dbContext);
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
+        var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
+        var sessionService = new SessionService(dbContext, options);
+        var validator = new TokenRequestParamsValidator();
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options);
 
         await service.GenerateTokenAsync(userId);
         var storedToken = await dbContext.RefreshTokens.SingleAsync();
-        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1"));
+        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1", "secret"));
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
         firstSessionId.Should().Be(sid1);
 
@@ -64,7 +67,9 @@ public class AuthenticationServiceTests
         var clientInfoService = new StubClientInfoService(new ClientInfo());
         var tokenClient = new StubTokenEndpointClient(new UnauthorizedException());
         var sessionService = new Mock<ISessionService>().Object;
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
+        var validator = new TokenRequestParamsValidator();
+        var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options);
 
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -75,7 +80,9 @@ public class AuthenticationServiceTests
         var clientInfoService = new StubClientInfoService(new ClientInfo());
         var tokenClient = new StubTokenEndpointClient(new TokenRequestException("invalid_request", "bad request", System.Net.HttpStatusCode.BadRequest));
         var sessionService = new Mock<ISessionService>().Object;
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
+        var validator = new TokenRequestParamsValidator();
+        var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
         ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
@@ -90,7 +97,7 @@ public class AuthenticationServiceTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         await using var dbContext = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
-        var service = new SessionService(dbContext);
+        var service = new SessionService(dbContext, Options.Create(new TokenHashingOptions { Secret = "secret" }));
 
         var oldTime = DateTime.UtcNow.AddMinutes(-10);
         var session = new Session
