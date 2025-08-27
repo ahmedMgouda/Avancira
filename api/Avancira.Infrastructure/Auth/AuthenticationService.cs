@@ -119,10 +119,20 @@ public class AuthenticationService : IAuthenticationService
         var updated = parameters with { DeviceId = clientInfo.DeviceId };
 
         var pair = await _tokenClient.RequestTokenAsync(updated);
-        _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
-        if (postProcess != null)
+
+        try
         {
-            await postProcess(pair, clientInfo);
+            if (postProcess != null)
+            {
+                await postProcess(pair, clientInfo);
+            }
+
+            _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        }
+        catch
+        {
+            _refreshTokenCookieService.SetRefreshTokenCookie(string.Empty, DateTime.UtcNow.AddDays(-1));
+            throw;
         }
 
         return pair;
