@@ -58,7 +58,7 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
             OnTokenValidated = async context =>
             {
                 var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                var sessionClaim = context.Principal?.FindFirst("sid")?.Value;
+                var sessionClaim = context.Principal?.FindFirst(AuthConstants.Claims.SessionId)?.Value;
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(sessionClaim) || !Guid.TryParse(sessionClaim, out var sessionId))
                 {
                     context.Fail("Session revoked");
@@ -79,9 +79,9 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
             },
             OnMessageReceived = context =>
             {
-                var accessToken = context.Request.Query["access_token"];
+                var accessToken = context.Request.Query[AuthConstants.Parameters.AccessToken];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notification"))
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(AuthConstants.Endpoints.Notification))
                 {
                     context.Token = accessToken;
                 }

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using static OpenIddict.Server.OpenIddictServerEvents;
+using Avancira.Infrastructure.Auth;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -14,9 +15,9 @@ public static class OpenIddictSetup
         services.AddOpenIddict()
             .AddServer(options =>
             {
-                options.SetAuthorizationEndpointUris("/connect/authorize")
-                       .SetTokenEndpointUris("/connect/token")
-                       .SetRevocationEndpointUris("/connect/revocation")
+                options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
+                       .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
+                       .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
                        .SetIssuer(new Uri(configuration["Auth:Issuer"]!));
 
                 options.AllowAuthorizationCodeFlow()
