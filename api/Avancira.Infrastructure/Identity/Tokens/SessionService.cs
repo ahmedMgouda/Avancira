@@ -26,15 +26,20 @@ public class SessionService : ISessionService
 
     public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
     {
-        var existingSession = await _dbContext.Sessions
-            .Include(s => s.RefreshTokens)
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
         await using var tx = await _dbContext.Database.BeginTransactionAsync();
 
-        if (existingSession != null)
+        while (true)
         {
+            var existingSession = await _dbContext.Sessions
+                .Include(s => s.RefreshTokens)
+                .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+
+            if (existingSession == null)
+                break;
+
             _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
             _dbContext.Sessions.Remove(existingSession);
+            await _dbContext.SaveChangesAsync();
         }
 
         var now = DateTime.UtcNow;
