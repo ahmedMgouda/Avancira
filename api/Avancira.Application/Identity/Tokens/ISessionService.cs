@@ -12,7 +12,6 @@ public interface ISessionService
     Task RevokeSessionAsync(string userId, Guid sessionId);
     Task RevokeSessionsAsync(string userId, IEnumerable<Guid> sessionIds);
     Task<bool> ValidateSessionAsync(string userId, Guid sessionId);
-    Task<(string UserId, Guid RefreshTokenId, Guid SessionId)?> GetRefreshTokenInfoAsync(string refreshToken);
-    Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshToken, DateTime newExpiry);
-    Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry);
+    Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry);
+    Task UpdateSessionAsync(string userId, Guid sessionId, DateTime newExpiry);
 }

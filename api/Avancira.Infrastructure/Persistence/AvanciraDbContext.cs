@@ -65,7 +65,6 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<WalletLog> WalletLogs { get; set; }
 
     public DbSet<Session> Sessions { get; set; }
-    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public DbSet<OpenIddictApplication> OpenIddictApplications { get; set; }
     public DbSet<OpenIddictAuthorization> OpenIddictAuthorizations { get; set; }

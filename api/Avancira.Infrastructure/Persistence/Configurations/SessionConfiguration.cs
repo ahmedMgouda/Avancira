@@ -29,27 +29,3 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => new { s.UserId, s.Device }).IsUnique();
     }
 }
-
-public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
-{
-    public void Configure(EntityTypeBuilder<RefreshToken> builder)
-    {
-        builder.ToTable("RefreshTokens", IdentityConstants.SchemaName);
-        builder.HasKey(r => r.Id);
-        builder.Property(r => r.Salt).IsRequired();
-        builder.HasOne(r => r.Session)
-            .WithMany(s => s.RefreshTokens)
-            .HasForeignKey(r => r.SessionId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(r => r.RotatedFrom)
-            .WithMany(r => r.RefreshTokens)
-            .HasForeignKey(r => r.RotatedFromId)
-            .OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(r => r.TokenHash);
-        builder.HasIndex(r => r.SessionId);
-        builder.HasIndex(r => r.RotatedFromId);
-        builder.HasIndex(r => r.CreatedUtc);
-        builder.HasIndex(r => r.AbsoluteExpiryUtc);
-        builder.HasIndex(r => r.RevokedUtc);
-    }
-}

@@ -85,8 +85,6 @@ public static class Extensions
         builder.Services.Configure<JitsiOptions>(builder.Configuration.GetSection("Avancira:Jitsi"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Google"));
         builder.Services.Configure<FacebookOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Facebook"));
-        builder.Services.Configure<TokenHashingOptions>(builder.Configuration.GetSection("Avancira:Auth:TokenHashing"));
-
 
         // Configure Mappings
         TypeAdapterConfig.GlobalSettings.Scan(typeof(IListingService).Assembly);

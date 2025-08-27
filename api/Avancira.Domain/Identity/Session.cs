@@ -7,7 +7,6 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
 {
     public Session()
     {
-        RefreshTokens = new List<RefreshToken>();
     }
 
     public Session(Guid id) : this()
@@ -27,5 +26,4 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
     public DateTime LastRefreshUtc { get; set; }
     public DateTime LastActivityUtc { get; set; }
     public DateTime? RevokedUtc { get; set; }
-    public ICollection<RefreshToken> RefreshTokens { get; set; }
 }
