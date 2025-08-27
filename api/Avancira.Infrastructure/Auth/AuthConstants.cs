@@ -39,6 +39,11 @@ public static class AuthConstants
         public const string Password = "password";
     }
 
+    public static class Scopes
+    {
+        public const string Api = "api offline_access";
+    }
+
     public static class Cookies
     {
         public const string RefreshToken = "refreshToken";

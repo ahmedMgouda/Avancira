@@ -52,7 +52,8 @@ public class AuthenticationServiceTests
         var sessionService = new SessionService(dbContext, hashingOptions);
         var validator = new TokenRequestParamsValidator();
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions);
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions);
 
         await service.GenerateTokenAsync(userId);
         var storedToken = await dbContext.RefreshTokens.SingleAsync();
@@ -78,7 +79,8 @@ public class AuthenticationServiceTests
         var validator = new TokenRequestParamsValidator();
         var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions);
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions, scopeOptions);
 
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -92,7 +94,8 @@ public class AuthenticationServiceTests
         var validator = new TokenRequestParamsValidator();
         var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions);
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions, scopeOptions);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
         ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
@@ -149,7 +152,8 @@ public class AuthenticationServiceTests
         var validator = new TokenRequestParamsValidator();
         var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions);
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -166,7 +170,8 @@ public class AuthenticationServiceTests
         var validator = new TokenRequestParamsValidator();
         var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions);
+        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }

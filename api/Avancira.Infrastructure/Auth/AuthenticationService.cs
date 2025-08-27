@@ -21,6 +21,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly IValidator<TokenRequestParams> _validator;
     private readonly TokenHashingOptions _options;
     private readonly JwtOptions _jwtOptions;
+    private readonly string _scope;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
@@ -28,7 +29,8 @@ public class AuthenticationService : IAuthenticationService
         ISessionService sessionService,
         IValidator<TokenRequestParams> validator,
         IOptions<TokenHashingOptions> options,
-        IOptions<JwtOptions> jwtOptions)
+        IOptions<JwtOptions> jwtOptions,
+        IOptions<AuthScopeOptions> scopeOptions)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
@@ -36,6 +38,7 @@ public class AuthenticationService : IAuthenticationService
         _validator = validator;
         _options = options.Value;
         _jwtOptions = jwtOptions.Value;
+        _scope = scopeOptions.Value.Scope;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -64,7 +67,7 @@ public class AuthenticationService : IAuthenticationService
         {
             GrantType = AuthConstants.GrantTypes.UserId,
             UserId = userId,
-            Scope = "api offline_access"
+            Scope = _scope
         };
 
         await _validator.ValidateAndThrowAsync(request);
