@@ -44,6 +44,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
             .WithMany(r => r.RefreshTokens)
             .HasForeignKey(r => r.RotatedFromId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => r.TokenHash);
         builder.HasIndex(r => r.SessionId);
         builder.HasIndex(r => r.RotatedFromId);
         builder.HasIndex(r => r.CreatedUtc);

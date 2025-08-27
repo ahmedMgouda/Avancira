@@ -102,7 +102,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
+                    b.HasIndex("TokenHash");
                     b.HasIndex("CreatedUtc");
 
                     b.HasIndex("RevokedUtc");
