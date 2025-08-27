@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.RateLimiting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Authentication;
-using OpenIddict.Validation.AspNetCore;
 using Avancira.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,44 +74,7 @@ builder.Services.AddRateLimiter(options =>
 
 using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
 var authLogger = authLoggerFactory.CreateLogger("Authentication");
-
-var googleSection = builder.Configuration.GetSection("Avancira:ExternalServices:Google");
-var facebookSection = builder.Configuration.GetSection("Avancira:ExternalServices:Facebook");
-
-var authBuilder = builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-    options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
-});
-
-if (!string.IsNullOrWhiteSpace(googleSection["ClientId"]) && !string.IsNullOrWhiteSpace(googleSection["ClientSecret"]))
-{
-    authBuilder.AddGoogle(o =>
-    {
-        o.ClientId = googleSection["ClientId"]!;
-        o.ClientSecret = googleSection["ClientSecret"]!;
-        o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
-    });
-}
-else
-{
-    authLogger.LogWarning("Google OAuth configuration is missing or incomplete. Google authentication will not be available.");
-}
-
-if (!string.IsNullOrWhiteSpace(facebookSection["AppId"]) && !string.IsNullOrWhiteSpace(facebookSection["AppSecret"]))
-{
-    authBuilder.AddFacebook(o =>
-    {
-        o.AppId = facebookSection["AppId"]!;
-        o.AppSecret = facebookSection["AppSecret"]!;
-        o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
-    });
-}
-else
-{
-    authLogger.LogWarning("Facebook OAuth configuration is missing or incomplete. Facebook authentication will not be available.");
-}
-
+builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
 var app = builder.Build();
