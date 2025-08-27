@@ -1,13 +1,8 @@
 using System;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Avancira.Application.Common;
+using Avancira.Application.Identity.Tokens;
 using Avancira.Infrastructure.Auth;
-using System.Text.Json;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Identity.Tokens;
 using FluentAssertions;
@@ -15,10 +10,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
-using Avancira.Application.Auth.Jwt;
-using Microsoft.Extensions.Options;
-using Avancira.Domain.Common.Exceptions;
-using Avancira.Application.Identity.Tokens;
 
 public class AuthenticationServiceTests
 {
@@ -39,19 +30,11 @@ public class AuthenticationServiceTests
         };
         var clientInfoService = new StubClientInfoService(clientInfo);
 
-        var json = JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            [AuthConstants.Parameters.AccessToken] = "token",
-            [AuthConstants.Parameters.RefreshToken] = "refresh",
-            [AuthConstants.Parameters.RefreshTokenExpiresIn] = 3600
-        });
-        var handler = new StubHttpMessageHandler(json);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var httpFactory = new StubHttpClientFactory(httpClient);
+        var pair = new TokenPair("token", "refresh", DateTime.UtcNow.AddHours(1));
+        var tokenClient = new StubTokenEndpointClient(pair);
 
-        var jwtOptions = Options.Create(new JwtOptions());
         var sessionService = new SessionService(dbContext);
-        var service = new AuthenticationService(httpFactory, clientInfoService, jwtOptions, sessionService);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
 
         var userId = "user1";
         await service.GenerateTokenAsync(userId);
@@ -69,22 +52,10 @@ public class AuthenticationServiceTests
     [Fact]
     public async Task GenerateTokenAsync_UnauthorizedResponse_ThrowsUnauthorizedException()
     {
-        var clientInfo = new ClientInfo
-        {
-            DeviceId = "device1",
-            IpAddress = "127.0.0.1",
-            UserAgent = "agent",
-            OperatingSystem = "os"
-        };
-        var clientInfoService = new StubClientInfoService(clientInfo);
-
-        var handler = new StubHttpMessageHandler(string.Empty, HttpStatusCode.Unauthorized);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var httpFactory = new StubHttpClientFactory(httpClient);
-
-        var jwtOptions = Options.Create(new JwtOptions());
+        var clientInfoService = new StubClientInfoService(new ClientInfo());
+        var tokenClient = new StubTokenEndpointClient(new UnauthorizedException());
         var sessionService = new Mock<ISessionService>().Object;
-        var service = new AuthenticationService(httpFactory, clientInfoService, jwtOptions, sessionService);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
 
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -92,25 +63,13 @@ public class AuthenticationServiceTests
     [Fact]
     public async Task GenerateTokenAsync_NonSuccessResponse_ThrowsTokenRequestException()
     {
-        var clientInfo = new ClientInfo
-        {
-            DeviceId = "device1",
-            IpAddress = "127.0.0.1",
-            UserAgent = "agent",
-            OperatingSystem = "os"
-        };
-        var clientInfoService = new StubClientInfoService(clientInfo);
-
-        var handler = new StubHttpMessageHandler(string.Empty, HttpStatusCode.BadRequest);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var httpFactory = new StubHttpClientFactory(httpClient);
-
-        var jwtOptions = Options.Create(new JwtOptions());
+        var clientInfoService = new StubClientInfoService(new ClientInfo());
+        var tokenClient = new StubTokenEndpointClient(new TokenRequestException(System.Net.HttpStatusCode.BadRequest));
         var sessionService = new Mock<ISessionService>().Object;
-        var service = new AuthenticationService(httpFactory, clientInfoService, jwtOptions, sessionService);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
-        ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -158,26 +117,22 @@ public class AuthenticationServiceTests
         public Task<ClientInfo> GetClientInfoAsync() => Task.FromResult(_info);
     }
 
-    private class StubHttpClientFactory : IHttpClientFactory
+    private class StubTokenEndpointClient : ITokenEndpointClient
     {
-        private readonly HttpClient _client;
-        public StubHttpClientFactory(HttpClient client) => _client = client;
-        public HttpClient CreateClient(string name) => _client;
-    }
+        private readonly TokenPair? _pair;
+        private readonly Exception? _exception;
 
-    private class StubHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly string _content;
-        private readonly HttpStatusCode _statusCode;
-        public StubHttpMessageHandler(string content, HttpStatusCode statusCode = HttpStatusCode.OK)
+        public StubTokenEndpointClient(TokenPair pair) => _pair = pair;
+        public StubTokenEndpointClient(Exception exception) => _exception = exception;
+
+        public Task<TokenPair> RequestTokenAsync(TokenRequestBuilder builder)
         {
-            _content = content;
-            _statusCode = statusCode;
-        }
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(_statusCode)
+            if (_exception != null)
             {
-                Content = new StringContent(_content, Encoding.UTF8, "application/json")
-            });
+                return Task.FromException<TokenPair>(_exception);
+            }
+            return Task.FromResult(_pair!);
+        }
     }
 }
+
