@@ -15,13 +15,16 @@ public class AuthController : BaseApiController
 {
     private readonly IAuthenticationService _authenticationService;
     private readonly ISessionService _sessionService;
+    private readonly IRefreshTokenCookieService _refreshTokenCookieService;
 
     public AuthController(
         IAuthenticationService authenticationService,
-        ISessionService sessionService)
+        ISessionService sessionService,
+        IRefreshTokenCookieService refreshTokenCookieService)
     {
         _authenticationService = authenticationService;
         _sessionService = sessionService;
+        _refreshTokenCookieService = refreshTokenCookieService;
     }
 
     [HttpPost("login")]
@@ -34,7 +37,7 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
         return Ok(new TokenResponse(pair.Token));
     }
 
@@ -64,7 +67,7 @@ public class AuthController : BaseApiController
         }
 
         await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, TokenUtilities.HashToken(pair.RefreshToken), pair.RefreshTokenExpiryTime);
-        SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
+        _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
         return Ok(new TokenResponse(pair.Token));
     }
 
