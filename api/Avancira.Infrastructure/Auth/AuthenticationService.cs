@@ -82,6 +82,15 @@ public class AuthenticationService : IAuthenticationService
         response.EnsureSuccessStatusCode();
 
         var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
+
+        var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
+        var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
+        if (info != null)
+        {
+            var newRefreshHash = TokenUtilities.HashToken(newRefresh);
+            await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, refreshExpiry);
+        }
+
         return new TokenPair(token, newRefresh, refreshExpiry);
     }
 
