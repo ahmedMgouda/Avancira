@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,23 +13,25 @@ public class SessionsController : BaseApiController
 {
     private readonly ISender _mediator;
     private readonly ISessionService _sessionService;
+    private readonly ICurrentUser _currentUser;
 
-    public SessionsController(ISender mediator, ISessionService sessionService)
+    public SessionsController(ISender mediator, ISessionService sessionService, ICurrentUser currentUser)
     {
         _mediator = mediator;
         _sessionService = sessionService;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(List<SessionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
-        if (userId is null)
+        var userId = _currentUser.GetUserId();
+        if (userId == Guid.Empty)
         {
             return Unauthorized();
         }
-        var sessions = await _mediator.Send(new GetSessionsQuery(userId), cancellationToken);
+        var sessions = await _mediator.Send(new GetSessionsQuery(userId.ToString()), cancellationToken);
         return Ok(sessions);
     }
 
@@ -36,12 +39,12 @@ public class SessionsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
-        if (userId is null)
+        var userId = _currentUser.GetUserId();
+        if (userId == Guid.Empty)
         {
             return Unauthorized();
         }
-        await _mediator.Send(new RevokeSessionCommand(id, userId), cancellationToken);
+        await _mediator.Send(new RevokeSessionCommand(id, userId.ToString()), cancellationToken);
         return NoContent();
     }
 
@@ -49,12 +52,12 @@ public class SessionsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
-        if (userId is null)
+        var userId = _currentUser.GetUserId();
+        if (userId == Guid.Empty)
         {
             return Unauthorized();
         }
-        await _sessionService.RevokeSessionsAsync(userId, sessionIds);
+        await _sessionService.RevokeSessionsAsync(userId.ToString(), sessionIds);
         return NoContent();
     }
 }

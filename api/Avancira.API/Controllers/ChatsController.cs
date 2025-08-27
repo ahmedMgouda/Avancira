@@ -1,5 +1,6 @@
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Messaging;
 using Avancira.Application.Messaging.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -13,16 +14,19 @@ public class ChatsController : BaseApiController
     private readonly IChatService _chatService;
     private readonly IListingService _listingService;
     private readonly ILogger<ChatsController> _logger;
+    private readonly ICurrentUser _currentUser;
 
     public ChatsController(
         IChatService chatService,
         IListingService listingService,
-        ILogger<ChatsController> logger
+        ILogger<ChatsController> logger,
+        ICurrentUser currentUser
     )
     {
         _chatService = chatService;
         _listingService = listingService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     // Read
@@ -30,11 +34,7 @@ public class ChatsController : BaseApiController
     [HttpGet]
     public IActionResult GetUserChats()
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var chats = _chatService.GetUserChats(userId);
         return Ok(chats);
     }
@@ -43,11 +43,7 @@ public class ChatsController : BaseApiController
     [HttpGet("{id:guid}")]
     public IActionResult GetChatById(Guid id)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var chat = _chatService.GetChat(id, userId);
         if (chat.Id == Guid.Empty)
         {
@@ -76,11 +72,7 @@ public class ChatsController : BaseApiController
         }
 
         // Check if a chat already exists
-        var senderId = GetUserId();
-        if (senderId is null)
-        {
-            return Unauthorized();
-        }
+        var senderId = _currentUser.GetUserId().ToString();
 
         if (!await _chatService.SendMessageAsync(messageDto, senderId))
         {

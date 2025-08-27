@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -12,14 +13,17 @@ public class EvaluationsController : BaseApiController
 {
     private readonly IEvaluationService _evaluationService;
     private readonly ILogger<EvaluationsController> _logger;
+    private readonly ICurrentUser _currentUser;
 
     public EvaluationsController(
         IEvaluationService evaluationService,
-        ILogger<EvaluationsController> logger
+        ILogger<EvaluationsController> logger,
+        ICurrentUser currentUser
     )
     {
         _evaluationService = evaluationService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     // Create
@@ -27,11 +31,7 @@ public class EvaluationsController : BaseApiController
     [HttpPost("review")]
     public async Task<IActionResult> LeaveReviewAsync([FromBody] ReviewDto reviewDto)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
 
         // Validate the input
         if (reviewDto == null)
@@ -60,11 +60,7 @@ public class EvaluationsController : BaseApiController
     [HttpPost("recommendation")]
     public async Task<IActionResult> SubmitRecommendation([FromBody] ReviewDto dto)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
 
         if (string.IsNullOrEmpty(dto.RevieweeId) || string.IsNullOrEmpty(dto.Feedback))
             return BadRequest("Invalid data.");
@@ -86,11 +82,7 @@ public class EvaluationsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetEvaluationsAsync()
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
 
         // Identify pending reviews based on the user's role
         var pendingReviews = await _evaluationService.GetPendingReviewsAsync(userId);
