@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,8 +13,8 @@ public class TokenUtilitiesTests
     {
         var token = "token";
         var secret = "secret";
-        var salt1 = RandomNumberGenerator.GetBytes(16);
-        var salt2 = RandomNumberGenerator.GetBytes(16);
+        var salt1 = TokenUtilities.GenerateSalt();
+        var salt2 = TokenUtilities.GenerateSalt();
 
         var hash1 = TokenUtilities.HashToken(token, secret, salt1);
         var hash2 = TokenUtilities.HashToken(token, secret, salt2);
@@ -26,9 +27,10 @@ public class TokenUtilitiesTests
     {
         var token = "token";
         var secret = "secret";
-        var salt = Encoding.UTF8.GetBytes("salt");
+        var saltBytes = Encoding.UTF8.GetBytes("salt");
+        var salt = Convert.ToBase64String(saltBytes);
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-        var expected = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(token).Concat(salt).ToArray()));
+        var expected = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(token).Concat(saltBytes).ToArray()));
 
         TokenUtilities.HashToken(token, secret, salt).Should().Be(expected);
     }
