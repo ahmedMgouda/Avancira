@@ -27,10 +27,10 @@ export class AuthService {
   ) {
     this.oauth.configure({
       issuer: environment.baseApiUrl,
-      clientId: 'frontend',
+      clientId: environment.clientId,
       responseType: 'code',
       scope: 'api offline_access',
-      redirectUri: `${environment.frontendUrl}/signin-callback`,
+      redirectUri: environment.redirectUri,
     });
 
     this.oauth.requester = (
