@@ -52,6 +52,8 @@ builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
     .WithEnvironment("Avancira__App__Name", Environment.GetEnvironmentVariable("Avancira__App__Name") ?? string.Empty)
     .WithEnvironment("Avancira__App__SupportEmail", Environment.GetEnvironmentVariable("Avancira__App__SupportEmail") ?? string.Empty)
     .WithEnvironment("Avancira__App__SupportPhone", Environment.GetEnvironmentVariable("Avancira__App__SupportPhone") ?? string.Empty)
+    // Auth Configuration
+    .WithEnvironment("Avancira__Auth__Issuer", Environment.GetEnvironmentVariable("Avancira__Auth__Issuer") ?? string.Empty)
     // JWT Configuration
     .WithEnvironment("Avancira__Jwt__Audience", Environment.GetEnvironmentVariable("Avancira__Jwt__Audience") ?? string.Empty)
     .WithEnvironment("Avancira__Jwt__Issuer", Environment.GetEnvironmentVariable("Avancira__Jwt__Issuer") ?? string.Empty)

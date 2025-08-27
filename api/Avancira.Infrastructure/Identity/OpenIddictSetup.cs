@@ -6,9 +6,10 @@ namespace Avancira.Infrastructure.Identity;
 
 public static class OpenIddictSetup
 {
-    public static IServiceCollection AddOpenIddictServer(this IServiceCollection services)
+    public static IServiceCollection AddOpenIddictServer(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddOpenIddict()
             .AddServer(options =>
@@ -16,7 +17,7 @@ public static class OpenIddictSetup
                 options.SetAuthorizationEndpointUris("/connect/authorize")
                        .SetTokenEndpointUris("/connect/token")
                        .SetRevocationEndpointUris("/connect/revocation")
-                       .SetIssuer(new Uri("https://localhost:9000/"));
+                       .SetIssuer(new Uri(configuration["Auth:Issuer"]!));
 
                 options.AllowRefreshTokenFlow()
                        .AllowAuthorizationCodeFlow()
@@ -54,7 +55,7 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.AddOpenIddictServer();
+        services.AddOpenIddictServer(configuration);
 
         return services;
     }
