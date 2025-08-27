@@ -39,6 +39,8 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<ExternalLoginHandler>());
                 options.AddEventHandler<ProcessSignInContext>(builder =>
                     builder.UseScopedHandler<DeviceInfoClaimsHandler>());
+                options.AddEventHandler<ProcessSignInContext>(builder =>
+                    builder.UseScopedHandler<SessionIdClaimsHandler>());
                 options.AddEventHandler<HandleTokenRequestContext>(builder =>
                     builder.UseScopedHandler<PasswordGrantHandler>());
             })
