@@ -7,6 +7,9 @@ using FluentValidation;
 using System;
 using System.Linq;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Avancira.Application.Auth.Jwt;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -17,19 +20,22 @@ public class AuthenticationService : IAuthenticationService
     private readonly ISessionService _sessionService;
     private readonly IValidator<TokenRequestParams> _validator;
     private readonly TokenHashingOptions _options;
+    private readonly JwtOptions _jwtOptions;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
         ITokenEndpointClient tokenClient,
         ISessionService sessionService,
         IValidator<TokenRequestParams> validator,
-        IOptions<TokenHashingOptions> options)
+        IOptions<TokenHashingOptions> options,
+        IOptions<JwtOptions> jwtOptions)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
         _sessionService = sessionService;
         _validator = validator;
         _options = options.Value;
+        _jwtOptions = jwtOptions.Value;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -108,17 +114,41 @@ public class AuthenticationService : IAuthenticationService
         return pair;
     }
 
-    private static string GetUserId(string token)
+    private JwtSecurityToken ValidateToken(string token)
     {
         var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
+        var parameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
+            ValidateIssuer = true,
+            ValidIssuer = _jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = _jwtOptions.Audience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        try
+        {
+            handler.ValidateToken(token, parameters, out var validatedToken);
+            return (JwtSecurityToken)validatedToken;
+        }
+        catch (Exception ex) when (ex is SecurityTokenException || ex is ArgumentException)
+        {
+            throw new SecurityTokenException($"Token validation failed: {ex.Message}", ex);
+        }
+    }
+
+    private string GetUserId(string token)
+    {
+        var jwt = ValidateToken(token);
         return jwt.Subject ?? string.Empty;
     }
 
-    private static Guid GetSessionId(string token)
+    private Guid GetSessionId(string token)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
+        var jwt = ValidateToken(token);
         var sid = jwt.Claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
         return Guid.TryParse(sid, out var id) ? id : Guid.Empty;
     }
