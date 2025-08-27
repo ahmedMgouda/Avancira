@@ -1,6 +1,5 @@
 using System.Net.Http;
 using System.Text.Json;
-using System.Collections.Generic;
 using Avancira.Application.Common;
 using Avancira.Application.Identity;
 using System.IdentityModel.Tokens.Jwt;
@@ -34,36 +33,24 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
     {
-        var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
-        {
-            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.AuthorizationCode,
-            [AuthConstants.Parameters.Code] = code,
-            [AuthConstants.Parameters.RedirectUri] = redirectUri,
-            [AuthConstants.Parameters.CodeVerifier] = codeVerifier
-        });
+        var builder = TokenRequestBuilder.BuildAuthorizationCodeRequest(code, codeVerifier, redirectUri);
+        var (response, clientInfo) = await RequestTokenAsync(builder);
 
         return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
     {
-        var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
-        {
-            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.UserId,
-            [AuthConstants.Parameters.UserId] = userId,
-            [AuthConstants.Parameters.Scope] = "api offline_access"
-        });
+        var builder = TokenRequestBuilder.BuildUserIdGrantRequest(userId);
+        var (response, clientInfo) = await RequestTokenAsync(builder);
 
         return await HandleTokenResponseAsync(response, clientInfo, userId);
     }
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
-        var (response, _) = await RequestTokenAsync(new Dictionary<string, string?>
-        {
-            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.RefreshToken,
-            [AuthConstants.Parameters.RefreshToken] = refreshToken
-        });
+        var builder = TokenRequestBuilder.BuildRefreshTokenRequest(refreshToken);
+        var (response, _) = await RequestTokenAsync(builder);
 
         var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
 
@@ -78,12 +65,12 @@ public class AuthenticationService : IAuthenticationService
         return new TokenPair(token, newRefresh, refreshExpiry);
     }
 
-    private async Task<(HttpResponseMessage Response, ClientInfo ClientInfo)> RequestTokenAsync(Dictionary<string, string?> values)
+    private async Task<(HttpResponseMessage Response, ClientInfo ClientInfo)> RequestTokenAsync(TokenRequestBuilder builder)
     {
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
-        values[AuthConstants.Parameters.DeviceId] = clientInfo.DeviceId;
+        builder.WithDeviceId(clientInfo.DeviceId);
 
-        var content = BuildTokenRequest(values);
+        var content = builder.Build();
         var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -114,9 +101,6 @@ public class AuthenticationService : IAuthenticationService
 
         return new TokenPair(token, refresh, refreshExpiry);
     }
-
-    private static FormUrlEncodedContent BuildTokenRequest(Dictionary<string, string?> values) =>
-        new(values);
 
     private async Task<(string Token, string RefreshToken, DateTime RefreshExpiry)> ParseTokenResponseAsync(HttpResponseMessage response)
     {
