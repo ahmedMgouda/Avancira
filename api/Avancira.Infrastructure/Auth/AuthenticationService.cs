@@ -8,6 +8,8 @@ using Avancira.Application.Auth.Jwt;
 using Microsoft.Extensions.Options;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
+using System.Net;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -96,7 +98,16 @@ public class AuthenticationService : IAuthenticationService
 
         var content = BuildTokenRequest(values);
         var response = await _httpClient.PostAsync(TokenEndpoint, content);
-        response.EnsureSuccessStatusCode();
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            throw new UnauthorizedException();
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new TokenRequestException(response.StatusCode);
+        }
 
         return (response, clientInfo);
     }
