@@ -29,7 +29,7 @@ export class AuthService {
       issuer: environment.baseApiUrl,
       clientId: 'frontend',
       responseType: 'code',
-      scope: 'api offline_access',
+      scope: ['api', 'offline_access'].join(' '),
       redirectUri: `${environment.frontendUrl}/signin-callback`,
     });
 
