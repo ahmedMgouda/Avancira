@@ -21,9 +21,10 @@ public static class OpenIddictSetup
 
                 options.AllowAuthorizationCodeFlow()
                        .AllowPasswordFlow()
+                       .AllowRefreshTokenFlow()
                        .RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes("api");
+                options.RegisterScopes("api", "offline_access");
 
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
