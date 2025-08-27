@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
+using Avancira.Infrastructure.Persistence;
+using OpenIddict.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -13,6 +15,9 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddOpenIddict()
+            .AddCore(options =>
+                options.UseEntityFrameworkCore()
+                       .UseDbContext<AvanciraDbContext>())
             .AddServer(options =>
             {
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
@@ -58,6 +63,7 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.BindDbContext<AvanciraDbContext>();
         services.AddOpenIddictServer(configuration);
 
         return services;
