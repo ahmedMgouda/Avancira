@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenIddict.Abstractions;
+using System.Linq;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
@@ -23,7 +25,7 @@ public static class OpenIddictSetup
                        .AllowPasswordFlow()
                        .RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes("api");
+                options.RegisterScopes("api", OpenIddictConstants.Scopes.OfflineAccess);
 
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
@@ -33,6 +35,20 @@ public static class OpenIddictSetup
                        .EnableTokenEndpointPassthrough()
                        .EnableEndSessionEndpointPassthrough();
 
+                options.AddEventHandler<ValidateAuthorizationRequestContext>(builder =>
+                    builder.UseInlineHandler(context =>
+                    {
+                        context.Scopes.UnionWith(context.Request.GetScopes()
+                            .Where(scope => scope is "api" or OpenIddictConstants.Scopes.OfflineAccess));
+                        return default;
+                    }));
+                options.AddEventHandler<ValidateTokenRequestContext>(builder =>
+                    builder.UseInlineHandler(context =>
+                    {
+                        context.Scopes.UnionWith(context.Request.GetScopes()
+                            .Where(scope => scope is "api" or OpenIddictConstants.Scopes.OfflineAccess));
+                        return default;
+                    }));
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<ExternalLoginHandler>());
                 options.AddEventHandler<ProcessSignInContext>(builder =>

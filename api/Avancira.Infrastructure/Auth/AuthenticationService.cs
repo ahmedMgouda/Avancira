@@ -12,6 +12,7 @@ using Avancira.Application.Auth.Jwt;
 using Microsoft.Extensions.Options;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Application.Identity.Tokens.Dtos;
+using OpenIddict.Abstractions;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -50,6 +51,7 @@ public class AuthenticationService : IAuthenticationService
             ["code"] = code,
             ["redirect_uri"] = redirectUri,
             ["code_verifier"] = codeVerifier,
+            ["scope"] = $"api {OpenIddictConstants.Scopes.OfflineAccess}",
             ["device_id"] = clientInfo.DeviceId
         });
 
