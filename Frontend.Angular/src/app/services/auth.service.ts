@@ -2,8 +2,8 @@ import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
-import { Observable, Subject, from, of, throwError } from 'rxjs';
-import { finalize, map, catchError, tap, switchMap } from 'rxjs/operators';
+import { Observable, defer, from, of, throwError } from 'rxjs';
+import { finalize, map, catchError, switchMap, shareReplay, tap } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -17,7 +17,7 @@ import { SessionService } from './session.service';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = environment.apiUrl;
-  private refresh$?: Subject<unknown>;
+  private refresh$?: Observable<string>;
 
   constructor(
     private readonly oauth: OAuthService,
@@ -58,7 +58,7 @@ export class AuthService {
   }
 
   waitForRefresh(): Observable<unknown> {
-    return this.refresh$ ? this.refresh$.asObservable() : of(null);
+    return this.refresh$ ? this.refresh$ : of(null);
   }
 
   getAccessToken(): string | null {
@@ -71,30 +71,23 @@ export class AuthService {
     }
 
     if (!this.refresh$) {
-      this.refresh$ = new Subject<unknown>();
-
-      from(this.oauth.refreshToken())
-        .pipe(
-          catchError(err => {
-            this.logout();
-            this.refresh$?.error(err);
-            this.refresh$ = undefined;
-            return throwError(() => err);
-          }),
-        )
-        .subscribe({
-          next: () => {
-            this.refresh$?.next(null);
-            this.refresh$?.complete();
-            this.refresh$ = undefined;
-          },
-          error: () => {
-            /* no-op */
-          },
-        });
+      this.refresh$ = defer(() => from(this.oauth.refreshToken())).pipe(
+        switchMap(() => {
+          const token = this.oauth.getAccessToken();
+          return token ? of(token) : throwError(() => new Error('No access token'));
+        }),
+        catchError(err => {
+          this.logout();
+          return throwError(() => err);
+        }),
+        finalize(() => {
+          this.refresh$ = undefined;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
     }
 
-    return this.waitForRefresh().pipe(map(() => this.oauth.getAccessToken() as string));
+    return this.refresh$;
   }
 
   login(
