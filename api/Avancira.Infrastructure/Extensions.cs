@@ -49,6 +49,15 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddHttpClient("TokenClient", (sp, client) =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var issuer = configuration["Auth:Issuer"];
+            if (!string.IsNullOrWhiteSpace(issuer))
+            {
+                client.BaseAddress = new Uri(issuer);
+            }
+        });
         builder.Services.AddScoped<IRefreshTokenCookieService, RefreshTokenCookieService>();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
