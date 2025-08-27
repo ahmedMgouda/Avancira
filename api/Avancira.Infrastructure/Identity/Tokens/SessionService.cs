@@ -1,5 +1,7 @@
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
+using Avancira.Application.Common;
+using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Domain.Identity;
 using System;
@@ -17,6 +19,47 @@ public class SessionService : ISessionService
     public SessionService(AvanciraDbContext dbContext)
     {
         _dbContext = dbContext;
+    }
+
+    public async Task StoreSessionAsync(string userId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
+    {
+        var existingSession = await _dbContext.Sessions
+            .Include(s => s.RefreshTokens)
+            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+        await using var tx = await _dbContext.Database.BeginTransactionAsync();
+
+        if (existingSession != null)
+        {
+            _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
+            _dbContext.Sessions.Remove(existingSession);
+        }
+
+        var now = DateTime.UtcNow;
+        var session = new Session
+        {
+            UserId = userId,
+            Device = clientInfo.DeviceId,
+            UserAgent = clientInfo.UserAgent,
+            OperatingSystem = clientInfo.OperatingSystem,
+            IpAddress = clientInfo.IpAddress,
+            Country = clientInfo.Country,
+            City = clientInfo.City,
+            CreatedUtc = now,
+            LastActivityUtc = now,
+            LastRefreshUtc = now,
+            AbsoluteExpiryUtc = refreshExpiry
+        };
+
+        session.RefreshTokens.Add(new RefreshToken
+        {
+            TokenHash = TokenUtilities.HashToken(refreshToken),
+            CreatedUtc = now,
+            AbsoluteExpiryUtc = refreshExpiry
+        });
+
+        _dbContext.Sessions.Add(session);
+        await _dbContext.SaveChangesAsync();
+        await tx.CommitAsync();
     }
 
     public Task<bool> ValidateSessionAsync(string userId, Guid sessionId) =>

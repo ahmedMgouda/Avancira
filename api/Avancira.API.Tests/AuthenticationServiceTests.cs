@@ -48,7 +48,8 @@ public class AuthenticationServiceTests
         var signInManager = new Mock<SignInManager<User>>(userManager.Object, contextAccessor.Object, claimsFactory.Object, null, null, null, null);
 
         var jwtOptions = Options.Create(new JwtOptions());
-        var service = new AuthenticationService(httpFactory, clientInfoService, dbContext, userManager.Object, signInManager.Object, jwtOptions);
+        var sessionService = new SessionService(dbContext);
+        var service = new AuthenticationService(httpFactory, clientInfoService, userManager.Object, signInManager.Object, jwtOptions, sessionService);
 
         var userId = "user1";
         await service.GenerateTokenAsync(userId);
