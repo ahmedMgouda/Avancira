@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Json;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Domain.Common.Exceptions;
 
@@ -28,7 +29,8 @@ public class TokenEndpointClient : ITokenEndpointClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new TokenRequestException(response.StatusCode);
+            var problem = await response.Content.ReadFromJsonAsync<TokenRequestProblemDetails>();
+            throw new TokenRequestException(problem?.Error, problem?.ErrorDescription, response.StatusCode);
         }
 
         await using var stream = await response.Content.ReadAsStreamAsync();

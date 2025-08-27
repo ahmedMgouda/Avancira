@@ -55,7 +55,12 @@ public class TokenEndpointClientTests
     [Fact]
     public async Task RequestTokenAsync_NonSuccessResponse_ThrowsTokenRequestException()
     {
-        var handler = new StubHttpMessageHandler(string.Empty, HttpStatusCode.BadRequest);
+        var errorJson = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["error"] = "invalid_request",
+            ["error_description"] = "bad request"
+        });
+        var handler = new StubHttpMessageHandler(errorJson, HttpStatusCode.BadRequest);
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
@@ -63,6 +68,8 @@ public class TokenEndpointClientTests
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => client.RequestTokenAsync(TokenRequestBuilder.BuildUserIdGrantRequest("u")));
         ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        ex.Error.Should().Be("invalid_request");
+        ex.ErrorDescription.Should().Be("bad request");
     }
 
     private class StubHttpClientFactory : IHttpClientFactory
