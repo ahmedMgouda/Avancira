@@ -22,18 +22,11 @@ public class PasswordGrantHandler : IOpenIddictServerHandler<HandleTokenRequestC
         var email = context.Request.Username;
         var password = context.Request.Password;
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            context.Reject(OpenIddictConstants.Errors.InvalidGrant,
-                "The username or password cannot be empty.");
-            return;
-        }
-
         var user = await _userAuthenticationService.ValidateCredentialsAsync(email, password);
         if (user is null)
         {
             context.Reject(OpenIddictConstants.Errors.InvalidGrant,
-                "The username or password is invalid.");
+                "Invalid username or password.");
             return;
         }
 
