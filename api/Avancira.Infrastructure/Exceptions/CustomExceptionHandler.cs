@@ -28,6 +28,20 @@ public class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : IE
             problemDetails.Extensions.Add("errors", validationErrors);
         }
 
+        else if (exception is TokenRequestException tokenEx)
+        {
+            httpContext.Response.StatusCode = (int)tokenEx.StatusCode;
+            problemDetails.Detail = tokenEx.ErrorDescription ?? tokenEx.Message;
+            if (!string.IsNullOrEmpty(tokenEx.Error))
+            {
+                problemDetails.Extensions.Add("error", tokenEx.Error);
+            }
+            if (!string.IsNullOrEmpty(tokenEx.ErrorDescription))
+            {
+                problemDetails.Extensions.Add("error_description", tokenEx.ErrorDescription);
+            }
+        }
+
         else if (exception is AvanciraException e)
         {
             httpContext.Response.StatusCode = (int)e.StatusCode;

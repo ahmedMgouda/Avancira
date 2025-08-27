@@ -64,12 +64,14 @@ public class AuthenticationServiceTests
     public async Task GenerateTokenAsync_NonSuccessResponse_ThrowsTokenRequestException()
     {
         var clientInfoService = new StubClientInfoService(new ClientInfo());
-        var tokenClient = new StubTokenEndpointClient(new TokenRequestException(System.Net.HttpStatusCode.BadRequest));
+        var tokenClient = new StubTokenEndpointClient(new TokenRequestException("invalid_request", "bad request", System.Net.HttpStatusCode.BadRequest));
         var sessionService = new Mock<ISessionService>().Object;
         var service = new AuthenticationService(clientInfoService, tokenClient, sessionService);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
         ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        ex.Error.Should().Be("invalid_request");
+        ex.ErrorDescription.Should().Be("bad request");
     }
 
     [Fact]
