@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -50,6 +51,15 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddOptions<CookieOptions>()
+            .BindConfiguration("Cookies")
+            .PostConfigure(options =>
+            {
+                if (options.SameSite == SameSiteMode.Unspecified)
+                {
+                    options.SameSite = SameSiteMode.Lax;
+                }
+            });
         builder.Services.AddHttpClient("TokenClient", (sp, client) =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();

@@ -2,6 +2,7 @@ using Avancira.Infrastructure.Auth;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Moq;
 using System;
 using Xunit;
@@ -15,7 +16,8 @@ public class RefreshTokenCookieServiceTests
         envMock.SetupGet(e => e.EnvironmentName).Returns(Environments.Production);
         var context = new DefaultHttpContext();
         var accessor = new HttpContextAccessor { HttpContext = context };
-        var service = new RefreshTokenCookieService(accessor, envMock.Object);
+        var options = Options.Create(new CookieOptions { SameSite = SameSiteMode.Lax });
+        var service = new RefreshTokenCookieService(accessor, envMock.Object, options);
 
         var expires = DateTime.UtcNow.AddDays(1);
         service.SetRefreshTokenCookie("token123", expires);
@@ -24,7 +26,7 @@ public class RefreshTokenCookieServiceTests
         setCookie.Should().Contain("refreshtoken=token123");
         setCookie.Should().Contain("path=/");
         setCookie.Should().Contain("httponly");
-        setCookie.Should().Contain("samesite=none");
+        setCookie.Should().Contain("samesite=lax");
         setCookie.Should().Contain("secure");
         setCookie.Should().Contain("expires=");
     }
@@ -36,7 +38,8 @@ public class RefreshTokenCookieServiceTests
         envMock.SetupGet(e => e.EnvironmentName).Returns(Environments.Production);
         var context = new DefaultHttpContext();
         var accessor = new HttpContextAccessor { HttpContext = context };
-        var service = new RefreshTokenCookieService(accessor, envMock.Object);
+        var options = Options.Create(new CookieOptions { SameSite = SameSiteMode.Lax });
+        var service = new RefreshTokenCookieService(accessor, envMock.Object, options);
 
         service.SetRefreshTokenCookie("token456", null);
 
@@ -44,7 +47,7 @@ public class RefreshTokenCookieServiceTests
         setCookie.Should().Contain("refreshtoken=token456");
         setCookie.Should().Contain("path=/");
         setCookie.Should().Contain("httponly");
-        setCookie.Should().Contain("samesite=none");
+        setCookie.Should().Contain("samesite=lax");
         setCookie.Should().Contain("secure");
         setCookie.Should().NotContain("expires=");
     }
@@ -56,7 +59,8 @@ public class RefreshTokenCookieServiceTests
         envMock.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
         var context = new DefaultHttpContext();
         var accessor = new HttpContextAccessor { HttpContext = context };
-        var service = new RefreshTokenCookieService(accessor, envMock.Object);
+        var options = Options.Create(new CookieOptions { SameSite = SameSiteMode.Lax });
+        var service = new RefreshTokenCookieService(accessor, envMock.Object, options);
 
         service.SetRefreshTokenCookie("token789", null);
 

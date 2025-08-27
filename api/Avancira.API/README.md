@@ -23,3 +23,10 @@ If a provider's configuration is missing or incomplete, the application logs a w
 - `DELETE /api/auth/sessions/{id}` – revoke a single session by its ID.
 - `POST /api/auth/sessions/batch` – revoke multiple sessions by providing a list of session IDs.
 
+## Cookie configuration
+
+Refresh token and device identifier cookies use `SameSite=Lax` by default to balance
+security and usability. The value can be overridden for cross-site scenarios by
+setting the `Cookies:SameSite` configuration value (`Cookies__SameSite` environment
+variable) to `Strict`, `Lax`, or `None` as needed.
+
