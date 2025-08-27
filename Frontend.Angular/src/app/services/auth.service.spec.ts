@@ -23,7 +23,9 @@ describe('AuthService', () => {
       'refreshToken',
       'initCodeFlow',
       'logOut',
-      'getIdentityClaims'
+      'getIdentityClaims',
+      'processIdToken',
+      'tryLogin'
     ]);
 
     routerSpy = jasmine.createSpyObj('Router', ['navigateByUrl', 'createUrlTree']);

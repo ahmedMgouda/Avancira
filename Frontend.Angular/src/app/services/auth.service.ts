@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Observable, Subject, from, of, throwError } from 'rxjs';
-import { finalize, map, catchError, tap } from 'rxjs/operators';
+import { finalize, map, catchError, tap, switchMap } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -13,7 +13,6 @@ import { TokenResponse } from '../models/token-response';
 import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 import { SessionService } from './session.service';
-import jwtDecode from 'jwt-decode';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -114,24 +113,14 @@ export class AuthService {
         }
       )
       .pipe(
-        tap(resp => {
-          this.oauth.getStorage().setItem('access_token', resp.token);
-
-          try {
-            const decoded: { exp?: number } = jwtDecode(resp.token);
-            if (decoded.exp) {
-              const expiresAt = decoded.exp * 1000;
-              this.oauth
-                .getStorage()
-                .setItem('expires_at', expiresAt.toString());
-            }
-          } catch {
-            /* no-op */
-          }
-
-          this.router.navigateByUrl(returnUrl);
-        }),
-        catchError(err => throwError(() => err))
+        switchMap(resp =>
+          from(this.oauth.processIdToken(resp.token)).pipe(
+            switchMap(() => from(this.oauth.tryLogin())),
+            tap(() => this.router.navigateByUrl(returnUrl)),
+            map(() => resp),
+          ),
+        ),
+        catchError(err => throwError(() => err)),
       );
   }
 
