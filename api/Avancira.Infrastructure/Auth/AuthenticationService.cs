@@ -101,12 +101,10 @@ public class AuthenticationService : IAuthenticationService
             var userId = GetUserId(jwt);
             var sessionId = GetSessionId(jwt);
 
-            var oldRefreshHash = TokenUtilities.HashToken(refreshToken, _options.Secret);
-            var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
+            var info = await _sessionService.GetRefreshTokenInfoAsync(refreshToken);
             if (info != null && info.Value.UserId == userId && info.Value.SessionId == sessionId)
             {
-                var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken, _options.Secret);
-                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
+                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, pair.RefreshToken, pair.RefreshTokenExpiryTime);
             }
         });
     }

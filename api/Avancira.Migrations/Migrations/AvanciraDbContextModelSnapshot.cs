@@ -97,6 +97,10 @@ namespace Avancira.Migrations.Migrations
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Salt")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");

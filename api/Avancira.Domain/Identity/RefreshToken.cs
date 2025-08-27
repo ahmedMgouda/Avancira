@@ -5,6 +5,7 @@ using Avancira.Domain.Common;
 public class RefreshToken : BaseEntity<Guid>
 {
     public string TokenHash { get; set; } = default!;
+    public string Salt { get; set; } = default!;
     public Guid SessionId { get; set; }
     public Guid? RotatedFromId { get; set; }
     public DateTime CreatedUtc { get; set; }

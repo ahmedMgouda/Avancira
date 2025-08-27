@@ -58,7 +58,7 @@ public class AuthenticationServiceTests
 
         await service.GenerateTokenAsync(userId);
         var storedToken = await dbContext.RefreshTokens.SingleAsync();
-        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1", "secret"));
+        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1", "secret", storedToken.Salt));
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
         firstSessionId.Should().Be(sid1);
 
@@ -145,9 +145,11 @@ public class AuthenticationServiceTests
             LastActivityUtc = oldTime,
             AbsoluteExpiryUtc = oldTime.AddHours(1)
         };
+        var salt = TokenUtilities.GenerateSalt();
         var token = new RefreshToken
         {
-            TokenHash = "old",
+            TokenHash = TokenUtilities.HashToken("old", "secret", salt),
+            Salt = salt,
             CreatedUtc = oldTime,
             AbsoluteExpiryUtc = oldTime.AddHours(1)
         };
@@ -194,13 +196,16 @@ public class AuthenticationServiceTests
         var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
 
         await service.GenerateTokenAsync("user1");
-        var originalHash = TokenUtilities.HashToken("refresh1", "secret");
+        var storedToken = await dbContext.RefreshTokens.SingleAsync();
+        var originalHash = storedToken.TokenHash;
+        var originalSalt = storedToken.Salt;
 
         await service.RefreshTokenAsync("refresh1");
 
         (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
-        var storedToken = await dbContext.RefreshTokens.SingleAsync();
+        storedToken = await dbContext.RefreshTokens.SingleAsync();
         storedToken.TokenHash.Should().Be(originalHash);
+        storedToken.Salt.Should().Be(originalSalt);
         storedToken.RevokedUtc.Should().BeNull();
     }
 

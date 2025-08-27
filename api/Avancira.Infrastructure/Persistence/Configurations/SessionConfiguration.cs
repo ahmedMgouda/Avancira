@@ -36,6 +36,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.ToTable("RefreshTokens", IdentityConstants.SchemaName);
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.Salt).IsRequired();
         builder.HasOne(r => r.Session)
             .WithMany(s => s.RefreshTokens)
             .HasForeignKey(r => r.SessionId)
