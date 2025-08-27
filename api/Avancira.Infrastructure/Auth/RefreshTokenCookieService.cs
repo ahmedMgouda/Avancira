@@ -23,7 +23,7 @@ public class RefreshTokenCookieService : IRefreshTokenCookieService
         {
             HttpOnly = true,
             SameSite = SameSiteMode.None,
-            Path = "/",
+            Path = AuthConstants.Cookies.PathRoot,
             Secure = !_environment.IsDevelopment()
         };
 
@@ -32,7 +32,7 @@ public class RefreshTokenCookieService : IRefreshTokenCookieService
             options.Expires = expires.Value;
         }
 
-        context.Response.Cookies.Append("refreshToken", refreshToken, options);
+        context.Response.Cookies.Append(AuthConstants.Cookies.RefreshToken, refreshToken, options);
     }
 }
 

@@ -2,10 +2,12 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Avancira.Application.Common;
 using Avancira.Infrastructure.Auth;
+using System.Text.Json;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Identity.Tokens;
 using FluentAssertions;
@@ -37,7 +39,13 @@ public class AuthenticationServiceTests
         };
         var clientInfoService = new StubClientInfoService(clientInfo);
 
-        var handler = new StubHttpMessageHandler("{\"access_token\":\"token\",\"refresh_token\":\"refresh\",\"refresh_token_expires_in\":3600}");
+        var json = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            [AuthConstants.Parameters.AccessToken] = "token",
+            [AuthConstants.Parameters.RefreshToken] = "refresh",
+            [AuthConstants.Parameters.RefreshTokenExpiresIn] = 3600
+        });
+        var handler = new StubHttpMessageHandler(json);
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
 

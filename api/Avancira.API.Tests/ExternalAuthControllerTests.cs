@@ -2,6 +2,7 @@ using Avancira.API.Controllers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
+using Avancira.Infrastructure.Auth;
 
 public class ExternalAuthControllerTests
 {
@@ -15,7 +16,7 @@ public class ExternalAuthControllerTests
         var result = controller.ExternalLogin(provider);
 
         result.Should().BeOfType<RedirectResult>()
-            .Which.Url.Should().Be($"/connect/authorize?provider={provider}");
+            .Which.Url.Should().Be($"{AuthConstants.Endpoints.Authorize}?{AuthConstants.Parameters.Provider}={provider}");
     }
 
     [Theory]

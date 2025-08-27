@@ -20,19 +20,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly JwtOptions _jwtOptions;
     private readonly ISessionService _sessionService;
 
-    private const string TokenEndpoint = "/connect/token";
-    private const string GrantType = "grant_type";
-    private const string Code = "code";
-    private const string RedirectUri = "redirect_uri";
-    private const string CodeVerifier = "code_verifier";
-    private const string DeviceId = "device_id";
-    private const string UserId = "user_id";
-    private const string Scope = "scope";
-    private const string RefreshToken = "refresh_token";
-    private const string AuthorizationCodeGrant = "authorization_code";
-    private const string UserIdGrant = "user_id";
-    private const string RefreshTokenGrant = "refresh_token";
-
     public AuthenticationService(
         IHttpClientFactory httpClientFactory,
         IClientInfoService clientInfoService,
@@ -49,10 +36,10 @@ public class AuthenticationService : IAuthenticationService
     {
         var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            [GrantType] = AuthorizationCodeGrant,
-            [Code] = code,
-            [RedirectUri] = redirectUri,
-            [CodeVerifier] = codeVerifier
+            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.AuthorizationCode,
+            [AuthConstants.Parameters.Code] = code,
+            [AuthConstants.Parameters.RedirectUri] = redirectUri,
+            [AuthConstants.Parameters.CodeVerifier] = codeVerifier
         });
 
         return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
@@ -62,9 +49,9 @@ public class AuthenticationService : IAuthenticationService
     {
         var (response, clientInfo) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            [GrantType] = UserIdGrant,
-            [UserId] = userId,
-            [Scope] = "api offline_access"
+            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.UserId,
+            [AuthConstants.Parameters.UserId] = userId,
+            [AuthConstants.Parameters.Scope] = "api offline_access"
         });
 
         return await HandleTokenResponseAsync(response, clientInfo, userId);
@@ -74,8 +61,8 @@ public class AuthenticationService : IAuthenticationService
     {
         var (response, _) = await RequestTokenAsync(new Dictionary<string, string?>
         {
-            [GrantType] = RefreshTokenGrant,
-            [RefreshToken] = refreshToken
+            [AuthConstants.Parameters.GrantType] = AuthConstants.GrantTypes.RefreshToken,
+            [AuthConstants.Parameters.RefreshToken] = refreshToken
         });
 
         var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
@@ -94,10 +81,10 @@ public class AuthenticationService : IAuthenticationService
     private async Task<(HttpResponseMessage Response, ClientInfo ClientInfo)> RequestTokenAsync(Dictionary<string, string?> values)
     {
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
-        values[DeviceId] = clientInfo.DeviceId;
+        values[AuthConstants.Parameters.DeviceId] = clientInfo.DeviceId;
 
         var content = BuildTokenRequest(values);
-        var response = await _httpClient.PostAsync(TokenEndpoint, content);
+        var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -137,10 +124,10 @@ public class AuthenticationService : IAuthenticationService
         using var document = await JsonDocument.ParseAsync(stream);
         var root = document.RootElement;
 
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty(RefreshToken).GetString() ?? string.Empty;
+        var token = root.GetProperty(AuthConstants.Parameters.AccessToken).GetString() ?? string.Empty;
+        var refresh = root.GetProperty(AuthConstants.Parameters.RefreshToken).GetString() ?? string.Empty;
         DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
+        if (root.TryGetProperty(AuthConstants.Parameters.RefreshTokenExpiresIn, out var exp))
         {
             refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
         }

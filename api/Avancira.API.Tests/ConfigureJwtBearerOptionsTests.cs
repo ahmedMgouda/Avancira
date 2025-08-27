@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Infrastructure.Auth.Jwt;
+using Avancira.Infrastructure.Auth;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -29,7 +30,7 @@ public class ConfigureJwtBearerOptionsTests
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim("sid", sessionId.ToString())
+            new Claim(AuthConstants.Claims.SessionId, sessionId.ToString())
         }));
 
         var context = new TokenValidatedContext(
@@ -59,7 +60,7 @@ public class ConfigureJwtBearerOptionsTests
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim("sid", sessionId.ToString())
+            new Claim(AuthConstants.Claims.SessionId, sessionId.ToString())
         }));
 
         var context = new TokenValidatedContext(

@@ -8,6 +8,7 @@ using System.Threading.RateLimiting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avancira.Infrastructure.Identity;
+using Avancira.Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,7 +91,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHub<NotificationHub>("/notification");
+app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
 app.MapControllers();
 
