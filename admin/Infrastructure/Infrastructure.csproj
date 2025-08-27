@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\api\Avancira.Shared\Avancira.Shared.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\..\api\Avancira.Infrastructure\Avancira.Infrastructure.csproj" />
   </ItemGroup>
 
   <Target Name="NSwag">
