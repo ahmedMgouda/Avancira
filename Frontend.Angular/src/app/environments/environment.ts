@@ -3,4 +3,8 @@ export const environment = {
   apiUrl: `https://localhost:9000/api`,
   frontendUrl: 'https://localhost:4200',
   useSignalR: true,
+  /** OAuth client identifier */
+  clientId: 'frontend',
+  /** Callback URL used after authentication */
+  redirectUri: 'https://localhost:4200/signin-callback',
 };
