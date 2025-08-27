@@ -32,8 +32,13 @@ public class TokenEndpointClientTests
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);
 
-        var builder = TokenRequestBuilder.BuildUserIdGrantRequest("user1");
-        var pair = await client.RequestTokenAsync(builder);
+        var parameters = new TokenRequestParams
+        {
+            GrantType = AuthConstants.GrantTypes.UserId,
+            UserId = "user1",
+            Scope = "api offline_access"
+        };
+        var pair = await client.RequestTokenAsync(parameters);
 
         pair.Token.Should().Be("token");
         pair.RefreshToken.Should().Be("refresh");
@@ -49,7 +54,12 @@ public class TokenEndpointClientTests
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);
 
-        await Assert.ThrowsAsync<UnauthorizedException>(() => client.RequestTokenAsync(TokenRequestBuilder.BuildUserIdGrantRequest("u")));
+        await Assert.ThrowsAsync<UnauthorizedException>(() => client.RequestTokenAsync(new TokenRequestParams
+        {
+            GrantType = AuthConstants.GrantTypes.UserId,
+            UserId = "u",
+            Scope = "api offline_access"
+        }));
     }
 
     [Fact]
@@ -58,7 +68,7 @@ public class TokenEndpointClientTests
         var errorJson = JsonSerializer.Serialize(new Dictionary<string, string>
         {
             ["error"] = "invalid_request",
-            ["error_description"] = "bad request"
+            ["error_description"] = "bad request",
         });
         var handler = new StubHttpMessageHandler(errorJson, HttpStatusCode.BadRequest);
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
@@ -66,7 +76,12 @@ public class TokenEndpointClientTests
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);
 
-        var ex = await Assert.ThrowsAsync<TokenRequestException>(() => client.RequestTokenAsync(TokenRequestBuilder.BuildUserIdGrantRequest("u")));
+        var ex = await Assert.ThrowsAsync<TokenRequestException>(() => client.RequestTokenAsync(new TokenRequestParams
+        {
+            GrantType = AuthConstants.GrantTypes.UserId,
+            UserId = "u",
+            Scope = "api offline_access"
+        }));
         ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         ex.Error.Should().Be("invalid_request");
         ex.ErrorDescription.Should().Be("bad request");
@@ -95,4 +110,3 @@ public class TokenEndpointClientTests
             });
     }
 }
-

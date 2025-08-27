@@ -4,6 +4,5 @@ namespace Avancira.Infrastructure.Auth;
 
 public interface ITokenEndpointClient
 {
-    Task<TokenPair> RequestTokenAsync(TokenRequestBuilder builder);
+    Task<TokenPair> RequestTokenAsync(TokenRequestParams parameters);
 }
-
