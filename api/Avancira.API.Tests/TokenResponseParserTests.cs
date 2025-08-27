@@ -49,4 +49,36 @@ public class TokenResponseParserTests
 
         await Assert.ThrowsAsync<TokenResponseParseException>(() => parser.ParseAsync(stream));
     }
+
+    [Fact]
+    public async Task ParseAsync_NegativeRefreshTokenExpiresIn_ThrowsTokenResponseParseException()
+    {
+        var json = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            [AuthConstants.Parameters.AccessToken] = "token",
+            [AuthConstants.Parameters.RefreshToken] = "refresh",
+            [AuthConstants.Parameters.RefreshTokenExpiresIn] = -1
+        });
+
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
+
+        await Assert.ThrowsAsync<TokenResponseParseException>(() => parser.ParseAsync(stream));
+    }
+
+    [Fact]
+    public async Task ParseAsync_RefreshTokenExpiresInTooLarge_ThrowsTokenResponseParseException()
+    {
+        var json = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            [AuthConstants.Parameters.AccessToken] = "token",
+            [AuthConstants.Parameters.RefreshToken] = "refresh",
+            [AuthConstants.Parameters.RefreshTokenExpiresIn] = int.MaxValue
+        });
+
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
+
+        await Assert.ThrowsAsync<TokenResponseParseException>(() => parser.ParseAsync(stream));
+    }
 }
