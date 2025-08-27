@@ -34,44 +34,50 @@ public class AuthenticationService : IAuthenticationService
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
     {
         var builder = TokenRequestBuilder.BuildAuthorizationCodeRequest(code, codeVerifier, redirectUri);
-        var (response, clientInfo) = await RequestTokenAsync(builder);
-
-        return await HandleTokenResponseAsync(response, clientInfo, string.Empty);
+        var (document, clientInfo) = await RequestTokenAsync(builder);
+        using (document)
+        {
+            return await HandleTokenResponseAsync(document, clientInfo, string.Empty);
+        }
     }
 
     public async Task<TokenPair> GenerateTokenAsync(string userId)
     {
         var builder = TokenRequestBuilder.BuildUserIdGrantRequest(userId);
-        var (response, clientInfo) = await RequestTokenAsync(builder);
-
-        return await HandleTokenResponseAsync(response, clientInfo, userId);
+        var (document, clientInfo) = await RequestTokenAsync(builder);
+        using (document)
+        {
+            return await HandleTokenResponseAsync(document, clientInfo, userId);
+        }
     }
 
     public async Task<TokenPair> RefreshTokenAsync(string refreshToken)
     {
         var builder = TokenRequestBuilder.BuildRefreshTokenRequest(refreshToken);
-        var (response, _) = await RequestTokenAsync(builder);
-
-        var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
-
-        var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
-        var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
-        if (info != null)
+        var (document, _) = await RequestTokenAsync(builder);
+        using (document)
         {
-            var newRefreshHash = TokenUtilities.HashToken(newRefresh);
-            await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, refreshExpiry);
-        }
+            var (token, newRefresh, refreshExpiry) = ParseTokenResponse(document);
 
-        return new TokenPair(token, newRefresh, refreshExpiry);
+            var oldRefreshHash = TokenUtilities.HashToken(refreshToken);
+            var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
+            if (info != null)
+            {
+                var newRefreshHash = TokenUtilities.HashToken(newRefresh);
+                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, refreshExpiry);
+            }
+
+            return new TokenPair(token, newRefresh, refreshExpiry);
+        }
     }
 
-    private async Task<(HttpResponseMessage Response, ClientInfo ClientInfo)> RequestTokenAsync(TokenRequestBuilder builder)
+    private async Task<(JsonDocument Document, ClientInfo ClientInfo)> RequestTokenAsync(TokenRequestBuilder builder)
     {
         var clientInfo = await _clientInfoService.GetClientInfoAsync();
         builder.WithDeviceId(clientInfo.DeviceId);
 
         var content = builder.Build();
-        var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
+        using var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -83,12 +89,15 @@ public class AuthenticationService : IAuthenticationService
             throw new TokenRequestException(response.StatusCode);
         }
 
-        return (response, clientInfo);
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        var document = await JsonDocument.ParseAsync(stream);
+
+        return (document, clientInfo);
     }
 
-    private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
+    private async Task<TokenPair> HandleTokenResponseAsync(JsonDocument document, ClientInfo clientInfo, string userId)
     {
-        var (token, refresh, refreshExpiry) = await ParseTokenResponseAsync(response);
+        var (token, refresh, refreshExpiry) = ParseTokenResponse(document);
 
         if (string.IsNullOrEmpty(userId))
         {
@@ -102,10 +111,8 @@ public class AuthenticationService : IAuthenticationService
         return new TokenPair(token, refresh, refreshExpiry);
     }
 
-    private async Task<(string Token, string RefreshToken, DateTime RefreshExpiry)> ParseTokenResponseAsync(HttpResponseMessage response)
+    private (string Token, string RefreshToken, DateTime RefreshExpiry) ParseTokenResponse(JsonDocument document)
     {
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
         var root = document.RootElement;
 
         var token = root.GetProperty(AuthConstants.Parameters.AccessToken).GetString() ?? string.Empty;
