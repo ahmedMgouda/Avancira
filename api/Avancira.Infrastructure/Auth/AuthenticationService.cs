@@ -58,8 +58,9 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, clientInfo) =>
         {
-            var userId = GetUserId(pair.Token);
-            var sessionId = GetSessionId(pair.Token);
+            var jwt = ParseToken(pair.Token);
+            var userId = GetUserId(jwt);
+            var sessionId = GetSessionId(jwt);
             await _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
         });
     }
@@ -77,8 +78,10 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, (pair, clientInfo) =>
         {
-            var sessionId = GetSessionId(pair.Token);
-            return _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+            var jwt = ParseToken(pair.Token);
+            var tokenUserId = GetUserId(jwt);
+            var sessionId = GetSessionId(jwt);
+            return _sessionService.StoreSessionAsync(tokenUserId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
         });
     }
 
@@ -94,9 +97,13 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, _) =>
         {
+            var jwt = ParseToken(pair.Token);
+            var userId = GetUserId(jwt);
+            var sessionId = GetSessionId(jwt);
+
             var oldRefreshHash = TokenUtilities.HashToken(refreshToken, _options.Secret);
             var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
-            if (info != null)
+            if (info != null && info.Value.UserId == userId)
             {
                 var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken, _options.Secret);
                 await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
@@ -121,7 +128,7 @@ public class AuthenticationService : IAuthenticationService
         return pair;
     }
 
-    private JwtSecurityToken ValidateToken(string token)
+    private JwtSecurityToken ParseToken(string token)
     {
         var handler = new JwtSecurityTokenHandler();
         var parameters = new TokenValidationParameters
@@ -147,15 +154,10 @@ public class AuthenticationService : IAuthenticationService
         }
     }
 
-    private string GetUserId(string token)
-    {
-        var jwt = ValidateToken(token);
-        return jwt.Subject ?? string.Empty;
-    }
+    private static string GetUserId(JwtSecurityToken jwt) => jwt.Subject ?? string.Empty;
 
-    private Guid GetSessionId(string token)
+    private static Guid GetSessionId(JwtSecurityToken jwt)
     {
-        var jwt = ValidateToken(token);
         var sid = jwt.Claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
         return Guid.TryParse(sid, out var id) ? id : Guid.Empty;
     }
