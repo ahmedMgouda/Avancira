@@ -8,6 +8,7 @@ export interface Session {
   city?: string;
   createdUtc: string;
   lastActivityUtc: string;
+  lastRefreshUtc: string;
   absoluteExpiryUtc: string;
   revokedUtc?: string;
 }

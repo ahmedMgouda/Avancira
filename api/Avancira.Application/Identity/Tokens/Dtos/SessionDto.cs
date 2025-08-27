@@ -10,5 +10,6 @@ public record SessionDto(
     string? City,
     DateTime CreatedUtc,
     DateTime LastActivityUtc,
+    DateTime LastRefreshUtc,
     DateTime AbsoluteExpiryUtc,
     DateTime? RevokedUtc);

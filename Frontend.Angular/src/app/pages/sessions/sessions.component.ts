@@ -47,6 +47,11 @@ export class SessionsComponent implements OnInit {
       { key: 'country', label: 'Country' },
       { key: 'city', label: 'City' },
       {
+        key: 'lastRefreshUtc',
+        label: 'Last Refresh',
+        formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
+      },
+      {
         key: 'lastActivityUtc',
         label: 'Last Active',
         formatter: (value: any) => value ? new Date(value).toLocaleString() : ''

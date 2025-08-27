@@ -73,7 +73,19 @@ public class SessionService : ISessionService
     {
         var sessions = await _dbContext.Sessions
             .Where(s => s.UserId == userId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
-            .ProjectToType<SessionDto>()
+            .Select(s => new SessionDto(
+                s.Id,
+                s.Device,
+                s.UserAgent,
+                s.OperatingSystem,
+                s.IpAddress,
+                s.Country,
+                s.City,
+                s.CreatedUtc,
+                s.LastActivityUtc,
+                s.LastRefreshUtc,
+                s.AbsoluteExpiryUtc,
+                s.RevokedUtc))
             .ToListAsync();
 
         return sessions;
