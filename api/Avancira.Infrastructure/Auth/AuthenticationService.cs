@@ -19,7 +19,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITokenEndpointClient _tokenClient;
     private readonly ISessionService _sessionService;
     private readonly IValidator<TokenRequestParams> _validator;
-    private readonly TokenHashingOptions _options;
     private readonly JwtOptions _jwtOptions;
     private readonly string _scope;
     private readonly IRefreshTokenCookieService _refreshTokenCookieService;
@@ -29,7 +28,6 @@ public class AuthenticationService : IAuthenticationService
         ITokenEndpointClient tokenClient,
         ISessionService sessionService,
         IValidator<TokenRequestParams> validator,
-        IOptions<TokenHashingOptions> options,
         IOptions<JwtOptions> jwtOptions,
         IOptions<AuthScopeOptions> scopeOptions,
         IRefreshTokenCookieService refreshTokenCookieService)
@@ -38,7 +36,6 @@ public class AuthenticationService : IAuthenticationService
         _tokenClient = tokenClient;
         _sessionService = sessionService;
         _validator = validator;
-        _options = options.Value;
         _jwtOptions = jwtOptions.Value;
         _scope = scopeOptions.Value.Scope;
         _refreshTokenCookieService = refreshTokenCookieService;
@@ -61,7 +58,7 @@ public class AuthenticationService : IAuthenticationService
             var jwt = ParseToken(pair.Token);
             var userId = GetUserId(jwt);
             var sessionId = GetSessionId(jwt);
-            await _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+            await _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshTokenExpiryTime);
         });
     }
 
@@ -81,7 +78,7 @@ public class AuthenticationService : IAuthenticationService
             var jwt = ParseToken(pair.Token);
             var tokenUserId = GetUserId(jwt);
             var sessionId = GetSessionId(jwt);
-            return _sessionService.StoreSessionAsync(tokenUserId, sessionId, clientInfo, pair.RefreshToken, pair.RefreshTokenExpiryTime);
+            return _sessionService.StoreSessionAsync(tokenUserId, sessionId, clientInfo, pair.RefreshTokenExpiryTime);
         });
     }
 
@@ -100,12 +97,7 @@ public class AuthenticationService : IAuthenticationService
             var jwt = ParseToken(pair.Token);
             var userId = GetUserId(jwt);
             var sessionId = GetSessionId(jwt);
-
-            var info = await _sessionService.GetRefreshTokenInfoAsync(refreshToken);
-            if (info != null && info.Value.UserId == userId && info.Value.SessionId == sessionId)
-            {
-                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, pair.RefreshToken, pair.RefreshTokenExpiryTime);
-            }
+            await _sessionService.UpdateSessionAsync(userId, sessionId, pair.RefreshTokenExpiryTime);
         });
     }
 

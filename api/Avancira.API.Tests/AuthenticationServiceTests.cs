@@ -48,24 +48,20 @@ public class AuthenticationServiceTests
         var pair2 = new TokenPair(CreateToken(userId, sid2), "refresh2", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair1, pair2);
 
-        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
-        var sessionService = new SessionService(dbContext, hashingOptions);
+        var sessionService = new SessionService(dbContext);
         var validator = new TokenRequestParamsValidator();
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         await service.GenerateTokenAsync(userId);
-        var storedToken = await dbContext.RefreshTokens.SingleAsync();
-        storedToken.TokenHash.Should().Be(TokenUtilities.HashToken("refresh1", "secret", storedToken.Salt));
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
         firstSessionId.Should().Be(sid1);
 
         await service.GenerateTokenAsync(userId);
 
         (await dbContext.Sessions.CountAsync()).Should().Be(1);
-        (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
         var secondSessionId = (await dbContext.Sessions.SingleAsync()).Id;
         secondSessionId.Should().Be(sid2);
         secondSessionId.Should().NotBe(firstSessionId);
@@ -79,11 +75,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         await service.GenerateTokenAsync("user1");
 
@@ -97,11 +92,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(new UnauthorizedException());
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -113,100 +107,15 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(new TokenRequestException("invalid_request", "bad request", System.Net.HttpStatusCode.BadRequest));
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var options = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, options, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
         ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
         ex.Error.Should().Be("invalid_request");
         ex.ErrorDescription.Should().Be("bad request");
-    }
-
-    [Fact]
-    public async Task RotateRefreshTokenAsync_UpdatesLastActivityUtc()
-    {
-        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        await using var dbContext = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
-        var service = new SessionService(dbContext, Options.Create(new TokenHashingOptions { Secret = "secret" }));
-
-        var oldTime = DateTime.UtcNow.AddMinutes(-10);
-        var session = new Session
-        {
-            UserId = "user1",
-            Device = "device1",
-            IpAddress = "127.0.0.1",
-            CreatedUtc = oldTime,
-            LastRefreshUtc = oldTime,
-            LastActivityUtc = oldTime,
-            AbsoluteExpiryUtc = oldTime.AddHours(1)
-        };
-        var salt = TokenUtilities.GenerateSalt();
-        var token = new RefreshToken
-        {
-            TokenHash = TokenUtilities.HashToken("old", "secret", salt),
-            Salt = salt,
-            CreatedUtc = oldTime,
-            AbsoluteExpiryUtc = oldTime.AddHours(1)
-        };
-        session.RefreshTokens.Add(token);
-        dbContext.Sessions.Add(session);
-        await dbContext.SaveChangesAsync();
-
-        var newExpiry = DateTime.UtcNow.AddHours(2);
-        await service.RotateRefreshTokenAsync(token.Id, "new", newExpiry);
-
-        var updatedSession = await dbContext.Sessions.SingleAsync();
-        updatedSession.LastActivityUtc.Should().BeAfter(oldTime);
-        updatedSession.LastActivityUtc.Should().Be(updatedSession.LastRefreshUtc);
-    }
-
-    [Fact]
-    public async Task RefreshTokenAsync_SessionIdMismatch_DoesNotRotateToken()
-    {
-        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        await using var dbContext = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
-        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
-        var sessionService = new SessionService(dbContext, hashingOptions);
-        var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
-        var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
-        var cookieService = new Mock<IRefreshTokenCookieService>();
-
-        var clientInfo = new ClientInfo
-        {
-            DeviceId = "device1",
-            IpAddress = "127.0.0.1",
-            UserAgent = "agent",
-            OperatingSystem = "os"
-        };
-        var clientInfoService = new StubClientInfoService(clientInfo);
-
-        var sid1 = Guid.NewGuid();
-        var sid2 = Guid.NewGuid();
-        var pair1 = new TokenPair(CreateToken("user1", sid1), "refresh1", DateTime.UtcNow.AddHours(1));
-        var pair2 = new TokenPair(CreateToken("user1", sid2), "refresh2", DateTime.UtcNow.AddHours(1));
-        var tokenClient = new StubTokenEndpointClient(pair1, pair2);
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
-
-        await service.GenerateTokenAsync("user1");
-        var storedToken = await dbContext.RefreshTokens.SingleAsync();
-        var originalHash = storedToken.TokenHash;
-        var originalSalt = storedToken.Salt;
-
-        await service.RefreshTokenAsync("refresh1");
-
-        (await dbContext.RefreshTokens.CountAsync()).Should().Be(1);
-        storedToken = await dbContext.RefreshTokens.SingleAsync();
-        storedToken.TokenHash.Should().Be(originalHash);
-        storedToken.Salt.Should().Be(originalSalt);
-        storedToken.RevokedUtc.Should().BeNull();
     }
 
     [Fact]
@@ -218,11 +127,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -237,11 +145,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var hashingOptions = Options.Create(new TokenHashingOptions { Secret = "secret" });
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, hashingOptions, jwtOptions, scopeOptions, cookieService.Object);
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }
