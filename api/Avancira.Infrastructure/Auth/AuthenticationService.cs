@@ -25,7 +25,7 @@ public class AuthenticationService : IAuthenticationService
         IOptions<JwtOptions> jwtOptions,
         ISessionService sessionService)
     {
-        _httpClient = httpClientFactory.CreateClient();
+        _httpClient = httpClientFactory.CreateClient("TokenClient");
         _clientInfoService = clientInfoService;
         _jwtOptions = jwtOptions.Value;
         _sessionService = sessionService;
