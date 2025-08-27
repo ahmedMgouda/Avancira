@@ -53,9 +53,11 @@ public class SessionService : ISessionService
             AbsoluteExpiryUtc = refreshExpiry
         };
 
+        var (salt, hash) = TokenUtilities.HashToken(refreshToken, _options.Secret);
         session.RefreshTokens.Add(new RefreshToken
         {
-            TokenHash = TokenUtilities.HashToken(refreshToken, _options.Secret),
+            TokenHash = hash,
+            TokenSalt = salt,
             CreatedUtc = now,
             AbsoluteExpiryUtc = refreshExpiry
         });
@@ -122,21 +124,25 @@ public class SessionService : ISessionService
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string tokenHash)
+    public async Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string refreshToken)
     {
-        var token = await _dbContext.RefreshTokens
+        var tokens = await _dbContext.RefreshTokens
             .AsNoTracking()
-            .Where(rt => rt.TokenHash == tokenHash && rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow)
-            .Select(rt => new { rt.Id, rt.Session.UserId })
-            .SingleOrDefaultAsync();
+            .Where(rt => rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow)
+            .Select(rt => new { rt.Id, rt.Session.UserId, rt.TokenHash, rt.TokenSalt })
+            .ToListAsync();
 
-        if (token == null)
-            return null;
+        foreach (var token in tokens)
+        {
+            var (_, hash) = TokenUtilities.HashToken(refreshToken, _options.Secret, token.TokenSalt);
+            if (hash == token.TokenHash)
+                return (token.UserId, token.Id);
+        }
 
-        return (token.UserId, token.Id);
+        return null;
     }
 
-    public async Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, DateTime newExpiry)
+    public async Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, byte[] newRefreshTokenSalt, DateTime newExpiry)
     {
         var token = await _dbContext.RefreshTokens
             .Include(rt => rt.Session)
@@ -156,6 +162,7 @@ public class SessionService : ISessionService
         session.RefreshTokens.Add(new RefreshToken
         {
             TokenHash = newRefreshTokenHash,
+            TokenSalt = newRefreshTokenSalt,
             CreatedUtc = now,
             AbsoluteExpiryUtc = newExpiry,
             RotatedFromId = token.Id

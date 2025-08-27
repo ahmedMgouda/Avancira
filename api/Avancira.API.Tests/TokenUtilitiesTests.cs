@@ -15,8 +15,8 @@ public class TokenUtilitiesTests
         var salt1 = RandomNumberGenerator.GetBytes(16);
         var salt2 = RandomNumberGenerator.GetBytes(16);
 
-        var hash1 = TokenUtilities.HashToken(token, secret, salt1);
-        var hash2 = TokenUtilities.HashToken(token, secret, salt2);
+        var (_, hash1) = TokenUtilities.HashToken(token, secret, salt1);
+        var (_, hash2) = TokenUtilities.HashToken(token, secret, salt2);
 
         hash1.Should().NotBe(hash2);
     }
@@ -30,6 +30,7 @@ public class TokenUtilitiesTests
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         var expected = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(token).Concat(salt).ToArray()));
 
-        TokenUtilities.HashToken(token, secret, salt).Should().Be(expected);
+        var (_, hash) = TokenUtilities.HashToken(token, secret, salt);
+        hash.Should().Be(expected);
     }
 }

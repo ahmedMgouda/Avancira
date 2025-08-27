@@ -94,12 +94,11 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, _) =>
         {
-            var oldRefreshHash = TokenUtilities.HashToken(refreshToken, _options.Secret);
-            var info = await _sessionService.GetRefreshTokenInfoAsync(oldRefreshHash);
+            var info = await _sessionService.GetRefreshTokenInfoAsync(refreshToken);
             if (info != null)
             {
-                var newRefreshHash = TokenUtilities.HashToken(pair.RefreshToken, _options.Secret);
-                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, pair.RefreshTokenExpiryTime);
+                var (salt, hash) = TokenUtilities.HashToken(pair.RefreshToken, _options.Secret);
+                await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, hash, salt, pair.RefreshTokenExpiryTime);
             }
         });
     }
