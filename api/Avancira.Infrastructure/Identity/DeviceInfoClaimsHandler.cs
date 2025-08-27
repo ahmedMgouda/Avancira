@@ -1,6 +1,7 @@
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using static OpenIddict.Server.OpenIddictServerEvents;
+using Avancira.Infrastructure.Auth;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -14,11 +15,11 @@ public class DeviceInfoClaimsHandler : IOpenIddictServerHandler<ProcessSignInCon
             return ValueTask.CompletedTask;
         }
 
-        var deviceId = (string?)request["device_id"];
+        var deviceId = (string?)request[AuthConstants.Claims.DeviceId];
 
         if (!string.IsNullOrEmpty(deviceId))
         {
-            context.Principal.SetClaim("device_id", deviceId);
+            context.Principal.SetClaim(AuthConstants.Claims.DeviceId, deviceId);
         }
 
         return ValueTask.CompletedTask;

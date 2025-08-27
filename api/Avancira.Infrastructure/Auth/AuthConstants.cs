@@ -28,6 +28,7 @@ public static class AuthConstants
     public static class Claims
     {
         public const string SessionId = "sid";
+        public const string DeviceId = "device_id";
     }
 
     public static class GrantTypes

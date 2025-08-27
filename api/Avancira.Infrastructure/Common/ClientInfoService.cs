@@ -1,6 +1,7 @@
 using Avancira.Application.Common;
 using Avancira.Application.Catalog;
 using Avancira.Infrastructure.Common.Extensions;
+using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using UAParser;
@@ -31,11 +32,11 @@ public class ClientInfoService : IClientInfoService
     {
         var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
 
-        var deviceId = context.Request.Cookies["device_id"];
+        var deviceId = context.Request.Cookies[AuthConstants.Claims.DeviceId];
         if (string.IsNullOrEmpty(deviceId))
         {
             deviceId = Guid.NewGuid().ToString();
-            context.Response.Cookies.Append("device_id", deviceId, new CookieOptions
+            context.Response.Cookies.Append(AuthConstants.Claims.DeviceId, deviceId, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = !_environment.IsDevelopment(),
