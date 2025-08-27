@@ -10,6 +10,7 @@ using Avancira.Application.Auth.Jwt;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Auth;
+using Avancira.Infrastructure.Auth.DelegatingHandlers;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -27,7 +28,8 @@ public class TokenEndpointClientTests
         });
 
         var handler = new StubHttpMessageHandler(json);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var errorHandler = new TokenErrorHandler { InnerHandler = handler };
+        var httpClient = new HttpClient(errorHandler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);
@@ -49,7 +51,8 @@ public class TokenEndpointClientTests
     public async Task RequestTokenAsync_UnauthorizedResponse_ThrowsUnauthorizedException()
     {
         var handler = new StubHttpMessageHandler(string.Empty, HttpStatusCode.Unauthorized);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var errorHandler = new TokenErrorHandler { InnerHandler = handler };
+        var httpClient = new HttpClient(errorHandler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);
@@ -71,7 +74,8 @@ public class TokenEndpointClientTests
             ["error_description"] = "bad request",
         });
         var handler = new StubHttpMessageHandler(errorJson, HttpStatusCode.BadRequest);
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var errorHandler = new TokenErrorHandler { InnerHandler = handler };
+        var httpClient = new HttpClient(errorHandler) { BaseAddress = new Uri("http://localhost") };
         var httpFactory = new StubHttpClientFactory(httpClient);
         var parser = new TokenResponseParser(Options.Create(new JwtOptions()));
         var client = new TokenEndpointClient(httpFactory, parser);

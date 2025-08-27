@@ -2,6 +2,7 @@
 using Avancira.Application.Jobs;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
+using Avancira.Infrastructure.Auth.DelegatingHandlers;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Cors;
@@ -57,7 +58,8 @@ public static class Extensions
             {
                 client.BaseAddress = new Uri(issuer);
             }
-        });
+        })
+        .AddHttpMessageHandler<TokenErrorHandler>();
         builder.Services.AddScoped<IRefreshTokenCookieService, RefreshTokenCookieService>();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
