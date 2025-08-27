@@ -36,6 +36,7 @@ public static class AuthConstants
         public const string AuthorizationCode = "authorization_code";
         public const string UserId = "user_id";
         public const string RefreshToken = "refresh_token";
+        public const string Password = "password";
     }
 
     public static class Cookies
