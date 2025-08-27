@@ -46,9 +46,39 @@ public class TokenResponseParser : ITokenResponseParser
         var token = response.AccessToken;
         var refresh = response.RefreshToken;
 
-        var refreshExpiry = response.RefreshTokenExpiresIn is int expiresIn
-            ? DateTime.UtcNow.AddSeconds(expiresIn)
-            : DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDefaultDays);
+        var now = DateTime.UtcNow;
+
+        DateTime refreshExpiry;
+
+        if (response.RefreshTokenExpiresIn is int expiresIn)
+        {
+            if (expiresIn <= 0)
+            {
+                throw new TokenResponseParseException(
+                    "Refresh token expires in must be positive.");
+            }
+
+            var maxSeconds = (long)_jwtOptions.RefreshTokenExpirationInDays * 24 * 60 * 60;
+            if (expiresIn > maxSeconds)
+            {
+                throw new TokenResponseParseException(
+                    "Refresh token expires in value is too large.");
+            }
+
+            try
+            {
+                refreshExpiry = now.AddSeconds(expiresIn);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                throw new TokenResponseParseException(
+                    "Refresh token expiration calculation overflowed.");
+            }
+        }
+        else
+        {
+            refreshExpiry = now.AddDays(_jwtOptions.RefreshTokenDefaultDays);
+        }
 
         return new TokenPair(token, refresh, refreshExpiry);
     }
