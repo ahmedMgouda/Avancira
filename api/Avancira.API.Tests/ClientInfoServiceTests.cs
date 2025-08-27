@@ -4,6 +4,7 @@ using Avancira.Application.Catalog;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using UAParser;
 using Xunit;
 using Moq;
@@ -24,13 +25,15 @@ public class ClientInfoServiceTests
         var accessor = new HttpContextAccessor { HttpContext = context };
         var envMock = new Mock<IHostEnvironment>();
         envMock.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+        var options = Options.Create(new CookieOptions { SameSite = SameSiteMode.Lax });
 
-        var service = new ClientInfoService(accessor, new StubGeolocationService(), Parser.GetDefault(), envMock.Object);
+        var service = new ClientInfoService(accessor, new StubGeolocationService(), Parser.GetDefault(), envMock.Object, options);
 
         await service.GetClientInfoAsync();
 
         var cookie = context.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
         cookie.Should().Contain($"{AuthConstants.Claims.DeviceId}=");
         cookie.Should().NotContain("secure");
+        cookie.Should().Contain("samesite=lax");
     }
 }

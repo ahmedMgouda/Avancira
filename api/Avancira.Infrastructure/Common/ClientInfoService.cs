@@ -4,6 +4,7 @@ using Avancira.Infrastructure.Common.Extensions;
 using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using UAParser;
 using ClientInfo = Avancira.Application.Common.ClientInfo;
 
@@ -15,17 +16,20 @@ public class ClientInfoService : IClientInfoService
     private readonly IGeolocationService _geolocationService;
     private readonly Parser _parser;
     private readonly IHostEnvironment _environment;
+    private readonly IOptions<CookieOptions> _cookieOptions;
 
     public ClientInfoService(
         IHttpContextAccessor httpContextAccessor,
         IGeolocationService geolocationService,
         Parser parser,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        IOptions<CookieOptions> cookieOptions)
     {
         _httpContextAccessor = httpContextAccessor;
         _geolocationService = geolocationService;
         _parser = parser;
         _environment = environment;
+        _cookieOptions = cookieOptions;
     }
 
     public async Task<ClientInfo> GetClientInfoAsync()
@@ -36,11 +40,15 @@ public class ClientInfoService : IClientInfoService
         if (string.IsNullOrEmpty(deviceId))
         {
             deviceId = Guid.NewGuid().ToString();
+            var sameSite = _cookieOptions.Value.SameSite == SameSiteMode.Unspecified
+                ? SameSiteMode.Lax
+                : _cookieOptions.Value.SameSite;
+
             context.Response.Cookies.Append(AuthConstants.Claims.DeviceId, deviceId, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = !_environment.IsDevelopment(),
-                SameSite = SameSiteMode.None,
+                SameSite = sameSite,
                 Expires = DateTime.UtcNow.AddYears(1),
                 Path = "/"
             });
