@@ -1,149 +1,82 @@
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
-using Avancira.Application.Common;
-using Avancira.Infrastructure.Auth;
-using Avancira.Infrastructure.Persistence;
-using Avancira.Domain.Identity;
+using OpenIddict.Abstractions;
+using OpenIddict.Core;
+using OpenIddict.EntityFrameworkCore.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Mapster;
-using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 
 public class SessionService : ISessionService
 {
-    private readonly AvanciraDbContext _dbContext;
+    private readonly IOpenIddictTokenManager<OpenIddictToken> _tokenManager;
 
-    public SessionService(AvanciraDbContext dbContext)
+    public SessionService(IOpenIddictTokenManager<OpenIddictToken> tokenManager)
     {
-        _dbContext = dbContext;
+        _tokenManager = tokenManager;
     }
-
-    public async Task StoreSessionAsync(string userId, ClientInfo clientInfo, string refreshToken, DateTime refreshExpiry)
-    {
-        var existingSession = await _dbContext.Sessions
-            .Include(s => s.RefreshTokens)
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
-        await using var tx = await _dbContext.Database.BeginTransactionAsync();
-
-        if (existingSession != null)
-        {
-            _dbContext.RefreshTokens.RemoveRange(existingSession.RefreshTokens);
-            _dbContext.Sessions.Remove(existingSession);
-        }
-
-        var now = DateTime.UtcNow;
-        var session = new Session
-        {
-            UserId = userId,
-            Device = clientInfo.DeviceId,
-            UserAgent = clientInfo.UserAgent,
-            OperatingSystem = clientInfo.OperatingSystem,
-            IpAddress = clientInfo.IpAddress,
-            Country = clientInfo.Country,
-            City = clientInfo.City,
-            CreatedUtc = now,
-            LastActivityUtc = now,
-            LastRefreshUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry
-        };
-
-        session.RefreshTokens.Add(new RefreshToken
-        {
-            TokenHash = TokenUtilities.HashToken(refreshToken),
-            CreatedUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry
-        });
-
-        _dbContext.Sessions.Add(session);
-        await _dbContext.SaveChangesAsync();
-        await tx.CommitAsync();
-    }
-
-    public Task<bool> ValidateSessionAsync(string userId, Guid sessionId) =>
-        _dbContext.Sessions.AnyAsync(s =>
-            s.UserId == userId &&
-            s.Id == sessionId &&
-            s.RevokedUtc == null &&
-            s.AbsoluteExpiryUtc > DateTime.UtcNow);
 
     public async Task<List<SessionDto>> GetActiveSessionsAsync(string userId)
     {
-        var sessions = await _dbContext.Sessions
-            .Where(s => s.UserId == userId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
-            .ProjectToType<SessionDto>()
-            .ToListAsync();
+        var sessions = new List<SessionDto>();
+
+        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        {
+            if (!string.Equals(await _tokenManager.GetTypeAsync(token), OpenIddictConstants.TokenTypes.RefreshToken, StringComparison.Ordinal))
+                continue;
+
+            var status = await _tokenManager.GetStatusAsync(token);
+            if (status != OpenIddictConstants.Statuses.Valid)
+                continue;
+
+            var idString = await _tokenManager.GetIdAsync(token);
+            if (string.IsNullOrEmpty(idString))
+                continue;
+            var id = Guid.Parse(idString);
+
+            var creation = await _tokenManager.GetCreationDateAsync(token) ?? DateTime.UtcNow;
+            var expiration = await _tokenManager.GetExpirationDateAsync(token) ?? DateTime.MaxValue;
+
+            sessions.Add(new SessionDto(id, string.Empty, null, null, string.Empty, null, null, creation, creation, expiration, null));
+        }
 
         return sessions;
     }
 
-    public Task RevokeSessionAsync(string userId, Guid sessionId) =>
-        RevokeSessionsAsync(userId, new[] { sessionId });
+    public async Task RevokeSessionAsync(string userId, Guid sessionId)
+    {
+        var token = await _tokenManager.FindByIdAsync(sessionId.ToString());
+        if (token is null)
+            return;
+
+        var subject = await _tokenManager.GetSubjectAsync(token);
+        if (!string.Equals(subject, userId, StringComparison.Ordinal))
+            return;
+
+        await _tokenManager.TryRevokeAsync(token);
+    }
 
     public async Task RevokeSessionsAsync(string userId, IEnumerable<Guid> sessionIds)
     {
-        var sessions = await _dbContext.Sessions
-            .Include(s => s.RefreshTokens)
-            .Where(s => s.UserId == userId && sessionIds.Contains(s.Id))
-            .ToListAsync();
-
-        if (sessions.Count == 0)
-            return;
-
-        var now = DateTime.UtcNow;
-
-        foreach (var session in sessions)
+        foreach (var id in sessionIds)
         {
-            session.RevokedUtc = now;
-
-            foreach (var token in session.RefreshTokens.Where(rt => rt.RevokedUtc == null))
-            {
-                token.RevokedUtc = now;
-            }
+            await RevokeSessionAsync(userId, id);
         }
-
-        await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string tokenHash)
+    public async Task<bool> ValidateSessionAsync(string userId, Guid sessionId)
     {
-        var token = await _dbContext.RefreshTokens
-            .Include(rt => rt.Session)
-            .SingleOrDefaultAsync(rt => rt.TokenHash == tokenHash && rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow);
+        var token = await _tokenManager.FindByIdAsync(sessionId.ToString());
+        if (token is null)
+            return false;
 
-        if (token == null)
-            return null;
+        var subject = await _tokenManager.GetSubjectAsync(token);
+        if (!string.Equals(subject, userId, StringComparison.Ordinal))
+            return false;
 
-        return (token.Session.UserId, token.Id);
-    }
-
-    public async Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, DateTime newExpiry)
-    {
-        var token = await _dbContext.RefreshTokens
-            .Include(rt => rt.Session)
-            .SingleOrDefaultAsync(rt => rt.Id == refreshTokenId);
-
-        if (token == null)
-            return;
-
-        var now = DateTime.UtcNow;
-        token.RevokedUtc = now;
-
-        var session = token.Session;
-        session.LastRefreshUtc = now;
-        session.LastActivityUtc = now;
-        session.AbsoluteExpiryUtc = newExpiry;
-
-        session.RefreshTokens.Add(new RefreshToken
-        {
-            TokenHash = newRefreshTokenHash,
-            CreatedUtc = now,
-            AbsoluteExpiryUtc = newExpiry,
-            RotatedFromId = token.Id
-        });
-
-        await _dbContext.SaveChangesAsync();
+        var status = await _tokenManager.GetStatusAsync(token);
+        return status == OpenIddictConstants.Statuses.Valid;
     }
 }

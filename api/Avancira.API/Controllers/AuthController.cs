@@ -1,8 +1,5 @@
 using Avancira.Application.Identity;
-using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Users.Dtos;
-using System;
-using System.IdentityModel.Tokens.Jwt;
 using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,16 +11,13 @@ namespace Avancira.API.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly IAuthenticationService _authenticationService;
-    private readonly ISessionService _sessionService;
     private readonly IRefreshTokenCookieService _refreshTokenCookieService;
 
     public AuthController(
         IAuthenticationService authenticationService,
-        ISessionService sessionService,
         IRefreshTokenCookieService refreshTokenCookieService)
     {
         _authenticationService = authenticationService;
-        _sessionService = sessionService;
         _refreshTokenCookieService = refreshTokenCookieService;
     }
 
@@ -50,23 +44,7 @@ public class AuthController : BaseApiController
             return Unauthorized();
         }
 
-        var hash = TokenUtilities.HashToken(refreshToken);
-        var info = await _sessionService.GetRefreshTokenInfoAsync(hash);
-        if (info is null)
-        {
-            return Unauthorized();
-        }
-
         var pair = await _authenticationService.RefreshTokenAsync(refreshToken);
-
-        var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(pair.Token);
-        if (jwtToken.Subject != info.Value.UserId)
-        {
-            return Unauthorized();
-        }
-
-        await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, TokenUtilities.HashToken(pair.RefreshToken), pair.RefreshTokenExpiryTime);
         _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
         return Ok(new TokenResponse(pair.Token));
     }

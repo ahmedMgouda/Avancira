@@ -3,12 +3,10 @@ using System.Text.Json;
 using System.Collections.Generic;
 using Avancira.Application.Common;
 using Avancira.Application.Identity;
-using Avancira.Domain.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using Avancira.Application.Auth.Jwt;
 using Microsoft.Extensions.Options;
-using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 
 namespace Avancira.Infrastructure.Auth;
@@ -20,22 +18,18 @@ public class AuthenticationService : IAuthenticationService
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
     private readonly JwtOptions _jwtOptions;
-    private readonly ISessionService _sessionService;
-
     public AuthenticationService(
         IHttpClientFactory httpClientFactory,
         IClientInfoService clientInfoService,
         UserManager<User> userManager,
         SignInManager<User> signInManager,
-        IOptions<JwtOptions> jwtOptions,
-        ISessionService sessionService)
+        IOptions<JwtOptions> jwtOptions)
     {
         _httpClient = httpClientFactory.CreateClient();
         _clientInfoService = clientInfoService;
         _userManager = userManager;
         _signInManager = signInManager;
         _jwtOptions = jwtOptions.Value;
-        _sessionService = sessionService;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -120,8 +114,6 @@ public class AuthenticationService : IAuthenticationService
             var jwt = handler.ReadJwtToken(token);
             userId = jwt.Subject;
         }
-
-        await _sessionService.StoreSessionAsync(userId, clientInfo, refresh, refreshExpiry);
 
         return new TokenPair(token, refresh, refreshExpiry);
     }
