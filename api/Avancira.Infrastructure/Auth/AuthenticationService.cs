@@ -134,15 +134,15 @@ public class AuthenticationService : IAuthenticationService
     private async Task<(string Token, string RefreshToken, DateTime RefreshExpiry)> ParseTokenResponseAsync(HttpResponseMessage response)
     {
         using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        var root = document.RootElement;
+        var tokenResponse = await JsonSerializer.DeserializeAsync<TokenResponse>(stream);
 
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty(RefreshToken).GetString() ?? string.Empty;
-        DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
+        var token = tokenResponse?.AccessToken ?? string.Empty;
+        var refresh = tokenResponse?.RefreshToken ?? string.Empty;
+
+        DateTime refreshExpiry;
+        if (tokenResponse?.RefreshTokenExpiresIn is int exp)
         {
-            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
+            refreshExpiry = DateTime.UtcNow.AddSeconds(exp);
         }
         else
         {
