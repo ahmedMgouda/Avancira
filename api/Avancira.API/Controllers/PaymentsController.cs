@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avancira.Application.Billing;
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Payments;
 using Avancira.Application.Payments.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -17,18 +18,21 @@ public class PaymentsController : BaseApiController
     private readonly IStripeAccountService _stripeAccountService;
     private readonly IStripeCardService _stripeCardService;
     private readonly IPaymentService _paymentService;
+    private readonly ICurrentUser _currentUser;
 
     public PaymentsController(
         IPayPalAccountService payPalAccountService,
         IStripeAccountService stripeAccountService,
         IStripeCardService stripeCardService,
-        IPaymentService paymentService
+        IPaymentService paymentService,
+        ICurrentUser currentUser
     )
     {
         _payPalAccountService = payPalAccountService;
         _stripeAccountService = stripeAccountService;
         _stripeCardService = stripeCardService;
         _paymentService = paymentService;
+        _currentUser = currentUser;
     }
 
     [HttpPost("create-payment")]
@@ -57,11 +61,7 @@ public class PaymentsController : BaseApiController
     {
         try
         {
-            var userId = GetUserId();
-            if (userId is null)
-            {
-                return Unauthorized();
-            }
+            var userId = _currentUser.GetUserId().ToString();
             var userPaymentGateway = "Stripe"; // TODO: Get from user service
             var payoutId = await _paymentService.CreatePayoutAsync(userId, request.Amount, request.Currency.ToLower(), userPaymentGateway);
 
@@ -107,11 +107,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("history")]
     public async Task<IActionResult> HistoryAsync()
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var paymentHistory = await _paymentService.GetPaymentHistoryAsync(userId);
         return Ok(paymentHistory);
     }
@@ -121,11 +117,7 @@ public class PaymentsController : BaseApiController
     [HttpPost("save-card")]
     public async Task<IActionResult> SaveCard([FromBody] SaveCardDto request)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         await _stripeCardService.AddUserCardAsync(userId, request);
         return Ok(new { success = true, message = "Card saved successfully." });
     }
@@ -134,11 +126,7 @@ public class PaymentsController : BaseApiController
     [HttpDelete("remove-card/{Id}")]
     public async Task<IActionResult> RemoveCard(int Id)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         await _stripeCardService.RemoveUserCardAsync(userId, Id);
         return Ok(new { success = true, message = "Card removed successfully." });
     }
@@ -147,11 +135,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("saved-cards")]
     public async Task<IActionResult> GetSavedCardsAsync()
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var cards = await _stripeCardService.GetUserCardsAsync(userId);
         return Ok(cards);
     }
@@ -162,11 +146,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("connect-stripe-account")]
     public async Task<IActionResult> CreateStripeAccount()
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var url = await _stripeAccountService.ConnectStripeAccountAsync(userId);
         return Ok(new { url });
     }
@@ -177,11 +157,7 @@ public class PaymentsController : BaseApiController
     [HttpPost("connect-paypal-account")]
     public async Task<IActionResult> CreatePayPalAccount([FromBody] PayPalAuthRequest request)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         try
         {
             var success = await _payPalAccountService.ConnectPayPalAccountAsync(userId, request.AuthCode);

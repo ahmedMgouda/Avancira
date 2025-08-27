@@ -1,4 +1,5 @@
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Listings.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,13 @@ public class ListingsController : BaseApiController
 {
     private readonly IListingService _listingService;
     private readonly ILogger<ListingsController> _logger;
+    private readonly ICurrentUser _currentUser;
 
-    public ListingsController(IListingService listingService, ILogger<ListingsController> logger)
+    public ListingsController(IListingService listingService, ILogger<ListingsController> logger, ICurrentUser currentUser)
     {
         _listingService = listingService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     [Authorize]
@@ -29,11 +32,7 @@ public class ListingsController : BaseApiController
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var result = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
 
         return Ok(new
@@ -58,11 +57,7 @@ public class ListingsController : BaseApiController
             return BadRequest(new { success = false, errors });
         }
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var listing = await _listingService.CreateListingAsync(model, userId, ct);
 
         return CreatedAtAction(nameof(GetListingById), new { id = listing.Id }, new
@@ -80,11 +75,7 @@ public class ListingsController : BaseApiController
     {
         model.Id = id;
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var updatedListing = await _listingService.UpdateListingAsync(model, userId, ct);
 
         return Ok(new
@@ -125,11 +116,7 @@ public class ListingsController : BaseApiController
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var listings = await _listingService.GetTutorListingsAsync(userId, page, pageSize, ct);
         return Ok(listings);
     }
@@ -149,11 +136,7 @@ public class ListingsController : BaseApiController
     [HttpPut("{id:guid}/toggle-visibility")]
     public async Task<IActionResult> ToggleVisibility(Guid id, CancellationToken ct = default)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ToggleListingVisibilityAsync(id, userId, ct);
         if (!success)
             return NotFound($"Listing with ID {id} not found or unauthorized.");
@@ -168,11 +151,7 @@ public class ListingsController : BaseApiController
         if (dto == null || string.IsNullOrWhiteSpace(dto.Title))
             return BadRequest("Title is required.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ModifyListingTitleAsync(id, userId, dto.Title.Trim(), ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -203,11 +182,7 @@ public class ListingsController : BaseApiController
         if (locations == null || locations.Count == 0)
             return BadRequest("At least one location is required.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ModifyListingLocationsAsync(id, userId, locations, ct);
         if (!success)
             return BadRequest("Failed to update locations.");
@@ -222,11 +197,7 @@ public class ListingsController : BaseApiController
         if (dto == null)
             return BadRequest("Payload is required.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ModifyListingDescriptionAsync(id, userId, dto.AboutLesson, dto.AboutYou, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -241,11 +212,7 @@ public class ListingsController : BaseApiController
         if (dto == null)
             return BadRequest("Payload is required.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ModifyListingRatesAsync(id, userId, dto, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -260,11 +227,7 @@ public class ListingsController : BaseApiController
         if (dto == null || dto.LessonCategoryId == Guid.Empty)
             return BadRequest("Valid category is required.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.ModifyListingCategoryAsync(id, userId, dto.LessonCategoryId, ct);
         if (!success)
             return NotFound("Listing not found or unauthorized.");
@@ -280,11 +243,7 @@ public class ListingsController : BaseApiController
         if (listing == null)
             return NotFound($"Listing with ID {id} not found.");
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _listingService.DeleteListingAsync(id, userId, ct);
         if (!success)
             return BadRequest("Failed to delete listing.");

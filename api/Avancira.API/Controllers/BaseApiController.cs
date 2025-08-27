@@ -11,29 +11,6 @@ namespace Avancira.API.Controllers;
 public abstract class BaseApiController : ControllerBase
 {
     /// <summary>
-    /// Gets the current user's ID from JWT claims
-    /// </summary>
-    /// <returns>User ID if authenticated, otherwise null</returns>
-    protected string? GetUserId()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? User.FindFirst("sub")?.Value
-                    ?? User.FindFirst("userId")?.Value;
-
-        return string.IsNullOrEmpty(userId) ? null : userId;
-    }
-
-    /// <summary>
-    /// Gets the current user's email from JWT claims
-    /// </summary>
-    /// <returns>User email if available, otherwise null</returns>
-    protected string? GetUserEmail()
-    {
-        return User.FindFirst(ClaimTypes.Email)?.Value 
-               ?? User.FindFirst("email")?.Value;
-    }
-
-    /// <summary>
     /// Gets the current user's roles from JWT claims
     /// </summary>
     /// <returns>List of user roles</returns>

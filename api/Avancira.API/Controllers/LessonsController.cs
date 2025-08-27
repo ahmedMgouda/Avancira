@@ -1,3 +1,4 @@
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Lessons.Dtos;
 using Avancira.Application.Lessons;
 using Microsoft.AspNetCore.Authorization;
@@ -10,14 +11,17 @@ public class LessonsController : BaseApiController
 {
     private readonly ILessonService _lessonService;
     private readonly ILogger<LessonsController> _logger;
+    private readonly ICurrentUser _currentUser;
 
     public LessonsController(
         ILessonService lessonService,
-        ILogger<LessonsController> logger
+        ILogger<LessonsController> logger,
+        ICurrentUser currentUser
     )
     {
         _lessonService = lessonService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     // Create
@@ -25,11 +29,7 @@ public class LessonsController : BaseApiController
     [HttpPost("proposeLesson")]
     public async Task<IActionResult> ProposeLessonAsync([FromBody] LessonDto lessonDto)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var result = await _lessonService.ProposeLessonAsync(lessonDto, userId);
         return Ok(new { Message = "Lesson proposed successfully.", Lesson = result });
     }
@@ -39,11 +39,7 @@ public class LessonsController : BaseApiController
     [HttpGet("{contactId}/{listingId}")]
     public async Task<IActionResult> GetLessonsAsync(string contactId, Guid listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
         return Ok(new { Lessons = lessons });
     }
@@ -57,11 +53,7 @@ public class LessonsController : BaseApiController
             return BadRequest("Invalid page or pageSize parameters.");
         }
 
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         var lessons = await _lessonService.GetAllLessonsAsync(userId, filters);
         return Ok(new { Lessons = lessons });
     }
@@ -71,11 +63,7 @@ public class LessonsController : BaseApiController
     [HttpPut("respondToProposition/{lessonId}")]
     public async Task<IActionResult> RespondToPropositionAsync(Guid lessonId, [FromBody] bool accept)
     {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
+        var userId = _currentUser.GetUserId().ToString();
         LessonDto updatedLesson;
         try
         {
@@ -104,11 +92,7 @@ public class LessonsController : BaseApiController
     {
         try
         {
-            var userId = GetUserId();
-            if (userId is null)
-            {
-                return Unauthorized();
-            }
+            var userId = _currentUser.GetUserId().ToString();
             var canceledLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, false, userId);
 
             return Ok(new
