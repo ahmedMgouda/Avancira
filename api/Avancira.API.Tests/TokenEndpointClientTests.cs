@@ -36,7 +36,7 @@ public class TokenEndpointClientTests
         {
             GrantType = AuthConstants.GrantTypes.UserId,
             UserId = "user1",
-            Scope = "api offline_access"
+            Scope = AuthConstants.Scopes.Api
         };
         var pair = await client.RequestTokenAsync(parameters);
 
@@ -58,7 +58,7 @@ public class TokenEndpointClientTests
         {
             GrantType = AuthConstants.GrantTypes.UserId,
             UserId = "u",
-            Scope = "api offline_access"
+            Scope = AuthConstants.Scopes.Api
         }));
     }
 
@@ -80,7 +80,7 @@ public class TokenEndpointClientTests
         {
             GrantType = AuthConstants.GrantTypes.UserId,
             UserId = "u",
-            Scope = "api offline_access"
+            Scope = AuthConstants.Scopes.Api
         }));
         ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         ex.Error.Should().Be("invalid_request");
