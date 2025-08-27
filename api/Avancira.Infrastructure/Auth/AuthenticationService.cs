@@ -91,7 +91,7 @@ public class AuthenticationService : IAuthenticationService
             await _sessionService.RotateRefreshTokenAsync(info.Value.RefreshTokenId, newRefreshHash, tokenResponse.RefreshExpiry);
         }
 
-        return new TokenPair(tokenResponse.Token, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
+        return new TokenPair(tokenResponse.AccessToken, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
     }
 
     private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
@@ -101,13 +101,13 @@ public class AuthenticationService : IAuthenticationService
         if (string.IsNullOrEmpty(userId))
         {
             var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.ReadJwtToken(tokenResponse.Token);
+            var jwt = handler.ReadJwtToken(tokenResponse.AccessToken);
             userId = jwt.Subject;
         }
 
         await _sessionService.StoreSessionAsync(userId, clientInfo, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
 
-        return new TokenPair(tokenResponse.Token, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
+        return new TokenPair(tokenResponse.AccessToken, tokenResponse.RefreshToken, tokenResponse.RefreshExpiry);
     }
 
     private static FormUrlEncodedContent BuildTokenRequest(Dictionary<string, string?> values) =>

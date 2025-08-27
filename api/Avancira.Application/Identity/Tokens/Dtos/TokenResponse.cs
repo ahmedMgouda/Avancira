@@ -10,7 +10,7 @@ public sealed record TokenResponse
 {
     /// <summary>The short-lived access token.</summary>
     [JsonPropertyName("access_token")]
-    public string Token { get; init; } = string.Empty;
+    public string AccessToken { get; init; } = string.Empty;
 
     /// <summary>The refresh token used to obtain new access tokens.</summary>
     [JsonPropertyName("refresh_token")]
