@@ -12,13 +12,11 @@ namespace Avancira.API.Controllers;
 public class SessionsController : BaseApiController
 {
     private readonly ISender _mediator;
-    private readonly ISessionService _sessionService;
     private readonly ICurrentUser _currentUser;
 
-    public SessionsController(ISender mediator, ISessionService sessionService, ICurrentUser currentUser)
+    public SessionsController(ISender mediator, ICurrentUser currentUser)
     {
         _mediator = mediator;
-        _sessionService = sessionService;
         _currentUser = currentUser;
     }
 
@@ -57,7 +55,7 @@ public class SessionsController : BaseApiController
         {
             return Unauthorized();
         }
-        await _sessionService.RevokeSessionsAsync(userId.ToString(), sessionIds);
+        await _mediator.Send(new RevokeSessionsCommand(sessionIds, userId.ToString()), cancellationToken);
         return NoContent();
     }
 }
