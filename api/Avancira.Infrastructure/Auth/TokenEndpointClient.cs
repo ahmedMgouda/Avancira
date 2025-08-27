@@ -1,8 +1,5 @@
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Json;
 using Avancira.Application.Identity.Tokens.Dtos;
-using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -21,17 +18,6 @@ public class TokenEndpointClient : ITokenEndpointClient
     {
         var content = TokenRequestBuilder.Build(parameters);
         using var response = await _httpClient.PostAsync(AuthConstants.Endpoints.Token, content);
-
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            throw new UnauthorizedException();
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var problem = await response.Content.ReadFromJsonAsync<TokenRequestProblemDetails>();
-            throw new TokenRequestException(problem?.Error, problem?.ErrorDescription, response.StatusCode);
-        }
 
         await using var stream = await response.Content.ReadAsStreamAsync();
         return await _parser.ParseAsync(stream);
