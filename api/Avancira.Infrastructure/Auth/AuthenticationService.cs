@@ -8,6 +8,8 @@ using Avancira.Infrastructure.Persistence;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Avancira.Application.Auth.Jwt;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -18,19 +20,22 @@ public class AuthenticationService : IAuthenticationService
     private readonly AvanciraDbContext _dbContext;
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
+    private readonly JwtOptions _jwtOptions;
 
     public AuthenticationService(
         IHttpClientFactory httpClientFactory,
         IClientInfoService clientInfoService,
         AvanciraDbContext dbContext,
         UserManager<User> userManager,
-        SignInManager<User> signInManager)
+        SignInManager<User> signInManager,
+        IOptions<JwtOptions> jwtOptions)
     {
         _httpClient = httpClientFactory.CreateClient();
         _clientInfoService = clientInfoService;
         _dbContext = dbContext;
         _userManager = userManager;
         _signInManager = signInManager;
+        _jwtOptions = jwtOptions.Value;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -101,42 +106,13 @@ public class AuthenticationService : IAuthenticationService
         var response = await _httpClient.PostAsync("/connect/token", content);
         response.EnsureSuccessStatusCode();
 
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        var root = document.RootElement;
-
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var newRefresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
-        DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
-        {
-            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
-        }
-        else
-        {
-            refreshExpiry = DateTime.UtcNow.AddDays(7);
-        }
-
+        var (token, newRefresh, refreshExpiry) = await ParseTokenResponseAsync(response);
         return new TokenPair(token, newRefresh, refreshExpiry);
     }
 
     private async Task<TokenPair> HandleTokenResponseAsync(HttpResponseMessage response, ClientInfo clientInfo, string userId)
     {
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        var root = document.RootElement;
-
-        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
-        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
-        DateTime refreshExpiry = DateTime.UtcNow;
-        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
-        {
-            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
-        }
-        else
-        {
-            refreshExpiry = DateTime.UtcNow.AddDays(7);
-        }
+        var (token, refresh, refreshExpiry) = await ParseTokenResponseAsync(response);
 
         if (string.IsNullOrEmpty(userId))
         {
@@ -184,6 +160,27 @@ public class AuthenticationService : IAuthenticationService
         await tx.CommitAsync();
 
         return new TokenPair(token, refresh, refreshExpiry);
+    }
+
+    private async Task<(string Token, string RefreshToken, DateTime RefreshExpiry)> ParseTokenResponseAsync(HttpResponseMessage response)
+    {
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var document = await JsonDocument.ParseAsync(stream);
+        var root = document.RootElement;
+
+        var token = root.GetProperty("access_token").GetString() ?? string.Empty;
+        var refresh = root.GetProperty("refresh_token").GetString() ?? string.Empty;
+        DateTime refreshExpiry = DateTime.UtcNow;
+        if (root.TryGetProperty("refresh_token_expires_in", out var exp))
+        {
+            refreshExpiry = DateTime.UtcNow.AddSeconds(exp.GetInt32());
+        }
+        else
+        {
+            refreshExpiry = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDefaultDays);
+        }
+
+        return (token, refresh, refreshExpiry);
     }
 
 }

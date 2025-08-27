@@ -15,6 +15,8 @@ using Moq;
 using Xunit;
 using Microsoft.AspNetCore.Identity;
 using Avancira.Domain.Identity;
+using Avancira.Application.Auth.Jwt;
+using Microsoft.Extensions.Options;
 
 public class AuthenticationServiceTests
 {
@@ -45,7 +47,8 @@ public class AuthenticationServiceTests
         var claimsFactory = new Mock<IUserClaimsPrincipalFactory<User>>();
         var signInManager = new Mock<SignInManager<User>>(userManager.Object, contextAccessor.Object, claimsFactory.Object, null, null, null, null);
 
-        var service = new AuthenticationService(httpFactory, clientInfoService, dbContext, userManager.Object, signInManager.Object);
+        var jwtOptions = Options.Create(new JwtOptions());
+        var service = new AuthenticationService(httpFactory, clientInfoService, dbContext, userManager.Object, signInManager.Object, jwtOptions);
 
         var userId = "user1";
         await service.GenerateTokenAsync(userId);

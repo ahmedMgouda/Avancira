@@ -13,6 +13,8 @@ public class JwtOptions : IValidatableObject
 
     public int RefreshTokenExpirationInDays { get; set; } = 7;
 
+    public int RefreshTokenDefaultDays { get; set; } = 7;
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (string.IsNullOrEmpty(Key))
