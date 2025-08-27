@@ -22,6 +22,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly TokenHashingOptions _options;
     private readonly JwtOptions _jwtOptions;
     private readonly string _scope;
+    private readonly IRefreshTokenCookieService _refreshTokenCookieService;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
@@ -30,7 +31,8 @@ public class AuthenticationService : IAuthenticationService
         IValidator<TokenRequestParams> validator,
         IOptions<TokenHashingOptions> options,
         IOptions<JwtOptions> jwtOptions,
-        IOptions<AuthScopeOptions> scopeOptions)
+        IOptions<AuthScopeOptions> scopeOptions,
+        IRefreshTokenCookieService refreshTokenCookieService)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
@@ -39,6 +41,7 @@ public class AuthenticationService : IAuthenticationService
         _options = options.Value;
         _jwtOptions = jwtOptions.Value;
         _scope = scopeOptions.Value.Scope;
+        _refreshTokenCookieService = refreshTokenCookieService;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -109,6 +112,7 @@ public class AuthenticationService : IAuthenticationService
         var updated = parameters with { DeviceId = clientInfo.DeviceId };
 
         var pair = await _tokenClient.RequestTokenAsync(updated);
+        _refreshTokenCookieService.SetRefreshTokenCookie(pair.RefreshToken, pair.RefreshTokenExpiryTime);
         if (postProcess != null)
         {
             await postProcess(pair, clientInfo);
