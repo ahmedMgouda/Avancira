@@ -122,13 +122,15 @@ public class SessionService : ISessionService
     public async Task<(string UserId, Guid RefreshTokenId)?> GetRefreshTokenInfoAsync(string tokenHash)
     {
         var token = await _dbContext.RefreshTokens
-            .Include(rt => rt.Session)
-            .SingleOrDefaultAsync(rt => rt.TokenHash == tokenHash && rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow);
+            .AsNoTracking()
+            .Where(rt => rt.TokenHash == tokenHash && rt.RevokedUtc == null && rt.AbsoluteExpiryUtc > DateTime.UtcNow)
+            .Select(rt => new { rt.Id, rt.Session.UserId })
+            .SingleOrDefaultAsync();
 
         if (token == null)
             return null;
 
-        return (token.Session.UserId, token.Id);
+        return (token.UserId, token.Id);
     }
 
     public async Task RotateRefreshTokenAsync(Guid refreshTokenId, string newRefreshTokenHash, DateTime newExpiry)
