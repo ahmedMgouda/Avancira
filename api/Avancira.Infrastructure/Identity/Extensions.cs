@@ -1,5 +1,6 @@
 ﻿using Avancira.Application.Audit;
 using Avancira.Application.Identity.Roles;
+using Avancira.Application.Identity;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Persistence;
@@ -26,6 +27,7 @@ internal static class Extensions
         services.AddScoped(sp => (ICurrentUserInitializer)sp.GetRequiredService<ICurrentUser>());
         services.AddTransient<IdentityLinkBuilder>();
         services.AddTransient<Avancira.Application.Identity.Users.Abstractions.IUserService, UserService>();
+        services.AddTransient<IUserAuthenticationService, UserAuthenticationService>();
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<ISessionService, SessionService>();
         services.AddTransient<IAuditService, AuditService>();
