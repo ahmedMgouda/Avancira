@@ -1,12 +1,9 @@
 using System;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Text;
 using Avancira.Application.Common;
 using Avancira.Application.Identity.Tokens;
-using Avancira.Application.Auth.Jwt;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Identity.Tokens;
@@ -15,15 +12,13 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OpenIddict.Abstractions;
+using OpenIddict.Validation;
 using Moq;
 using Xunit;
 
 public class AuthenticationServiceTests
 {
-    private const string JwtKey = "testkeytestkeytestkeytestkey"; // 32 chars
-    private const string JwtIssuer = "issuer";
-    private const string JwtAudience = "audience";
-
     [Fact]
     public async Task GenerateTokenAsync_ReLoginFromSameDevice_ReplacesExistingSession()
     {
@@ -44,16 +39,20 @@ public class AuthenticationServiceTests
         var userId = "user1";
         var sid1 = Guid.NewGuid();
         var sid2 = Guid.NewGuid();
-        var pair1 = new TokenPair(CreateToken(userId, sid1), "refresh1", DateTime.UtcNow.AddHours(1));
-        var pair2 = new TokenPair(CreateToken(userId, sid2), "refresh2", DateTime.UtcNow.AddHours(1));
+        var pair1 = new TokenPair("token1", "refresh1", DateTime.UtcNow.AddHours(1));
+        var pair2 = new TokenPair("token2", "refresh2", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair1, pair2);
 
         var sessionService = new SessionService(dbContext);
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        validationService.Setup(x => x.ValidateAccessTokenAsync("token1"))
+            .ReturnsAsync(CreatePrincipal(userId, sid1));
+        validationService.Setup(x => x.ValidateAccessTokenAsync("token2"))
+            .ReturnsAsync(CreatePrincipal(userId, sid2));
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         await service.GenerateTokenAsync(userId);
         var firstSessionId = (await dbContext.Sessions.SingleAsync()).Id;
@@ -71,14 +70,16 @@ public class AuthenticationServiceTests
     public async Task GenerateTokenAsync_SetsRefreshTokenCookie()
     {
         var clientInfoService = new StubClientInfoService(new ClientInfo());
-        var pair = new TokenPair(CreateToken("user1", Guid.NewGuid()), "refresh1", DateTime.UtcNow.AddHours(1));
+        var pair = new TokenPair("token", "refresh1", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        validationService.Setup(x => x.ValidateAccessTokenAsync("token"))
+            .ReturnsAsync(CreatePrincipal("user1", Guid.NewGuid()));
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         await service.GenerateTokenAsync("user1");
 
@@ -92,10 +93,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(new UnauthorizedException());
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         await Assert.ThrowsAsync<UnauthorizedException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -107,10 +108,10 @@ public class AuthenticationServiceTests
         var tokenClient = new StubTokenEndpointClient(new TokenRequestException("invalid_request", "bad request", System.Net.HttpStatusCode.BadRequest));
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         var ex = await Assert.ThrowsAsync<TokenRequestException>(() => service.GenerateTokenAsync("user1"));
         ex.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
@@ -122,15 +123,16 @@ public class AuthenticationServiceTests
     public async Task GenerateTokenAsync_ExpiredToken_ThrowsSecurityTokenException()
     {
         var clientInfoService = new StubClientInfoService(new ClientInfo());
-        var expiredToken = CreateToken("user1", Guid.NewGuid(), DateTime.UtcNow.AddMinutes(-5));
-        var pair = new TokenPair(expiredToken, "refresh", DateTime.UtcNow.AddHours(1));
+        var pair = new TokenPair("expired", "refresh", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        validationService.Setup(x => x.ValidateAccessTokenAsync("expired"))
+            .ThrowsAsync(new SecurityTokenException("expired"));
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -139,16 +141,16 @@ public class AuthenticationServiceTests
     public async Task GenerateTokenAsync_TamperedToken_ThrowsSecurityTokenException()
     {
         var clientInfoService = new StubClientInfoService(new ClientInfo());
-        var validToken = CreateToken("user1", Guid.NewGuid());
-        var tamperedToken = TamperToken(validToken);
-        var pair = new TokenPair(tamperedToken, "refresh", DateTime.UtcNow.AddHours(1));
+        var pair = new TokenPair("invalid", "refresh", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair);
         var sessionService = new Mock<ISessionService>().Object;
         var validator = new TokenRequestParamsValidator();
-        var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
         var cookieService = new Mock<IRefreshTokenCookieService>();
-        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, jwtOptions, scopeOptions, cookieService.Object);
+        var validationService = new Mock<IOpenIddictValidationService>();
+        validationService.Setup(x => x.ValidateAccessTokenAsync("invalid"))
+            .ThrowsAsync(new SecurityTokenException("invalid"));
+        var service = new AuthenticationService(clientInfoService, tokenClient, sessionService, validator, scopeOptions, cookieService.Object, validationService.Object);
 
         await Assert.ThrowsAsync<SecurityTokenException>(() => service.GenerateTokenAsync("user1"));
     }
@@ -178,34 +180,14 @@ public class AuthenticationServiceTests
         }
     }
 
-    private static string CreateToken(string userId, Guid sessionId, DateTime? expires = null)
+    private static ClaimsPrincipal CreatePrincipal(string userId, Guid sessionId)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(
-            issuer: JwtIssuer,
-            audience: JwtAudience,
-            claims: new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(AuthConstants.Claims.SessionId, sessionId.ToString())
-            },
-            expires: expires ?? DateTime.UtcNow.AddHours(1),
-            signingCredentials: creds);
-        return handler.WriteToken(token);
-    }
-
-    private static string TamperToken(string token)
-    {
-        var parts = token.Split('.');
-        if (parts.Length != 3)
+        var identity = new ClaimsIdentity(new[]
         {
-            return token;
-        }
-        var sig = parts[2];
-        var first = sig[0] == 'a' ? 'b' : 'a';
-        parts[2] = first + sig.Substring(1);
-        return string.Join('.', parts);
+            new Claim(OpenIddictConstants.Claims.Subject, userId),
+            new Claim(AuthConstants.Claims.SessionId, sessionId.ToString())
+        });
+
+        return new ClaimsPrincipal(identity);
     }
 }

@@ -1,15 +1,15 @@
 using Avancira.Application.Common;
 using Avancira.Application.Identity;
-using System.IdentityModel.Tokens.Jwt;
 using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using FluentValidation;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Avancira.Application.Auth.Jwt;
+using OpenIddict.Abstractions;
+using OpenIddict.Validation;
 
 namespace Avancira.Infrastructure.Auth;
 
@@ -19,26 +19,26 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITokenEndpointClient _tokenClient;
     private readonly ISessionService _sessionService;
     private readonly IValidator<TokenRequestParams> _validator;
-    private readonly JwtOptions _jwtOptions;
     private readonly string _scope;
     private readonly IRefreshTokenCookieService _refreshTokenCookieService;
+    private readonly IOpenIddictValidationService _validationService;
 
     public AuthenticationService(
         IClientInfoService clientInfoService,
         ITokenEndpointClient tokenClient,
         ISessionService sessionService,
         IValidator<TokenRequestParams> validator,
-        IOptions<JwtOptions> jwtOptions,
         IOptions<AuthScopeOptions> scopeOptions,
-        IRefreshTokenCookieService refreshTokenCookieService)
+        IRefreshTokenCookieService refreshTokenCookieService,
+        IOpenIddictValidationService validationService)
     {
         _clientInfoService = clientInfoService;
         _tokenClient = tokenClient;
         _sessionService = sessionService;
         _validator = validator;
-        _jwtOptions = jwtOptions.Value;
         _scope = scopeOptions.Value.Scope;
         _refreshTokenCookieService = refreshTokenCookieService;
+        _validationService = validationService;
     }
 
     public async Task<TokenPair> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri)
@@ -55,9 +55,9 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, clientInfo) =>
         {
-            var jwt = ParseToken(pair.Token);
-            var userId = GetUserId(jwt);
-            var sessionId = GetSessionId(jwt);
+            var principal = await ValidateTokenAsync(pair.Token);
+            var userId = GetUserId(principal);
+            var sessionId = GetSessionId(principal);
             await _sessionService.StoreSessionAsync(userId, sessionId, clientInfo, pair.RefreshTokenExpiryTime);
         });
     }
@@ -73,12 +73,12 @@ public class AuthenticationService : IAuthenticationService
 
         await _validator.ValidateAndThrowAsync(request);
 
-        return await RequestTokenAsync(request, (pair, clientInfo) =>
+        return await RequestTokenAsync(request, async (pair, clientInfo) =>
         {
-            var jwt = ParseToken(pair.Token);
-            var tokenUserId = GetUserId(jwt);
-            var sessionId = GetSessionId(jwt);
-            return _sessionService.StoreSessionAsync(tokenUserId, sessionId, clientInfo, pair.RefreshTokenExpiryTime);
+            var principal = await ValidateTokenAsync(pair.Token);
+            var tokenUserId = GetUserId(principal);
+            var sessionId = GetSessionId(principal);
+            await _sessionService.StoreSessionAsync(tokenUserId, sessionId, clientInfo, pair.RefreshTokenExpiryTime);
         });
     }
 
@@ -94,9 +94,9 @@ public class AuthenticationService : IAuthenticationService
 
         return await RequestTokenAsync(request, async (pair, _) =>
         {
-            var jwt = ParseToken(pair.Token);
-            var userId = GetUserId(jwt);
-            var sessionId = GetSessionId(jwt);
+            var principal = await ValidateTokenAsync(pair.Token);
+            var userId = GetUserId(principal);
+            var sessionId = GetSessionId(principal);
             await _sessionService.UpdateSessionAsync(userId, sessionId, pair.RefreshTokenExpiryTime);
         });
     }
@@ -128,37 +128,23 @@ public class AuthenticationService : IAuthenticationService
         return pair;
     }
 
-    private JwtSecurityToken ParseToken(string token)
+    private async Task<ClaimsPrincipal> ValidateTokenAsync(string token)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var parameters = new TokenValidationParameters
+        var principal = await _validationService.ValidateAccessTokenAsync(token);
+        if (principal is null)
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
-            ValidateIssuer = true,
-            ValidIssuer = _jwtOptions.Issuer,
-            ValidateAudience = true,
-            ValidAudience = _jwtOptions.Audience,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
+            throw new SecurityTokenException("Token validation failed");
+        }
 
-        try
-        {
-            handler.ValidateToken(token, parameters, out var validatedToken);
-            return (JwtSecurityToken)validatedToken;
-        }
-        catch (Exception ex) when (ex is SecurityTokenException || ex is ArgumentException)
-        {
-            throw new SecurityTokenException($"Token validation failed: {ex.Message}", ex);
-        }
+        return principal;
     }
 
-    private static string GetUserId(JwtSecurityToken jwt) => jwt.Subject ?? string.Empty;
+    private static string GetUserId(ClaimsPrincipal principal) =>
+        principal.FindFirst(OpenIddictConstants.Claims.Subject)?.Value ?? string.Empty;
 
-    private static Guid GetSessionId(JwtSecurityToken jwt)
+    private static Guid GetSessionId(ClaimsPrincipal principal)
     {
-        var sid = jwt.Claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
+        var sid = principal.Claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
         return Guid.TryParse(sid, out var id) ? id : Guid.Empty;
     }
 }
