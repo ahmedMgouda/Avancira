@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Avancira.API.Controllers;
 using Avancira.Application.Auth;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Identity.Users;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
 
@@ -142,6 +145,24 @@ public class ExternalUserServiceTests
         result.Succeeded.Should().BeTrue();
         existingUser.EmailConfirmed.Should().BeTrue();
         userManager.Verify(m => m.UpdateAsync(It.Is<User>(u => u.EmailConfirmed)), Times.Once);
+    }
+}
+
+public class ExternalLoginCallbackTests
+{
+    [Fact]
+    public async Task Callback_SignsInUserAndRedirects()
+    {
+        var controller = new ExternalLoginController();
+        var httpContext = new DefaultHttpContext();
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.Callback();
+
+        result.Should().BeOfType<RedirectResult>()
+            .Which.Url.Should().Be("/");
+        httpContext.User.Identity.Should().NotBeNull();
+        httpContext.User.Identity!.IsAuthenticated.Should().BeTrue();
     }
 }
 
