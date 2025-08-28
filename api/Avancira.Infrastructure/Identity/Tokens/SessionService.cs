@@ -3,9 +3,12 @@ using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Application.Common;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Domain.Identity;
+using Avancira.Infrastructure.Auth;
+using OpenIddict.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
@@ -13,10 +16,12 @@ namespace Avancira.Infrastructure.Identity.Tokens;
 public class SessionService : ISessionService
 {
     private readonly AvanciraDbContext _dbContext;
+    private readonly IOpenIddictTokenManager _tokenManager;
 
-    public SessionService(AvanciraDbContext dbContext)
+    public SessionService(AvanciraDbContext dbContext, IOpenIddictTokenManager tokenManager)
     {
         _dbContext = dbContext;
+        _tokenManager = tokenManager;
     }
 
     public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
@@ -84,8 +89,10 @@ public class SessionService : ISessionService
 
     public async Task RevokeSessionsAsync(string userId, IEnumerable<Guid> sessionIds)
     {
+        var ids = sessionIds.ToList();
+
         var sessions = await _dbContext.Sessions
-            .Where(s => s.UserId == userId && sessionIds.Contains(s.Id))
+            .Where(s => s.UserId == userId && ids.Contains(s.Id))
             .ToListAsync();
 
         if (sessions.Count == 0)
@@ -99,6 +106,23 @@ public class SessionService : ISessionService
         }
 
         await _dbContext.SaveChangesAsync();
+
+        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        {
+            var type = await _tokenManager.GetTypeAsync(token);
+            if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
+                continue;
+
+            var claims = await _tokenManager.GetClaimsAsync(token);
+            var sid = claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
+            if (sid is null || !Guid.TryParse(sid, out var sidGuid))
+                continue;
+
+            if (ids.Contains(sidGuid))
+            {
+                await _tokenManager.TryRevokeAsync(token);
+            }
+        }
     }
 
     public async Task UpdateSessionAsync(string userId, Guid sessionId, DateTime newExpiry)

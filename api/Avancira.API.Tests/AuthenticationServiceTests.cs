@@ -17,6 +17,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Xunit;
+using OpenIddict.Abstractions;
 
 public class AuthenticationServiceTests
 {
@@ -48,7 +49,8 @@ public class AuthenticationServiceTests
         var pair2 = new TokenPair(CreateToken(userId, sid2), "refresh2", DateTime.UtcNow.AddHours(1));
         var tokenClient = new StubTokenEndpointClient(pair1, pair2);
 
-        var sessionService = new SessionService(dbContext);
+        var tokenManager = new Mock<IOpenIddictTokenManager>();
+        var sessionService = new SessionService(dbContext, tokenManager.Object);
         var validator = new TokenRequestParamsValidator();
         var jwtOptions = Options.Create(new JwtOptions { Key = JwtKey, Issuer = JwtIssuer, Audience = JwtAudience });
         var scopeOptions = Options.Create(new AuthScopeOptions { Scope = AuthConstants.Scopes.Api });
