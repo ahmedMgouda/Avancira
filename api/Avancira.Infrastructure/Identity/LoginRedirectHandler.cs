@@ -21,7 +21,13 @@ public sealed class LoginRedirectHandler(IHttpContextAccessor http) : IOpenIddic
             return ValueTask.CompletedTask;
         }
 
-        var returnUrl = httpContext.Request.PathBase.Add(httpContext.Request.Path).Value + httpContext.Request.QueryString.Value;
+        var request = httpContext.Request;
+        var returnUrl = request.PathBase.Add(request.Path).Value ?? string.Empty;
+        if (request.QueryString.HasValue)
+        {
+            returnUrl += request.QueryString.Value;
+        }
+
         httpContext.Response.Redirect($"/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
         context.HandleRequest();
         return ValueTask.CompletedTask;
