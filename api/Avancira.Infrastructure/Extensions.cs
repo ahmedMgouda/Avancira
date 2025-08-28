@@ -70,7 +70,6 @@ public static class Extensions
             }
         })
         .AddHttpMessageHandler<TokenErrorHandler>();
-        builder.Services.AddScoped<IRefreshTokenCookieService, RefreshTokenCookieService>();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
 
