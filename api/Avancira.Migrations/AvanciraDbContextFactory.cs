@@ -21,7 +21,7 @@ namespace Avancira.Migrations
             var port = Environment.GetEnvironmentVariable("Avancira__Database__Port") ?? "5432";
             var database = Environment.GetEnvironmentVariable("Avancira__Database__Name") ?? "AvanciraDb";
             var username = Environment.GetEnvironmentVariable("Avancira__Database__User") ?? "postgres";
-            var password = Environment.GetEnvironmentVariable("Avancira__Database__Password") ?? AuthConstants.GrantTypes.Password;
+            var password = Environment.GetEnvironmentVariable("Avancira__Database__Password") ?? "password";
 
             var connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
 
