@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { Observable, defer, from, of, throwError } from 'rxjs';
-import { finalize, catchError, switchMap, shareReplay, tap } from 'rxjs/operators';
+import { finalize, catchError, switchMap, shareReplay } from 'rxjs/operators';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
@@ -87,17 +87,6 @@ export class AuthService {
     }
 
     return this.refresh$;
-  }
-
-  login(
-    email: string,
-    password: string,
-    returnUrl = this.router.url
-  ): Observable<void> {
-    return defer(() => from(this.oauth.fetchTokenUsingPasswordFlow(email, password))).pipe(
-      tap(() => this.router.navigateByUrl(returnUrl)),
-      catchError(err => throwError(() => err)),
-    );
   }
 
   startLogin(returnUrl = this.router.url, provider?: SocialProvider): void {
