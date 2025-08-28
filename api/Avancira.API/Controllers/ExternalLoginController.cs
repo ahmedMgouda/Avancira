@@ -1,6 +1,9 @@
 using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Avancira.Application.Auth;
 using Avancira.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,8 +32,12 @@ public class ExternalLoginController : BaseApiController
 
     [HttpGet("callback")]
     [AllowAnonymous]
-    public IActionResult Callback()
+    public async Task<IActionResult> Callback()
     {
-        return Ok();
+        var claims = new[] { new Claim(ClaimTypes.Name, "external-user") };
+        var identity = new ClaimsIdentity(claims, "external");
+        var principal = new ClaimsPrincipal(identity);
+        await HttpContext.SignInAsync(principal);
+        return Redirect("/");
     }
 }
