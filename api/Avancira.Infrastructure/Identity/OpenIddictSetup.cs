@@ -41,6 +41,8 @@ public static class OpenIddictSetup
                        .EnableEndSessionEndpointPassthrough();
 
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
+                    builder.UseScopedHandler<LoginRedirectHandler>().SetOrder(int.MinValue));
+                options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<ExternalLoginHandler>());
                 options.AddEventHandler<ProcessSignInContext>(builder =>
                     builder.UseScopedHandler<DeviceInfoClaimsHandler>());

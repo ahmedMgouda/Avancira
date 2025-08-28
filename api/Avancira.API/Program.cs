@@ -46,6 +46,7 @@ builder.Services.AddControllers(options =>
 // Register your dependencies with Aspire
 
 builder.Services.AddSignalR();
+builder.Services.AddRazorPages();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -94,6 +95,7 @@ app.UseAuthorization();
 app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
 app.MapControllers();
+app.MapRazorPages();
 
 
 app.Run();

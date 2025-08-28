@@ -1,0 +1,58 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
+using Avancira.Infrastructure.Identity.Users;
+
+namespace Avancira.API.Pages.Account;
+
+public class LoginModel(SignInManager<User> signInManager) : PageModel
+{
+    private readonly SignInManager<User> _signInManager = signInManager;
+
+    [BindProperty]
+    public InputModel Input { get; set; } = new();
+
+    [FromQuery]
+    public string ReturnUrl { get; set; } = "/";
+
+    public class InputModel
+    {
+        [Required]
+        public string Username { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public void OnGet(string? returnUrl = null)
+        => ReturnUrl = returnUrl ?? "/";
+
+    public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
+    {
+        ReturnUrl = returnUrl ?? "/";
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var result = await _signInManager.PasswordSignInAsync(Input.Username, Input.Password, false, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            return LocalRedirect(ReturnUrl);
+        }
+
+        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+        return Page();
+    }
+
+    public IActionResult OnPostExternalLogin(string provider, string? returnUrl = null)
+    {
+        var redirectUrl = QueryHelpers.AddQueryString(returnUrl ?? "/", "provider", provider);
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+        return Challenge(properties, provider);
+    }
+}
+
