@@ -21,9 +21,16 @@ public class ExternalAuthController : BaseApiController
         }
 
         var normalized = parsed.ToString().ToLowerInvariant();
-        var callback = "/api/auth/external/callback";
+        var callback = "/api/auth/external-callback";
         var encodedCallback = Uri.EscapeDataString(callback);
         var url = $"{AuthConstants.Endpoints.Authorize}?{AuthConstants.Parameters.Provider}={normalized}&{AuthConstants.Parameters.RedirectUri}={encodedCallback}";
         return Redirect(url);
+    }
+
+    [HttpGet("external-callback")]
+    [AllowAnonymous]
+    public IActionResult ExternalCallback()
+    {
+        return Ok();
     }
 }
