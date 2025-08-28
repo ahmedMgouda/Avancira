@@ -28,6 +28,7 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
     public void OnGet(string? returnUrl = null)
         => ReturnUrl = returnUrl ?? "/";
 
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
         ReturnUrl = returnUrl ?? "/";
