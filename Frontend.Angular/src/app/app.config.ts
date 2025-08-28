@@ -17,7 +17,6 @@ import { ConfigService } from './services/config.service';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
-import { tokenInterceptor } from './interceptors/token.interceptor';
 import { OAuthModule } from 'angular-oauth2-oidc';
 
 function initConfig() {
@@ -43,7 +42,7 @@ export const appConfig: ApplicationConfig = {
 
     // HTTP client and interceptors
     provideHttpClient(
-      withInterceptors([tokenInterceptor, authInterceptor, dateInterceptorFn])
+      withInterceptors([authInterceptor, dateInterceptorFn])
     ),
 
     // Toastr configuration

@@ -1,4 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Blazored.LocalStorage;
 using Avancira.Admin.Infrastructure.Api;
@@ -10,26 +15,25 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 
 namespace Avancira.Admin.Infrastructure.Auth.Jwt;
 
-// This is a client-side AuthenticationStateProvider that determines the user's authentication state by
-// looking for data persisted in the page when it was rendered on the server. This authentication state will
-// be fixed for the lifetime of the WebAssembly application. So, if the user needs to log in or out, a full
-// page reload is required.
-//
-// This only provides a user name and email for display purposes. It does not actually include any tokens
-// that authenticate to the server when making subsequent requests. That works separately using a
-// cookie that will be included on HttpClient requests to the server.
 public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAuthenticationService, IAccessTokenProvider
 {
+    private const string CodeVerifierKey = "pkce-code-verifier";
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly IApiClient _client;
     private readonly ILocalStorageService _localStorage;
     private readonly NavigationManager _navigation;
+    private readonly HttpClient _http;
 
-    public JwtAuthenticationService(PersistentComponentState state, ILocalStorageService localStorage, IApiClient client, NavigationManager navigation)
+    public JwtAuthenticationService(PersistentComponentState state,
+        ILocalStorageService localStorage,
+        IApiClient client,
+        NavigationManager navigation,
+        HttpClient http)
     {
         _localStorage = localStorage;
         _client = client;
         _navigation = navigation;
+        _http = http;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -40,10 +44,8 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
-        // Generate claimsIdentity from cached token
         var claimsIdentity = new ClaimsIdentity(GetClaimsFromJwt(cachedToken), "jwt");
 
-        // Add cached permissions as claims
         if (await GetCachedPermissionsAsync() is List<string> cachedPermissions)
         {
             claimsIdentity.AddClaims(cachedPermissions.Select(p => new Claim(AvanciraClaims.Permission, p)));
@@ -52,11 +54,47 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         return new AuthenticationState(new ClaimsPrincipal(claimsIdentity));
     }
 
-    public async Task<bool> LoginAsync(TokenGenerationDto request)
+    public void NavigateToExternalLogin(string returnUrl)
     {
-        var tokenResponse = await _client.GenerateTokenAsync(request);
+        var verifier = GenerateCodeVerifier();
+        var challenge = CreateCodeChallenge(verifier);
+        _localStorage.SetItemAsync(CodeVerifierKey, verifier).GetAwaiter().GetResult();
 
-        string? token = tokenResponse.Token;
+        var redirectUri = $"{_navigation.BaseUri}auth/callback";
+        var authorizeUrl =
+            $"{_http.BaseAddress}connect/authorize?client_id=mobile&response_type=code&scope=api%20offline_access&redirect_uri={Uri.EscapeDataString(redirectUri)}&code_challenge={challenge}&code_challenge_method=S256&state={Uri.EscapeDataString(returnUrl)}";
+
+        _navigation.NavigateTo(authorizeUrl, true);
+    }
+
+    public async Task<bool> CompleteLoginAsync(string code, string state)
+    {
+        var verifier = await _localStorage.GetItemAsync<string?>(CodeVerifierKey);
+        if (string.IsNullOrEmpty(verifier))
+        {
+            return false;
+        }
+
+        var redirectUri = $"{_navigation.BaseUri}auth/callback";
+        var response = await _http.PostAsync("connect/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = "mobile",
+                ["grant_type"] = "authorization_code",
+                ["code"] = code,
+                ["redirect_uri"] = redirectUri,
+                ["code_verifier"] = verifier
+            }));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return false;
+        }
+
+        var payload = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(payload);
+        var token = doc.RootElement.GetProperty("access_token").GetString();
+        var refresh = doc.RootElement.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
 
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -64,45 +102,36 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         }
 
         await CacheAuthToken(token);
+        if (!string.IsNullOrEmpty(refresh))
+        {
+            await _localStorage.SetItemAsync(StorageConstants.Local.RefreshToken, refresh);
+        }
 
-        // Get permissions for the current user and add them to the cache
         var permissions = await _client.GetUserPermissionsAsync();
         await CachePermissions(permissions);
 
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-
         return true;
     }
 
     public async Task LogoutAsync()
     {
         await ClearCacheAsync();
-
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-
         _navigation.NavigateTo("/login");
-    }
-
-    public void NavigateToExternalLogin(string returnUrl)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task ReLoginAsync(string returnUrl)
     {
         await LogoutAsync();
-        _navigation.NavigateTo(returnUrl);
+        NavigateToExternalLogin(returnUrl);
     }
 
-    public async ValueTask<AccessTokenResult> RequestAccessToken(AccessTokenRequestOptions options)
-    {
-        return await RequestAccessToken();
-
-    }
+    public async ValueTask<AccessTokenResult> RequestAccessToken(AccessTokenRequestOptions options) =>
+        await RequestAccessToken();
 
     public async ValueTask<AccessTokenResult> RequestAccessToken()
     {
-        // We make sure the access token is only refreshed by one thread at a time. The other ones have to wait.
         await _semaphore.WaitAsync();
         try
         {
@@ -113,22 +142,18 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
             }
 
             string? token = await GetCachedAuthTokenAsync();
-
-            //// Check if token needs to be refreshed (when its expiration time is less than 1 minute away)
             var expTime = authState.User.GetExpiration();
-            var diff = expTime - DateTime.UtcNow;
-            if (diff.TotalMinutes <= 1)
+            if (expTime - DateTime.UtcNow <= TimeSpan.FromMinutes(1))
             {
-                (bool succeeded, var response) = await TryRefreshTokenAsync(new RefreshTokenDto { Token = token });
+                (bool succeeded, string? newToken) = await TryRefreshTokenAsync();
                 if (!succeeded)
                 {
                     return new AccessTokenResult(AccessTokenResultStatus.RequiresRedirect, new(), "/login", default);
                 }
-
-                token = response?.Token;
+                token = newToken;
             }
 
-            return new AccessTokenResult(AccessTokenResultStatus.Success, new AccessToken() { Value = token! }, string.Empty, default);
+            return new AccessTokenResult(AccessTokenResultStatus.Success, new AccessToken { Value = token! }, string.Empty, default);
         }
         finally
         {
@@ -136,49 +161,66 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
         }
     }
 
-    private async Task<(bool Succeeded, TokenResponse? Token)> TryRefreshTokenAsync(RefreshTokenDto request)
+    private async Task<(bool Succeeded, string? Token)> TryRefreshTokenAsync()
     {
-        var authState = await GetAuthenticationStateAsync();
-        try
-        {
-            var tokenResponse = await _client.RefreshTokenAsync(request);
-
-            await CacheAuthToken(tokenResponse.Token);
-
-            return (true, tokenResponse);
-        }
-        catch
+        var refreshToken = await _localStorage.GetItemAsync<string?>(StorageConstants.Local.RefreshToken);
+        if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return (false, null);
         }
+
+        var response = await _http.PostAsync("connect/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = "mobile",
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken
+            }));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return (false, null);
+        }
+
+        var payload = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(payload);
+        var token = doc.RootElement.GetProperty("access_token").GetString();
+        var newRefresh = doc.RootElement.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
+
+        if (string.IsNullOrEmpty(token))
+        {
+            return (false, null);
+        }
+
+        await CacheAuthToken(token);
+        if (!string.IsNullOrEmpty(newRefresh))
+        {
+            await _localStorage.SetItemAsync(StorageConstants.Local.RefreshToken, newRefresh);
+        }
+
+        return (true, token);
     }
 
-    private async ValueTask CacheAuthToken(string? token)
-    {
+    private async ValueTask CacheAuthToken(string? token) =>
         await _localStorage.SetItemAsync(StorageConstants.Local.AuthToken, token);
-    }
 
-    private ValueTask CachePermissions(ICollection<string> permissions)
-    {
-        return _localStorage.SetItemAsync(StorageConstants.Local.Permissions, permissions);
-    }
+    private ValueTask CachePermissions(ICollection<string> permissions) =>
+        _localStorage.SetItemAsync(StorageConstants.Local.Permissions, permissions);
 
     private async Task ClearCacheAsync()
     {
         await _localStorage.RemoveItemAsync(StorageConstants.Local.AuthToken);
+        await _localStorage.RemoveItemAsync(StorageConstants.Local.RefreshToken);
         await _localStorage.RemoveItemAsync(StorageConstants.Local.Permissions);
     }
-    private ValueTask<string?> GetCachedAuthTokenAsync()
-    {
-        return _localStorage.GetItemAsync<string?>(StorageConstants.Local.AuthToken);
-    }
 
-    private ValueTask<ICollection<string>?> GetCachedPermissionsAsync()
-    {
-        return _localStorage.GetItemAsync<ICollection<string>>(StorageConstants.Local.Permissions);
-    }
+    private ValueTask<string?> GetCachedAuthTokenAsync() =>
+        _localStorage.GetItemAsync<string?>(StorageConstants.Local.AuthToken);
 
-    private IEnumerable<Claim> GetClaimsFromJwt(string jwt)
+    private ValueTask<ICollection<string>?> GetCachedPermissionsAsync() =>
+        _localStorage.GetItemAsync<ICollection<string>>(StorageConstants.Local.Permissions);
+
+    private static IEnumerable<Claim> GetClaimsFromJwt(string jwt)
     {
         var claims = new List<Claim>();
         string payload = jwt.Split('.')[1];
@@ -197,7 +239,6 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
                     if (rolesString.Trim().StartsWith("["))
                     {
                         string[]? parsedRoles = JsonSerializer.Deserialize<string[]>(rolesString);
-
                         if (parsedRoles is not null)
                         {
                             claims.AddRange(parsedRoles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -208,19 +249,43 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
                         claims.Add(new Claim(ClaimTypes.Role, rolesString));
                     }
                 }
-
-                keyValuePairs.Remove(ClaimTypes.Role);
             }
 
-            claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? string.Empty)));
+            foreach (var kvp in keyValuePairs)
+            {
+                if (kvp.Key != ClaimTypes.Role && kvp.Value is not null)
+                {
+                    claims.Add(new Claim(kvp.Key, kvp.Value.ToString()!));
+                }
+            }
         }
 
         return claims;
     }
-    private byte[] ParseBase64WithoutPadding(string payload)
+
+    private static byte[] ParseBase64WithoutPadding(string base64)
     {
-        payload = payload.Trim().Replace('-', '+').Replace('_', '/');
-        string base64 = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
         return Convert.FromBase64String(base64);
     }
+
+    private static string GenerateCodeVerifier()
+    {
+        var bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        return Base64UrlEncode(bytes);
+    }
+
+    private static string CreateCodeChallenge(string verifier)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(verifier));
+        return Base64UrlEncode(bytes);
+    }
+
+    private static string Base64UrlEncode(byte[] arg) =>
+        Convert.ToBase64String(arg).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
