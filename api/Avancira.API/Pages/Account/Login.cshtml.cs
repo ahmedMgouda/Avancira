@@ -1,9 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.WebUtilities;
 using Avancira.Infrastructure.Identity.Users;
 
 namespace Avancira.API.Pages.Account;
@@ -48,11 +46,5 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
         return Page();
     }
 
-    public IActionResult OnPostExternalLogin(string provider, string? returnUrl = null)
-    {
-        var redirectUrl = QueryHelpers.AddQueryString(returnUrl ?? "/", "provider", provider);
-        var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-        return Challenge(properties, provider);
-    }
 }
 
