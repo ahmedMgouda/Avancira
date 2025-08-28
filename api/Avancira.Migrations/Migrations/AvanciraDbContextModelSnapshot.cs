@@ -79,56 +79,6 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("RevokedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RotatedFromId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SessionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Salt")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-                    b.HasIndex("TokenHash");
-                    b.HasIndex("CreatedUtc");
-
-                    b.HasIndex("RevokedUtc");
-
-                    b.HasIndex("RotatedFromId");
-
-                    b.HasIndex("SessionId");
-
-                    b.ToTable("RefreshTokens", "identity");
-
-                    b.HasOne("Avancira.Infrastructure.Identity.Tokens.RefreshToken", "RotatedFrom")
-                        .WithOne()
-                        .HasForeignKey("Avancira.Infrastructure.Identity.Tokens.RefreshToken", "RotatedFromId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Avancira.Infrastructure.Identity.Tokens.Session", "Session")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.Session", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1617,17 +1567,6 @@ namespace Avancira.Migrations.Migrations
             modelBuilder.Entity("Avancira.Domain.PromoCodes.PromoCode", b =>
                 {
                     b.Navigation("ListingPromoCodes");
-                });
-
-            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.RefreshToken", b =>
-                {
-                    b.Navigation("RotatedFrom");
-                    b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("Avancira.Infrastructure.Identity.Tokens.Session", b =>
-                {
-                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
