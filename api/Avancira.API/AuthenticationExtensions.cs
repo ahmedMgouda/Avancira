@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Facebook;
-using OpenIddict.Server.AspNetCore;
-using OpenIddict.Validation.AspNetCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace Avancira.API;
 
@@ -11,22 +10,22 @@ public static class AuthenticationExtensions
     public static AuthenticationBuilder AddExternalAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
-        ILogger<AuthenticationExtensions> logger)
+        ILogger logger)
     {
-        var builder = services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
-        });
+        // Don't set global defaults here; Program.cs already did that.
+        var builder = new AuthenticationBuilder(services);
 
+        // Google
         var googleSection = configuration.GetSection("Avancira:ExternalServices:Google");
-        services.Configure<GoogleOptions>(googleSection);
         var google = googleSection.Get<GoogleOptions>();
         if (!string.IsNullOrWhiteSpace(google?.ClientId) && !string.IsNullOrWhiteSpace(google.ClientSecret))
         {
-            builder.AddGoogle(o =>
+            builder.AddGoogle(GoogleDefaults.AuthenticationScheme, o =>
             {
-                o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
+                // Bind extra options like CallbackPath if present
+                googleSection.Bind(o);
+                o.SignInScheme = IdentityConstants.ExternalScheme;
+                o.SaveTokens = true;
             });
         }
         else
@@ -34,14 +33,16 @@ public static class AuthenticationExtensions
             logger.LogWarning("Google OAuth configuration is missing or incomplete. Google authentication will not be available.");
         }
 
+        // Facebook
         var facebookSection = configuration.GetSection("Avancira:ExternalServices:Facebook");
-        services.Configure<FacebookOptions>(facebookSection);
         var facebook = facebookSection.Get<FacebookOptions>();
         if (!string.IsNullOrWhiteSpace(facebook?.AppId) && !string.IsNullOrWhiteSpace(facebook.AppSecret))
         {
-            builder.AddFacebook(o =>
+            builder.AddFacebook(FacebookDefaults.AuthenticationScheme, o =>
             {
-                o.SignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
+                facebookSection.Bind(o);
+                o.SignInScheme = IdentityConstants.ExternalScheme;
+                o.SaveTokens = true;
             });
         }
         else
@@ -52,4 +53,3 @@ public static class AuthenticationExtensions
         return builder;
     }
 }
-

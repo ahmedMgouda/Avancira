@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
 
 namespace Avancira.Infrastructure.Identity;
+
 internal static class Extensions
 {
     internal static IServiceCollection ConfigureIdentity(this IServiceCollection services)
@@ -46,11 +47,9 @@ internal static class Extensions
         })
            .AddEntityFrameworkStores<AvanciraDbContext>()
            .AddDefaultTokenProviders()
-            .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
-            .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
+           .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
+           .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
 
-
-        // Token lifetimes
         services.Configure<DataProtectionTokenProviderOptions>(o =>
         {
             o.TokenLifespan = TimeSpan.FromHours(2);

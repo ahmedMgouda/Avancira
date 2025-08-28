@@ -6,9 +6,12 @@ using Avancira.Infrastructure.Identity.Users;
 
 namespace Avancira.API.Pages.Account;
 
-public class LoginModel(SignInManager<User> signInManager) : PageModel
+public class LoginModel : PageModel
 {
-    private readonly SignInManager<User> _signInManager = signInManager;
+    private readonly SignInManager<User> _signInManager;
+
+    public LoginModel(SignInManager<User> signInManager)
+        => _signInManager = signInManager;
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -18,8 +21,7 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
 
     public class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required]
@@ -34,19 +36,13 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
     {
         ReturnUrl = returnUrl ?? "/";
         if (!ModelState.IsValid)
-        {
             return Page();
-        }
 
         var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, false, lockoutOnFailure: false);
         if (result.Succeeded)
-        {
             return LocalRedirect(ReturnUrl);
-        }
 
         ModelState.AddModelError(string.Empty, "Invalid login attempt.");
         return Page();
     }
-
 }
-

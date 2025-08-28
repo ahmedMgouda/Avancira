@@ -1,4 +1,4 @@
-using Avancira.Infrastructure.Messaging;
+﻿using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
@@ -9,16 +9,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Auth;
+using Microsoft.AspNetCore.Identity;
+using OpenIddict.Validation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Check if we're running with Aspire (development) or traditional mode (production)
-var isUsingAspire = builder.Configuration.GetConnectionString("avancira") != null || 
-                   builder.Environment.IsDevelopment();
+var isUsingAspire = builder.Configuration.GetConnectionString("avancira") != null
+                    || builder.Environment.IsDevelopment();
 
 if (isUsingAspire)
 {
-    // Aspire mode - let Aspire handle database configuration
     builder.ConfigureAvanciraFramework();
     builder.AddNpgsqlDbContext<AvanciraDbContext>("avancira", configureDbContextOptions: options =>
     {
@@ -27,14 +27,12 @@ if (isUsingAspire)
 }
 else
 {
-    // Production mode - use traditional database configuration
     builder.ConfigureAvanciraFramework();
     builder.Services.BindDbContext<AvanciraDbContext>();
 }
 
 builder.Services.AddControllers(options =>
 {
-    // Set the default produces response type to application/json globally
     options.Filters.Add(new ProducesAttribute("application/json"));
 })
 .AddJsonOptions(options =>
@@ -43,10 +41,25 @@ builder.Services.AddControllers(options =>
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 });
 
-// Register your dependencies with Aspire
-
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    })
+    .AddCookie(IdentityConstants.ApplicationScheme)
+    .AddCookie(IdentityConstants.ExternalScheme);
+
+using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+
+var authLogger = authLoggerFactory.CreateLogger("AuthenticationExtensions");
+builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
+
+builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -74,11 +87,6 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
-using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
-var authLogger = authLoggerFactory.CreateLogger<AuthenticationExtensions>();
-builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
-builder.Services.AddInfrastructureIdentity(builder.Configuration);
-
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -96,7 +104,6 @@ app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
 app.MapControllers();
 app.MapRazorPages();
-
 
 app.Run();
 

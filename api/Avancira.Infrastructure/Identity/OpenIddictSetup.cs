@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
-using OpenIddict.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -23,7 +22,7 @@ public static class OpenIddictSetup
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
                        .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
                        .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
-                       .SetIssuer(new Uri(configuration["Auth:Issuer"]!));
+                       .SetIssuer(new Uri(configuration["Auth:Issuer"]!)); // e.g. https://api.avancira.com/
 
                 options.AllowAuthorizationCodeFlow()
                        .AllowRefreshTokenFlow()
@@ -31,6 +30,7 @@ public static class OpenIddictSetup
 
                 options.RegisterScopes("openid", "profile", "email", "offline_access", "api");
 
+                // Replace with real certs in production
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
@@ -39,6 +39,7 @@ public static class OpenIddictSetup
                        .EnableTokenEndpointPassthrough()
                        .EnableEndSessionEndpointPassthrough();
 
+                // Custom handlers you referenced
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<LoginRedirectHandler>().SetOrder(int.MinValue));
                 options.AddEventHandler<ProcessSignInContext>(builder =>
@@ -60,10 +61,12 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.BindDbContext<AvanciraDbContext>();
+        // Ensure Identity + stores are available
+        services.ConfigureIdentity();
+
+
         services.AddOpenIddictServer(configuration);
 
         return services;
     }
 }
-

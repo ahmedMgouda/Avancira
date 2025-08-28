@@ -34,7 +34,6 @@ public static class AuthConstants
     public static class GrantTypes
     {
         public const string AuthorizationCode = "authorization_code";
-        public const string UserId = "user_id";
         public const string RefreshToken = "refresh_token";
     }
 
