@@ -1,7 +1,6 @@
 using Avancira.Application.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Avancira.Infrastructure.Auth;
 
 namespace Avancira.API.Controllers;
 
@@ -21,6 +20,6 @@ public class ExternalAuthController : BaseApiController
 
         var normalized = parsed.ToString().ToLowerInvariant();
 
-        return Redirect($"{AuthConstants.Endpoints.Authorize}?{AuthConstants.Parameters.Provider}={normalized}");
+        return Redirect($"/api/auth/external/{normalized}");
     }
 }
