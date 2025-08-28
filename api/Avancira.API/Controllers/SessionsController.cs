@@ -4,11 +4,13 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Application.Identity.Users.Abstractions;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avancira.API.Controllers;
 
 [Route("api/auth/sessions")]
+[Authorize]
 public class SessionsController : BaseApiController
 {
     private readonly ISender _mediator;
@@ -25,10 +27,6 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
-        if (userId == Guid.Empty)
-        {
-            return Unauthorized();
-        }
         var sessions = await _mediator.Send(new GetSessionsQuery(userId.ToString()), cancellationToken);
         return Ok(sessions);
     }
@@ -38,10 +36,6 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
-        if (userId == Guid.Empty)
-        {
-            return Unauthorized();
-        }
         await _mediator.Send(new RevokeSessionCommand(id, userId.ToString()), cancellationToken);
         return NoContent();
     }
@@ -51,10 +45,6 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
-        if (userId == Guid.Empty)
-        {
-            return Unauthorized();
-        }
         await _mediator.Send(new RevokeSessionsCommand(sessionIds, userId.ToString()), cancellationToken);
         return NoContent();
     }
