@@ -1,0 +1,27 @@
+@page
+@model Avancira.API.Pages.Account.LoginModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Login";
+}
+
+<form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+    <div>
+        <label asp-for="Input.Username"></label>
+        <input asp-for="Input.Username" />
+    </div>
+    <div>
+        <label asp-for="Input.Password"></label>
+        <input asp-for="Input.Password" type="password" />
+    </div>
+    <button type="submit">Log in</button>
+</form>
+
+<form method="post" asp-page-handler="ExternalLogin" asp-route-provider="Google" asp-route-returnUrl="@Model.ReturnUrl">
+    <button type="submit">Sign in with Google</button>
+</form>
+
+<form method="post" asp-page-handler="ExternalLogin" asp-route-provider="Facebook" asp-route-returnUrl="@Model.ReturnUrl">
+    <button type="submit">Sign in with Facebook</button>
+</form>
+
