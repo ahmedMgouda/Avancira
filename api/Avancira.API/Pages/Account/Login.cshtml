@@ -6,6 +6,7 @@
 }
 
 <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+    @Html.AntiForgeryToken()
     <div>
         <label asp-for="Input.Username"></label>
         <input asp-for="Input.Username" />
