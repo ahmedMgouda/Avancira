@@ -1,6 +1,4 @@
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +8,7 @@ using Avancira.Infrastructure.Identity.Users;
 
 namespace Avancira.API.Pages.Account;
 
+[ValidateAntiForgeryToken]
 public class LoginModel : PageModel
 {
     private readonly SignInManager<User> _signInManager;
@@ -49,7 +48,6 @@ public class LoginModel : PageModel
         return Page();
     }
 
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
         ReturnUrl = returnUrl ?? "/";

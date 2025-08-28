@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpenIddict.Server;
-using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
+using Microsoft.AspNetCore;
+using static OpenIddict.Server.OpenIddictServerEvents;
+
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -17,20 +19,16 @@ public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTo
         _environment = environment;
         _cookieOptions = cookieOptions;
     }
-
     public ValueTask HandleAsync(ApplyTokenResponseContext context)
     {
         var refreshToken = context.Response?.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
-        {
             return ValueTask.CompletedTask;
-        }
 
-        var httpContext = context.Transaction?.HttpContext;
-        if (httpContext is null)
-        {
+        var response = context.Transaction.GetHttpRequest()?.HttpContext.Response;
+
+        if (response is null)
             return ValueTask.CompletedTask;
-        }
 
         var sameSite = _cookieOptions.Value.SameSite == SameSiteMode.Unspecified
             ? SameSiteMode.Lax
@@ -44,7 +42,7 @@ public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTo
             Path = AuthConstants.Cookies.PathRoot
         };
 
-        httpContext.Response.Cookies.Append(AuthConstants.Cookies.RefreshToken, refreshToken, options);
+        response.Cookies.Append(AuthConstants.Cookies.RefreshToken, refreshToken, options);
         return ValueTask.CompletedTask;
     }
 }

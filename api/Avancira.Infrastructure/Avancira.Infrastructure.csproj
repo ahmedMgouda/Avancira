@@ -19,8 +19,11 @@
     <PackageReference Include="MailKit" Version="4.11.0" />
     <PackageReference Include="Mapster" Version="7.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.8" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.65.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenIddict.Abstractions" Version="7.0.0" />
+    <PackageReference Include="OpenIddict.Server" Version="7.0.0" />
     <PackageReference Include="OpenIddict.AspNetCore" Version="7.0.0" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.0.0" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore.Models" Version="7.0.0" />

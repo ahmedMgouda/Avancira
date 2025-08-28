@@ -14,11 +14,7 @@
     <PackageReference Include="Mapster" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\api\Avancira.Shared\Avancira.Shared.csproj" />
-    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +23,11 @@
 
   <ItemGroup>
     <Folder Include="Pages\Catalog\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\api\Avancira.Shared\Avancira.Shared.csproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

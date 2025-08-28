@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 
@@ -113,12 +114,12 @@ public class SessionService : ISessionService
             if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
                 continue;
 
-            var claims = await _tokenManager.GetClaimsAsync(token);
-            var sid = claims.FirstOrDefault(c => c.Type == AuthConstants.Claims.SessionId)?.Value;
-            if (sid is null || !Guid.TryParse(sid, out var sidGuid))
-                continue;
+            var props = await _tokenManager.GetPropertiesAsync(token);
 
-            if (ids.Contains(sidGuid))
+            if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
+                v.ValueKind == JsonValueKind.String &&
+                Guid.TryParse(v.GetString(), out var sidGuid) &&
+                ids.Contains(sidGuid))
             {
                 await _tokenManager.TryRevokeAsync(token);
             }
