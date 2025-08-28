@@ -1,4 +1,8 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,6 +13,13 @@ namespace Avancira.API.Pages.Account;
 public class LoginModel : PageModel
 {
     private readonly SignInManager<User> _signInManager;
+
+    private static readonly HashSet<string> AllowedProviders =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            GoogleDefaults.AuthenticationScheme,
+            FacebookDefaults.AuthenticationScheme
+        };
 
     public LoginModel(SignInManager<User> signInManager)
         => _signInManager = signInManager;
@@ -28,8 +39,15 @@ public class LoginModel : PageModel
         public string Password { get; set; } = string.Empty;
     }
 
-    public void OnGet(string? returnUrl = null)
-        => ReturnUrl = returnUrl ?? "/";
+    public IActionResult OnGet(string? returnUrl = null, string? provider = null)
+    {
+        ReturnUrl = returnUrl ?? "/";
+
+        if (!string.IsNullOrWhiteSpace(provider) && AllowedProviders.Contains(provider))
+            return Redirect($"/api/auth/external-login?provider={provider}&returnUrl={ReturnUrl}");
+
+        return Page();
+    }
 
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
