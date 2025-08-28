@@ -75,6 +75,9 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
             return false;
         }
 
+        // Ensure the verifier cannot be reused after the login completes
+        await _localStorage.RemoveItemAsync(CodeVerifierKey);
+
         var redirectUri = $"{_navigation.BaseUri}auth/callback";
         var response = await _http.PostAsync("connect/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
