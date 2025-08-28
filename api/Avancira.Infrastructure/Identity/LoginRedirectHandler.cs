@@ -16,8 +16,7 @@ public sealed class LoginRedirectHandler(IHttpContextAccessor http) : IOpenIddic
             return ValueTask.CompletedTask;
         }
 
-        if (httpContext.User?.Identity?.IsAuthenticated == true ||
-            !string.IsNullOrEmpty(httpContext.Request.Query["provider"]))
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
         {
             return ValueTask.CompletedTask;
         }
