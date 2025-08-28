@@ -30,7 +30,7 @@ public static class OpenIddictSetup
                        .AllowRefreshTokenFlow()
                        .RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes("api", "offline_access");
+                options.RegisterScopes("openid", "profile", "email", "offline_access", "api");
 
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();

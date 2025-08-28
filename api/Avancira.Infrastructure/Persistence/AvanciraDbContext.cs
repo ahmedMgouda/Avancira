@@ -1,12 +1,10 @@
-﻿using Avancira.Application.Persistence;
-using Avancira.Domain.Auditing;
+﻿using Avancira.Domain.Auditing;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Identity.Users;
 using MediatR;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Messaging;
@@ -19,7 +17,6 @@ using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Notifications;
 using Avancira.Domain.Identity;
-using OpenIddict.EntityFrameworkCore.Models;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<
@@ -65,11 +62,6 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<WalletLog> WalletLogs { get; set; }
 
     public DbSet<Session> Sessions { get; set; }
-
-    public DbSet<OpenIddictApplication> OpenIddictApplications { get; set; }
-    public DbSet<OpenIddictAuthorization> OpenIddictAuthorizations { get; set; }
-    public DbSet<OpenIddictScope> OpenIddictScopes { get; set; }
-    public DbSet<OpenIddictToken> OpenIddictTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
