@@ -1,0 +1,25 @@
+@page "/auth/callback"
+@attribute [AllowAnonymous]
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+@using System.Linq
+
+<PageTitle>Login</PageTitle>
+
+<p>Completing sign in...</p>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        if (query.TryGetValue("code", out var code) && query.TryGetValue("state", out var state))
+        {
+            await AuthService.CompleteLoginAsync(code!, state!);
+            var target = state.FirstOrDefault() ?? "/";
+            Navigation.NavigateTo(target);
+            return;
+        }
+        Navigation.NavigateTo("/login");
+    }
+}

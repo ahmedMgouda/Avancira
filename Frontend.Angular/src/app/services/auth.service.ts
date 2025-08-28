@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
@@ -30,20 +30,8 @@ export class AuthService {
       responseType: 'code',
       scope: 'api offline_access',
       redirectUri: environment.redirectUri,
+      usePkce: true,
     });
-
-    this.oauth.requester = (
-      method: string,
-      url: string,
-      body: unknown,
-      headers?: HttpHeaders | { [header: string]: string | string[] }
-    ) =>
-      this.http.request(method, url, {
-        body,
-        headers,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
-      });
   }
 
   init(): Promise<void> {
