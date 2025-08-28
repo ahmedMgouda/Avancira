@@ -26,7 +26,6 @@ public static class OpenIddictSetup
                        .SetIssuer(new Uri(configuration["Auth:Issuer"]!));
 
                 options.AllowAuthorizationCodeFlow()
-                       .AllowPasswordFlow()
                        .AllowRefreshTokenFlow()
                        .RequireProofKeyForCodeExchange();
 
@@ -48,8 +47,6 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<DeviceInfoClaimsHandler>());
                 options.AddEventHandler<ProcessSignInContext>(builder =>
                     builder.UseScopedHandler<SessionIdClaimsHandler>());
-                options.AddEventHandler<HandleTokenRequestContext>(builder =>
-                    builder.UseScopedHandler<PasswordGrantHandler>());
             })
             .AddValidation(options =>
             {

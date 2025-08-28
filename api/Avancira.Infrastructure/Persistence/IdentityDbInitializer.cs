@@ -56,7 +56,6 @@ internal sealed class IdentityDbInitializer(
             }
 
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.Password);
 
             await applicationManager.CreateAsync(descriptor);
         }

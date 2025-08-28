@@ -6414,7 +6414,7 @@ namespace Avancira.Admin.Infrastructure.Api
     public partial class ChangePasswordDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName(global::Avancira.Infrastructure.Auth.AuthConstants.GrantTypes.Password)]
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("newPassword")]
@@ -6787,7 +6787,7 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName(global::Avancira.Infrastructure.Auth.AuthConstants.GrantTypes.Password)]
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
 
     }
@@ -6959,7 +6959,7 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("userName")]
         public string? UserName { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName(global::Avancira.Infrastructure.Auth.AuthConstants.GrantTypes.Password)]
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("confirmPassword")]
@@ -6986,7 +6986,7 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName(global::Avancira.Infrastructure.Auth.AuthConstants.GrantTypes.Password)]
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("token")]
@@ -7131,7 +7131,7 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string? Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName(global::Avancira.Infrastructure.Auth.AuthConstants.GrantTypes.Password)]
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string? Password { get; set; } = default!;
 
     }
