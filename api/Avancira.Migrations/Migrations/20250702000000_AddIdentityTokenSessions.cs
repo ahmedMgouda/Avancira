@@ -35,38 +35,6 @@ namespace Avancira.Migrations.Migrations
                 table.PrimaryKey("PK_Sessions", x => x.Id);
             });
 
-            migrationBuilder.CreateTable(
-            name: "RefreshTokens",
-            schema: "identity",
-            columns: table => new
-            {
-                Id = table.Column<Guid>(type: "uuid", nullable: false),
-                TokenHash = table.Column<string>(type: "text", nullable: false),
-                SessionId = table.Column<Guid>(type: "uuid", nullable: false),
-                RotatedFromId = table.Column<Guid>(type: "uuid", nullable: true),
-                CreatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                AbsoluteExpiryUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                RevokedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-            },
-            constraints: table =>
-            {
-                table.PrimaryKey("PK_RefreshTokens", x => x.Id);
-                table.ForeignKey(
-                    name: "FK_RefreshTokens_RefreshTokens_RotatedFromId",
-                    column: x => x.RotatedFromId,
-                    principalSchema: "identity",
-                    principalTable: "RefreshTokens",
-                    principalColumn: "Id",
-                    onDelete: ReferentialAction.Restrict);
-                table.ForeignKey(
-                    name: "FK_RefreshTokens_Sessions_SessionId",
-                    column: x => x.SessionId,
-                    principalSchema: "identity",
-                    principalTable: "Sessions",
-                    principalColumn: "Id",
-                    onDelete: ReferentialAction.Cascade);
-            });
-
             migrationBuilder.CreateIndex(
             name: "IX_Sessions_Device",
             schema: "identity",
@@ -127,44 +95,10 @@ namespace Avancira.Migrations.Migrations
             table: "Sessions",
             columns: new[] { "UserId", "Device" },
             unique: true);
-
-        migrationBuilder.CreateIndex(
-            name: "IX_RefreshTokens_SessionId",
-            schema: "identity",
-            table: "RefreshTokens",
-            column: "SessionId");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_RefreshTokens_RotatedFromId",
-            schema: "identity",
-            table: "RefreshTokens",
-            column: "RotatedFromId");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_RefreshTokens_CreatedUtc",
-            schema: "identity",
-            table: "RefreshTokens",
-            column: "CreatedUtc");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_RefreshTokens_AbsoluteExpiryUtc",
-            schema: "identity",
-            table: "RefreshTokens",
-            column: "AbsoluteExpiryUtc");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_RefreshTokens_RevokedUtc",
-            schema: "identity",
-            table: "RefreshTokens",
-            column: "RevokedUtc");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-            name: "RefreshTokens",
-            schema: "identity");
-
             migrationBuilder.DropTable(
             name: "Sessions",
             schema: "identity");
