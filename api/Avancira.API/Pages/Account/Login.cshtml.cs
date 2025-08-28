@@ -19,7 +19,8 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
     public class InputModel
     {
         [Required]
-        public string Username { get; set; } = string.Empty;
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
 
         [Required]
         public string Password { get; set; } = string.Empty;
@@ -37,7 +38,7 @@ public class LoginModel(SignInManager<User> signInManager) : PageModel
             return Page();
         }
 
-        var result = await _signInManager.PasswordSignInAsync(Input.Username, Input.Password, false, lockoutOnFailure: false);
+        var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, false, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             return LocalRedirect(ReturnUrl);
