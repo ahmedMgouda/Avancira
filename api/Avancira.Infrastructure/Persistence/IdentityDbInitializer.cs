@@ -17,6 +17,7 @@ internal sealed class IdentityDbInitializer(
     UserManager<User> userManager,
     TimeProvider timeProvider,
     IOptions<OriginOptions> originSettings,
+    IOptions<AppOptions> appOptions,
     IOpenIddictApplicationManager applicationManager) : IDbInitializer
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
@@ -50,10 +51,8 @@ internal sealed class IdentityDbInitializer(
                 ClientSecret = "client-secret"
             };
 
-            if (originSettings.Value.OriginUrl is { } origin)
-            {
-                descriptor.RedirectUris.Add(origin);
-            }
+            var callbackUri = new Uri($"{appOptions.Value.FrontEndUrl.TrimEnd('/')}/auth/callback");
+            descriptor.RedirectUris.Add(callbackUri);
 
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
 
