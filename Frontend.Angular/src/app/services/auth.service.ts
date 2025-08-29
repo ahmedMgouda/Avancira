@@ -30,7 +30,6 @@ export class AuthService {
       responseType: 'code',
       scope: 'api offline_access',
       redirectUri: environment.redirectUri,
-      usePkce: true,
     });
   }
 
