@@ -63,9 +63,6 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // Ensure Identity + stores are available
-        services.ConfigureIdentity();
-
 
         services.AddOpenIddictServer(configuration);
 

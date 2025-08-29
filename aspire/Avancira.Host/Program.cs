@@ -91,7 +91,7 @@ builder.AddProject<Projects.Avancira_API>("avancira-backend-container")
 
 
 builder.AddNpmApp("avancira-frontend-container", "../../Frontend.Angular")
-    .WithHttpEndpoint(env: "PORT", port: 4200, name: "frontend-app")
+    .WithHttpEndpoint(env: "PORT", port: 4300, name: "frontend-app")
     .WithExternalHttpEndpoints();
 
 // Admin Dashboard

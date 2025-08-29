@@ -39,6 +39,7 @@ public static class Extensions
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
+        builder.Services.AddInfrastructureIdentity(builder.Configuration);
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();
