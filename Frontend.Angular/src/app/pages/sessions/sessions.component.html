@@ -34,6 +34,6 @@
 <ng-template #selectCell let-item>
   <input type="checkbox"
          [checked]="selectedSessions.has(item.id)"
-         (change)="onSelectSession(item.id, $event.target.checked)">
+         (change)="onSelectSession(item.id, ($event.target as HTMLInputElement).checked)">
 </ng-template>
 
