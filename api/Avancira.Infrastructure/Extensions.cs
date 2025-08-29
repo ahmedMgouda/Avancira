@@ -28,6 +28,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -40,6 +42,12 @@ public static class Extensions
         builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        });
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();

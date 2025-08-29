@@ -48,13 +48,6 @@ public partial class Program {
         builder.Services.AddRazorPages();
         builder.Services.AddHttpContextAccessor();
 
-        builder.Services
-            .AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            });
-
         using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
 
         var authLogger = authLoggerFactory.CreateLogger("AuthenticationExtensions");
