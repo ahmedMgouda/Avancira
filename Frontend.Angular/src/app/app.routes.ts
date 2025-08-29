@@ -21,6 +21,7 @@ import { PrivacyComponent } from './pages/privacy/privacy.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { SessionsComponent } from './pages/sessions/sessions.component';
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
+import { AuthCallbackComponent } from './pages/auth-callback/auth-callback.component';
 import { SigninComponent } from './pages/signin/signin.component';
 import { SignupComponent } from './pages/signup/signup.component';
 import { TabletestComponent } from './pages/tabletest/tabletest.component';
@@ -32,6 +33,7 @@ export const routes: Routes = [
   { path: 'video-call-window', component: VideoCallWindowComponent },
   { path: 'signup', component: SignupComponent },
   { path: 'signin', component: SigninComponent },
+  { path: 'auth/callback', component: AuthCallbackComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
