@@ -4,7 +4,7 @@ export const environment = {
   frontendUrl: 'https://localhost:4200',
   useSignalR: true,
   /** OAuth client identifier */
-  clientId: 'frontend',
+  clientId: 'avancira-web',
   /** Callback URL used after authentication */
   redirectUri: 'https://localhost:4200/signin-callback',
 };
