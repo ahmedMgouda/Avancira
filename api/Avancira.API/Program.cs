@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avancira.Infrastructure.Auth;
-using OpenIddict.Validation.AspNetCore;
 
 public partial class Program {
     private static void Main(string[] args)
@@ -46,13 +45,6 @@ public partial class Program {
         builder.Services.AddSignalR();
         builder.Services.AddRazorPages();
         builder.Services.AddHttpContextAccessor();
-
-        builder.Services
-            .AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            });
 
         using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
 

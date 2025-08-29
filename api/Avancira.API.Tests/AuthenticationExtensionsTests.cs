@@ -72,6 +72,13 @@ public class AuthenticationExtensionsTests
     public void UsesOpenIddictDefaults()
     {
         var services = new ServiceCollection();
+        services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        });
+
         var configuration = new ConfigurationBuilder().Build();
 
         services.AddExternalAuthentication(configuration, NullLogger<AuthenticationExtensions>.Instance);
