@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avancira.Infrastructure.Auth;
 using OpenIddict.Validation.AspNetCore;
+using Microsoft.AspNetCore.Identity;
 
 public partial class Program {
     private static void Main(string[] args)
@@ -66,9 +67,6 @@ public partial class Program {
         app.UseAvanciraFramework();
 
         app.UseHttpsRedirection();
-
-        app.UseAuthentication();
-        app.UseAuthorization();
 
         app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
