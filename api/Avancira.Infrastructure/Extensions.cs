@@ -30,6 +30,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -45,7 +46,7 @@ public static class Extensions
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
             options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
         });
         builder.Services.ConfigureCatalog();
