@@ -6,5 +6,5 @@ export const environment = {
   /** OAuth client identifier */
   clientId: 'avancira-web',
   /** Callback URL used after authentication */
-  redirectUri: 'http://localhost:4200/auth/callback',
+  redirectUri: 'https://localhost:4200/auth/callback',
 };

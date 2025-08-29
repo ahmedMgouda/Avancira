@@ -65,8 +65,6 @@ internal sealed class IdentityDbInitializer(
 
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Scopes.Profile);
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Scopes.Email);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Scopes.OfflineAccess);
-            descriptor.Permissions.Add($"{OpenIddictConstants.Permissions.Prefixes.Scope}api");
 
             await applicationManager.CreateAsync(descriptor);
         }
