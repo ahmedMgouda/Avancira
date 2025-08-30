@@ -28,7 +28,7 @@ export class AuthService {
       issuer: environment.baseApiUrl,
       clientId: environment.clientId,
       responseType: 'code',
-      scope: 'offline_access',
+      scope: 'openid profile email offline_access',
       redirectUri: environment.redirectUri,
     });
   }
