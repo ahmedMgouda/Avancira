@@ -40,34 +40,45 @@ internal sealed class IdentityDbInitializer(
 
     }
 
+
     private async Task SeedOpenIddictApplicationsAsync()
     {
         const string clientId = "avancira-web";
         if (await applicationManager.FindByClientIdAsync(clientId) is null)
         {
+            var frontend = appOptions.Value.FrontEndUrl.TrimEnd('/');
+
             var descriptor = new OpenIddictApplicationDescriptor
             {
                 ClientId = clientId,
-                ClientSecret = "client-secret"
+                ClientType = OpenIddictConstants.ClientTypes.Public,
+                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+                DisplayName = "Avancira Web"
             };
 
-            var callbackUri = new Uri($"{appOptions.Value.FrontEndUrl.TrimEnd('/')}/auth/callback");
-            descriptor.RedirectUris.Add(callbackUri);
+            descriptor.RedirectUris.Add(new Uri($"{frontend}/auth/callback"));
+            descriptor.PostLogoutRedirectUris.Add(new Uri($"{frontend}/logout-callback"));
 
+            // Endpoints
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Authorization);
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Revocation);
 
+            // Flows
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode);
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.RefreshToken);
-
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.ResponseTypes.Code);
 
-            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.Profile);
-            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.Email);
-            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.OpenId);
-            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.OfflineAccess);
-            descriptor.AddScopePermissions("api");
+            // Require PKCE for public client
+            descriptor.Requirements.Add(OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange);
+
+            descriptor.AddScopePermissions(
+                OpenIddictConstants.Scopes.OpenId,
+                OpenIddictConstants.Scopes.Profile,
+                OpenIddictConstants.Scopes.Email,
+                OpenIddictConstants.Scopes.OfflineAccess,
+                "api"
+            );
 
             await applicationManager.CreateAsync(descriptor);
         }
