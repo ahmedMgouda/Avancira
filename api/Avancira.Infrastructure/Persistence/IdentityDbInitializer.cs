@@ -63,10 +63,11 @@ internal sealed class IdentityDbInitializer(
 
             descriptor.Permissions.Add(OpenIddictConstants.Permissions.ResponseTypes.Code);
 
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Scopes.Profile);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Scopes.Email);
-
-            descriptor.Permissions.Add($"{OpenIddictConstants.Permissions.Prefixes.Scope}api");
+            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.Profile);
+            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.Email);
+            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.OpenId);
+            descriptor.AddScopePermissions(OpenIddictConstants.Scopes.OfflineAccess);
+            descriptor.AddScopePermissions("api");
 
             await applicationManager.CreateAsync(descriptor);
         }

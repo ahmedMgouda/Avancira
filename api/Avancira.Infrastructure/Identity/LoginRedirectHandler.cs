@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using OpenIddict.Server;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
@@ -10,14 +12,22 @@ public sealed class LoginRedirectHandler : IOpenIddictServerHandler<HandleAuthor
 
     public LoginRedirectHandler(IHttpContextAccessor http) => _http = http;
 
-    public ValueTask HandleAsync(HandleAuthorizationRequestContext context)
+    public async ValueTask HandleAsync(HandleAuthorizationRequestContext context)
     {
         var httpContext = _http.HttpContext;
         if (httpContext is null)
-            return ValueTask.CompletedTask;
+            return;
 
         if (httpContext.User?.Identity?.IsAuthenticated == true)
-            return ValueTask.CompletedTask;
+            return;
+
+
+        var result = await httpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+        if (result.Succeeded)
+        {
+            httpContext.User = result.Principal!;
+            return;
+        }
 
         var req = httpContext.Request;
         var returnUrl = req.PathBase.Add(req.Path).Value ?? string.Empty;
@@ -26,6 +36,5 @@ public sealed class LoginRedirectHandler : IOpenIddictServerHandler<HandleAuthor
 
         httpContext.Response.Redirect($"/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
         context.HandleRequest();
-        return ValueTask.CompletedTask;
     }
 }
