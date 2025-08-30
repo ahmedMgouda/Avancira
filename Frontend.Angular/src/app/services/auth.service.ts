@@ -31,13 +31,20 @@ export class AuthService {
       scope: 'openid profile email offline_access',
       redirectUri: environment.redirectUri,
       postLogoutRedirectUri: environment.postLogoutRedirectUri,
+      useRefreshToken: true,
     });
   }
 
   init(): Promise<void> {
-    return this.oauth
-      .loadDiscoveryDocumentAndTryLogin()
-      .then(() => this.oauth.setupAutomaticSilentRefresh());
+    return this.oauth.loadDiscoveryDocumentAndTryLogin().then(() => {
+      const refreshToken = this.oauth.getRefreshToken();
+      if (refreshToken) {
+        this.oauth.setupAutomaticRefresh({ checkInterval: 60 });
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('No refresh token available; automatic refresh disabled.');
+      }
+    });
   }
 
   isAuthenticated(): boolean {
