@@ -30,6 +30,7 @@ export class AuthService {
       responseType: 'code',
       scope: 'openid profile email offline_access',
       redirectUri: environment.redirectUri,
+      postLogoutRedirectUri: environment.postLogoutRedirectUri,
     });
   }
 
@@ -81,7 +82,7 @@ export class AuthService {
     this.oauth.initCodeFlow(returnUrl);
   }
 
-  logout(navigate = true): void {
+  logout(): void {
     const sessionId = this.decode()?.sessionId;
     const revoke$ = sessionId
       ? this.sessionService.revokeSession(sessionId)
@@ -90,10 +91,10 @@ export class AuthService {
     revoke$
       .pipe(
         finalize(() => {
-          this.oauth.logOut();
-          if (navigate) {
-            this.router.navigateByUrl(this.redirectToSignIn());
-          }
+          this.oauth.logOut({
+            logoutUrl: `${environment.baseApiUrl}connect/logout`,
+            postLogoutRedirectUri: environment.postLogoutRedirectUri,
+          });
         }),
       )
       .subscribe();
