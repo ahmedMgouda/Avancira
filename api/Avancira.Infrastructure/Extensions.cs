@@ -2,7 +2,6 @@
 using Avancira.Application.Jobs;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
-using Avancira.Infrastructure.Auth.DelegatingHandlers;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Cors;
@@ -70,16 +69,6 @@ public static class Extensions
                     options.SameSite = SameSiteMode.Lax;
                 }
             });
-        builder.Services.AddHttpClient("TokenClient", (sp, client) =>
-        {
-            var configuration = sp.GetRequiredService<IConfiguration>();
-            var issuer = configuration["Auth:Issuer"];
-            if (!string.IsNullOrWhiteSpace(issuer))
-            {
-                client.BaseAddress = new Uri(issuer);
-            }
-        })
-        .AddHttpMessageHandler<TokenErrorHandler>();
         builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
 
