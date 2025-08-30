@@ -28,7 +28,7 @@ export class AuthService {
       issuer: environment.baseApiUrl,
       clientId: environment.clientId,
       responseType: 'code',
-      scope: 'api offline_access',
+      scope: 'offline_access',
       redirectUri: environment.redirectUri,
     });
   }

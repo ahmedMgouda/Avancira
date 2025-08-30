@@ -39,7 +39,7 @@ public static class AuthConstants
 
     public static class Scopes
     {
-        public const string Api = "api offline_access";
+        public const string OfflineAccess = "offline_access";
     }
 
     public static class Cookies
