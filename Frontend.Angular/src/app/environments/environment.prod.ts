@@ -7,4 +7,6 @@ export const environment = {
     clientId: 'avancira-web',
     /** Callback URL used after authentication */
     redirectUri: 'http://localhost:4200/auth/callback',
+    /** URL to redirect to after logging out */
+    postLogoutRedirectUri: 'https://www.avancira.com',
   };
