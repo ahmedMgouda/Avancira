@@ -54,7 +54,7 @@ describe('SignupComponent', () => {
 
     component.authenticate(SocialProvider.Google);
 
-    expect(authService.startLogin).toHaveBeenCalledWith('/home', SocialProvider.Google);
+    expect(authService.startLogin).toHaveBeenCalledWith('/home');
   });
 
   it('should initiate Facebook signup flow', async () => {
@@ -64,7 +64,7 @@ describe('SignupComponent', () => {
 
     component.authenticate(SocialProvider.Facebook);
 
-    expect(authService.startLogin).toHaveBeenCalledWith('/home', SocialProvider.Facebook);
+    expect(authService.startLogin).toHaveBeenCalledWith('/home');
   });
 
   it('should sanitize external returnUrl', async () => {

@@ -161,8 +161,8 @@ export class SignupComponent implements OnInit, OnDestroy {
       });
   }
 
-  authenticate(provider: SocialProvider): void {
-    this.authService.startLogin(this.returnUrl, provider);
+  authenticate(_provider: SocialProvider): void {
+    this.authService.startLogin(this.returnUrl);
   }
 
   ngOnDestroy(): void {
