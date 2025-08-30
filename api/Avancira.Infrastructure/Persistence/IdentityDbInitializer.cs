@@ -76,8 +76,7 @@ internal sealed class IdentityDbInitializer(
                 OpenIddictConstants.Scopes.OpenId,
                 OpenIddictConstants.Scopes.Profile,
                 OpenIddictConstants.Scopes.Email,
-                OpenIddictConstants.Scopes.OfflineAccess,
-                "api"
+                OpenIddictConstants.Scopes.OfflineAccess
             );
 
             await applicationManager.CreateAsync(descriptor);
