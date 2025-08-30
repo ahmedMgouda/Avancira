@@ -62,7 +62,7 @@ public sealed class JwtAuthenticationService : AuthenticationStateProvider, IAut
 
         var redirectUri = $"{_navigation.BaseUri}auth/callback";
         var authorizeUrl =
-            $"{_http.BaseAddress}connect/authorize?client_id=mobile&response_type=code&scope=api%20offline_access&redirect_uri={Uri.EscapeDataString(redirectUri)}&code_challenge={challenge}&code_challenge_method=S256&state={Uri.EscapeDataString(returnUrl)}";
+            $"{_http.BaseAddress}connect/authorize?client_id=mobile&response_type=code&scope=offline_access&redirect_uri={Uri.EscapeDataString(redirectUri)}&code_challenge={challenge}&code_challenge_method=S256&state={Uri.EscapeDataString(returnUrl)}";
 
         _navigation.NavigateTo(authorizeUrl, true);
     }
