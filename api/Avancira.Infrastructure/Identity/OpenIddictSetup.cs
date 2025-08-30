@@ -28,7 +28,7 @@ public static class OpenIddictSetup
                        .AllowRefreshTokenFlow()
                        .RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes("openid", "profile", "email", "offline_access", "api");
+                options.RegisterScopes("openid", "profile", "email", "offline_access");
 
                 // Replace with real certs in production
                 options.AddDevelopmentEncryptionCertificate()
