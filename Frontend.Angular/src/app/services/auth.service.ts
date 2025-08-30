@@ -9,7 +9,6 @@ import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
-import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 import { SessionService } from './session.service';
 
@@ -84,8 +83,7 @@ export class AuthService {
     return this.refresh$;
   }
 
-  startLogin(returnUrl = this.router.url, provider?: SocialProvider): void {
-    this.oauth.customQueryParams = provider ? { provider } : {};
+  startLogin(returnUrl = this.router.url): void {
     this.oauth.initCodeFlow(returnUrl);
   }
 
