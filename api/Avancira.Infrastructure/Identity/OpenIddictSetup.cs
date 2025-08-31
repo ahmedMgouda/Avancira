@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
+using OpenIddict.Abstractions;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -29,7 +30,11 @@ public static class OpenIddictSetup
                        .AllowRefreshTokenFlow()
                        .RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes("openid", "profile", "email", "offline_access");
+                options.RegisterScopes(
+                    OpenIddictConstants.Scopes.OpenId,
+                    OpenIddictConstants.Scopes.Profile,
+                    OpenIddictConstants.Scopes.Email,
+                    OpenIddictConstants.Scopes.OfflineAccess);
 
                 // Replace with real certs in production
                 options.AddDevelopmentEncryptionCertificate()
