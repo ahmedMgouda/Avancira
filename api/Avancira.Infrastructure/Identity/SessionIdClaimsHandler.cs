@@ -18,7 +18,11 @@ public class SessionIdClaimsHandler : IOpenIddictServerHandler<ProcessSignInCont
         var existing = context.Principal.GetClaim(AuthConstants.Claims.SessionId);
         if (string.IsNullOrEmpty(existing))
         {
-            context.Principal.SetClaim(AuthConstants.Claims.SessionId, Guid.NewGuid().ToString(), OpenIddictConstants.Destinations.AccessToken);
+            context.Principal.SetClaim(
+                AuthConstants.Claims.SessionId,
+                Guid.NewGuid().ToString(),
+                OpenIddictConstants.Destinations.AccessToken,
+                OpenIddictConstants.Destinations.RefreshToken);
         }
 
         return ValueTask.CompletedTask;
