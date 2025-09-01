@@ -1,10 +1,7 @@
 ﻿using Avancira.Application;
-using Avancira.Application.Jobs;
-using Avancira.Application.Origin;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
-using Avancira.Infrastructure.Cors;
 using Avancira.Infrastructure.Exceptions;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Jobs;
@@ -23,13 +20,9 @@ using FluentValidation;
 using Mapster;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
-using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
-using Microsoft.AspNetCore.Identity;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -45,8 +38,6 @@ public static class Extensions
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
         });
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
@@ -60,16 +51,6 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddOptions<CookieOptions>()
-            .BindConfiguration("Cookies")
-            .PostConfigure(options =>
-            {
-                if (options.SameSite == SameSiteMode.Unspecified)
-                {
-                    options.SameSite = SameSiteMode.Lax;
-                }
-            });
-        builder.Services.AddOptions<OriginOptions>().BindConfiguration(nameof(OriginOptions));
 
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));

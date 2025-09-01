@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
+using Microsoft.OpenApi.Writers;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -22,7 +23,7 @@ public static class OpenIddictSetup
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
                        .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
                        .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
-                       .SetIssuer(new Uri(configuration["Auth:Issuer"]!)); // e.g. https://api.avancira.com/
+                       .SetIssuer(new Uri(configuration["Auth:Issuer"]!));
 
                 options.AllowAuthorizationCodeFlow()
                        .AllowRefreshTokenFlow()
@@ -34,10 +35,10 @@ public static class OpenIddictSetup
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
-                options.UseAspNetCore()
-                       .EnableAuthorizationEndpointPassthrough()
-                       .EnableTokenEndpointPassthrough()
-                       .EnableEndSessionEndpointPassthrough();
+                options.UseAspNetCore();
+                      // .EnableAuthorizationEndpointPassthrough()
+                       //.EnableTokenEndpointPassthrough()
+                       //.EnableEndSessionEndpointPassthrough();
 
                 // Custom handlers you referenced
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
