@@ -9,7 +9,6 @@ import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
-import { SocialProvider } from '../models/social-provider';
 import { UserProfile } from '../models/UserProfile';
 import { SessionService } from './session.service';
 
@@ -28,15 +27,23 @@ export class AuthService {
       issuer: environment.baseApiUrl,
       clientId: environment.clientId,
       responseType: 'code',
-      scope: 'offline_access',
+      scope: 'openid profile email offline_access',
       redirectUri: environment.redirectUri,
+      postLogoutRedirectUri: environment.postLogoutRedirectUri,
+      useRefreshToken: true,
     });
   }
 
   init(): Promise<void> {
-    return this.oauth
-      .loadDiscoveryDocumentAndTryLogin()
-      .then(() => this.oauth.setupAutomaticSilentRefresh());
+    return this.oauth.loadDiscoveryDocumentAndTryLogin().then(() => {
+      const refreshToken = this.oauth.getRefreshToken();
+      if (refreshToken) {
+        this.oauth.setupAutomaticRefresh({ checkInterval: 60 });
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('No refresh token available; automatic refresh disabled.');
+      }
+    });
   }
 
   isAuthenticated(): boolean {
@@ -76,12 +83,11 @@ export class AuthService {
     return this.refresh$;
   }
 
-  startLogin(returnUrl = this.router.url, provider?: SocialProvider): void {
-    this.oauth.customQueryParams = provider ? { provider } : {};
+  startLogin(returnUrl = this.router.url): void {
     this.oauth.initCodeFlow(returnUrl);
   }
 
-  logout(navigate = true): void {
+  logout(): void {
     const sessionId = this.decode()?.sessionId;
     const revoke$ = sessionId
       ? this.sessionService.revokeSession(sessionId)
@@ -90,10 +96,10 @@ export class AuthService {
     revoke$
       .pipe(
         finalize(() => {
-          this.oauth.logOut();
-          if (navigate) {
-            this.router.navigateByUrl(this.redirectToSignIn());
-          }
+          this.oauth.logOut({
+            logoutUrl: `${environment.baseApiUrl}connect/logout`,
+            postLogoutRedirectUri: environment.postLogoutRedirectUri,
+          });
         }),
       )
       .subscribe();

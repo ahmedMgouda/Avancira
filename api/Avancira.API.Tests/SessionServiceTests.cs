@@ -8,10 +8,10 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using OpenIddict.Abstractions;
-using System.Security.Claims;
 using Avancira.Domain.Identity;
 using Avancira.Infrastructure.Auth;
 using System.Collections.Generic;
+using System.Text.Json;
 using Xunit;
 
 public class SessionServiceTests
@@ -83,8 +83,11 @@ public class SessionServiceTests
             .Returns(AsyncEnumerable(token));
         tokenManager.Setup(m => m.GetTypeAsync(token))
             .ReturnsAsync(OpenIddictConstants.TokenTypeHints.RefreshToken);
-        tokenManager.Setup(m => m.GetClaimsAsync(token))
-            .ReturnsAsync(new[] { new Claim(AuthConstants.Claims.SessionId, sessionId.ToString()) });
+        tokenManager.Setup(m => m.GetPropertiesAsync(token))
+            .ReturnsAsync(new Dictionary<string, JsonElement>
+            {
+                [AuthConstants.Claims.SessionId] = JsonSerializer.SerializeToElement(sessionId.ToString())
+            });
 
         var service = new SessionService(db, tokenManager.Object);
         await service.RevokeSessionsAsync("user1", new[] { sessionId });

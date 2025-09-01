@@ -62,8 +62,10 @@ describe('AuthService', () => {
     expect(req.request.withCredentials).toBeTrue();
     req.flush(null);
 
-    expect(oauthSpy.logOut).toHaveBeenCalled();
-    expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+    expect(oauthSpy.logOut).toHaveBeenCalledWith({
+      logoutUrl: `${environment.baseApiUrl}connect/logout`,
+      postLogoutRedirectUri: environment.postLogoutRedirectUri,
+    });
   });
 
   it('performs a single refresh for concurrent calls', fakeAsync(() => {
