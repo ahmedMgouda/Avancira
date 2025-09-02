@@ -5,8 +5,10 @@
     ViewData["Title"] = "Login";
 }
 
-<form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+<form method="post">
     @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReturnUrl" />
+
     <div>
         <label asp-for="Input.Email"></label>
         <input asp-for="Input.Email" type="email" />

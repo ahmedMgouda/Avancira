@@ -1,10 +1,12 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Avancira.Infrastructure.Identity.Users;
+using Microsoft.AspNetCore.Authentication;
+using static Avancira.Infrastructure.Auth.AuthConstants;
 
 namespace Avancira.API.Pages.Account;
 
@@ -26,7 +28,7 @@ public class LoginModel : PageModel
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
-    [FromQuery]
+    [BindProperty(SupportsGet = true)]
     public string ReturnUrl { get; set; } = "/";
 
     public class InputModel
@@ -48,17 +50,24 @@ public class LoginModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
+    public async Task<IActionResult> OnPostAsync()
     {
-        ReturnUrl = returnUrl ?? "/";
+        ReturnUrl = string.IsNullOrEmpty(ReturnUrl) ? "/connect/authorize" : ReturnUrl;
+
         if (!ModelState.IsValid)
             return Page();
 
-        var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, false, lockoutOnFailure: false);
-        if (result.Succeeded)
-            return LocalRedirect(ReturnUrl);
+        var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+        if (user is null || !await _signInManager.UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            return Page();
+        }
 
-        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-        return Page();
+        var principal = await _signInManager.CreateUserPrincipalAsync(user);
+
+        await HttpContext.SignInAsync(Cookies.IdentityExchange, principal);
+
+        return LocalRedirect(ReturnUrl);
     }
 }

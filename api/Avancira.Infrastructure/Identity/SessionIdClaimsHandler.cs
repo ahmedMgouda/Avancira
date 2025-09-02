@@ -20,9 +20,7 @@ public class SessionIdClaimsHandler : IOpenIddictServerHandler<ProcessSignInCont
         {
             context.Principal.SetClaim(
                 AuthConstants.Claims.SessionId,
-                Guid.NewGuid().ToString(),
-                OpenIddictConstants.Destinations.AccessToken,
-                OpenIddictConstants.Destinations.RefreshToken);
+                Guid.NewGuid().ToString());
         }
 
         return ValueTask.CompletedTask;

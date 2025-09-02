@@ -23,6 +23,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using OpenIddict.Validation.AspNetCore;
+using System.Net;
+using static Avancira.Infrastructure.Auth.AuthConstants;
 
 namespace Avancira.Infrastructure;
 public static class Extensions
@@ -35,14 +37,26 @@ public static class Extensions
         builder.ConfigureDatabase();
         builder.Services.ConfigureIdentity();
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
+
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        })
+        .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and openiddict 
+        {
+            options.Cookie.Name = ".Avancira.Identity.Exchange";
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(2);
+            options.SlidingExpiration = false;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Lax;
         });
+
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();
         builder.Services.ConfigureOpenApi();
+
         builder.Services.ConfigureJobs(builder.Configuration);
         builder.Services.ConfigureMailing();
         builder.Services.ConfigureMessaging();

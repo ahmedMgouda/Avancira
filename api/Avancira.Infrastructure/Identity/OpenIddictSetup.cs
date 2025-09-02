@@ -23,7 +23,6 @@ public static class OpenIddictSetup
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
                        .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
                        .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
-                       .SetLogoutEndpointUris("/connect/logout")
                        .SetIssuer(new Uri(configuration["Auth:Issuer"]!)); // e.g. https://api.avancira.com/
 
                 options.AllowAuthorizationCodeFlow()

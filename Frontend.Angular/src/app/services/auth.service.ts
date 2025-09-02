@@ -1,16 +1,17 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
+import { defer, from, Observable, of, throwError } from 'rxjs';
+import { catchError, finalize, shareReplay,switchMap } from 'rxjs/operators';
 import { OAuthService } from 'angular-oauth2-oidc';
-import { Observable, defer, from, of, throwError } from 'rxjs';
-import { finalize, catchError, switchMap, shareReplay } from 'rxjs/operators';
+
+import { SessionService } from './session.service';
 
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
 import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
 import { UserProfile } from '../models/UserProfile';
-import { SessionService } from './session.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -29,8 +30,7 @@ export class AuthService {
       responseType: 'code',
       scope: 'openid profile email offline_access',
       redirectUri: environment.redirectUri,
-      postLogoutRedirectUri: environment.postLogoutRedirectUri,
-      useRefreshToken: true,
+      postLogoutRedirectUri: environment.postLogoutRedirectUri
     });
   }
 
@@ -38,7 +38,7 @@ export class AuthService {
     return this.oauth.loadDiscoveryDocumentAndTryLogin().then(() => {
       const refreshToken = this.oauth.getRefreshToken();
       if (refreshToken) {
-        this.oauth.setupAutomaticRefresh({ checkInterval: 60 });
+        this.oauth.setupAutomaticSilentRefresh({ checkInterval: 60 });
       } else {
         // eslint-disable-next-line no-console
         console.warn('No refresh token available; automatic refresh disabled.');

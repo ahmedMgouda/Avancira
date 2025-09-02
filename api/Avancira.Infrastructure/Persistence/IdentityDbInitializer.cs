@@ -149,7 +149,7 @@ internal sealed class IdentityDbInitializer(
                 PhoneNumberConfirmed = true,
                 NormalizedEmail = AppConstants.EmailAddress.ToUpperInvariant(),
                 NormalizedUserName = AppConstants.AdminUserName.ToUpperInvariant(),
-                ImageUrl = new Uri(originSettings.Value.OriginUrl! + AppConstants.DefaultProfilePicture),
+                //ImageUrl = new Uri(originSettings.Value.OriginUrl! + AppConstants.DefaultProfilePicture),
                 IsActive = true
             };
 
