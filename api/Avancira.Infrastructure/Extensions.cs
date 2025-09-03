@@ -40,16 +40,18 @@ public static class Extensions
 
         builder.Services.AddAuthentication(options =>
         {
-            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultScheme = Cookies.IdentityExchange;
+            options.DefaultSignInScheme = Cookies.IdentityExchange;
+            options.DefaultAuthenticateScheme = Cookies.IdentityExchange;
         })
-        .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and openiddict 
+        .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and idp
         {
             options.Cookie.Name = ".Avancira.Identity.Exchange";
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(2);
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
             options.SlidingExpiration = false;
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SameSite = SameSiteMode.None;
         });
 
         builder.Services.ConfigureCatalog();

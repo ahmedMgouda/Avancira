@@ -56,7 +56,7 @@ internal sealed class IdentityDbInitializer(
                 DisplayName = "Avancira Web"
             };
 
-            descriptor.RedirectUris.Add(new Uri($"{frontend}/auth/callback"));
+            descriptor.RedirectUris.Add(new Uri($"{frontend}/"));
             descriptor.PostLogoutRedirectUris.Add(new Uri($"{frontend}/logout-callback"));
 
             // Endpoints

@@ -46,6 +46,16 @@ export class AuthService {
     });
   }
 
+  async tryLoginCodeFlow(): Promise<boolean> {
+  try {
+    await this.oauth.tryLoginCodeFlow();
+    return this.oauth.hasValidAccessToken();
+  } catch (e) {
+    console.error('Error during code flow login', e);
+    return false;
+  }
+}
+
   isAuthenticated(): boolean {
     return this.oauth.hasValidAccessToken();
   }
