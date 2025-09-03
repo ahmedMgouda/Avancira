@@ -26,8 +26,9 @@ public static class OpenIddictSetup
                        .SetIssuer(new Uri(configuration["Auth:Issuer"]!)); // e.g. https://api.avancira.com/
 
                 options.AllowAuthorizationCodeFlow()
-                       .AllowRefreshTokenFlow()
-                       .RequireProofKeyForCodeExchange();
+                         .RequireProofKeyForCodeExchange()
+                       .AllowRefreshTokenFlow();
+
 
                 options.RegisterScopes(
                     OpenIddictConstants.Scopes.OpenId,

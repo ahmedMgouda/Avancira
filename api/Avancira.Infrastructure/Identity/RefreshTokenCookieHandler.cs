@@ -22,6 +22,7 @@ public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTo
     public ValueTask HandleAsync(ApplyTokenResponseContext context)
     {
         var refreshToken = context.Response?.RefreshToken;
+
         if (string.IsNullOrEmpty(refreshToken))
             return ValueTask.CompletedTask;
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
+using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using static Avancira.Infrastructure.Auth.AuthConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
@@ -18,6 +19,9 @@ public sealed class LoginRedirectHandler : IOpenIddictServerHandler<HandleAuthor
         if (result.Succeeded && result.Principal is not null)
         {
             context.Principal = result.Principal;
+
+            context.Principal.SetScopes(context.Request.GetScopes());
+
             return;
         }
 

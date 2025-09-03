@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Avancira.Infrastructure.Persistence;
 internal sealed class IdentityDbInitializer(
@@ -18,7 +19,8 @@ internal sealed class IdentityDbInitializer(
     TimeProvider timeProvider,
     IOptions<OriginOptions> originSettings,
     IOptions<AppOptions> appOptions,
-    IOpenIddictApplicationManager applicationManager) : IDbInitializer
+    IOpenIddictApplicationManager applicationManager,
+    IOpenIddictScopeManager scopeManager) : IDbInitializer
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
@@ -51,38 +53,43 @@ internal sealed class IdentityDbInitializer(
             var descriptor = new OpenIddictApplicationDescriptor
             {
                 ClientId = clientId,
-                ClientType = OpenIddictConstants.ClientTypes.Public,
-                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
-                DisplayName = "Avancira Web"
+                ClientType = ClientTypes.Public,
+                ConsentType = ConsentTypes.Implicit,
+                DisplayName = "Avancira Web",
+                PostLogoutRedirectUris =
+                    {
+                        new Uri($"{frontend}/logout-callback")
+                    },
+                RedirectUris =
+                    {
+                        new Uri($"{frontend}/auth/callback")
+                    },
+                Permissions =
+                    {
+                        Permissions.Endpoints.Token,
+                        Permissions.Endpoints.Authorization,
+                        Permissions.Endpoints.Revocation,
+
+                        Permissions.ResponseTypes.Code,
+
+                        Permissions.GrantTypes.AuthorizationCode,
+                        Permissions.GrantTypes.RefreshToken,
+                  
+                        Permissions.Prefixes.Scope + Scopes.OpenId,
+                        Permissions.Scopes.Profile,
+                        Permissions.Scopes.Email,
+                        Permissions.Prefixes.Scope + Scopes.OfflineAccess
+
+                    },
+                Requirements =
+                    {
+                        Requirements.Features.ProofKeyForCodeExchange
+                    }
             };
-
-            descriptor.RedirectUris.Add(new Uri($"{frontend}/auth/callback"));
-            descriptor.PostLogoutRedirectUris.Add(new Uri($"{frontend}/logout-callback"));
-
-            // Endpoints
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Authorization);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Revocation);
-
-            // Flows
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.RefreshToken);
-            descriptor.Permissions.Add(OpenIddictConstants.Permissions.ResponseTypes.Code);
-
-            // Require PKCE for public client
-            descriptor.Requirements.Add(OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange);
-
-            descriptor.AddScopePermissions(
-                OpenIddictConstants.Scopes.OpenId,
-                OpenIddictConstants.Scopes.Profile,
-                OpenIddictConstants.Scopes.Email,
-                OpenIddictConstants.Scopes.OfflineAccess
-            );
 
             await applicationManager.CreateAsync(descriptor);
         }
     }
-
     private async Task SeedRolesAsync()
     {
         foreach (string roleName in AvanciraRoles.DefaultRoles)
