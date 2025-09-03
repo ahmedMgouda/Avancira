@@ -40,14 +40,12 @@ public static class Extensions
 
         builder.Services.AddAuthentication(options =>
         {
-            options.DefaultScheme = Cookies.IdentityExchange;
-            options.DefaultSignInScheme = Cookies.IdentityExchange;
-            options.DefaultAuthenticateScheme = Cookies.IdentityExchange;
+            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
         })
         .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and idp
         {
             options.Cookie.Name = ".Avancira.Identity.Exchange";
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
             options.SlidingExpiration = false;
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;

@@ -48,10 +48,10 @@ public static class Extensions
                         context.Response.Headers.XXSSProtection = options.Headers.XXSSProtection;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(options.Headers.ContentSecurityPolicy))
-                    {
-                        context.Response.Headers.ContentSecurityPolicy = options.Headers.ContentSecurityPolicy;
-                    }
+                    //if (!string.IsNullOrWhiteSpace(options.Headers.ContentSecurityPolicy))
+                    //{
+                    //    context.Response.Headers.ContentSecurityPolicy = options.Headers.ContentSecurityPolicy;
+                    //}
 
                     if (!string.IsNullOrWhiteSpace(options.Headers.StrictTransportSecurity))
                     {

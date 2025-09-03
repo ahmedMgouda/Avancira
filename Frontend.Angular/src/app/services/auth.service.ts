@@ -2,7 +2,7 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router, UrlTree } from '@angular/router';
 import { defer, from, Observable, of, throwError } from 'rxjs';
-import { catchError, finalize, shareReplay,switchMap } from 'rxjs/operators';
+import { catchError, finalize, shareReplay, switchMap } from 'rxjs/operators';
 import { OAuthService } from 'angular-oauth2-oidc';
 
 import { SessionService } from './session.service';
@@ -34,27 +34,16 @@ export class AuthService {
     });
   }
 
+  /** Called once at app startup */
   init(): Promise<void> {
-    return this.oauth.loadDiscoveryDocumentAndTryLogin().then(() => {
-      const refreshToken = this.oauth.getRefreshToken();
-      if (refreshToken) {
+    return this.oauth.loadDiscoveryDocumentAndTryLogin({
+      onTokenReceived: ctx => console.info('✅ Token received', ctx)
+    }).then(() => {
+      if (this.oauth.getRefreshToken()) {
         this.oauth.setupAutomaticSilentRefresh({ checkInterval: 60 });
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn('No refresh token available; automatic refresh disabled.');
       }
     });
   }
-
-  async tryLoginCodeFlow(): Promise<boolean> {
-  try {
-    await this.oauth.tryLoginCodeFlow();
-    return this.oauth.hasValidAccessToken();
-  } catch (e) {
-    console.error('Error during code flow login', e);
-    return false;
-  }
-}
 
   isAuthenticated(): boolean {
     return this.oauth.hasValidAccessToken();
@@ -169,4 +158,3 @@ export class AuthService {
     return this.router.createUrlTree(['/signin'], { queryParams: { returnUrl } });
   }
 }
-

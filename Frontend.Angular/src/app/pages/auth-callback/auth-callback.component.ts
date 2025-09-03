@@ -5,7 +5,7 @@ import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-auth-callback',
-  template: ''
+  template: '<p>Signing you in...</p>'
 })
 export class AuthCallbackComponent implements OnInit {
   constructor(
@@ -14,23 +14,18 @@ export class AuthCallbackComponent implements OnInit {
     private readonly router: Router,
   ) {}
 
-  ngOnInit(): void {
-  this.auth.init().then(async () => {
-       console.info('OAuth2 code flow login');
-    // Try to parse the login response (code + state)
-    const success = await this.auth.tryLoginCodeFlow();
-
-    if (!success) {
-      console.error('OAuth2 code flow login failed');
+  async ngOnInit(): Promise<void> {
+    if (!this.auth.isAuthenticated()) {
+      console.error('❌ OAuth2 code flow login failed');
       this.router.navigateByUrl('/');
       return;
     }
 
-    // Restore return URL from state
+    // Restore returnUrl from state
     const url = this.route.snapshot.queryParamMap.get('state') ?? '/';
     const isRelative = /^\/(?!\/)/.test(url) && !url.includes('://');
-    this.router.navigateByUrl(isRelative ? url : '/');
-  });
-}
 
+    console.info('✅ OAuth2 login successful, redirecting to:', url);
+    this.router.navigateByUrl(isRelative ? url : '/');
+  }
 }
