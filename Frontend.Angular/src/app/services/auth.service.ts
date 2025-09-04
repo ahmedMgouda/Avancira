@@ -39,9 +39,7 @@ export class AuthService {
     return this.oauth.loadDiscoveryDocumentAndTryLogin({
       onTokenReceived: ctx => console.info('✅ Token received', ctx)
     }).then(() => {
-      if (this.oauth.getRefreshToken()) {
-        this.oauth.setupAutomaticSilentRefresh({ checkInterval: 60 });
-      }
+             this.oauth.setupAutomaticSilentRefresh({ checkInterval: 60 });
     });
   }
 

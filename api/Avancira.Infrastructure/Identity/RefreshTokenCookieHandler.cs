@@ -1,49 +1,46 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using OpenIddict.Server;
+using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore;
-using static OpenIddict.Server.OpenIddictServerEvents;
-
 
 namespace Avancira.Infrastructure.Identity;
 
 public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTokenResponseContext>
 {
     private readonly IHostEnvironment _environment;
-    private readonly IOptions<CookieOptions> _cookieOptions;
 
-    public RefreshTokenCookieHandler(IHostEnvironment environment, IOptions<CookieOptions> cookieOptions)
-    {
-        _environment = environment;
-        _cookieOptions = cookieOptions;
-    }
+    public RefreshTokenCookieHandler(IHostEnvironment environment)
+        => _environment = environment;
+
     public ValueTask HandleAsync(ApplyTokenResponseContext context)
     {
-        var refreshToken = context.Response?.RefreshToken;
-
-        if (string.IsNullOrEmpty(refreshToken))
+        // Only add cookie if a refresh token was actually issued
+        if (string.IsNullOrEmpty(context.Response?.RefreshToken))
             return ValueTask.CompletedTask;
 
-        var response = context.Transaction.GetHttpRequest()?.HttpContext.Response;
-
-        if (response is null)
+        var httpContext = context.Transaction.GetHttpRequest()?.HttpContext;
+        if (httpContext is null)
             return ValueTask.CompletedTask;
-
-        var sameSite = _cookieOptions.Value.SameSite == SameSiteMode.Unspecified
-            ? SameSiteMode.Lax
-            : _cookieOptions.Value.SameSite;
 
         var options = new CookieOptions
         {
             HttpOnly = true,
-            Secure = !_environment.IsDevelopment(),
-            SameSite = sameSite,
-            Path = AuthConstants.Cookies.PathRoot
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = AuthConstants.Cookies.PathRoot,
+            Expires = DateTimeOffset.UtcNow.AddDays(7) // match refresh token lifetime
         };
 
-        response.Cookies.Append(AuthConstants.Cookies.RefreshToken, refreshToken, options);
+        httpContext.Response.Cookies.Append(
+            AuthConstants.Cookies.RefreshToken,
+            context.Response.RefreshToken!,
+            options);
+
+        // Optional: remove refresh token from JSON response
+        context.Response.RefreshToken = null;
+
         return ValueTask.CompletedTask;
     }
 }

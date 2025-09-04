@@ -41,8 +41,13 @@ export const authInterceptor: HttpInterceptorFn = (
 
   const toApi = isApi(req, environment.apiUrl);
   const skip = req.context.get(SKIP_AUTH);
-  const needsAuth = req.context.get(REQUIRES_AUTH);                   // default true
-  const withCreds = req.context.get(INCLUDE_CREDENTIALS) ?? false;    // default false
+  const needsAuth = req.context.get(REQUIRES_AUTH); // default true
+  let withCreds = req.context.get(INCLUDE_CREDENTIALS) ?? false; // default false
+
+  // 🔑 Force cookies for refresh token requests
+  if (isRefreshRequest(req)) {
+    withCreds = true;
+  }
 
   // Apply cookie policy once
   const baseReq = setWithCreds(req, withCreds);
@@ -61,7 +66,6 @@ export const authInterceptor: HttpInterceptorFn = (
 
       // Single safe retry on 401 (handles expiry race between pre-wait and server-side check)
       if (!retried && is401) {
-        // Use getValidAccessToken again so we JOIN any in-flight refresh (single-flight)
         return auth.getValidAccessToken().pipe(
           switchMap(t =>
             next(
@@ -75,7 +79,6 @@ export const authInterceptor: HttpInterceptorFn = (
         );
       }
 
-      // Propagate error (no navigation here)
       return throwError(() => err);
     })
   );
@@ -88,6 +91,11 @@ function isApi(req: HttpRequest<unknown>, apiBase: string): boolean {
   const b = new URL(apiBase, window.location.origin);
   const basePath = b.pathname.endsWith('/') ? b.pathname : b.pathname + '/';
   return u.origin === b.origin && u.pathname.startsWith(basePath);
+}
+
+// 🔑 Detect refresh requests
+function isRefreshRequest(req: HttpRequest<any>): boolean {
+  return req.url.endsWith('/connect/token') && req.body?.grant_type === 'refresh_token';
 }
 
 function setWithCreds<T>(req: HttpRequest<T>, withCreds: boolean): HttpRequest<T> {

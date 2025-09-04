@@ -29,6 +29,8 @@ public static class OpenIddictSetup
                          .RequireProofKeyForCodeExchange()
                        .AllowRefreshTokenFlow();
 
+                options.SetAccessTokenLifetime(TimeSpan.FromMinutes(2));   // short-lived access token
+                options.SetRefreshTokenLifetime(TimeSpan.FromDays(7));     // long-lived refresh token
 
                 options.RegisterScopes(
                     OpenIddictConstants.Scopes.OpenId,
@@ -54,6 +56,8 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<SessionIdClaimsHandler>());
                 options.AddEventHandler<ApplyTokenResponseContext>(builder =>
                     builder.UseScopedHandler<RefreshTokenCookieHandler>());
+                options.AddEventHandler<ProcessAuthenticationContext>(builder =>
+                    builder.UseScopedHandler<RefreshTokenFromCookieHandler>());
             })
             .AddValidation(options =>
             {
