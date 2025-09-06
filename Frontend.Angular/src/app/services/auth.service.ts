@@ -1,24 +1,29 @@
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { Router, UrlTree } from '@angular/router';
 import {
   defer,
   from,
   Observable,
   of,
+  ReplaySubject,
   Subject,
   throwError,
-  timer
+  timer,
 } from 'rxjs';
 import {
   catchError,
+  distinctUntilChanged,
   finalize,
+  map,
   retry,
   shareReplay,
   switchMap,
+  take,
   takeUntil,
   tap,
-  timeout
+  timeout,
 } from 'rxjs/operators';
 import { AuthConfig, OAuthEvent, OAuthService } from 'angular-oauth2-oidc';
 
@@ -30,7 +35,7 @@ import { RegisterUserRequest } from '../models/register-user-request';
 import { RegisterUserResponseDto } from '../models/register-user-response';
 import { UserProfile } from '../models/UserProfile';
 
-// Strongly typed ID token claims
+// --- Types ---
 interface IdTokenClaims {
   sub: string;
   email?: string;
@@ -48,6 +53,10 @@ interface IdTokenClaims {
   role?: string | string[];
   permission?: string | string[];
   exp?: number | string;
+  iat?: number | string;
+  nbf?: number | string;
+  aud?: string | string[];
+  iss?: string;
   [key: string]: unknown;
 }
 
@@ -55,29 +64,106 @@ export interface AuthState {
   isAuthenticated: boolean;
   user: UserProfile | null;
   isLoading: boolean;
-  error: string | null;
+  error: AuthError | null;
+  tokenExpiresAt: number | null;
+  refreshInProgress: boolean;
 }
+
+export enum AuthErrorType {
+  INITIALIZATION_FAILED = 'INITIALIZATION_FAILED',
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  REFRESH_FAILED = 'REFRESH_FAILED',
+  LOGIN_FAILED = 'LOGIN_FAILED',
+  LOGOUT_FAILED = 'LOGOUT_FAILED',
+  REGISTRATION_FAILED = 'REGISTRATION_FAILED',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  DISCOVERY_FAILED = 'DISCOVERY_FAILED',
+  INVALID_TOKEN = 'INVALID_TOKEN',
+}
+
+export interface AuthError {
+  type: AuthErrorType;
+  message: string;
+  timestamp: number;
+  originalError?: any;
+  retryable: boolean;
+  userMessage?: string;
+}
+
+// --- Defaults & Constants ---
+const defaultAuthState: AuthState = {
+  isAuthenticated: false,
+  user: null,
+  isLoading: false,
+  error: null,
+  tokenExpiresAt: null,
+  refreshInProgress: false,
+};
+
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;     // 5 minutes
+const TOKEN_EXPIRY_WARNING_MS = 10 * 60 * 1000;    // 10 minutes
+const MIN_TOKEN_LIFETIME_MS = 60 * 1000;
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+const NETWORK_TIMEOUT_MS = 15000;
+
+const OAUTH_STORAGE_KEYS = [
+  'access_token',
+  'refresh_token',
+  'id_token',
+  'nonce',
+  'state',
+  'code_verifier',
+  'PKCE_verifier',
+  'auth_return_url',
+  'auth_config',
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly api = environment.apiUrl;
   private readonly destroy$ = new Subject<void>();
+
   private refresh$?: Observable<string>;
+  private tokenExpiryTimer?: ReturnType<typeof setTimeout>;
+  private tokenExpiryWarningTimer?: ReturnType<typeof setTimeout>;
+  private initPromise?: Promise<void>;
+  private readonly tokenExpiringSoon$ = new ReplaySubject<void>(1);
 
-  // Signals for reactive state management
-  private readonly authState = signal<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    isLoading: false,
-    error: null
-  });
+  // --- State ---
+  private readonly authState = signal<AuthState>({ ...defaultAuthState });
 
-  // Public readonly signals
+  // --- Computed ---
   readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
   readonly currentUser = computed(() => this.authState().user);
   readonly isLoading = computed(() => this.authState().isLoading);
   readonly authError = computed(() => this.authState().error);
+  readonly tokenExpiresAt = computed(() => this.authState().tokenExpiresAt);
+  readonly refreshInProgress = computed(() => this.authState().refreshInProgress);
 
+  // --- Observables ---
+  readonly authState$ = toObservable(this.authState).pipe(
+    distinctUntilChanged((a, b) => this.authStatesEqual(a, b))
+  );
+
+  readonly isAuthenticated$ = this.authState$.pipe(
+    map((s) => s.isAuthenticated),
+    distinctUntilChanged()
+  );
+
+  readonly currentUser$ = this.authState$.pipe(
+    map((s) => s.user),
+    distinctUntilChanged((a, b) => this.usersEqual(a, b))
+  );
+
+  readonly authError$ = this.authState$.pipe(
+    map((s) => s.error),
+    distinctUntilChanged()
+  );
+
+  readonly tokenExpiring$ = this.tokenExpiringSoon$.asObservable();
+
+  // --- Dependencies ---
   private readonly oauth = inject(OAuthService);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
@@ -89,8 +175,124 @@ export class AuthService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resetAuth();
     this.destroy$.next();
     this.destroy$.complete();
+    this.tokenExpiringSoon$.complete(); // ✅ prevent ReplaySubject leak
+  }
+
+  // ------------------
+  // Public API
+  // ------------------
+
+  async init(): Promise<void> {
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this.performInit();
+    return this.initPromise;
+  }
+
+  getAccessToken(): string | null {
+    return this.oauth.getAccessToken();
+  }
+
+  getValidAccessToken(): Observable<string> {
+    const token = this.oauth.getAccessToken();
+    if (this.isAuthenticated() && this.isTokenValid() && token) return of(token);
+    if (this.refresh$) return this.refresh$;
+    this.refresh$ = this.createRefreshTokenObservable();
+    return this.refresh$;
+  }
+
+  waitForRefresh(): Observable<string | null> {
+    return this.refresh$ ?? of(null); // ✅ safer than EMPTY/NEVER
+  }
+
+  startLogin(returnUrl: string = this.router.url): void {
+    try {
+      const sanitized = this.sanitizeReturnUrl(returnUrl);
+      sessionStorage.setItem('auth_return_url', sanitized);
+      this.setAuthState({ isLoading: true, error: null });
+      this.oauth.initCodeFlow(sanitized);
+    } catch (error) {
+      this.failWithError(AuthErrorType.LOGIN_FAILED, 'Failed to start login process', error, true);
+    }
+  }
+
+  logout(clearOnly = false): Observable<void> {
+    const sessionId = this.currentUser()?.sessionId;
+    this.setAuthState({ isLoading: true });
+
+    const revoke$ = !clearOnly && sessionId
+      ? this.sessionService.revokeSession(sessionId).pipe(
+        timeout(5000),
+        catchError(() => of(void 0))
+      )
+      : of(void 0);
+
+    return revoke$.pipe(
+      tap(() => this.performLogout(clearOnly)),
+      finalize(() => this.setAuthState({ isLoading: false })),
+      takeUntil(this.destroy$)
+    );
+  }
+
+  register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
+    return this.http
+      .post<RegisterUserResponseDto>(`${this.api}/users/register`, data, {
+        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
+      })
+      .pipe(
+        timeout(NETWORK_TIMEOUT_MS),
+        retry({ count: 2, delay: (_, i) => timer(i * 2000) }),
+        catchError((error: HttpErrorResponse) =>
+          throwError(() =>
+            this.createAuthError(
+              AuthErrorType.REGISTRATION_FAILED,
+              this.getErrorMessage(error),
+              error,
+              this.isRetryableError(error),
+              'Registration failed. Please try again.'
+            )
+          )
+        )
+      );
+  }
+
+  getUserProfile(): UserProfile | null {
+    return this.decodeTokenClaims();
+  }
+
+  redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
+    return this.router.createUrlTree(['/signin'], {
+      queryParams: { returnUrl: this.sanitizeReturnUrl(returnUrl) },
+    });
+  }
+
+  // ------------------
+  // Private helpers
+  // ------------------
+
+  private async performInit(): Promise<void> {
+    try {
+      this.setAuthState({ isLoading: true });
+
+      const success = await this.oauth.loadDiscoveryDocumentAndTryLogin({
+        onTokenReceived: () => {
+          this.updateAuthState();
+          this.setupTokenExpiryTimer();
+        },
+      });
+
+      if (!success) throw new Error('Discovery document loading or login failed');
+
+      if (this.oauth.getRefreshToken()) this.setupTokenExpiryTimer();
+
+      this.updateAuthState();
+    } catch (error) {
+      this.failWithError(AuthErrorType.INITIALIZATION_FAILED, 'Auth initialization failed', error, true);
+    } finally {
+      this.setAuthState({ isLoading: false });
+    }
   }
 
   private configureOAuth(): void {
@@ -104,265 +306,299 @@ export class AuthService implements OnDestroy {
       strictDiscoveryDocumentValidation: true,
       showDebugInformation: !environment.production,
       clearHashAfterLogin: true,
-      nonceStateSeparator: 'semicolon',
-      timeoutFactor: 0.75, // proactive refresh
+      timeoutFactor: 0.75,
+      sessionChecksEnabled: true,
+      checkOrigin: true,
+      requireHttps: environment.production,
     };
-
     this.oauth.configure(authConfig);
-    this.oauth.setStorage(sessionStorage); // safer than localStorage
+    this.oauth.setStorage(sessionStorage);
   }
 
   private setupEventListeners(): void {
-    this.oauth.events
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((event: OAuthEvent) => {
-        switch (event.type) {
-          case 'token_received':
-          case 'token_refreshed':
-            this.updateAuthState();
-            break;
-          case 'token_error':
-            this.handleAuthError('Token expired or invalid');
-            break;
-          case 'logout':
-          case 'session_terminated':
-            this.clearAuthState();
-            break;
-        }
-      });
-  }
-
-  /** Initialize authentication - call once at app startup */
-  async init(): Promise<void> {
-    try {
-      this.setLoading(true);
-
-      const success = await this.oauth.loadDiscoveryDocumentAndTryLogin({
-        onTokenReceived: (ctx) => {
-          console.info('✅ Token received', ctx);
+    this.oauth.events.pipe(takeUntil(this.destroy$)).subscribe((event: OAuthEvent) => {
+      switch (event.type) {
+        case 'token_received':
+        case 'token_refreshed':
           this.updateAuthState();
-        }
-      });
-
-      if (success && this.oauth.getRefreshToken()) {
-        this.oauth.setupAutomaticSilentRefresh({
-          checkInterval: 60, // 5 minutes
-        });
+          this.setupTokenExpiryTimer();
+          this.setAuthError(null);
+          break;
+        case 'token_error':
+        case 'token_refresh_error':
+          this.failWithError(AuthErrorType.TOKEN_EXPIRED, 'Token expired or invalid', event, true);
+          break;
+        case 'logout':
+        case 'session_terminated':
+          this.resetAuth();
+          break;
       }
-
-      this.updateAuthState();
-    } catch (error) {
-      console.error('❌ Auth initialization failed', error);
-      this.handleAuthError('Authentication initialization failed');
-    } finally {
-      this.setLoading(false);
-    }
+    });
   }
 
-  isUserAuthenticated(): boolean {
-    return this.oauth.hasValidAccessToken() && this.oauth.hasValidIdToken();
-  }
+  private setupTokenExpiryTimer(): void {
+    this.stopTokenTimers();
 
-  waitForRefresh(): Observable<unknown> {
-    return this.refresh$ ?? of(null);
-  }
+    const user = this.currentUser();
+    if (!user?.exp) return;
 
-  getAccessToken(): string | null {
-    return this.oauth.getAccessToken();
-  }
+    const expiresAt = user.exp * 1000;
+    const now = Date.now();
+    const timeUntilRefresh = expiresAt - now - TOKEN_REFRESH_BUFFER_MS;
+    const timeUntilWarning = expiresAt - now - TOKEN_EXPIRY_WARNING_MS;
 
-  /** Get valid access token or refresh it */
-  getValidAccessToken(): Observable<string> {
-    if (this.isUserAuthenticated()) {
-      return of(this.oauth.getAccessToken()!);
+    this.setAuthState({ tokenExpiresAt: expiresAt });
+
+    if (timeUntilWarning > 0) {
+      this.tokenExpiryWarningTimer = setTimeout(
+        () => this.tokenExpiringSoon$.next(),
+        timeUntilWarning
+      );
     }
 
-    if (this.refresh$) {
-      return this.refresh$;
+    if (timeUntilRefresh > MIN_TOKEN_LIFETIME_MS) {
+      this.tokenExpiryTimer = setTimeout(() => {
+        if (this.isAuthenticated() && this.oauth.getRefreshToken()) {
+          this.getValidAccessToken().pipe(take(1)).subscribe();
+        }
+      }, timeUntilRefresh);
     }
-
-    this.refresh$ = this.createRefreshTokenObservable();
-    return this.refresh$;
   }
 
   private createRefreshTokenObservable(): Observable<string> {
+    this.setAuthState({ refreshInProgress: true });
+
     return defer(() => {
       if (!this.oauth.getRefreshToken()) {
-        return throwError(() => new Error('No refresh token available'));
+        throw this.createAuthError(AuthErrorType.REFRESH_FAILED, 'No refresh token available');
       }
       return from(this.oauth.refreshToken());
     }).pipe(
-      timeout(15000),
-      retry({
-        count: 2,
-        delay: (_, retryCount) => {
-          console.warn(`🔄 Token refresh retry ${retryCount}`);
-          return timer(retryCount * 1000);
-        }
-      }),
+      timeout(NETWORK_TIMEOUT_MS),
+      retry({ count: MAX_RETRY_ATTEMPTS, delay: (_, i) => timer(Math.pow(2, i) * RETRY_BASE_DELAY_MS) }),
       switchMap(() => {
         const token = this.oauth.getAccessToken();
-        if (!token) throw new Error('No access token after refresh');
+        if (!token) {
+          throw this.createAuthError(AuthErrorType.REFRESH_FAILED, 'No access token after refresh');
+        }
         this.updateAuthState();
+        this.setupTokenExpiryTimer();
         return of(token);
       }),
       catchError((error) => {
-        console.error('❌ Token refresh failed permanently', error);
-        this.handleTokenRefreshError(error);
-        return throwError(() => error);
+        const authError = this.createAuthError(AuthErrorType.REFRESH_FAILED, 'Token refresh failed', error);
+        this.setAuthError(authError);
+        this.performLogout(true);
+        return throwError(() => authError);
       }),
       finalize(() => {
         this.refresh$ = undefined;
+        this.setAuthState({ refreshInProgress: false });
       }),
       shareReplay({ bufferSize: 1, refCount: false })
     );
   }
 
-  startLogin(returnUrl: string = this.router.url): void {
-    try {
-      sessionStorage.setItem('auth_return_url', returnUrl);
-      this.setLoading(true);
-      this.oauth.initCodeFlow(returnUrl);
-    } catch (error) {
-      console.error('❌ Login initiation failed', error);
-      this.handleAuthError('Failed to start login process');
-      this.setLoading(false);
-    }
-  }
-
-  logout(clearOnly: boolean = false): Observable<void> {
-    const currentUser = this.currentUser();
-    const sessionId = currentUser?.sessionId;
-
-    this.setLoading(true);
-
-    const revoke$ = !clearOnly && sessionId
-      ? this.sessionService.revokeSession(sessionId).pipe(
-        catchError((error) => {
-          console.warn('⚠️ Session revocation failed', error);
-          return of(void 0);
-        })
-      )
-      : of(void 0);
-
-    return revoke$.pipe(
-      tap(() => this.performLogout(clearOnly)),
-      finalize(() => this.setLoading(false)),
-      takeUntil(this.destroy$)
-    );
-  }
-
   private performLogout(clearOnly: boolean): void {
     try {
-      this.oauth.logOut(clearOnly || {
-        logoutUrl: `${environment.baseApiUrl}connect/logout`,
-        postLogoutRedirectUri: environment.postLogoutRedirectUri,
-      });
-
-      // Clear all auth storage
-      sessionStorage.clear();
+      const arg = clearOnly
+        ? true
+        : { logoutUrl: `${environment.baseApiUrl}/connect/logout`, postLogoutRedirectUri: environment.postLogoutRedirectUri };
+      this.oauth.logOut(arg);
+    } finally {
+      this.clearAuthStorage();
       this.clearAuthState();
-    } catch (error) {
-      console.error('❌ Logout failed', error);
-      this.clearAuthState();
+      this.stopTokenTimers();
+      this.refresh$ = undefined;
+      this.initPromise = undefined;
     }
   }
 
-  register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
-    return this.http.post<RegisterUserResponseDto>(
-      `${this.api}/users/register`,
-      data,
-      {
-        context: new HttpContext()
-          .set(SKIP_AUTH, true)
-          .set(INCLUDE_CREDENTIALS, true),
-      }
-    ).pipe(
-      catchError((error: HttpErrorResponse) => {
-        console.error('❌ Registration failed', error);
-        return throwError(() => error);
-      })
-    );
+  private stopTokenTimers(): void {
+    if (this.tokenExpiryTimer) clearTimeout(this.tokenExpiryTimer);
+    if (this.tokenExpiryWarningTimer) clearTimeout(this.tokenExpiryWarningTimer);
+    this.tokenExpiryTimer = this.tokenExpiryWarningTimer = undefined;
   }
 
-  getUserProfile(): UserProfile | null {
-    return this.decodeTokenClaims();
+  private clearAuthStorage(): void {
+    OAUTH_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
   }
 
-  redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
-    return this.router.createUrlTree(['/signin'], { queryParams: { returnUrl } });
-  }
-
-  // Helpers
-
-  private updateAuthState(): void {
-    const isAuth = this.isUserAuthenticated();
-    const user = isAuth ? this.decodeTokenClaims() : null;
-
-    this.authState.set({
-      isAuthenticated: isAuth,
-      user,
-      isLoading: false,
-      error: null
-    });
+  private setAuthState(partial: Partial<AuthState>): void {
+    this.authState.update((s) => ({ ...s, ...partial }));
   }
 
   private clearAuthState(): void {
-    this.authState.set({
-      isAuthenticated: false,
-      user: null,
+    this.authState.set({ ...defaultAuthState });
+  }
+
+  private setAuthError(error: AuthError | null): void {
+    this.authState.update((s) => ({ ...s, error, isLoading: false }));
+  }
+
+  private updateAuthState(): void {
+    const claims = this.decodeTokenClaims();
+    this.setAuthState({
+      isAuthenticated: !!claims,
+      user: claims,
       isLoading: false,
-      error: null
+      error: null,
+      tokenExpiresAt: claims?.exp ? claims.exp * 1000 : null,
     });
   }
 
-  private setLoading(isLoading: boolean): void {
-    this.authState.update((state) => ({ ...state, isLoading }));
-  }
-
-  private handleAuthError(errorMessage: string): void {
-    this.authState.update((state) => ({
-      ...state,
-      error: errorMessage,
-      isLoading: false
-    }));
-  }
-
-  private handleTokenRefreshError(_error: any): void {
-    this.handleAuthError('Session expired. Please log in again.');
-    setTimeout(() => this.performLogout(true), 2000); // give user feedback
-  }
-
-  private normalizeClaim(value: unknown): string[] {
-    if (Array.isArray(value)) {
-      return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
-    }
-    return typeof value === 'string' && value.trim() ? [value.trim()] : [];
-  }
-
+  // --- Token claim decoding ---
   private decodeTokenClaims(): UserProfile | null {
-    const claims = this.oauth.getIdentityClaims() as IdTokenClaims | null;
-    if (!claims?.sub) {
-      console.warn('⚠️ Invalid or missing identity claims');
+    try {
+      const claims = this.oauth.getIdentityClaims() as IdTokenClaims | null;
+      if (!claims?.sub) return null;
+
+      return {
+        id: claims.sub,
+        email: this.getString(claims, 'email'),
+        firstName: this.getString(claims, 'given_name'),
+        lastName: this.getString(claims, 'family_name'),
+        fullName: this.getString(claims, 'name'),
+        timeZoneId: this.getString(claims, 'timezone'),
+        ipAddress: this.getString(claims, 'ip_address'),
+        imageUrl: this.getString(claims, 'image'),
+        deviceId: this.getString(claims, 'device_id'),
+        sessionId: this.getString(claims, 'sid') || this.getString(claims, 'session_id'),
+        country: this.getString(claims, 'country'),
+        city: this.getString(claims, 'city'),
+        roles: this.getArray(claims, 'role'),
+        permissions: this.getArray(claims, 'permission'),
+        exp: this.getNumber(claims, 'exp'),
+      };
+    } catch {
       return null;
     }
+  }
 
-    return {
-      id: claims.sub,
-      email: claims.email ?? '',
-      firstName: claims.given_name ?? '',
-      lastName: claims.family_name ?? '',
-      fullName: claims.name ?? '',
-      timeZoneId: claims.timezone ?? '',
-      ipAddress: claims.ip_address ?? '',
-      imageUrl: claims.image ?? '',
-      deviceId: claims.device_id ?? '',
-      sessionId: claims.sid ?? claims.session_id ?? '',
-      country: claims.country ?? '',
-      city: claims.city ?? '',
-      roles: this.normalizeClaim(claims.role),
-      permissions: this.normalizeClaim(claims.permission),
-      exp: typeof claims.exp === 'number' ? claims.exp : Number(claims.exp ?? 0),
-    };
+  // --- Claim parsing helpers ---
+  private getString(c: IdTokenClaims, k: keyof IdTokenClaims, fallback = ''): string {
+    const v = c[k];
+    return typeof v === 'string' && v.trim() ? v.trim() : fallback;
+  }
+
+  private getNumber(c: IdTokenClaims, k: keyof IdTokenClaims, fallback = 0): number {
+    const v = c[k];
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string') {
+      const n = Number(v);
+      return isNaN(n) ? fallback : n;
+    }
+    return fallback;
+  }
+
+  private getArray(c: IdTokenClaims, k: keyof IdTokenClaims): string[] {
+    const v = c[k];
+    if (Array.isArray(v)) {
+      return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+    }
+    if (typeof v === 'string' && v.trim().length > 0) {
+      return [v.trim()];
+    }
+    return [];
+  }
+
+  // --- Error helpers ---
+  private failWithError(
+    type: AuthErrorType,
+    message: string,
+    originalError?: any,
+    retryable = false,
+    userMessage?: string
+  ): void {
+    const error = this.createAuthError(type, message, originalError, retryable, userMessage);
+    if (!environment.production) console.error('[AuthService]', error);
+    this.setAuthError(error);
+  }
+
+  private createAuthError(
+    type: AuthErrorType,
+    message: string,
+    originalError?: any,
+    retryable = false,
+    userMessage?: string
+  ): AuthError {
+    return { type, message, timestamp: Date.now(), originalError, retryable, userMessage };
+  }
+
+  // --- Equality helpers ---
+  private errorsEqual(a: AuthError | null, b: AuthError | null): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return a.type === b.type && a.message === b.message && a.retryable === b.retryable;
+  }
+
+  private usersEqual(a: UserProfile | null, b: UserProfile | null): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return (
+      a.id === b.id &&
+      a.email === b.email &&
+      a.sessionId === b.sessionId &&
+      a.exp === b.exp &&
+      a.firstName === b.firstName &&
+      a.lastName === b.lastName
+    );
+  }
+
+  private authStatesEqual(a: AuthState, b: AuthState): boolean {
+    return (
+      a.isAuthenticated === b.isAuthenticated &&
+      a.isLoading === b.isLoading &&
+      a.refreshInProgress === b.refreshInProgress &&
+      a.tokenExpiresAt === b.tokenExpiresAt &&
+      this.errorsEqual(a.error, b.error) &&
+      this.usersEqual(a.user, b.user)
+    );
+  }
+
+  private resetAuth(): void {
+    this.clearAuthState();
+    this.stopTokenTimers();
+    this.clearAuthStorage();
+    this.refresh$ = undefined;
+    this.initPromise = undefined;
+  }
+
+  private isTokenValid(): boolean {
+    const expiresAt = this.tokenExpiresAt();
+    return !!expiresAt && Date.now() < expiresAt - TOKEN_REFRESH_BUFFER_MS;
+  }
+
+  private isRetryableError(error: HttpErrorResponse): boolean {
+    return (
+      error.status === 0 ||     // network
+      error.status === 408 ||
+      error.status === 429 ||
+      (error.status >= 500 && error.status < 600)
+    );
+  }
+
+  private getErrorMessage(error: HttpErrorResponse): string {
+    const e = error.error ?? {};
+    return (
+      e.message ??
+      e.error_description ??
+      e.detail ??
+      (error.message !== 'Unknown Error' ? error.message : null) ??
+      `HTTP ${error.status}: ${error.statusText}`
+    );
+  }
+
+  private sanitizeReturnUrl(url: string): string {
+    try {
+      if (!url || url === '/') return '/';
+      if (url.startsWith('/') && !url.startsWith('//')) return url;
+      const parsed = new URL(url, window.location.origin);
+      return parsed.origin === window.location.origin
+        ? parsed.pathname + parsed.search + parsed.hash
+        : '/';
+    } catch {
+      return '/';
+    }
   }
 }
