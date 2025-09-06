@@ -1,11 +1,11 @@
-// src/app/interceptors/auth.interceptor.ts
 import {
   HttpContextToken,
   HttpErrorResponse,
   HttpEvent,
   HttpHandlerFn,
   HttpInterceptorFn,
-  HttpRequest
+  HttpRequest,
+  HttpStatusCode
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
@@ -16,93 +16,116 @@ import { AuthService } from '../services/auth.service';
 import { environment } from '../environments/environment';
 
 /**
- * Bypass auth mechanics entirely for this request (no pre-wait, no Authorization, no 401 retry).
- * Use for /connect/token or other login endpoints to avoid recursion.
+ * Bypass auth entirely for this request (no token acquisition, no Authorization header).
  */
 export const SKIP_AUTH = new HttpContextToken<boolean>(() => false);
 
-/** Does this request need the Authorization header? Default: true (protected API). */
-export const REQUIRES_AUTH = new HttpContextToken<boolean>(() => true);
+/**
+ * Does this request need Authorization?
+ * Default: true for API requests, false otherwise.
+ */
+export const REQUIRES_AUTH = new HttpContextToken<boolean | undefined>(() => undefined);
 
 /**
  * Should this request send cookies (withCredentials)?
- * Default: false. For refresh, set to true on that request only.
+ * Default: false. For refresh-token requests set to true.
  */
-export const INCLUDE_CREDENTIALS = new HttpContextToken<boolean | undefined>(() => undefined);
+export const INCLUDE_CREDENTIALS = new HttpContextToken<boolean>(() => false);
 
-/** Internal guard to prevent infinite 401 retry loops */
+/** Prevent infinite retry loops */
 const ALREADY_RETRIED = new HttpContextToken<boolean>(() => false);
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
 ): Observable<HttpEvent<unknown>> => {
-  const auth = inject(AuthService);
+  const authService = inject(AuthService);
 
-  const toApi = isApi(req, environment.apiUrl);
-  const skip = req.context.get(SKIP_AUTH);
-  const needsAuth = req.context.get(REQUIRES_AUTH); // default true
-  let withCreds = req.context.get(INCLUDE_CREDENTIALS) ?? false; // default false
+  const isApiRequest = isApiCall(req, environment.apiUrl);
+  const skipAuth = req.context.get(SKIP_AUTH);
+  const requiresAuth = req.context.get(REQUIRES_AUTH) ?? isApiRequest;
+  const withCreds = req.context.get(INCLUDE_CREDENTIALS) || isRefreshTokenRequest(req);
 
-  // 🔑 Force cookies for refresh token requests
-  if (isRefreshRequest(req)) {
-    withCreds = true;
-  }
+  const baseReq = applyCredentials(req, withCreds);
 
-  // Apply cookie policy once
-  const baseReq = setWithCreds(req, withCreds);
-
-  // Non-API, or explicitly skipped, or anonymous endpoint → no Authorization
-  if (!toApi || skip || !needsAuth) {
+  // No auth needed → forward request
+  if (!isApiRequest || skipAuth || !requiresAuth) {
     return next(baseReq);
   }
 
-  // Pre-wait: ensure we have a valid access token (de-duped inside AuthService)
-  return auth.getValidAccessToken().pipe(
-    switchMap(token => next(applyAuth(baseReq, token))),
-    catchError(err => {
-      const retried = req.context.get(ALREADY_RETRIED);
-      const is401 = err instanceof HttpErrorResponse && err.status === 401;
-
-      // Single safe retry on 401 (handles expiry race between pre-wait and server-side check)
-      if (!retried && is401) {
-        return auth.getValidAccessToken().pipe(
-          switchMap(t =>
-            next(
-              applyAuth(
-                baseReq.clone({ context: baseReq.context.set(ALREADY_RETRIED, true) }),
-                t
-              )
-            )
-          ),
-          catchError(e => throwError(() => e))
-        );
-      }
-
-      return throwError(() => err);
-    })
+  // Acquire token from AuthService (handles refresh internally)
+  return authService.getValidAccessToken().pipe(
+    switchMap(token => next(addAuthHeader(baseReq, token))),
+    catchError(error => handleAuthError(error, baseReq, next, authService))
   );
 };
 
-/* -------------------- helpers -------------------- */
+/**
+ * Handle errors with one safe retry on 401.
+ * Does not trigger refresh again (AuthService already did that).
+ */
+function handleAuthError(
+  error: unknown,
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  authService: AuthService
+): Observable<HttpEvent<unknown>> {
+  const alreadyRetried = req.context.get(ALREADY_RETRIED);
+  const is401 = error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized;
+  const is403 = error instanceof HttpErrorResponse && error.status === HttpStatusCode.Forbidden;
 
-function isApi(req: HttpRequest<unknown>, apiBase: string): boolean {
-  const u = new URL(req.url, window.location.origin);
-  const b = new URL(apiBase, window.location.origin);
-  const basePath = b.pathname.endsWith('/') ? b.pathname : b.pathname + '/';
-  return u.origin === b.origin && u.pathname.startsWith(basePath);
+  if (is401 && !alreadyRetried) {
+    console.info('🔄 Retrying once after 401 with current token');
+
+    return authService.getAccessToken() // just reuse latest token, no new refresh
+      ? next(
+          addAuthHeader(
+            req.clone({ context: req.context.set(ALREADY_RETRIED, true) }),
+            authService.getAccessToken()
+          )
+        )
+      : throwError(() => error);
+  }
+
+  if (is401) {
+    console.warn('⚠️ Unauthorized request - token invalid or expired', { url: req.url });
+  } else if (is403) {
+    console.warn('⚠️ Forbidden request - insufficient permissions', { url: req.url });
+  }
+
+  return throwError(() => error);
 }
 
-// 🔑 Detect refresh requests
-function isRefreshRequest(req: HttpRequest<any>): boolean {
-  return req.url.endsWith('/connect/token') && req.body?.grant_type === 'refresh_token';
+/** Detect API calls */
+function isApiCall(req: HttpRequest<unknown>, apiBaseUrl: string): boolean {
+  try {
+    const requestUrl = new URL(req.url, window.location.origin);
+    const apiUrl = new URL(apiBaseUrl, window.location.origin);
+    const apiPath = apiUrl.pathname.endsWith('/') ? apiUrl.pathname : apiUrl.pathname + '/';
+    return requestUrl.origin === apiUrl.origin && requestUrl.pathname.startsWith(apiPath);
+  } catch {
+    return false;
+  }
 }
 
-function setWithCreds<T>(req: HttpRequest<T>, withCreds: boolean): HttpRequest<T> {
-  return req.withCredentials === withCreds ? req : req.clone({ withCredentials: withCreds });
+/** Detect refresh token requests */
+function isRefreshTokenRequest(req: HttpRequest<unknown>): boolean {
+  return req.url.includes('/connect/token') &&
+         typeof req.body === 'object' &&
+         req.body !== null &&
+         (req.body as any)['grant_type'] === 'refresh_token';
 }
 
-function applyAuth<T>(req: HttpRequest<T>, token: string | null): HttpRequest<T> {
-  if (!token) return req;
-  return req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+/** Clone with credentials */
+function applyCredentials<T>(req: HttpRequest<T>, withCredentials: boolean): HttpRequest<T> {
+  return req.withCredentials !== withCredentials ? req.clone({ withCredentials }) : req;
+}
+
+/** Add Authorization header */
+function addAuthHeader<T>(req: HttpRequest<T>, token: string | null): HttpRequest<T> {
+  if (!token?.trim()) return req;
+  const newAuth = `Bearer ${token}`;
+  return req.headers.get('Authorization') === newAuth
+    ? req
+    : req.clone({ setHeaders: { Authorization: newAuth } });
 }

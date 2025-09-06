@@ -9,4 +9,6 @@ export const environment = {
   redirectUri: 'https://localhost:4200/auth/callback',
   /** URL to redirect to after logging out */
   postLogoutRedirectUri: 'https://localhost:4200',
+
+  production: false,
 };

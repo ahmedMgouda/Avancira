@@ -29,17 +29,17 @@ public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTo
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.None,
-            Path = AuthConstants.Cookies.PathRoot,
+            Path = "/connect/token",
             Expires = DateTimeOffset.UtcNow.AddDays(7) // match refresh token lifetime
         };
 
-        httpContext.Response.Cookies.Append(
+    httpContext.Response.Cookies.Append(
             AuthConstants.Cookies.RefreshToken,
             context.Response.RefreshToken!,
             options);
 
         // Optional: remove refresh token from JSON response
-        context.Response.RefreshToken = null;
+       // context.Response.RefreshToken = null;
 
         return ValueTask.CompletedTask;
     }

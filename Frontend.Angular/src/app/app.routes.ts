@@ -27,7 +27,8 @@ import { SignupComponent } from './pages/signup/signup.component';
 import { TabletestComponent } from './pages/tabletest/tabletest.component';
 import { TermsComponent } from './pages/terms/terms.component';
 
-import { AuthGuard } from './guards/auth.guard';
+import { authGuard } from './guards/auth.guard';
+
 
 export const routes: Routes = [
   { path: 'video-call-window', component: VideoCallWindowComponent },
@@ -60,13 +61,13 @@ export const routes: Routes = [
           { path: 'careers', loadComponent: () => import('./pages/careers/careers.component').then(m => m.CareersComponent) },
           { path: 'online-courses', loadComponent: () => import('./pages/online-courses/online-courses.component').then(m => m.OnlineCoursesComponent) },
           { path: 'help-centre', loadComponent: () => import('./pages/help-center/help-center.component').then(m => m.HelpCenterComponent) },
-          { path: 'payment', loadComponent: () => import('./pages/payment/payment.component').then(m => m.PaymentComponent), canActivate: [AuthGuard] },
-          { path: 'payment-result', loadComponent: () => import('./pages/payment-result/payment-result.component').then(m => m.PaymentResultComponent), canActivate: [AuthGuard] },
+          { path: 'payment', loadComponent: () => import('./pages/payment/payment.component').then(m => m.PaymentComponent), canActivate: [authGuard] },
+          { path: 'payment-result', loadComponent: () => import('./pages/payment-result/payment-result.component').then(m => m.PaymentResultComponent), canActivate: [authGuard] },
           { path: 'listing/:id', loadComponent: () => import('./pages/listing/listing.component').then(m => m.ListingComponent) },
           { path: 'booking/:id', loadComponent: () => import('./pages/booking/booking.component').then(m => m.BookingComponent) },
-          { path: 'recommendation/:tokenId', loadComponent: () => import('./pages/recommendation-submission/recommendation-submission.component').then(m => m.RecommendationSubmissionComponent), canActivate: [AuthGuard] },
-          { path: 'premium', loadComponent: () => import('./pages/premium/premium.component').then(m => m.PremiumComponent), canActivate: [AuthGuard] },
-          { path: 'subscribe-premium', loadComponent: () => import('./pages/premium-subscription/premium-subscription.component').then(m => m.PremiumSubscriptionComponent), canActivate: [AuthGuard] }
+          { path: 'recommendation/:tokenId', loadComponent: () => import('./pages/recommendation-submission/recommendation-submission.component').then(m => m.RecommendationSubmissionComponent), canActivate: [authGuard] },
+          { path: 'premium', loadComponent: () => import('./pages/premium/premium.component').then(m => m.PremiumComponent), canActivate: [authGuard] },
+          { path: 'subscribe-premium', loadComponent: () => import('./pages/premium-subscription/premium-subscription.component').then(m => m.PremiumSubscriptionComponent), canActivate: [authGuard] }
         ]
       },    
       // Dashboard Routes
@@ -77,7 +78,7 @@ export const routes: Routes = [
           {
             path: 'dashboard',
             component: SidebarLayoutComponent,
-            canActivate: [AuthGuard],
+            canActivate: [authGuard],
             children: [
               { path: 'tabletest', component: TabletestComponent, data: { title: 'tabletest' } },
               { path: '', component: DashboardComponent, data: { title: 'Dashboard' } },
@@ -95,7 +96,7 @@ export const routes: Routes = [
       {
         path: 'messages',
         component: MessagesComponent,
-        canActivate: [AuthGuard]
+        canActivate: [authGuard]
       }
     ]
   },

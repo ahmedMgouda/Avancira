@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, ChangeDetectorRef,Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { MapAddressComponent } from '../../components/map-address/map-address.component';
@@ -9,15 +9,14 @@ import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
-import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
-import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
 import { UserDiplomaStatus } from '../../models/enums/user-diploma-status';
-
 import { Address, User } from '../../models/user';
 import { UserProfile } from '../../models/UserProfile';
+import { matchPasswords, passwordComplexityValidator } from '../../validators/password.validators';
+import { MIN_PASSWORD_LENGTH } from '../../validators/password-rules';
 
 
 @Component({
@@ -90,7 +89,7 @@ export class ProfileComponent implements OnInit {
     this.fetchDiplomaStatus();
     this.loadUserProfile();
     this.loadTimezones();
-    this.currentSession = this.authService.decode();
+    this.currentSession = this.authService.getUserProfile();
   }
 
   loadTimezones(): void {
