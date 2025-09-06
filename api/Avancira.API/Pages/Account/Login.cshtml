@@ -18,6 +18,7 @@
         <label asp-for="Input.Password"></label>
         <input asp-for="Input.Password" type="password" />
         <span asp-validation-for="Input.Password"></span>
+        <a href="/Account/ForgotPassword?returnUrl=@Model.ReturnUrl">Forgot your password?</a>
     </div>
     <button type="submit">Log in</button>
 </form>
