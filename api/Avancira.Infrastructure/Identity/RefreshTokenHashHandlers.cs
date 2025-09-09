@@ -124,7 +124,8 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<OpenIddictS
 
             if (!updated)
             {
-                context.Reject(OpenIddictConstants.Errors.InvalidGrant, "The refresh token is no longer valid.");
+                // e.g. _logger.LogWarning("Failed to update session for user {UserId}, session {SessionId}", userId, sessionId);
+                return;
             }
         }
         else
