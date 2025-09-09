@@ -26,4 +26,5 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
     public DateTime LastRefreshUtc { get; set; }
     public DateTime LastActivityUtc { get; set; }
     public DateTime? RevokedUtc { get; set; }
+    public string? RefreshTokenHash { get; set; }
 }

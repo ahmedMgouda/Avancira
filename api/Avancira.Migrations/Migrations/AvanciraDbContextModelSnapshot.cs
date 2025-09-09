@@ -245,6 +245,10 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)");
 
+                    b.Property<string>("RefreshTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTime>("LastActivityUtc")
                         .HasColumnType("timestamp with time zone");
 

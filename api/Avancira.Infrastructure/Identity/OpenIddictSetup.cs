@@ -56,6 +56,10 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<SessionIdClaimsHandler>());
                 options.AddEventHandler<ApplyTokenResponseContext>(builder =>
                     builder.UseScopedHandler<RefreshTokenCookieHandler>());
+                options.AddEventHandler<ValidateTokenRequestContext>(builder =>
+                    builder.UseScopedHandler<RefreshTokenHashValidator>().SetOrder(int.MaxValue));
+                options.AddEventHandler<ApplyTokenResponseContext>(builder =>
+                    builder.UseScopedHandler<RefreshTokenHashStore>());
                 //options.AddEventHandler<ProcessAuthenticationContext>(builder =>
                 //    builder.UseScopedHandler<RefreshTokenFromCookieHandler>());
             })
