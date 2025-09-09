@@ -8,7 +8,6 @@ using OpenIddict.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -25,7 +24,7 @@ public class SessionService : ISessionService
         _tokenManager = tokenManager;
     }
 
-    public async Task StoreSessionAsync(string userId, Guid sessionId, string refreshTokenHash, ClientInfo clientInfo, DateTime refreshExpiry)
+    public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
     {
         var existingSession = await _dbContext.Sessions
             .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
@@ -49,21 +48,50 @@ public class SessionService : ISessionService
             CreatedUtc = now,
             LastActivityUtc = now,
             LastRefreshUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry,
-            RefreshTokenHash = refreshTokenHash
+            AbsoluteExpiryUtc = refreshExpiry
         };
 
         _dbContext.Sessions.Add(session);
         await _dbContext.SaveChangesAsync();
     }
 
-    public Task<bool> ValidateSessionAsync(string userId, Guid sessionId, string? refreshTokenHash = null) =>
-        _dbContext.Sessions.AnyAsync(s =>
+    public async Task<bool> ValidateSessionAsync(string userId, Guid sessionId)
+    {
+        var exists = await _dbContext.Sessions.AnyAsync(s =>
             s.UserId == userId &&
             s.Id == sessionId &&
             s.RevokedUtc == null &&
-            s.AbsoluteExpiryUtc > DateTime.UtcNow &&
-            (refreshTokenHash == null || s.RefreshTokenHash == refreshTokenHash));
+            s.AbsoluteExpiryUtc > DateTime.UtcNow);
+
+        if (!exists)
+            return false;
+
+        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        {
+            var type = await _tokenManager.GetTypeAsync(token);
+            if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
+                continue;
+
+            var status = await _tokenManager.GetStatusAsync(token);
+            if (!string.Equals(status, OpenIddictConstants.Statuses.Valid, StringComparison.Ordinal))
+                continue;
+
+            var expiration = await _tokenManager.GetExpirationDateAsync(token);
+            if (expiration <= DateTimeOffset.UtcNow)
+                continue;
+
+            var props = await _tokenManager.GetPropertiesAsync(token);
+            if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
+                v.ValueKind == JsonValueKind.String &&
+                Guid.TryParse(v.GetString(), out var sidGuid) &&
+                sidGuid == sessionId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public async Task<List<SessionDto>> GetActiveSessionsAsync(string userId)
     {
@@ -128,24 +156,4 @@ public class SessionService : ISessionService
         }
     }
 
-    public async Task<bool> UpdateSessionAsync(string userId, Guid sessionId, string currentRefreshTokenHash, string newRefreshTokenHash, DateTime newExpiry)
-    {
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-        var session = await _dbContext.Sessions
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Id == sessionId && s.RefreshTokenHash == currentRefreshTokenHash);
-
-        if (session == null)
-            return false;
-
-        var now = DateTime.UtcNow;
-        session.LastRefreshUtc = now;
-        session.LastActivityUtc = now;
-        session.AbsoluteExpiryUtc = newExpiry;
-        session.RefreshTokenHash = newRefreshTokenHash;
-
-        await _dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return true;
-    }
 }
