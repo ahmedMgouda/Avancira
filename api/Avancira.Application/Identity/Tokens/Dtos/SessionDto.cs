@@ -3,7 +3,6 @@ namespace Avancira.Application.Identity.Tokens.Dtos;
 public record SessionDto : IEquatable<SessionDto>
 {
     public Guid Id { get; init; }
-    public string Device { get; init; }
     public string? UserAgent { get; init; }
     public string? OperatingSystem { get; init; }
     public string IpAddress { get; init; }
@@ -18,7 +17,6 @@ public record SessionDto : IEquatable<SessionDto>
     // Add a constructor that matches the usage in SessionService
     public SessionDto(
         Guid id,
-        string device,
         string? userAgent,
         string? operatingSystem,
         string ipAddress,
@@ -31,7 +29,6 @@ public record SessionDto : IEquatable<SessionDto>
         DateTime? revokedUtc)
     {
         Id = id;
-        Device = device;
         UserAgent = userAgent;
         OperatingSystem = operatingSystem;
         IpAddress = ipAddress;

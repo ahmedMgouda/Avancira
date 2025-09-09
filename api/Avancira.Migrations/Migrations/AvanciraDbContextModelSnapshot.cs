@@ -235,11 +235,6 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Device")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasMaxLength(45)
@@ -276,8 +271,6 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("CreatedUtc");
 
-                    b.HasIndex("Device");
-
                     b.HasIndex("IpAddress");
 
                     b.HasIndex("LastActivityUtc");
@@ -290,8 +283,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasIndex("UserAgent");
 
-                    b.HasIndex("UserId", "Device")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Sessions", "identity");
                 });

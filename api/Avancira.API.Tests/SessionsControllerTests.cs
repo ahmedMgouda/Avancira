@@ -45,7 +45,6 @@ public class SessionsControllerTests
 
         var dto = new SessionDto(
             Guid.NewGuid(),
-            "device",
             null,
             null,
             "127.0.0.1",
