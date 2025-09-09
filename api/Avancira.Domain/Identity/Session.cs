@@ -15,7 +15,6 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
     }
 
     public string UserId { get; set; } = default!;
-    public string Device { get; set; } = default!;
     public string? UserAgent { get; set; }
     public string? OperatingSystem { get; set; }
     public string IpAddress { get; set; } = default!;

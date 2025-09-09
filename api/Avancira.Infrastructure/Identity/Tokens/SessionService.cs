@@ -26,20 +26,10 @@ public class SessionService : ISessionService
 
     public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
     {
-        var existingSession = await _dbContext.Sessions
-            .SingleOrDefaultAsync(s => s.UserId == userId);
-
-        if (existingSession != null)
-        {
-            _dbContext.Sessions.Remove(existingSession);
-            await _dbContext.SaveChangesAsync();
-        }
-
         var now = DateTime.UtcNow;
         var session = new Session(sessionId)
         {
             UserId = userId,
-            Device = clientInfo.UserAgent,
             UserAgent = clientInfo.UserAgent,
             OperatingSystem = clientInfo.OperatingSystem,
             IpAddress = clientInfo.IpAddress,
@@ -99,7 +89,6 @@ public class SessionService : ISessionService
             .Where(s => s.UserId == userId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
             .Select(s => new SessionDto(
                 s.Id,
-                s.Device,
                 s.UserAgent,
                 s.OperatingSystem,
                 s.IpAddress,
