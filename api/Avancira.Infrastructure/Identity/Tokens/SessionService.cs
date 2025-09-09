@@ -24,7 +24,7 @@ public class SessionService : ISessionService
         _tokenManager = tokenManager;
     }
 
-    public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
+    public async Task StoreSessionAsync(string userId, Guid sessionId, string refreshTokenId, ClientInfo clientInfo, DateTime refreshExpiry)
     {
         var now = DateTime.UtcNow;
         var session = new Session(sessionId)
@@ -35,6 +35,7 @@ public class SessionService : ISessionService
             IpAddress = clientInfo.IpAddress,
             Country = clientInfo.Country,
             City = clientInfo.City,
+            ActiveRefreshTokenId = refreshTokenId,
             CreatedUtc = now,
             LastActivityUtc = now,
             LastRefreshUtc = now,
@@ -47,37 +48,37 @@ public class SessionService : ISessionService
 
     public async Task<bool> ValidateSessionAsync(string userId, Guid sessionId)
     {
-        var exists = await _dbContext.Sessions.AnyAsync(s =>
-            s.UserId == userId &&
-            s.Id == sessionId &&
-            s.RevokedUtc == null &&
-            s.AbsoluteExpiryUtc > DateTime.UtcNow);
+        var session = await _dbContext.Sessions
+            .Where(s => s.UserId == userId && s.Id == sessionId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
+            .Select(s => new { s.ActiveRefreshTokenId })
+            .FirstOrDefaultAsync();
 
-        if (!exists)
+        if (session is null || string.IsNullOrEmpty(session.ActiveRefreshTokenId))
             return false;
 
-        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        var token = await _tokenManager.FindByIdAsync(session.ActiveRefreshTokenId);
+        if (token == null)
+            return false;
+
+        var type = await _tokenManager.GetTypeAsync(token);
+        if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
+            return false;
+
+        var status = await _tokenManager.GetStatusAsync(token);
+        if (!string.Equals(status, OpenIddictConstants.Statuses.Valid, StringComparison.Ordinal))
+            return false;
+
+        var expiration = await _tokenManager.GetExpirationDateAsync(token);
+        if (expiration <= DateTimeOffset.UtcNow)
+            return false;
+
+        var props = await _tokenManager.GetPropertiesAsync(token);
+        if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
+            v.ValueKind == JsonValueKind.String &&
+            Guid.TryParse(v.GetString(), out var sidGuid) &&
+            sidGuid == sessionId)
         {
-            var type = await _tokenManager.GetTypeAsync(token);
-            if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
-                continue;
-
-            var status = await _tokenManager.GetStatusAsync(token);
-            if (!string.Equals(status, OpenIddictConstants.Statuses.Valid, StringComparison.Ordinal))
-                continue;
-
-            var expiration = await _tokenManager.GetExpirationDateAsync(token);
-            if (expiration <= DateTimeOffset.UtcNow)
-                continue;
-
-            var props = await _tokenManager.GetPropertiesAsync(token);
-            if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
-                v.ValueKind == JsonValueKind.String &&
-                Guid.TryParse(v.GetString(), out var sidGuid) &&
-                sidGuid == sessionId)
-            {
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -127,18 +128,10 @@ public class SessionService : ISessionService
 
         await _dbContext.SaveChangesAsync();
 
-        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        foreach (var tokenId in sessions.Select(s => s.ActiveRefreshTokenId).Where(id => id != null))
         {
-            var type = await _tokenManager.GetTypeAsync(token);
-            if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
-                continue;
-
-            var props = await _tokenManager.GetPropertiesAsync(token);
-
-            if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
-                v.ValueKind == JsonValueKind.String &&
-                Guid.TryParse(v.GetString(), out var sidGuid) &&
-                ids.Contains(sidGuid))
+            var token = await _tokenManager.FindByIdAsync(tokenId!);
+            if (token != null)
             {
                 await _tokenManager.TryRevokeAsync(token);
             }
