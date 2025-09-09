@@ -41,7 +41,7 @@ public class SessionServiceTests
             var tokenManager = new Mock<IOpenIddictTokenManager>().Object;
             var service = new SessionService(db, tokenManager);
             barrier.SignalAndWait();
-            await service.StoreSessionAsync("user1", sid, "hash", clientInfo, DateTime.UtcNow.AddHours(1));
+            await service.StoreSessionAsync("user1", sid, clientInfo, DateTime.UtcNow.AddHours(1));
         });
 
         var t1 = RunAsync(sid1);
