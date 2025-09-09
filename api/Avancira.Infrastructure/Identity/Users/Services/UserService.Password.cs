@@ -10,7 +10,7 @@ namespace Avancira.Infrastructure.Identity.Users.Services;
 
 internal sealed partial class UserService
 {
-    public async Task ForgotPasswordAsync(ForgotPasswordDto request, string origin, CancellationToken cancellationToken)
+    public async Task ForgotPasswordAsync(ForgotPasswordDto request, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
 
@@ -20,12 +20,10 @@ internal sealed partial class UserService
             return;
         }
 
-        var sanitizedOrigin = linkBuilder.ValidateOrigin(origin, UserErrorMessages.PasswordResetUnavailable);
-
         var rawToken = await userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var resetPasswordUri = linkBuilder.BuildResetPasswordLink(sanitizedOrigin, user.Id, encodedToken);
+        var resetPasswordUri = linkBuilder.BuildResetPasswordLink(user.Id, encodedToken);
 
         var resetPasswordEvent = new ResetPasswordEvent
         {

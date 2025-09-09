@@ -22,7 +22,7 @@ public interface IUserService
     Task<bool> HasPermissionAsync(string userId, string permission, CancellationToken cancellationToken = default);
 
     // passwords
-    Task ForgotPasswordAsync(ForgotPasswordDto request, string origin, CancellationToken cancellationToken);
+    Task ForgotPasswordAsync(ForgotPasswordDto request, CancellationToken cancellationToken);
     Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken);
     Task<List<string>?> GetPermissionsAsync(string userId, CancellationToken cancellationToken);
 

@@ -11,7 +11,6 @@ using Avancira.Application.Paging;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Application.Identity.Users.Abstractions;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Configuration;
 
 namespace Avancira.API.Controllers;
 
@@ -20,16 +19,13 @@ public class UsersController : BaseApiController
 {
     private readonly IAuditService _auditService;
     private readonly IUserService _userService;
-    private readonly IConfiguration _configuration;
 
     public UsersController(
         IAuditService auditService,
-        IUserService userService,
-        IConfiguration configuration)
+        IUserService userService)
     {
         _auditService = auditService;
         _userService = userService;
-        _configuration = configuration;
     }
 
     [HttpGet("{id:guid}")]
@@ -154,13 +150,7 @@ public class UsersController : BaseApiController
     [SwaggerOperation(OperationId = "ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto command, CancellationToken cancellationToken)
     {
-        var origin = Request.Headers["Origin"].ToString();
-        if (string.IsNullOrWhiteSpace(origin))
-        {
-            origin = _configuration["App:FrontendUrl"] ?? string.Empty;
-        }
-
-        await _userService.ForgotPasswordAsync(command, origin, cancellationToken);
+        await _userService.ForgotPasswordAsync(command, cancellationToken);
         return Ok("If an account with that email exists, a password reset link has been sent.");
     }
 
