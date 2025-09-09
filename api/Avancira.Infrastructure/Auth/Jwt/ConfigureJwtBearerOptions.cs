@@ -72,6 +72,8 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
                     return;
                 }
 
+                await sessionService.UpdateLastActivityAsync(sessionId);
+
                 if (context.Principal?.Identity != null)
                 {
                     Log.Debug("Token validated: " + context.Principal.Identity.Name);
