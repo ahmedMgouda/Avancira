@@ -17,7 +17,7 @@ using Xunit;
 public class SessionServiceTests
 {
     [Fact]
-    public async Task StoreSessionAsync_ConcurrentLogins_DoesNotCreateDuplicateSessions()
+    public async Task StoreSessionAsync_ConcurrentLogins_CreatesMultipleSessions()
     {
         var options = new DbContextOptionsBuilder<AvanciraDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -25,7 +25,6 @@ public class SessionServiceTests
 
         var clientInfo = new ClientInfo
         {
-            DeviceId = "device1",
             IpAddress = "127.0.0.1",
             UserAgent = "agent",
             OperatingSystem = "os"
@@ -49,9 +48,7 @@ public class SessionServiceTests
         await Task.WhenAll(t1, t2);
 
         await using var assertionDb = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
-        (await assertionDb.Sessions.CountAsync()).Should().Be(1);
-        var storedSessionId = (await assertionDb.Sessions.SingleAsync()).Id;
-        storedSessionId.Should().BeOneOf(sid1, sid2);
+        (await assertionDb.Sessions.CountAsync()).Should().Be(2);
     }
 
     [Fact]
@@ -68,7 +65,6 @@ public class SessionServiceTests
         db.Sessions.Add(new Session(sessionId)
         {
             UserId = "user1",
-            Device = "device",
             IpAddress = "127.0.0.1",
             CreatedUtc = now,
             AbsoluteExpiryUtc = now.AddHours(1),
