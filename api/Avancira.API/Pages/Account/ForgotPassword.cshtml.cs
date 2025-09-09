@@ -31,8 +31,7 @@ public class ForgotPasswordModel : PageModel
         if (!ModelState.IsValid)
             return Page();
 
-        var origin = Request.Headers["Origin"].ToString();
-        await _userService.ForgotPasswordAsync(new ForgotPasswordDto { Email = Input.Email }, origin, CancellationToken.None);
+        await _userService.ForgotPasswordAsync(new ForgotPasswordDto { Email = Input.Email }, CancellationToken.None);
         Message = "If an account with that email exists, a password reset link has been sent.";
         return Page();
     }
