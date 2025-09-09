@@ -6,6 +6,7 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Infrastructure.Auth;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
+using Microsoft.Extensions.Options;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -73,11 +74,16 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<OpenIddictS
 {
     private readonly ISessionService _sessionService;
     private readonly IClientInfoService _clientInfoService;
+    private readonly IOptionsMonitor<OpenIddictServerOptions> _options;
 
-    public RefreshTokenHashStore(ISessionService sessionService, IClientInfoService clientInfoService)
+    public RefreshTokenHashStore(
+        ISessionService sessionService,
+        IClientInfoService clientInfoService,
+        IOptionsMonitor<OpenIddictServerOptions> options)
     {
         _sessionService = sessionService;
         _clientInfoService = clientInfoService;
+        _options = options;
     }
 
     public async ValueTask HandleAsync(OpenIddictServerEvents.ApplyTokenResponseContext context)
@@ -115,7 +121,8 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<OpenIddictS
         }
 
         var newHash = RefreshTokenHash.ComputeHash(newRefresh);
-        var refreshExpiry = DateTime.UtcNow.AddDays(7);
+        var lifetime = _options.CurrentValue.RefreshTokenLifetime ?? TimeSpan.Zero;
+        var refreshExpiry = DateTime.UtcNow.Add(lifetime);
 
         if (string.Equals(context.Request?.GrantType, OpenIddictConstants.GrantTypes.RefreshToken, StringComparison.Ordinal))
         {
