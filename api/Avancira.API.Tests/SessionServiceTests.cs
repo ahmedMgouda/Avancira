@@ -7,11 +7,7 @@ using Avancira.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using OpenIddict.Abstractions;
 using Avancira.Domain.Identity;
-using Avancira.Infrastructure.Auth;
-using System.Collections.Generic;
-using System.Text.Json;
 using Xunit;
 
 public class SessionServiceTests
@@ -40,7 +36,7 @@ public class SessionServiceTests
             var tokenManager = new Mock<IOpenIddictTokenManager>().Object;
             var service = new SessionService(db, tokenManager);
             barrier.SignalAndWait();
-            await service.StoreSessionAsync("user1", sid, clientInfo, DateTime.UtcNow.AddHours(1));
+            await service.StoreSessionAsync("user1", sid, $"rt-{sid}", clientInfo, DateTime.UtcNow.AddHours(1));
         });
 
         var t1 = RunAsync(sid1);
@@ -61,6 +57,7 @@ public class SessionServiceTests
         await using var db = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
 
         var sessionId = Guid.NewGuid();
+        var tokenId = "token1";
         var now = DateTime.UtcNow;
         db.Sessions.Add(new Session(sessionId)
         {
@@ -69,36 +66,18 @@ public class SessionServiceTests
             CreatedUtc = now,
             AbsoluteExpiryUtc = now.AddHours(1),
             LastRefreshUtc = now,
-            LastActivityUtc = now
+            LastActivityUtc = now,
+            ActiveRefreshTokenId = tokenId
         });
         await db.SaveChangesAsync();
-
         var token = new object();
         var tokenManager = new Mock<IOpenIddictTokenManager>();
-        tokenManager.Setup(m => m.FindBySubjectAsync("user1"))
-            .Returns(AsyncEnumerable(token));
-        tokenManager.Setup(m => m.GetTypeAsync(token))
-            .ReturnsAsync(OpenIddictConstants.TokenTypeHints.RefreshToken);
-        tokenManager.Setup(m => m.GetPropertiesAsync(token))
-            .ReturnsAsync(new Dictionary<string, JsonElement>
-            {
-                [AuthConstants.Claims.SessionId] = JsonSerializer.SerializeToElement(sessionId.ToString())
-            });
+        tokenManager.Setup(m => m.FindByIdAsync(tokenId))
+            .ReturnsAsync(token);
 
         var service = new SessionService(db, tokenManager.Object);
         await service.RevokeSessionsAsync("user1", new[] { sessionId });
 
         tokenManager.Verify(m => m.TryRevokeAsync(token), Times.Once);
-    }
-
-    private static IAsyncEnumerable<object> AsyncEnumerable(params object[] tokens) => Get(tokens);
-
-    private static async IAsyncEnumerable<object> Get(IEnumerable<object> tokens)
-    {
-        foreach (var token in tokens)
-        {
-            yield return token;
-            await Task.Yield();
-        }
     }
 }

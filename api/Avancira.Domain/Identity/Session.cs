@@ -20,6 +20,7 @@ public class Session : BaseEntity<Guid>, IAggregateRoot
     public string IpAddress { get; set; } = default!;
     public string? Country { get; set; }
     public string? City { get; set; }
+    public string? ActiveRefreshTokenId { get; set; }
     public DateTime CreatedUtc { get; set; }
     public DateTime AbsoluteExpiryUtc { get; set; }
     public DateTime LastRefreshUtc { get; set; }
