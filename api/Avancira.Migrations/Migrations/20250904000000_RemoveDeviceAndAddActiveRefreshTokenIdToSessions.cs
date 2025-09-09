@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 namespace Avancira.Migrations.Migrations
 {
     [DbContext(typeof(AvanciraDbContext))]
-    [Migration("20250903000000_RemoveDeviceFromSessions")]
-    public class RemoveDeviceFromSessions : Migration
+    [Migration("20250904000000_RemoveDeviceAndAddActiveRefreshTokenIdToSessions")]
+    public class RemoveDeviceAndAddActiveRefreshTokenIdToSessions : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -26,17 +26,41 @@ namespace Avancira.Migrations.Migrations
                 schema: "identity",
                 table: "Sessions");
 
+            migrationBuilder.AddColumn<string>(
+                name: "ActiveRefreshTokenId",
+                schema: "identity",
+                table: "Sessions",
+                type: "character varying(100)",
+                maxLength: 100,
+                nullable: true);
+
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_UserId",
                 schema: "identity",
                 table: "Sessions",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Sessions_ActiveRefreshTokenId",
+                schema: "identity",
+                table: "Sessions",
+                column: "ActiveRefreshTokenId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
+                name: "IX_Sessions_ActiveRefreshTokenId",
+                schema: "identity",
+                table: "Sessions");
+
+            migrationBuilder.DropIndex(
                 name: "IX_Sessions_UserId",
+                schema: "identity",
+                table: "Sessions");
+
+            migrationBuilder.DropColumn(
+                name: "ActiveRefreshTokenId",
                 schema: "identity",
                 table: "Sessions");
 

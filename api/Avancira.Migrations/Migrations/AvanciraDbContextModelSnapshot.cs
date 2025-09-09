@@ -224,6 +224,10 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTime>("AbsoluteExpiryUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ActiveRefreshTokenId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -267,6 +271,7 @@ namespace Avancira.Migrations.Migrations
                         .HasDatabaseName("IX_UserSessions_SessionId")
                         .IsUnique();
 
+                    b.HasIndex("ActiveRefreshTokenId");
                     b.HasIndex("AbsoluteExpiryUtc");
 
                     b.HasIndex("CreatedUtc");
