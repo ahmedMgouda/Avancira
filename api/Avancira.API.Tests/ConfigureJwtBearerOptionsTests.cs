@@ -23,6 +23,7 @@ public class ConfigureJwtBearerOptionsTests
         var userId = "user-123";
         var sessionId = Guid.NewGuid();
         sessionService.Setup(s => s.ValidateSessionAsync(userId, sessionId)).ReturnsAsync(true);
+        sessionService.Setup(s => s.UpdateLastActivityAsync(sessionId)).Returns(Task.CompletedTask);
 
         var (options, provider) = BuildOptions(sessionService);
 
@@ -44,6 +45,7 @@ public class ConfigureJwtBearerOptionsTests
         await options.Events.OnTokenValidated(context);
 
         context.Result.Should().BeNull();
+        sessionService.Verify(s => s.UpdateLastActivityAsync(sessionId), Times.Once);
     }
 
     [Fact]
@@ -74,6 +76,7 @@ public class ConfigureJwtBearerOptionsTests
         await options.Events.OnTokenValidated(context);
 
         context.Result?.Failure?.Message.Should().Be("Session revoked");
+        sessionService.Verify(s => s.UpdateLastActivityAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
@@ -102,6 +105,7 @@ public class ConfigureJwtBearerOptionsTests
 
         context.Result?.Failure?.Message.Should().Be("Session revoked");
         sessionService.Verify(s => s.ValidateSessionAsync(It.IsAny<string>(), It.IsAny<Guid>()), Times.Never);
+        sessionService.Verify(s => s.UpdateLastActivityAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     private static (JwtBearerOptions options, ServiceProvider provider) BuildOptions(Mock<ISessionService> sessionService)

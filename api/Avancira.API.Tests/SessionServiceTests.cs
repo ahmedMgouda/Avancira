@@ -80,4 +80,72 @@ public class SessionServiceTests
 
         tokenManager.Verify(m => m.TryRevokeAsync(token), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateSessionActivityAsync_UpdatesSessionFields()
+    {
+        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var db = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
+
+        var now = DateTime.UtcNow.AddMinutes(-10);
+        var sessionId = Guid.NewGuid();
+        db.Sessions.Add(new Session(sessionId)
+        {
+            UserId = "user1",
+            IpAddress = "127.0.0.1",
+            CreatedUtc = now,
+            AbsoluteExpiryUtc = now.AddHours(1),
+            LastRefreshUtc = now,
+            LastActivityUtc = now,
+            ActiveRefreshTokenId = "oldToken"
+        });
+        await db.SaveChangesAsync();
+
+        var tokenManager = new Mock<IOpenIddictTokenManager>().Object;
+        var service = new SessionService(db, tokenManager);
+        var newExpiry = DateTime.UtcNow.AddHours(2);
+
+        await service.UpdateSessionActivityAsync(sessionId, "newToken", newExpiry);
+
+        var session = await db.Sessions.FindAsync(sessionId);
+        session!.ActiveRefreshTokenId.Should().Be("newToken");
+        session.LastRefreshUtc.Should().BeAfter(now);
+        session.LastActivityUtc.Should().BeAfter(now);
+        session.AbsoluteExpiryUtc.Should().Be(newExpiry);
+    }
+
+    [Fact]
+    public async Task UpdateLastActivityAsync_UpdatesLastActivity()
+    {
+        var options = new DbContextOptionsBuilder<AvanciraDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var db = new AvanciraDbContext(options, new Mock<IPublisher>().Object);
+
+        var now = DateTime.UtcNow.AddMinutes(-10);
+        var sessionId = Guid.NewGuid();
+        db.Sessions.Add(new Session(sessionId)
+        {
+            UserId = "user1",
+            IpAddress = "127.0.0.1",
+            CreatedUtc = now,
+            AbsoluteExpiryUtc = now.AddHours(1),
+            LastRefreshUtc = now,
+            LastActivityUtc = now,
+            ActiveRefreshTokenId = "token"
+        });
+        await db.SaveChangesAsync();
+
+        var tokenManager = new Mock<IOpenIddictTokenManager>().Object;
+        var service = new SessionService(db, tokenManager);
+
+        await service.UpdateLastActivityAsync(sessionId);
+
+        var session = await db.Sessions.FindAsync(sessionId);
+        session!.LastActivityUtc.Should().BeAfter(now);
+    }
 }

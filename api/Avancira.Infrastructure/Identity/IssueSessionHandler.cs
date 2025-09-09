@@ -60,11 +60,7 @@ public sealed class IssueSessionHandler : IOpenIddictServerHandler<ApplyTokenRes
         }
         else
         {
-            session.ActiveRefreshTokenId = refreshTokenId;
-            session.LastActivityUtc = DateTime.UtcNow;
-            session.LastRefreshUtc = DateTime.UtcNow;
-            session.AbsoluteExpiryUtc = expiration.Value.UtcDateTime;
-            await dbContext.SaveChangesAsync();
+            await sessionService.UpdateSessionActivityAsync(sessionId, refreshTokenId, expiration.Value.UtcDateTime);
         }
     }
 }

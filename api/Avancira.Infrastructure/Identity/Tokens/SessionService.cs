@@ -44,6 +44,34 @@ public class SessionService : ISessionService
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task UpdateSessionActivityAsync(Guid sessionId, string refreshTokenId, DateTime refreshExpiry)
+    {
+        var session = await _dbContext.Sessions.FindAsync(sessionId);
+        if (session is null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        session.ActiveRefreshTokenId = refreshTokenId;
+        session.LastRefreshUtc = now;
+        session.LastActivityUtc = now;
+        session.AbsoluteExpiryUtc = refreshExpiry;
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateLastActivityAsync(Guid sessionId)
+    {
+        var session = await _dbContext.Sessions.FindAsync(sessionId);
+        if (session is null)
+        {
+            return;
+        }
+
+        session.LastActivityUtc = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+    }
+
     public async Task<bool> ValidateSessionAsync(string userId, Guid sessionId)
     {
         var session = await _dbContext.Sessions
