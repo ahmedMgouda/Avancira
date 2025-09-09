@@ -32,7 +32,7 @@ public class ClientInfoServiceTests
         await service.GetClientInfoAsync();
 
         var cookie = context.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
-        cookie.Should().Contain($"{AuthConstants.Claims.DeviceId}=");
+        cookie.Should().Contain($"{AuthConstants.Cookies.DeviceId}=");
         cookie.Should().NotContain("secure");
         cookie.Should().Contain("samesite=lax");
     }

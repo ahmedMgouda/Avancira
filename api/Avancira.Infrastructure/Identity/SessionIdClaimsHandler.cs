@@ -15,13 +15,20 @@ public class SessionIdClaimsHandler : IOpenIddictServerHandler<ProcessSignInCont
             return ValueTask.CompletedTask;
         }
 
-        var existing = context.Principal.GetClaim(AuthConstants.Claims.SessionId);
-        if (string.IsNullOrEmpty(existing))
+        var sid = context.Principal.GetClaim(AuthConstants.Claims.SessionId);
+        if (string.IsNullOrEmpty(sid))
         {
-            context.Principal.SetClaim(
-                AuthConstants.Claims.SessionId,
-                Guid.NewGuid().ToString());
+            sid = Guid.NewGuid().ToString();
         }
+
+        context.Principal.SetClaim(
+            AuthConstants.Claims.SessionId,
+            sid,
+            destinations: new[]
+            {
+                OpenIddictConstants.Destinations.AccessToken,
+                OpenIddictConstants.Destinations.RefreshToken
+            });
 
         return ValueTask.CompletedTask;
     }

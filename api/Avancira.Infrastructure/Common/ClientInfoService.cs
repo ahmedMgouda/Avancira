@@ -36,7 +36,7 @@ public class ClientInfoService : IClientInfoService
     {
         var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
 
-        var deviceId = context.Request.Cookies[AuthConstants.Claims.DeviceId];
+        var deviceId = context.Request.Cookies[AuthConstants.Cookies.DeviceId];
         if (string.IsNullOrEmpty(deviceId))
         {
             deviceId = Guid.NewGuid().ToString();
@@ -44,7 +44,7 @@ public class ClientInfoService : IClientInfoService
                 ? SameSiteMode.Lax
                 : _cookieOptions.Value.SameSite;
 
-            context.Response.Cookies.Append(AuthConstants.Claims.DeviceId, deviceId, new CookieOptions
+            context.Response.Cookies.Append(AuthConstants.Cookies.DeviceId, deviceId, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = !_environment.IsDevelopment(),

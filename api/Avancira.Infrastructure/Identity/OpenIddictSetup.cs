@@ -51,8 +51,6 @@ public static class OpenIddictSetup
                 options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
                     builder.UseScopedHandler<LoginRedirectHandler>().SetOrder(int.MinValue));
                 options.AddEventHandler<ProcessSignInContext>(builder =>
-                    builder.UseScopedHandler<DeviceInfoClaimsHandler>());
-                options.AddEventHandler<ProcessSignInContext>(builder =>
                     builder.UseScopedHandler<SessionIdClaimsHandler>());
                 options.AddEventHandler<ApplyTokenResponseContext>(builder =>
                     builder.UseScopedHandler<RefreshTokenCookieHandler>());
