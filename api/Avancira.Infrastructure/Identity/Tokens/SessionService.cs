@@ -128,20 +128,24 @@ public class SessionService : ISessionService
         }
     }
 
-    public async Task UpdateSessionAsync(string userId, Guid sessionId, string refreshTokenHash, DateTime newExpiry)
+    public async Task<bool> UpdateSessionAsync(string userId, Guid sessionId, string currentRefreshTokenHash, string newRefreshTokenHash, DateTime newExpiry)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
         var session = await _dbContext.Sessions
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Id == sessionId);
+            .SingleOrDefaultAsync(s => s.UserId == userId && s.Id == sessionId && s.RefreshTokenHash == currentRefreshTokenHash);
 
         if (session == null)
-            return;
+            return false;
 
         var now = DateTime.UtcNow;
         session.LastRefreshUtc = now;
         session.LastActivityUtc = now;
         session.AbsoluteExpiryUtc = newExpiry;
-        session.RefreshTokenHash = refreshTokenHash;
+        session.RefreshTokenHash = newRefreshTokenHash;
 
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return true;
     }
 }

@@ -11,6 +11,9 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
     {
         builder.ToTable("Sessions", IdentityConstants.SchemaName);
         builder.HasKey(s => s.Id);
+        builder.HasIndex(s => s.Id)
+            .HasDatabaseName("IX_UserSessions_SessionId")
+            .IsUnique();
         builder.Property(s => s.Device).HasMaxLength(200);
         builder.Property(s => s.UserAgent).HasMaxLength(100);
         builder.Property(s => s.OperatingSystem).HasMaxLength(100);

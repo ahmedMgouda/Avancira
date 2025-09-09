@@ -272,6 +272,10 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_UserSessions_SessionId")
+                        .IsUnique();
+
                     b.HasIndex("AbsoluteExpiryUtc");
 
                     b.HasIndex("CreatedUtc");

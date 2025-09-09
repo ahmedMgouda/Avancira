@@ -83,17 +83,23 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<ApplyTokenR
             return;
         }
 
-        var hash = RefreshTokenHash.ComputeHash(context.Response.RefreshToken);
+        var newHash = RefreshTokenHash.ComputeHash(context.Response.RefreshToken);
         var refreshExpiry = DateTime.UtcNow.AddDays(7);
 
         if (context.Request?.GrantType == OpenIddictConstants.GrantTypes.RefreshToken)
         {
-            await _sessionService.UpdateSessionAsync(userId, sessionId, hash, refreshExpiry);
+            var currentHash = RefreshTokenHash.ComputeHash(context.Request.RefreshToken);
+            var updated = await _sessionService.UpdateSessionAsync(userId, sessionId, currentHash, newHash, refreshExpiry);
+            if (!updated)
+            {
+                context.Reject(OpenIddictConstants.Errors.InvalidGrant, "The refresh token is no longer valid.");
+                return;
+            }
         }
         else
         {
             var clientInfo = await _clientInfoService.GetClientInfoAsync();
-            await _sessionService.StoreSessionAsync(userId, sessionId, hash, clientInfo, refreshExpiry);
+            await _sessionService.StoreSessionAsync(userId, sessionId, newHash, clientInfo, refreshExpiry);
         }
     }
 }
