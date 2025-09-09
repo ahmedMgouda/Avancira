@@ -27,7 +27,7 @@ public class SessionService : ISessionService
     public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
     {
         var existingSession = await _dbContext.Sessions
-            .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
+            .SingleOrDefaultAsync(s => s.UserId == userId);
 
         if (existingSession != null)
         {
@@ -39,7 +39,7 @@ public class SessionService : ISessionService
         var session = new Session(sessionId)
         {
             UserId = userId,
-            Device = clientInfo.DeviceId,
+            Device = clientInfo.UserAgent,
             UserAgent = clientInfo.UserAgent,
             OperatingSystem = clientInfo.OperatingSystem,
             IpAddress = clientInfo.IpAddress,

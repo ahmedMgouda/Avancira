@@ -1,14 +1,11 @@
+using System.Net;
 using System.Threading.Tasks;
 using Avancira.Infrastructure.Common;
 using Avancira.Application.Catalog;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using UAParser;
 using Xunit;
-using Moq;
-using Avancira.Infrastructure.Auth;
 
 public class ClientInfoServiceTests
 {
@@ -19,21 +16,19 @@ public class ClientInfoServiceTests
     }
 
     [Fact]
-    public async Task GetClientInfoAsync_InDevelopment_SetsCookieWithoutSecure()
+    public async Task GetClientInfoAsync_ReturnsInfoWithoutSettingDeviceCookie()
     {
         var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("127.0.0.1");
+        context.Request.Headers["User-Agent"] = "Mozilla/5.0";
         var accessor = new HttpContextAccessor { HttpContext = context };
-        var envMock = new Mock<IHostEnvironment>();
-        envMock.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
-        var options = Options.Create(new CookieOptions { SameSite = SameSiteMode.Lax });
 
-        var service = new ClientInfoService(accessor, new StubGeolocationService(), Parser.GetDefault(), envMock.Object, options);
+        var service = new ClientInfoService(accessor, new StubGeolocationService(), Parser.GetDefault());
 
-        await service.GetClientInfoAsync();
+        var info = await service.GetClientInfoAsync();
 
-        var cookie = context.Response.Headers["Set-Cookie"].ToString().ToLowerInvariant();
-        cookie.Should().Contain($"{AuthConstants.Claims.DeviceId}=");
-        cookie.Should().NotContain("secure");
-        cookie.Should().Contain("samesite=lax");
+        info.IpAddress.Should().Be("127.0.0.1");
+        info.UserAgent.Should().Contain("Mozilla");
+        context.Response.Headers["Set-Cookie"].ToString().Should().BeEmpty();
     }
 }
