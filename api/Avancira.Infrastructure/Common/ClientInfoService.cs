@@ -1,10 +1,7 @@
 using Avancira.Application.Common;
 using Avancira.Application.Catalog;
 using Avancira.Infrastructure.Common.Extensions;
-using Avancira.Infrastructure.Auth;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using UAParser;
 using ClientInfo = Avancira.Application.Common.ClientInfo;
 
@@ -15,44 +12,20 @@ public class ClientInfoService : IClientInfoService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IGeolocationService _geolocationService;
     private readonly Parser _parser;
-    private readonly IHostEnvironment _environment;
-    private readonly IOptions<CookieOptions> _cookieOptions;
 
     public ClientInfoService(
         IHttpContextAccessor httpContextAccessor,
         IGeolocationService geolocationService,
-        Parser parser,
-        IHostEnvironment environment,
-        IOptions<CookieOptions> cookieOptions)
+        Parser parser)
     {
         _httpContextAccessor = httpContextAccessor;
         _geolocationService = geolocationService;
         _parser = parser;
-        _environment = environment;
-        _cookieOptions = cookieOptions;
     }
 
     public async Task<ClientInfo> GetClientInfoAsync()
     {
         var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
-
-        var deviceId = context.Request.Cookies[AuthConstants.Claims.DeviceId];
-        if (string.IsNullOrEmpty(deviceId))
-        {
-            deviceId = Guid.NewGuid().ToString();
-            var sameSite = _cookieOptions.Value.SameSite == SameSiteMode.Unspecified
-                ? SameSiteMode.Lax
-                : _cookieOptions.Value.SameSite;
-
-            context.Response.Cookies.Append(AuthConstants.Claims.DeviceId, deviceId, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = !_environment.IsDevelopment(),
-                SameSite = sameSite,
-                Expires = DateTime.UtcNow.AddYears(1),
-                Path = "/"
-            });
-        }
 
         var ip = context.GetIpAddress();
         var client = _parser.Parse(context.GetUserAgent());
@@ -60,7 +33,6 @@ public class ClientInfoService : IClientInfoService
 
         return new ClientInfo
         {
-            DeviceId = deviceId,
             IpAddress = ip,
             UserAgent = $"{client.UA.Family} {client.UA.Major}".Trim(),
             OperatingSystem = client.ToString(),

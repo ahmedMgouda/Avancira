@@ -25,7 +25,6 @@ public class SessionServiceTests
 
         var clientInfo = new ClientInfo
         {
-            DeviceId = "device1",
             IpAddress = "127.0.0.1",
             UserAgent = "agent",
             OperatingSystem = "os"
