@@ -17,6 +17,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IpAddress).HasMaxLength(45);
         builder.Property(s => s.Country).HasMaxLength(100);
         builder.Property(s => s.City).HasMaxLength(100);
+        builder.Property(s => s.RefreshTokenHash).HasMaxLength(64);
         builder.HasIndex(s => s.Device);
         builder.HasIndex(s => s.UserAgent);
         builder.HasIndex(s => s.OperatingSystem);

@@ -25,7 +25,7 @@ public class SessionService : ISessionService
         _tokenManager = tokenManager;
     }
 
-    public async Task StoreSessionAsync(string userId, Guid sessionId, ClientInfo clientInfo, DateTime refreshExpiry)
+    public async Task StoreSessionAsync(string userId, Guid sessionId, string refreshTokenHash, ClientInfo clientInfo, DateTime refreshExpiry)
     {
         var existingSession = await _dbContext.Sessions
             .SingleOrDefaultAsync(s => s.UserId == userId && s.Device == clientInfo.DeviceId);
@@ -49,19 +49,21 @@ public class SessionService : ISessionService
             CreatedUtc = now,
             LastActivityUtc = now,
             LastRefreshUtc = now,
-            AbsoluteExpiryUtc = refreshExpiry
+            AbsoluteExpiryUtc = refreshExpiry,
+            RefreshTokenHash = refreshTokenHash
         };
 
         _dbContext.Sessions.Add(session);
         await _dbContext.SaveChangesAsync();
     }
 
-    public Task<bool> ValidateSessionAsync(string userId, Guid sessionId) =>
+    public Task<bool> ValidateSessionAsync(string userId, Guid sessionId, string? refreshTokenHash = null) =>
         _dbContext.Sessions.AnyAsync(s =>
             s.UserId == userId &&
             s.Id == sessionId &&
             s.RevokedUtc == null &&
-            s.AbsoluteExpiryUtc > DateTime.UtcNow);
+            s.AbsoluteExpiryUtc > DateTime.UtcNow &&
+            (refreshTokenHash == null || s.RefreshTokenHash == refreshTokenHash));
 
     public async Task<List<SessionDto>> GetActiveSessionsAsync(string userId)
     {
@@ -126,7 +128,7 @@ public class SessionService : ISessionService
         }
     }
 
-    public async Task UpdateSessionAsync(string userId, Guid sessionId, DateTime newExpiry)
+    public async Task UpdateSessionAsync(string userId, Guid sessionId, string refreshTokenHash, DateTime newExpiry)
     {
         var session = await _dbContext.Sessions
             .SingleOrDefaultAsync(s => s.UserId == userId && s.Id == sessionId);
@@ -138,6 +140,7 @@ public class SessionService : ISessionService
         session.LastRefreshUtc = now;
         session.LastActivityUtc = now;
         session.AbsoluteExpiryUtc = newExpiry;
+        session.RefreshTokenHash = refreshTokenHash;
 
         await _dbContext.SaveChangesAsync();
     }
