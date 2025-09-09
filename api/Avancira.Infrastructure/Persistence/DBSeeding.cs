@@ -157,11 +157,11 @@ public class UserSeeder
                 },
                 new User
                 {
-                    FirstName = "Amr",
+                    FirstName = "Ahmed",
                     LastName = "Mostafa",
                     Bio = "A software engineer with a passion for technology, AI, and problem-solving. Constantly improving skills and exploring new advancements in the tech world.",
-                    UserName = "Amr.Mostafa@live.com",
-                    Email = "Amr.Mostafa@live.com",
+                    UserName = "eng.gouda91@gmail.com",
+                    Email = "eng.gouda91@gmail.com",
                     Address = new Address
                     {
                         StreetAddress = "76 Bancroft Ave",

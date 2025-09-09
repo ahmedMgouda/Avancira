@@ -1,4 +1,4 @@
-using System;
+﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Avancira.Application.Common;
@@ -6,7 +6,6 @@ using Avancira.Application.Identity.Tokens;
 using Avancira.Infrastructure.Auth;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
-using static OpenIddict.Server.OpenIddictServerEvents;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -20,25 +19,35 @@ internal static class RefreshTokenHash
     }
 }
 
-public sealed class RefreshTokenHashValidator : IOpenIddictServerHandler<ValidateTokenRequestContext>
+/// <summary>
+/// Validates the *incoming* refresh token against the stored session hash.
+/// Uses ValidateTokenRequestContext.RefreshTokenPrincipal.
+/// </summary>
+public sealed class RefreshTokenHashValidator : IOpenIddictServerHandler<OpenIddictServerEvents.ValidateTokenRequestContext>
 {
     private readonly ISessionService _sessionService;
 
     public RefreshTokenHashValidator(ISessionService sessionService)
         => _sessionService = sessionService;
 
-    public async ValueTask HandleAsync(ValidateTokenRequestContext context)
+    public async ValueTask HandleAsync(OpenIddictServerEvents.ValidateTokenRequestContext context)
     {
         if (context.Request is null ||
-            context.Principal is null ||
             context.Request.GrantType != OpenIddictConstants.GrantTypes.RefreshToken ||
             string.IsNullOrEmpty(context.Request.RefreshToken))
         {
             return;
         }
 
-        var userId = context.Principal.GetClaim(OpenIddictConstants.Claims.Subject);
-        var sessionIdClaim = context.Principal.GetClaim(AuthConstants.Claims.SessionId);
+        var principal = context.RefreshTokenPrincipal; 
+        if (principal is null)
+        {
+            context.Reject(OpenIddictConstants.Errors.InvalidGrant, "Missing refresh token principal.");
+            return;
+        }
+
+        var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
+        var sessionIdClaim = principal.GetClaim(AuthConstants.Claims.SessionId);
 
         if (string.IsNullOrEmpty(userId) ||
             string.IsNullOrEmpty(sessionIdClaim) ||
@@ -56,7 +65,11 @@ public sealed class RefreshTokenHashValidator : IOpenIddictServerHandler<Validat
     }
 }
 
-public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<ApplyTokenResponseContext>
+/// <summary>
+/// Persists or updates the session hash for the *newly issued* refresh token.
+/// Run during ApplyTokenResponseContext (no Principal available).
+/// </summary>
+public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<OpenIddictServerEvents.ApplyTokenResponseContext>
 {
     private readonly ISessionService _sessionService;
     private readonly IClientInfoService _clientInfoService;
@@ -67,15 +80,33 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<ApplyTokenR
         _clientInfoService = clientInfoService;
     }
 
-    public async ValueTask HandleAsync(ApplyTokenResponseContext context)
+    public async ValueTask HandleAsync(OpenIddictServerEvents.ApplyTokenResponseContext context)
     {
-        if (context.Principal is null || string.IsNullOrEmpty(context.Response?.RefreshToken))
-        {
+        var newRefresh = context.Response?.RefreshToken;
+        if (string.IsNullOrEmpty(newRefresh))
             return;
+
+        // The only thing we have at this stage is the issued token + original request.
+        // We must re-extract identifiers from the principals that were already validated.
+
+        ClaimsPrincipal? principal = null;
+
+        if (string.Equals(context.Request?.GrantType, OpenIddictConstants.GrantTypes.RefreshToken, StringComparison.Ordinal))
+        {
+            // Refresh token grant → reuse the validated RefreshTokenPrincipal
+            principal = context.Transaction.GetProperty<ClaimsPrincipal>(typeof(OpenIddictServerEvents.ValidateTokenRequestContext).FullName + ".RefreshTokenPrincipal");
+        }
+        else if (string.Equals(context.Request?.GrantType, OpenIddictConstants.GrantTypes.AuthorizationCode, StringComparison.Ordinal))
+        {
+            principal = context.Transaction.GetProperty<ClaimsPrincipal>(typeof(OpenIddictServerEvents.ValidateTokenRequestContext).FullName + ".AuthorizationCodePrincipal");
         }
 
-        var userId = context.Principal.GetClaim(OpenIddictConstants.Claims.Subject);
-        var sessionIdClaim = context.Principal.GetClaim(AuthConstants.Claims.SessionId);
+        if (principal is null)
+            return;
+
+        var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
+        var sessionIdClaim = principal.GetClaim(AuthConstants.Claims.SessionId);
+
         if (string.IsNullOrEmpty(userId) ||
             string.IsNullOrEmpty(sessionIdClaim) ||
             !Guid.TryParse(sessionIdClaim, out var sessionId))
@@ -83,23 +114,17 @@ public sealed class RefreshTokenHashStore : IOpenIddictServerHandler<ApplyTokenR
             return;
         }
 
-        var newHash = RefreshTokenHash.ComputeHash(context.Response.RefreshToken);
+        var hash = RefreshTokenHash.ComputeHash(newRefresh);
         var refreshExpiry = DateTime.UtcNow.AddDays(7);
 
-        if (context.Request?.GrantType == OpenIddictConstants.GrantTypes.RefreshToken)
+        if (string.Equals(context.Request?.GrantType, OpenIddictConstants.GrantTypes.RefreshToken, StringComparison.Ordinal))
         {
-            var currentHash = RefreshTokenHash.ComputeHash(context.Request.RefreshToken);
-            var updated = await _sessionService.UpdateSessionAsync(userId, sessionId, currentHash, newHash, refreshExpiry);
-            if (!updated)
-            {
-                context.Reject(OpenIddictConstants.Errors.InvalidGrant, "The refresh token is no longer valid.");
-                return;
-            }
+            await _sessionService.UpdateSessionAsync(userId, sessionId, hash, refreshExpiry);
         }
         else
         {
             var clientInfo = await _clientInfoService.GetClientInfoAsync();
-            await _sessionService.StoreSessionAsync(userId, sessionId, newHash, clientInfo, refreshExpiry);
+            await _sessionService.StoreSessionAsync(userId, sessionId, hash, clientInfo, refreshExpiry);
         }
     }
 }
