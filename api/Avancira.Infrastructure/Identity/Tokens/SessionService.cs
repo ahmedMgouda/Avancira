@@ -3,13 +3,11 @@ using Avancira.Application.Identity.Tokens.Dtos;
 using Avancira.Application.Common;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Domain.Identity;
-using Avancira.Infrastructure.Auth;
 using OpenIddict.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace Avancira.Infrastructure.Identity.Tokens;
 
@@ -49,39 +47,17 @@ public class SessionService : ISessionService
     public async Task<bool> ValidateSessionAsync(string userId, Guid sessionId)
     {
         var session = await _dbContext.Sessions
-            .Where(s => s.UserId == userId && s.Id == sessionId && s.RevokedUtc == null && s.AbsoluteExpiryUtc > DateTime.UtcNow)
-            .Select(s => new { s.ActiveRefreshTokenId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.Id == sessionId);
 
-        if (session is null || string.IsNullOrEmpty(session.ActiveRefreshTokenId))
+        if (session is null || session.RevokedUtc != null || session.AbsoluteExpiryUtc <= DateTime.UtcNow || string.IsNullOrEmpty(session.ActiveRefreshTokenId))
             return false;
 
         var token = await _tokenManager.FindByIdAsync(session.ActiveRefreshTokenId);
         if (token == null)
             return false;
 
-        var type = await _tokenManager.GetTypeAsync(token);
-        if (!string.Equals(type, OpenIddictConstants.TokenTypeHints.RefreshToken, StringComparison.Ordinal))
-            return false;
-
         var status = await _tokenManager.GetStatusAsync(token);
-        if (!string.Equals(status, OpenIddictConstants.Statuses.Valid, StringComparison.Ordinal))
-            return false;
-
-        var expiration = await _tokenManager.GetExpirationDateAsync(token);
-        if (expiration <= DateTimeOffset.UtcNow)
-            return false;
-
-        var props = await _tokenManager.GetPropertiesAsync(token);
-        if (props.TryGetValue(AuthConstants.Claims.SessionId, out var v) &&
-            v.ValueKind == JsonValueKind.String &&
-            Guid.TryParse(v.GetString(), out var sidGuid) &&
-            sidGuid == sessionId)
-        {
-            return true;
-        }
-
-        return false;
+        return string.Equals(status, OpenIddictConstants.Statuses.Valid, StringComparison.Ordinal);
     }
 
     public async Task<List<SessionDto>> GetActiveSessionsAsync(string userId)
