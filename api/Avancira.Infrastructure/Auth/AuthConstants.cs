@@ -16,7 +16,6 @@ public static class AuthConstants
         public const string Code = "code";
         public const string RedirectUri = "redirect_uri";
         public const string CodeVerifier = "code_verifier";
-        public const string DeviceId = "device_id";
         public const string UserId = "user_id";
         public const string Scope = "scope";
         public const string RefreshToken = "refresh_token";
@@ -28,7 +27,6 @@ public static class AuthConstants
     public static class Claims
     {
         public const string SessionId = "sid";
-        public const string DeviceId = "device_id";
     }
 
     public static class GrantTypes
@@ -47,6 +45,7 @@ public static class AuthConstants
         public const string IdentityExchange = "identityExchange";
         public const string RefreshToken = "refreshToken";
         public const string PathRoot = "/";
+        public const string DeviceId = "device_id";
     }
 }
 
