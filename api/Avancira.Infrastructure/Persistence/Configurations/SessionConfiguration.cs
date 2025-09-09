@@ -14,13 +14,12 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => s.Id)
             .HasDatabaseName("IX_UserSessions_SessionId")
             .IsUnique();
-        builder.Property(s => s.Device).HasMaxLength(200);
         builder.Property(s => s.UserAgent).HasMaxLength(100);
         builder.Property(s => s.OperatingSystem).HasMaxLength(100);
         builder.Property(s => s.IpAddress).HasMaxLength(45);
         builder.Property(s => s.Country).HasMaxLength(100);
         builder.Property(s => s.City).HasMaxLength(100);
-        builder.HasIndex(s => s.Device);
+        builder.HasIndex(s => s.UserId);
         builder.HasIndex(s => s.UserAgent);
         builder.HasIndex(s => s.OperatingSystem);
         builder.HasIndex(s => s.IpAddress);
@@ -29,6 +28,5 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => s.LastRefreshUtc);
         builder.HasIndex(s => s.LastActivityUtc);
         builder.HasIndex(s => s.RevokedUtc);
-        builder.HasIndex(s => new { s.UserId, s.Device }).IsUnique();
     }
 }
