@@ -55,8 +55,6 @@ public partial class Program {
 
         var app = builder.Build();
 
-        app.MapDefaultEndpoints();
-
         app.UseAvanciraFramework();
 
         app.UseHttpsRedirection();
