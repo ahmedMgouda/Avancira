@@ -1,19 +1,12 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using OpenIddict.Server;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
-using Microsoft.AspNetCore;
 
 namespace Avancira.Infrastructure.Identity;
 
 public sealed class RefreshTokenCookieHandler : IOpenIddictServerHandler<ApplyTokenResponseContext>
 {
-    private readonly IHostEnvironment _environment;
-
-    public RefreshTokenCookieHandler(IHostEnvironment environment)
-        => _environment = environment;
-
     public ValueTask HandleAsync(ApplyTokenResponseContext context)
     {
         // Only add cookie if a refresh token was actually issued
