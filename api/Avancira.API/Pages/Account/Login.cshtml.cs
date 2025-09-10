@@ -52,6 +52,26 @@ public class LoginModel : PageModel
         return Page();
     }
 
+    private static void AddClaimIfMissing(
+        ClaimsIdentity identity,
+        string type,
+        string? value,
+        string? valueType = null,
+        bool matchValue = false)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        bool hasClaim = matchValue
+            ? identity.HasClaim(c => c.Type == type && c.Value == value)
+            : identity.HasClaim(c => c.Type == type);
+
+        if (!hasClaim)
+            identity.AddClaim(valueType is null
+                ? new Claim(type, value)
+                : new Claim(type, value, valueType));
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         ReturnUrl = string.IsNullOrEmpty(ReturnUrl) ? "/connect/authorize" : ReturnUrl;
@@ -70,33 +90,21 @@ public class LoginModel : PageModel
         var identity = (ClaimsIdentity)principal.Identity!;
 
         // 🔑 Required for "openid"
-        if (identity.FindFirst(OpenIddictConstants.Claims.Subject) is null)
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.Subject, user.Id));
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Subject, user.Id);
 
         // 🔑 For "profile"
-        if (identity.FindFirst(OpenIddictConstants.Claims.Name) is null && !string.IsNullOrEmpty(user.UserName))
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.Name, user.UserName));
-
-        if (identity.FindFirst(OpenIddictConstants.Claims.GivenName) is null && !string.IsNullOrEmpty(user.FirstName))
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.GivenName, user.FirstName));
-
-        if (identity.FindFirst(OpenIddictConstants.Claims.FamilyName) is null && !string.IsNullOrEmpty(user.LastName))
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.FamilyName, user.LastName));
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Name, user.UserName);
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.GivenName, user.FirstName);
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.FamilyName, user.LastName);
 
         // 🔑 For "email"
-        if (identity.FindFirst(OpenIddictConstants.Claims.Email) is null && !string.IsNullOrEmpty(user.Email))
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.Email, user.Email));
-
-        if (identity.FindFirst(OpenIddictConstants.Claims.EmailVerified) is null)
-            identity.AddClaim(new Claim(OpenIddictConstants.Claims.EmailVerified, "true", ClaimValueTypes.Boolean));
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Email, user.Email);
+        AddClaimIfMissing(identity, OpenIddictConstants.Claims.EmailVerified, "true", ClaimValueTypes.Boolean);
 
         // 🔑 Optional: roles
         var roles = await _signInManager.UserManager.GetRolesAsync(user);
         foreach (var role in roles)
-        {
-            if (!identity.HasClaim(c => c.Type == OpenIddictConstants.Claims.Role && c.Value == role))
-                identity.AddClaim(new Claim(OpenIddictConstants.Claims.Role, role));
-        }
+            AddClaimIfMissing(identity, OpenIddictConstants.Claims.Role, role, matchValue: true);
 
         // Debug: dump claims (remove in production)
         foreach (var c in identity.Claims)
