@@ -44,9 +44,7 @@ public partial class Program {
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
         });
 
-        builder.Services.AddSignalR();
         builder.Services.AddRazorPages();
-        builder.Services.AddHttpContextAccessor();
 
         using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
 
