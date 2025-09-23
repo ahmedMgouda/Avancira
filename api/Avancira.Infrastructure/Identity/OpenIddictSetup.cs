@@ -4,7 +4,7 @@ using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
 using OpenIddict.Abstractions;
-using Avancira.Infrastructure.Identity.Handlers;
+using Avancira.Infrastructure.UserSessions.Handlers;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -63,17 +63,13 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<LoginRedirectHandler>()
                            .SetOrder(int.MinValue));
 
-                options.AddEventHandler<ProcessSignInContext>(builder =>
-                    builder.UseScopedHandler<SessionIdClaimsHandler>());
 
                 options.AddEventHandler<ApplyTokenResponseContext>(builder =>
                     builder.UseScopedHandler<RefreshTokenCookieHandler>());
 
-                options.AddEventHandler<ApplyTokenResponseContext>(builder =>
-                    builder.UseScopedHandler<IssueSessionHandler>());
 
                 options.AddEventHandler<ProcessSignInContext>(builder =>
-                 builder.UseScopedHandler<PerDeviceAuthorizationHandler>());
+                 builder.UseScopedHandler<SessionSignInHandler>());
 
                 // Uncomment if you need to handle refresh tokens from cookies
                 // options.AddEventHandler<ProcessAuthenticationContext>(builder =>
@@ -97,10 +93,8 @@ public static class OpenIddictSetup
 
         // Register your custom handlers
         services.AddScoped<LoginRedirectHandler>();
-        services.AddScoped<SessionIdClaimsHandler>();
+        services.AddScoped<SessionSignInHandler>();
         services.AddScoped<RefreshTokenCookieHandler>();
-        services.AddScoped<IssueSessionHandler>();
-        services.AddScoped<PerDeviceAuthorizationHandler>();
         //services.AddScoped<SessionActivityHandler>();
         // services.AddScoped<RefreshTokenFromCookieHandler>();
 
