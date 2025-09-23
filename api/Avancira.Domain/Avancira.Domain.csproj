@@ -16,6 +16,7 @@
   
   <ItemGroup>
     <Folder Include="Common\ValueObjects\" />
+    <Folder Include="Identity\" />
   </ItemGroup>
 
 </Project>

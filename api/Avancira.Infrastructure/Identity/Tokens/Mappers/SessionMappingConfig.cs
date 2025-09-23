@@ -8,6 +8,6 @@ public class SessionMappingConfig : IRegister
 {
     public void Register(TypeAdapterConfig config)
     {
-        config.NewConfig<Session, SessionDto>();
+        config.NewConfig<UserSession, SessionDto>();
     }
 }

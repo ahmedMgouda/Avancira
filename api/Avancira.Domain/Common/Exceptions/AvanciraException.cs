@@ -4,18 +4,18 @@ namespace Avancira.Domain.Common.Exceptions;
 public class AvanciraException : Exception
 {
     public IEnumerable<string> ErrorMessages { get; }
-
     public HttpStatusCode StatusCode { get; }
+    public string? ErrorCode { get; }
 
-    public AvanciraException(string message, IEnumerable<string> errors, HttpStatusCode statusCode = HttpStatusCode.InternalServerError)
+    public AvanciraException(
+        string message,
+        IEnumerable<string>? errors = null,
+        HttpStatusCode statusCode = HttpStatusCode.InternalServerError,
+        string? errorCode = null)
         : base(message)
     {
-        ErrorMessages = errors;
+        ErrorMessages = errors ?? Array.Empty<string>();
         StatusCode = statusCode;
-    }
-
-    public AvanciraException(string message) : base(message)
-    {
-        ErrorMessages = new List<string>();
+        ErrorCode = errorCode;
     }
 }

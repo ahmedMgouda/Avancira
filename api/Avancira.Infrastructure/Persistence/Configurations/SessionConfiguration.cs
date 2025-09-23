@@ -5,9 +5,9 @@ using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
 
 namespace Avancira.Infrastructure.Persistence.Configurations;
 
-public class SessionConfiguration : IEntityTypeConfiguration<Session>
+public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
 {
-    public void Configure(EntityTypeBuilder<Session> builder)
+    public void Configure(EntityTypeBuilder<UserSession> builder)
     {
         builder.ToTable("Sessions", IdentityConstants.SchemaName);
         builder.HasKey(s => s.Id);

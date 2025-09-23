@@ -71,7 +71,7 @@ internal sealed partial class UserService
             throw new AvanciraException("Current and new passwords are required.");
 
         var user = await userManager.FindByIdAsync(userId);
-        _ = user ?? throw new NotFoundException("user not found");
+        _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         var result = await userManager.ChangePasswordAsync(user, request.Password, request.NewPassword);
         if (!result.Succeeded)

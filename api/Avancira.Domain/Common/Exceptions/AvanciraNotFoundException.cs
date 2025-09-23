@@ -2,9 +2,9 @@
 using System.Net;
 
 namespace Avancira.Domain.Common.Exceptions;   
-public class NotFoundException : AvanciraException
+public class AvanciraNotFoundException : AvanciraException
 {
-    public NotFoundException(string message)
+    public AvanciraNotFoundException(string message)
         : base(message, new Collection<string>(), HttpStatusCode.NotFound)
     {
     }

@@ -11,8 +11,8 @@ public static class Extensions
         services.AddScoped<IRepository<Category>, CategoryRepository<Category>>();
         services.AddScoped<IReadRepository<Category>, CategoryRepository<Category>>();
 
-        services.AddScoped<IRepository<Session>, SessionRepository<Session>>();
-        services.AddScoped<IReadRepository<Session>, SessionRepository<Session>>();
+        services.AddScoped<IRepository<UserSession>, SessionRepository<UserSession>>();
+        services.AddScoped<IReadRepository<UserSession>, SessionRepository<UserSession>>();
 
         return services;
     }

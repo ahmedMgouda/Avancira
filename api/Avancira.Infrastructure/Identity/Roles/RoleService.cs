@@ -25,7 +25,7 @@ public class RoleService(RoleManager<Role> roleManager,
     {
         Role? role = await _roleManager.FindByIdAsync(id);
 
-        _ = role ?? throw new NotFoundException("role not found");
+        _ = role ?? throw new AvanciraNotFoundException("role not found");
 
         return new RoleDto { Id = role.Id, Name = role.Name!, Description = role.Description };
     }
@@ -53,7 +53,7 @@ public class RoleService(RoleManager<Role> roleManager,
     {
         Role? role = await _roleManager.FindByIdAsync(id);
 
-        _ = role ?? throw new NotFoundException("role not found");
+        _ = role ?? throw new AvanciraNotFoundException("role not found");
 
         await _roleManager.DeleteAsync(role);
     }
@@ -61,7 +61,7 @@ public class RoleService(RoleManager<Role> roleManager,
     public async Task<RoleDto> GetWithPermissionsAsync(string id, CancellationToken cancellationToken)
     {
         var role = await GetRoleAsync(id);
-        _ = role ?? throw new NotFoundException("role not found");
+        _ = role ?? throw new AvanciraNotFoundException("role not found");
 
         role.Permissions = await context.RoleClaims
             .Where(c => c.RoleId == id && c.ClaimType == AvanciraClaims.Permission)
@@ -74,7 +74,7 @@ public class RoleService(RoleManager<Role> roleManager,
     public async Task<string> UpdatePermissionsAsync(UpdatePermissionsDto request)
     {
         var role = await _roleManager.FindByIdAsync(request.RoleId);
-        _ = role ?? throw new NotFoundException("role not found");
+        _ = role ?? throw new AvanciraNotFoundException("role not found");
         if (role.Name == AvanciraRoles.Admin)
         {
             throw new AvanciraException("operation not permitted");

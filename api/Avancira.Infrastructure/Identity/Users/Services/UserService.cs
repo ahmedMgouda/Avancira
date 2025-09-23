@@ -92,7 +92,7 @@ internal sealed partial class UserService(
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        _ = user ?? throw new NotFoundException("user not found");
+        _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         return user.Adapt<UserDetailDto>();
     }
@@ -195,7 +195,7 @@ internal sealed partial class UserService(
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
     {
         var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        _ = user ?? throw new NotFoundException("User Not Found.");
+        _ = user ?? throw new AvanciraNotFoundException("User Not Found.");
 
         bool isAdmin = await userManager.IsInRoleAsync(user, AvanciraRoles.Admin);
         if (isAdmin)
@@ -211,7 +211,7 @@ internal sealed partial class UserService(
             .Include(u => u.Address)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
-        _ = user ?? throw new NotFoundException("user not found");
+        _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         // Handle image upload/deletion
         Uri imageUri = user.ImageUrl ?? null!;
@@ -321,7 +321,7 @@ internal sealed partial class UserService(
     {
         User? user = await userManager.FindByIdAsync(userId);
 
-        _ = user ?? throw new NotFoundException("User Not Found.");
+        _ = user ?? throw new AvanciraNotFoundException("User Not Found.");
 
         user.IsActive = false;
         IdentityResult? result = await userManager.UpdateAsync(user);
@@ -351,7 +351,7 @@ internal sealed partial class UserService(
 
         var user = await userManager.Users.Where(u => u.Id == userId).FirstOrDefaultAsync(cancellationToken);
 
-        _ = user ?? throw new NotFoundException("user not found");
+        _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         // Check if the user is an admin for which the admin role is getting disabled
         if (await userManager.IsInRoleAsync(user, AvanciraRoles.Admin)
@@ -394,9 +394,9 @@ internal sealed partial class UserService(
         var userRoles = new List<UserRoleDetailDto>();
 
         var user = await userManager.FindByIdAsync(userId);
-        if (user is null) throw new NotFoundException("user not found");
+        if (user is null) throw new AvanciraNotFoundException("user not found");
         var roles = await roleManager.Roles.AsNoTracking().ToListAsync(cancellationToken);
-        if (roles is null) throw new NotFoundException("roles not found");
+        if (roles is null) throw new AvanciraNotFoundException("roles not found");
         foreach (var role in roles)
         {
             userRoles.Add(new UserRoleDetailDto

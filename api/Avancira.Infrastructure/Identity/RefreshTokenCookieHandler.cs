@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using OpenIddict.Server;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
+using Microsoft.AspNetCore;
 
 namespace Avancira.Infrastructure.Identity;
 

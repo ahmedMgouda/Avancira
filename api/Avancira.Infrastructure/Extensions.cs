@@ -45,7 +45,7 @@ public static class Extensions
         .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and idp
         {
             options.Cookie.Name = ".Avancira.Identity.Exchange";
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
             options.SlidingExpiration = false;
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;

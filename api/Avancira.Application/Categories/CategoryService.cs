@@ -22,7 +22,7 @@ namespace Avancira.Application.Categories
         public async Task<CategoryDto> GetByIdAsync(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id)
-                ?? throw new NotFoundException($"Category with ID '{id}' not found.");
+                ?? throw new AvanciraNotFoundException($"Category with ID '{id}' not found.");
 
             return category.Adapt<CategoryDto>();
         }
@@ -54,7 +54,7 @@ namespace Avancira.Application.Categories
             if (categoryDto == null) throw new ArgumentNullException(nameof(categoryDto));
 
             var category = await _categoryRepository.GetByIdAsync(categoryDto.Id)
-                ?? throw new NotFoundException($"Category with ID '{categoryDto.Id}' not found. Update operation aborted.");
+                ?? throw new AvanciraNotFoundException($"Category with ID '{categoryDto.Id}' not found. Update operation aborted.");
 
             category.Name = categoryDto.Name;
             category.DisplayInLandingPage = categoryDto.DisplayInLandingPage;
@@ -85,7 +85,7 @@ namespace Avancira.Application.Categories
         public async Task<bool> DeleteAsync(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id)
-                ?? throw new NotFoundException($"Category with ID '{id}' not found. Deletion operation aborted.");
+                ?? throw new AvanciraNotFoundException($"Category with ID '{id}' not found. Deletion operation aborted.");
 
             if (category.ImageUrl != null)
             {
