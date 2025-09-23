@@ -1,4 +1,6 @@
 ﻿using Avancira.Application;
+using Avancira.Application.UserSessions;
+using Avancira.Application.UserSessions.Services;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
@@ -14,6 +16,7 @@ using Avancira.Infrastructure.RateLimit;
 using Avancira.Infrastructure.SecurityHeaders;
 using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Storage.Files;
+using Avancira.Infrastructure.UserSessions;
 using Avancira.Infrastructure.Messaging;
 using Avancira.ServiceDefaults;
 using FluentValidation;
@@ -65,6 +68,7 @@ public static class Extensions
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.ConfigureUserSessions();
 
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));
@@ -132,6 +136,16 @@ public static class Extensions
         app.UseMiddleware<CurrentUserMiddleware>();
 
         return app;
+    }
+
+    private static IServiceCollection ConfigureUserSessions(this IServiceCollection services)
+    {
+        services.AddScoped<ISessionMetadataCollectionService, SessionMetadataCollectionService>();
+        services.AddScoped<INetworkContextService, NetworkContextService>();
+        services.AddSingleton<IUserAgentAnalysisService, UserAgentAnalysisService>();
+        services.AddHttpClient<IGeolocationService, GeolocationService>();
+
+        return services;
     }
 
     private static IServiceCollection ConfigureMessaging(this IServiceCollection services)
