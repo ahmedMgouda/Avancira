@@ -44,7 +44,12 @@ public class SessionsController : BaseApiController
             throw new ForbiddenException("Cannot revoke sessions belonging to another user.");
         }
 
-        await _sessionService.RevokeAsync(id, "User requested revocation", cancellationToken);
+        var revoked = await _sessionService.RevokeAsync(id, "User requested revocation", cancellationToken);
+
+        if (!revoked)
+        {
+            throw new AvanciraConflictException("Failed to revoke session.");
+        }
         return NoContent();
     }
 
@@ -70,7 +75,12 @@ public class SessionsController : BaseApiController
                 throw new ForbiddenException("Cannot revoke sessions belonging to another user.");
             }
 
-            await _sessionService.RevokeAsync(sessionId, "User requested revocation", cancellationToken);
+            var revoked = await _sessionService.RevokeAsync(sessionId, "User requested revocation", cancellationToken);
+
+            if (!revoked)
+            {
+                throw new AvanciraConflictException("Failed to revoke one or more sessions.");
+            }
         }
 
         return NoContent();
