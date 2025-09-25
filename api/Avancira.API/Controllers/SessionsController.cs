@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Avancira.Application.Identity.Tokens;
-using Avancira.Application.Identity.Tokens.Dtos;
+using System.Linq;
 using Avancira.Application.Identity.Users.Abstractions;
-using MediatR;
+using Avancira.Application.UserSessions;
+using Avancira.Application.UserSessions.Dtos;
+using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,39 +14,88 @@ namespace Avancira.API.Controllers;
 [Authorize]
 public class SessionsController : BaseApiController
 {
-    private readonly ISender _mediator;
+    private readonly IUserSessionService _sessionService;
     private readonly ICurrentUser _currentUser;
 
-    public SessionsController(ISender mediator, ICurrentUser currentUser)
+    public SessionsController(IUserSessionService sessionService, ICurrentUser currentUser)
     {
-        _mediator = mediator;
+        _sessionService = sessionService;
         _currentUser = currentUser;
     }
 
-    //[HttpGet]
-    //[ProducesResponseType(typeof(List<SessionDto>), StatusCodes.Status200OK)]
-    //public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
-    //{
-    //    var userId = _currentUser.GetUserId();
-    //    var sessions = await _mediator.Send(new GetSessionsQuery(userId.ToString()), cancellationToken);
-    //    return Ok(sessions);
-    //}
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<UserSessionGroupDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
+    {
+        var userId = _currentUser.GetUserId().ToString();
+        var sessions = await _sessionService.GetActiveByUserAsync(userId, cancellationToken);
 
-    //[HttpDelete("{id:guid}")]
-    //[ProducesResponseType(StatusCodes.Status204NoContent)]
-    //public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
-    //{
-    //    var userId = _currentUser.GetUserId();
-    //    await _mediator.Send(new RevokeSessionCommand(id, userId.ToString()), cancellationToken);
-    //    return NoContent();
-    //}
+        var groups = sessions
+            .GroupBy(session => session.DeviceId)
+            .Select(group =>
+            {
+                var ordered = group
+                    .OrderByDescending(s => s.LastActivityUtc)
+                    .ToList();
 
-    //[HttpPost("batch")]
-    //[ProducesResponseType(StatusCodes.Status204NoContent)]
-    //public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
-    //{
-    //    var userId = _currentUser.GetUserId();
-    //    await _mediator.Send(new RevokeSessionsCommand(sessionIds, userId.ToString()), cancellationToken);
-    //    return NoContent();
-    //}
+                var first = ordered[0];
+
+                return new UserSessionGroupDto(
+                    first.DeviceId,
+                    first.DeviceName,
+                    first.OperatingSystem,
+                    first.UserAgent,
+                    first.Country,
+                    first.City,
+                    ordered);
+            })
+            .OrderByDescending(group => group.Sessions[0].LastActivityUtc)
+            .ToList();
+
+        return Ok(groups);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RevokeSession(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = _currentUser.GetUserId().ToString();
+        var session = await _sessionService.GetByIdAsync(id, cancellationToken);
+
+        if (!string.Equals(session.UserId, userId, StringComparison.Ordinal))
+        {
+            throw new ForbiddenException("Cannot revoke sessions belonging to another user.");
+        }
+
+        await _sessionService.RevokeAsync(id, "User requested revocation", cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("batch")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RevokeSessions([FromBody] IEnumerable<Guid> sessionIds, CancellationToken cancellationToken)
+    {
+        var ids = sessionIds?.Distinct().ToArray() ?? Array.Empty<Guid>();
+
+        if (ids.Length == 0)
+        {
+            return NoContent();
+        }
+
+        var userId = _currentUser.GetUserId().ToString();
+
+        foreach (var sessionId in ids)
+        {
+            var session = await _sessionService.GetByIdAsync(sessionId, cancellationToken);
+
+            if (!string.Equals(session.UserId, userId, StringComparison.Ordinal))
+            {
+                throw new ForbiddenException("Cannot revoke sessions belonging to another user.");
+            }
+
+            await _sessionService.RevokeAsync(sessionId, "User requested revocation", cancellationToken);
+        }
+
+        return NoContent();
+    }
 }
