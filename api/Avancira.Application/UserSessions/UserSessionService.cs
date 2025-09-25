@@ -1,4 +1,6 @@
-﻿using Avancira.Application.Persistence;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Avancira.Application.Persistence;
 using Avancira.Application.UserSessions.Dtos;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.UserSessions;
@@ -44,7 +46,40 @@ public class UserSessionService : IUserSessionService
     public async Task<IEnumerable<UserSessionDto>> GetActiveByUserAsync(string userId, CancellationToken cancellationToken = default)
     {
         var sessions = await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
-        return sessions.Adapt<IEnumerable<UserSessionDto>>();
+        return sessions.Adapt<List<UserSessionDto>>();
+    }
+
+    public async Task<IReadOnlyList<DeviceSessionsDto>> GetActiveByUserGroupedByDeviceAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
+        var sessionDtos = sessions.Adapt<List<UserSessionDto>>();
+
+        var groupedSessions = sessionDtos
+            .GroupBy(session => session.DeviceId)
+            .Select(group =>
+            {
+                var ordered = group
+                    .OrderByDescending(s => s.LastActivityUtc)
+                    .ToList();
+
+                var first = ordered[0];
+
+                return new DeviceSessionsDto(
+                    first.DeviceId,
+                    first.DeviceName,
+                    first.OperatingSystem,
+                    first.UserAgent,
+                    first.Country,
+                    first.City,
+                    ordered[0].LastActivityUtc,
+                    ordered);
+            })
+            .OrderByDescending(group => group.LastActivityUtc)
+            .ToList();
+
+        return groupedSessions;
     }
 
     public async Task<UserSessionDto> CreateAsync(CreateUserSessionDto dto, CancellationToken cancellationToken = default)

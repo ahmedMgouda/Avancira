@@ -1,4 +1,6 @@
-﻿using Avancira.Application.UserSessions.Dtos;
+﻿using System;
+using System.Collections.Generic;
+using Avancira.Application.UserSessions.Dtos;
 
 namespace Avancira.Application.UserSessions;
 
@@ -17,6 +19,13 @@ public interface IUserSessionService
     /// Gets all active (non-revoked, non-expired) sessions for a given user.
     /// </summary>
     Task<IEnumerable<UserSessionDto>> GetActiveByUserAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets active sessions grouped by device for a given user.
+    /// </summary>
+    Task<IReadOnlyList<DeviceSessionsDto>> GetActiveByUserGroupedByDeviceAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new user session with associated metadata and absolute expiry.

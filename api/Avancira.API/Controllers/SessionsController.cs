@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Dtos;
@@ -24,35 +23,13 @@ public class SessionsController : BaseApiController
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<UserSessionGroupDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IReadOnlyList<DeviceSessionsDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId().ToString();
-        var sessions = await _sessionService.GetActiveByUserAsync(userId, cancellationToken);
+        var groupedSessions = await _sessionService.GetActiveByUserGroupedByDeviceAsync(userId, cancellationToken);
 
-        var groups = sessions
-            .GroupBy(session => session.DeviceId)
-            .Select(group =>
-            {
-                var ordered = group
-                    .OrderByDescending(s => s.LastActivityUtc)
-                    .ToList();
-
-                var first = ordered[0];
-
-                return new UserSessionGroupDto(
-                    first.DeviceId,
-                    first.DeviceName,
-                    first.OperatingSystem,
-                    first.UserAgent,
-                    first.Country,
-                    first.City,
-                    ordered);
-            })
-            .OrderByDescending(group => group.Sessions[0].LastActivityUtc)
-            .ToList();
-
-        return Ok(groups);
+        return Ok(groupedSessions);
     }
 
     [HttpDelete("{id:guid}")]
