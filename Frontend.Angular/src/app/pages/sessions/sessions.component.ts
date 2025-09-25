@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 
 import { TableComponent } from '../../layout/shared/table/table.component';
-import { Session } from '../../models/session';
+import { DeviceSessions } from '../../models/device-sessions';
+import { UserSession } from '../../models/session';
 import { SessionService } from '../../services/session.service';
 
 @Component({
@@ -12,8 +13,9 @@ import { SessionService } from '../../services/session.service';
   styleUrl: './sessions.component.scss'
 })
 export class SessionsComponent implements OnInit {
-  sessions: Session[] = [];
-  pagedSessions: Session[] = [];
+  deviceSessions: DeviceSessions[] = [];
+  sessions: UserSession[] = [];
+  pagedSessions: UserSession[] = [];
   loading = false;
 
   page = 1;
@@ -31,7 +33,7 @@ export class SessionsComponent implements OnInit {
       label: 'Revoke',
       icon: 'fa-times',
       class: 'btn-sm btn-outline-danger',
-      callback: (session: Session) => this.revoke(session)
+      callback: (session: UserSession) => this.revoke(session)
     }
   ];
 
@@ -40,20 +42,29 @@ export class SessionsComponent implements OnInit {
   ngOnInit(): void {
     this.sessionColumns = [
       { key: 'select', label: '', cellTemplate: this.selectCell },
-      { key: 'device', label: 'Device' },
+      {
+        key: 'deviceName',
+        label: 'Device',
+        formatter: (value: any, item?: UserSession) => value || item?.deviceId || ''
+      },
       { key: 'operatingSystem', label: 'OS' },
       { key: 'userAgent', label: 'Agent' },
       { key: 'ipAddress', label: 'IP Address' },
       { key: 'country', label: 'Country' },
       { key: 'city', label: 'City' },
       {
-        key: 'lastRefreshUtc',
-        label: 'Last Refresh',
+        key: 'createdAtUtc',
+        label: 'Created',
         formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
       },
       {
         key: 'lastActivityUtc',
         label: 'Last Active',
+        formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
+      },
+      {
+        key: 'absoluteExpiryUtc',
+        label: 'Expires',
         formatter: (value: any) => value ? new Date(value).toLocaleString() : ''
       }
     ];
@@ -64,8 +75,9 @@ export class SessionsComponent implements OnInit {
     this.loading = true;
     this.sessionService.getSessions().subscribe({
       next: s => {
-        this.sessions = s;
-        this.totalResults = s.length;
+        this.deviceSessions = s;
+        this.sessions = this.sessionService.flattenSessions(s);
+        this.totalResults = this.sessions.length;
         this.updatePagedSessions();
         this.selectedSessions.clear();
         this.loading = false;
@@ -113,7 +125,7 @@ export class SessionsComponent implements OnInit {
     });
   }
 
-  revoke(session: Session): void {
+  revoke(session: UserSession): void {
     this.sessionService.revokeSession(session.id).subscribe({
       next: () => {
         this.selectedSessions.delete(session.id);

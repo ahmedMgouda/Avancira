@@ -1,14 +1,16 @@
-export interface Session {
+export interface UserSession {
   id: string;
-  device: string;
+  userId: string;
+  authorizationId: string;
+  deviceId: string;
+  deviceName?: string;
   userAgent?: string;
   operatingSystem?: string;
   ipAddress: string;
   country?: string;
   city?: string;
-  createdUtc: string;
-  lastActivityUtc: string;
-  lastRefreshUtc: string;
+  createdAtUtc: string;
   absoluteExpiryUtc: string;
-  revokedUtc?: string;
+  lastActivityUtc: string;
+  revokedAtUtc?: string;
 }
