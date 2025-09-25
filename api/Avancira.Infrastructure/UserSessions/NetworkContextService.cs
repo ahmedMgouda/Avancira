@@ -34,7 +34,17 @@ namespace Avancira.Infrastructure.UserSessions
             }
 
             var generated = DeviceIdentifier.Generate("gen");
-            context.Response.Cookies.Append("device_id", generated.Value);
+
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, 
+                Path = "/",
+                Expires = DateTimeOffset.UtcNow.AddYears(1)
+            };
+
+            context.Response.Cookies.Append("device_id", generated.Value, options);
 
             return generated;
         }

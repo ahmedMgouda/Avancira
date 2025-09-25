@@ -1,6 +1,7 @@
 ﻿using Avancira.Application.Persistence;
 using Avancira.Domain.Catalog;
 using Avancira.Domain.Identity;
+using Avancira.Domain.UserSessions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Avancira.Infrastructure.Persistence.Repositories;

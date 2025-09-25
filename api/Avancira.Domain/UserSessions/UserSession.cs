@@ -6,7 +6,7 @@ using Avancira.Domain.UserSessions.ValueObjects;
 
 namespace Avancira.Domain.UserSessions;
 
-public sealed class UserSession : BaseEntity<Guid>, IAggregateRoot
+public sealed class UserSession : BaseEntity, IAggregateRoot
 {
     private UserSession() { }
 

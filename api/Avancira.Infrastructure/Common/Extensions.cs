@@ -48,8 +48,6 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IWalletService, WalletService>();
             services.AddTransient<ILessonService, LessonService>();
             services.AddHttpClient();
-            services.AddTransient<IGeolocationService, GeolocationService>();
-            services.AddTransient<IClientInfoService, ClientInfoService>();
             services.AddTransient<IFileUploadService, FileUploadService>();
             services.AddSingleton<Parser>(_ => Parser.GetDefault());
 

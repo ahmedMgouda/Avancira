@@ -74,4 +74,8 @@
     <ProjectReference Include="..\Avancira.Domain\Avancira.Domain.csproj" />
     <ProjectReference Include="..\Avancira.Shared\Avancira.Shared.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Identity\Tokens\Mappers\" />
+  </ItemGroup>
 </Project>

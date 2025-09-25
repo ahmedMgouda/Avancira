@@ -44,7 +44,8 @@ export const authInterceptor: HttpInterceptorFn = (
   const isApiRequest = isApiCall(req, environment.apiUrl);
   const skipAuth = req.context.get(SKIP_AUTH);
   const requiresAuth = req.context.get(REQUIRES_AUTH) ?? isApiRequest;
-  const withCreds = req.context.get(INCLUDE_CREDENTIALS) || isRefreshTokenRequest(req);
+  const withCreds = true; //todo
+  // const withCreds = req.context.get(INCLUDE_CREDENTIALS) || isRefreshTokenRequest(req) || isApiRequest;
 
   const baseReq = applyCredentials(req, withCreds);
 

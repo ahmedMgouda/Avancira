@@ -65,15 +65,6 @@ public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions
                     return;
                 }
 
-                var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
-                if (!await sessionService.ValidateSessionAsync(userId, sessionId))
-                {
-                    context.Fail("Session revoked");
-                    return;
-                }
-
-                await sessionService.UpdateLastActivityAsync(sessionId);
-
                 if (context.Principal?.Identity != null)
                 {
                     Log.Debug("Token validated: " + context.Principal.Identity.Name);
