@@ -15,6 +15,8 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        var serverSettings = configuration.GetSection("Auth:OpenIddict").Get<OpenIddictServerSettings>() ?? new();
+
         services.AddOpenIddict()
             .AddCore(options =>
                 options.UseEntityFrameworkCore()
@@ -34,13 +36,11 @@ public static class OpenIddictSetup
                        .AllowRefreshTokenFlow();
 
                 // Token lifetimes
-                options.SetAccessTokenLifetime(TimeSpan.FromMinutes(2))  // Reasonable for production
-                       .SetRefreshTokenLifetime(TimeSpan.FromMinutes(3))
-                       .SetAuthorizationCodeLifetime(TimeSpan.FromMinutes(5)); // Add code lifetime
-
+                options.SetAccessTokenLifetime(serverSettings.AccessTokenLifetime)
+                       .SetRefreshTokenLifetime(serverSettings.RefreshTokenLifetime)
+                       .SetAuthorizationCodeLifetime(serverSettings.AuthorizationCodeLifetime); // Add code lifetime
 
                 options.UseReferenceRefreshTokens();
-
 
                 // Scopes
                 options.RegisterScopes(
@@ -51,8 +51,7 @@ public static class OpenIddictSetup
 
                 // Certificates (use real ones in production)
                 options.AddDevelopmentEncryptionCertificate()
-                          .AddDevelopmentSigningCertificate();
-
+                      .AddDevelopmentSigningCertificate();
 
                 // Use default endpoints (no passthrough needed)
                 options.UseAspNetCore()
@@ -63,13 +62,11 @@ public static class OpenIddictSetup
                     builder.UseScopedHandler<LoginRedirectHandler>()
                            .SetOrder(int.MinValue));
 
-
                 options.AddEventHandler<ApplyTokenResponseContext>(builder =>
                     builder.UseScopedHandler<RefreshTokenCookieHandler>());
 
-
                 options.AddEventHandler<ProcessSignInContext>(builder =>
-                 builder.UseScopedHandler<SessionSignInHandler>());
+                    builder.UseScopedHandler<SessionSignInHandler>());
 
                 // Uncomment if you need to handle refresh tokens from cookies
                 // options.AddEventHandler<ProcessAuthenticationContext>(builder =>
