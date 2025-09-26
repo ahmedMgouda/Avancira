@@ -71,6 +71,7 @@ public static class Extensions
         builder.Services.ConfigureUserSessions();
 
 
+        builder.Services.Configure<OpenIddictServerSettings>(builder.Configuration.GetSection("Auth:OpenIddict"));
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));
         builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Avancira:Payments:Stripe"));
         builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection("Avancira:Payments:PayPal"));
