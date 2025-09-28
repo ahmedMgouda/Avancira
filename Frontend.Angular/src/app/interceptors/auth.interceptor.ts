@@ -90,6 +90,7 @@ function handleAuthError(
 
   if (is401) {
     console.warn('⚠️ Unauthorized request - token invalid or expired', { url: req.url });
+    authService.handleUnauthorized();
   } else if (is403) {
     console.warn('⚠️ Forbidden request - insufficient permissions', { url: req.url });
   }

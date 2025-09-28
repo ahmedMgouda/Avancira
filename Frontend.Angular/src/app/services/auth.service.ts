@@ -129,6 +129,7 @@ export class AuthService implements OnDestroy {
   private tokenExpiryWarningTimer?: ReturnType<typeof setTimeout>;
   private initPromise?: Promise<void>;
   private readonly tokenExpiringSoon$ = new ReplaySubject<void>(1);
+  private redirectingToSignIn = false;
 
   // --- State ---
   private readonly authState = signal<AuthState>({ ...defaultAuthState });
@@ -265,6 +266,23 @@ export class AuthService implements OnDestroy {
   redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
     return this.router.createUrlTree(['/signin'], {
       queryParams: { returnUrl: this.sanitizeReturnUrl(returnUrl) },
+    });
+  }
+
+  handleUnauthorized(returnUrl: string = this.router.url): void {
+    if (this.redirectingToSignIn) return;
+
+    const sanitized = this.sanitizeReturnUrl(returnUrl);
+    this.redirectingToSignIn = true;
+
+    sessionStorage.setItem('auth_return_url', sanitized);
+    this.resetAuth();
+
+    const target = this.redirectToSignIn(sanitized);
+    queueMicrotask(() => {
+      void this.router.navigateByUrl(target).finally(() => {
+        this.redirectingToSignIn = false;
+      });
     });
   }
 
