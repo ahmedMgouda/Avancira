@@ -3,66 +3,49 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "Register";
-    Layout = "../Shared/_AccountLayout";
 }
 
-<form method="post" class="account-form">
+<form method="post">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ReturnUrl" />
 
-    <div asp-validation-summary="ModelOnly" class="account-form__validation"></div>
-
-    <div class="account-form__row">
-        <div class="account-form__group">
-            <label asp-for="Input.FirstName" class="account-form__label"></label>
-            <input asp-for="Input.FirstName" class="account-form__input" autocomplete="given-name" />
-            <span asp-validation-for="Input.FirstName" class="account-form__error"></span>
-        </div>
-        <div class="account-form__group">
-            <label asp-for="Input.LastName" class="account-form__label"></label>
-            <input asp-for="Input.LastName" class="account-form__input" autocomplete="family-name" />
-            <span asp-validation-for="Input.LastName" class="account-form__error"></span>
-        </div>
+    <div>
+        <label asp-for="Input.FirstName"></label>
+        <input asp-for="Input.FirstName" />
+        <span asp-validation-for="Input.FirstName"></span>
     </div>
-
-    <div class="account-form__group">
-        <label asp-for="Input.UserName" class="account-form__label"></label>
-        <input asp-for="Input.UserName" class="account-form__input" autocomplete="username" />
-        <span asp-validation-for="Input.UserName" class="account-form__error"></span>
+    <div>
+        <label asp-for="Input.LastName"></label>
+        <input asp-for="Input.LastName" />
+        <span asp-validation-for="Input.LastName"></span>
     </div>
-
-    <div class="account-form__group">
-        <label asp-for="Input.Email" class="account-form__label"></label>
-        <input asp-for="Input.Email" type="email" class="account-form__input" autocomplete="email" />
-        <span asp-validation-for="Input.Email" class="account-form__error"></span>
+    <div>
+        <label asp-for="Input.UserName"></label>
+        <input asp-for="Input.UserName" />
+        <span asp-validation-for="Input.UserName"></span>
     </div>
-
-    <div class="account-form__row">
-        <div class="account-form__group">
-            <label asp-for="Input.Password" class="account-form__label"></label>
-            <input asp-for="Input.Password" type="password" class="account-form__input" autocomplete="new-password" />
-            <span asp-validation-for="Input.Password" class="account-form__error"></span>
-        </div>
-        <div class="account-form__group">
-            <label asp-for="Input.ConfirmPassword" class="account-form__label"></label>
-            <input asp-for="Input.ConfirmPassword" type="password" class="account-form__input" autocomplete="new-password" />
-            <span asp-validation-for="Input.ConfirmPassword" class="account-form__error"></span>
-        </div>
+    <div>
+        <label asp-for="Input.Email"></label>
+        <input asp-for="Input.Email" type="email" />
+        <span asp-validation-for="Input.Email"></span>
     </div>
-
-    <div class="account-form__checkbox">
-        <input asp-for="Input.AcceptTerms" type="checkbox" class="account-form__checkbox-input" />
-        <label asp-for="Input.AcceptTerms" class="account-form__checkbox-label"></label>
-        <span asp-validation-for="Input.AcceptTerms" class="account-form__error"></span>
+    <div>
+        <label asp-for="Input.Password"></label>
+        <input asp-for="Input.Password" type="password" />
+        <span asp-validation-for="Input.Password"></span>
     </div>
-
-    <button type="submit" class="account-form__submit">Register</button>
+    <div>
+        <label asp-for="Input.ConfirmPassword"></label>
+        <input asp-for="Input.ConfirmPassword" type="password" />
+        <span asp-validation-for="Input.ConfirmPassword"></span>
+    </div>
+    <div>
+        <input asp-for="Input.AcceptTerms" type="checkbox" />
+        <label asp-for="Input.AcceptTerms"></label>
+        <span asp-validation-for="Input.AcceptTerms"></span>
+    </div>
+    <button type="submit">Register</button>
 </form>
-
-<p class="account-form__footer-text">
-    Already have an account?
-    <a class="account-form__link" href="/Account/Login?returnUrl=@Model.ReturnUrl">Log in</a>
-</p>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

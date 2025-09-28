@@ -3,70 +3,35 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "Login";
-    Layout = "../Shared/_AccountLayout";
 }
 
-<form method="post" class="account-form">
+<form method="post">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ReturnUrl" />
 
-    <div asp-validation-summary="ModelOnly" class="account-form__validation"></div>
-
-    <div class="account-form__group">
-        <label asp-for="Input.Email" class="account-form__label"></label>
-        <input asp-for="Input.Email" type="email" class="account-form__input" autocomplete="email" />
-        <span asp-validation-for="Input.Email" class="account-form__error"></span>
+    <div>
+        <label asp-for="Input.Email"></label>
+        <input asp-for="Input.Email" type="email" />
+        <span asp-validation-for="Input.Email"></span>
     </div>
-
-    <div class="account-form__group">
-        <label asp-for="Input.Password" class="account-form__label"></label>
-        <input asp-for="Input.Password" type="password" class="account-form__input" autocomplete="current-password" />
-        <span asp-validation-for="Input.Password" class="account-form__error"></span>
+    <div>
+        <label asp-for="Input.Password"></label>
+        <input asp-for="Input.Password" type="password" />
+        <span asp-validation-for="Input.Password"></span>
+        <a href="/Account/ForgotPassword?returnUrl=@Model.ReturnUrl">Forgot your password?</a>
+        <br />
+        <a href="/Account/Register?returnUrl=@Model.ReturnUrl">Register</a>
     </div>
-
-    <div class="account-form__links">
-        <a class="account-form__link" href="/Account/ForgotPassword?returnUrl=@Model.ReturnUrl">Forgot your password?</a>
-        <a class="account-form__link" href="/Account/Register?returnUrl=@Model.ReturnUrl">Register</a>
-    </div>
-
-    <button type="submit" class="account-form__submit">Log in</button>
+    <button type="submit">Log in</button>
 </form>
 
-<div class="account-form__divider" role="separator">
-    <span>or continue with</span>
-</div>
+<hr />
 
-<div class="social-login">
-    <button type="button"
-            class="social-login__button social-login__button--google"
-            data-provider="Google"
-            data-auth-endpoint="/api/auth/external-login"
-            data-return-url="@Model.ReturnUrl">
-        Sign in with Google
-    </button>
-    <button type="button"
-            class="social-login__button social-login__button--facebook"
-            data-provider="Facebook"
-            data-auth-endpoint="/api/auth/external-login"
-            data-return-url="@Model.ReturnUrl">
-        Sign in with Facebook
-    </button>
-</div>
+<!-- Preserve the returnUrl so the /connect/authorize flow resumes -->
+<a href="/api/auth/external-login?provider=Google&returnUrl=@Model.ReturnUrl">Sign in with Google</a>
+<br />
+<a href="/api/auth/external-login?provider=Facebook&returnUrl=@Model.ReturnUrl">Sign in with Facebook</a>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        (function () {
-            const buttons = document.querySelectorAll('.social-login__button');
-            buttons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const provider = button.dataset.provider;
-                    const endpoint = button.dataset.authEndpoint || '/api/auth/external-login';
-                    const returnUrl = button.dataset.returnUrl || '/';
-                    const url = `${endpoint}?provider=${encodeURIComponent(provider)}&returnUrl=${encodeURIComponent(returnUrl)}`;
-                    window.location.href = url;
-                });
-            });
-        })();
-    </script>
 }
