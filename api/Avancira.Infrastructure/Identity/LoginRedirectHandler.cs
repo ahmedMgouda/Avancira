@@ -1,6 +1,6 @@
-﻿using Avancira.Infrastructure.Auth;
-using Microsoft.AspNetCore;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
@@ -29,7 +29,7 @@ public sealed class LoginRedirectHandler : IOpenIddictServerHandler<HandleAuthor
 
         try
         {
-            var result = await httpContext.AuthenticateAsync(AuthConstants.Cookies.IdentityExchange);
+            var result = await httpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
 
             if (result.Succeeded && result.Principal is not null)
             {

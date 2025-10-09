@@ -1,7 +1,7 @@
-﻿using Avancira.Application;
+using System;
+using Avancira.Application;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
-using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Exceptions;
@@ -9,6 +9,7 @@ using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Jobs;
 using Avancira.Infrastructure.Logging.Serilog;
 using Avancira.Infrastructure.Mail;
+using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure.OpenApi;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Persistence.Repositories;
@@ -17,60 +18,103 @@ using Avancira.Infrastructure.SecurityHeaders;
 using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Storage.Files;
 using Avancira.Infrastructure.UserSessions;
-using Avancira.Infrastructure.Messaging;
 using Avancira.ServiceDefaults;
 using FluentValidation;
 using Mapster;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using OpenIddict.Validation.AspNetCore;
-using System.Net;
-using static Avancira.Infrastructure.Auth.AuthConstants;
 
 namespace Avancira.Infrastructure;
+
 public static class Extensions
 {
     public static WebApplicationBuilder ConfigureAvanciraFramework(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        // Base
         builder.AddServiceDefaults();
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
-        builder.Services.ConfigureIdentity();
-        builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
+        // Identity & OpenIddict (server + validation should be inside AddInfrastructureIdentity)
+        builder.Services.ConfigureIdentity();                       // registers Identity (users/roles/cookies)
+        builder.Services.AddInfrastructureIdentity(builder.Configuration); // registers OpenIddict server+validation
+
+        // Authentication: default = OpenIddict (for APIs). Identity cookies for web UI.
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultForbidScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+            options.ForwardDefaultSelector = context =>
+            {
+                var path = context.Request.Path;
+
+                if (!path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    return IdentityConstants.ApplicationScheme;
+                }
+
+                return null;
+            };
         })
-        .AddCookie(Cookies.IdentityExchange, options => // used as a bridge between identity and idp
+        .AddIdentityCookies(options =>
         {
-            options.Cookie.Name = ".Avancira.Identity.Exchange";
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
-            options.SlidingExpiration = false;
-            options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.Cookie.SameSite = SameSiteMode.None;
+            // Application (login) cookie
+            options.ApplicationCookie?.Configure(o =>
+            {
+                o.Cookie.Name = ".Avancira.Identity";
+                o.LoginPath = "/account/login";
+                o.LogoutPath = "/account/logout";
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                o.Cookie.SameSite = SameSiteMode.Lax;
+                o.SlidingExpiration = true;
+                o.ExpireTimeSpan = TimeSpan.FromHours(2);
+            });
+
+            // External (Google/Facebook) temp cookie
+            options.ExternalCookie?.Configure(o =>
+            {
+                o.Cookie.Name = ".Avancira.Identity.External";
+                o.ExpireTimeSpan = TimeSpan.FromMinutes(15);
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                o.Cookie.SameSite = SameSiteMode.Lax;
+            });
         });
 
+        builder.Services.AddAuthorization();
+
+        // Feature services
         builder.Services.ConfigureCatalog();
         builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
         builder.Services.ConfigureFileStorage();
         builder.Services.ConfigureOpenApi();
-
         builder.Services.ConfigureJobs(builder.Configuration);
         builder.Services.ConfigureMailing();
         builder.Services.ConfigureMessaging();
         builder.Services.ConfigureCaching(builder.Configuration);
+
+        // Error & health
         builder.Services.AddExceptionHandler<CustomExceptionHandler>();
         builder.Services.AddProblemDetails();
         builder.Services.AddHealthChecks();
         builder.Services.AddHttpContextAccessor();
+
+        // Sessions & security
         builder.Services.ConfigureUserSessions();
+        builder.Services.ConfigureRateLimit(builder.Configuration);
+        builder.Services.ConfigureSecurityHeaders(builder.Configuration);
 
-
+        // Options
         builder.Services.Configure<OpenIddictServerSettings>(builder.Configuration.GetSection("Auth:OpenIddict"));
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("Avancira:App"));
         builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Avancira:Payments:Stripe"));
@@ -84,31 +128,21 @@ public static class Extensions
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Google"));
         builder.Services.Configure<FacebookOptions>(builder.Configuration.GetSection("Avancira:ExternalServices:Facebook"));
 
-        // Configure Mappings
+        // Mapping, validation, MediatR
         TypeAdapterConfig.GlobalSettings.Scan(typeof(IListingService).Assembly);
 
-        // Define module assemblies
         var assemblies = AppDomain.CurrentDomain
             .GetAssemblies()
-            .Where(assembly => assembly.FullName!.StartsWith("Avancira."))
+            .Where(a => a.FullName!.StartsWith("Avancira."))
             .ToArray();
 
-        // Register validators
         builder.Services.AddValidatorsFromAssemblies(assemblies);
+        builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(assemblies));
 
-        // Register MediatR
-        builder.Services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssemblies(assemblies);
-        });
-
-        builder.Services.ConfigureRateLimit(builder.Configuration);
-        builder.Services.ConfigureSecurityHeaders(builder.Configuration);
-
-        // Register repositories
+        // Repos + app services
         builder.Services.AddRepositories();
-
         builder.Services.AddApplicationServices();
+
         return builder;
     }
 
@@ -119,21 +153,31 @@ public static class Extensions
         app.UseRateLimit();
         app.UseSecurityHeaders();
         app.UseExceptionHandler();
+
+        // Routing first
+        app.UseRouting();
+
+        // CORS after routing, before auth
         app.UseCorsPolicy();
+
+        // OpenAPI / Jobs
         app.UseOpenApi();
         app.UseJobDashboard(app.Configuration);
-        app.UseRouting();
+
+        // Static files
         app.UseStaticFiles();
-        app.UseStaticFiles(new StaticFileOptions()
+        app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "assets")),
             RequestPath = new PathString("/api/assets")
         });
         app.UseStaticFilesUploads();
+
+        // AuthN/Z
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Current user middleware
+        // Current user context
         app.UseMiddleware<CurrentUserMiddleware>();
 
         return app;
@@ -145,19 +189,14 @@ public static class Extensions
         services.AddScoped<INetworkContextService, NetworkContextService>();
         services.AddSingleton<IUserAgentAnalysisService, UserAgentAnalysisService>();
         services.AddHttpClient<IGeolocationService, GeolocationService>();
-
         return services;
     }
 
     private static IServiceCollection ConfigureMessaging(this IServiceCollection services)
     {
-        // Add SignalR
         services.AddSignalR();
-        
-        // Register notification channels
         services.AddScoped<Avancira.Application.Messaging.INotificationChannel, EmailNotificationChannel>();
         services.AddScoped<Avancira.Application.Messaging.INotificationChannel, SignalRNotificationChannel>();
-        
         return services;
     }
 }
