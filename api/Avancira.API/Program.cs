@@ -34,7 +34,7 @@ public partial class Program {
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
 
-        builder.Services.AddControllers(options =>
+        builder.Services.AddControllersWithViews(options =>
         {
             options.Filters.Add(new ProducesAttribute("application/json"));
         })
@@ -45,7 +45,6 @@ public partial class Program {
         });
 
         builder.Services.AddMemoryCache();
-        builder.Services.AddRazorPages();
 
         using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
 
@@ -61,7 +60,6 @@ public partial class Program {
         app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
         app.MapControllers();
-        app.MapRazorPages();
 
         app.Run();
     }

@@ -1,0 +1,39 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "Login";
+}
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <p>@successMessage</p>
+}
+
+<form asp-action="Login" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div>
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" />
+        <span asp-validation-for="Email"></span>
+    </div>
+    <div>
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" />
+        <span asp-validation-for="Password"></span>
+        <a asp-action="ForgotPassword">Forgot your password?</a>
+        <br />
+        <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Register</a>
+    </div>
+    <button type="submit">Log in</button>
+</form>
+
+<hr />
+
+<a href="/api/auth/external-login?provider=Google&returnUrl=@Model.ReturnUrl">Sign in with Google</a>
+<br />
+<a href="/api/auth/external-login?provider=Facebook&returnUrl=@Model.ReturnUrl">Sign in with Facebook</a>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
