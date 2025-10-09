@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OpenIddict.Abstractions;
-using static Avancira.Infrastructure.Auth.AuthConstants;
 
 namespace Avancira.API.Controllers;
 
@@ -98,8 +97,8 @@ public class AccountController : Controller
         }
 
         await HttpContext.SignInAsync(
-            Cookies.IdentityExchange,
-            new ClaimsPrincipal(identity));
+            IdentityConstants.ApplicationScheme,
+            principal);
 
         return LocalRedirect(returnUrl);
     }

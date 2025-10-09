@@ -42,10 +42,8 @@ public static class AuthConstants
 
     public static class Cookies
     {
-        public const string IdentityExchange = "identityExchange";
         public const string RefreshToken = "refreshToken";
         public const string PathRoot = "/";
         public const string DeviceId = "device_id";
     }
 }
-
