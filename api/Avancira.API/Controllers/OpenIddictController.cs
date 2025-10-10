@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using Microsoft.AspNetCore;
 
 namespace Avancira.API.Controllers;
 
@@ -462,7 +463,6 @@ public sealed class OpenIddictController : Controller
             // Session ID goes to access token and refresh token
             case AuthConstants.Claims.SessionId:
                 yield return OpenIddictConstants.Destinations.AccessToken;
-                yield return OpenIddictConstants.Destinations.RefreshToken;
                 yield break;
 
             // Roles only in access token
