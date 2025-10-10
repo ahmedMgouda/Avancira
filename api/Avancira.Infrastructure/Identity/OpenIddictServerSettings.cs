@@ -4,9 +4,9 @@ namespace Avancira.Infrastructure.Identity;
 
 public class OpenIddictServerSettings
 {
-    public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromMinutes(2);
+    public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromMinutes(15);
 
-    public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromMinutes(3);
+    public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromDays(7);
 
-    public TimeSpan AuthorizationCodeLifetime { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan AuthorizationCodeLifetime { get; set; } = TimeSpan.FromMinutes(10);
 }

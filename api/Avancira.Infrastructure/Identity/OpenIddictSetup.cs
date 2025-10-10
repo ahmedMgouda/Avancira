@@ -1,10 +1,9 @@
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using static OpenIddict.Server.OpenIddictServerEvents;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
 using OpenIddict.Abstractions;
-using Avancira.Infrastructure.UserSessions.Handlers;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -23,7 +22,6 @@ public static class OpenIddictSetup
                        .UseDbContext<AvanciraDbContext>())
             .AddServer(options =>
             {
-                // Default endpoints - OpenIddict handles the protocol implementation
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
                        .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
                        .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
@@ -53,24 +51,11 @@ public static class OpenIddictSetup
                 options.AddDevelopmentEncryptionCertificate()
                       .AddDevelopmentSigningCertificate();
 
-                // Use default endpoints (no passthrough needed)
                 options.UseAspNetCore()
+                       .EnableAuthorizationEndpointPassthrough()
+                       .EnableTokenEndpointPassthrough()
+                       .EnableRevocationEndpointPassthrough()
                        .DisableTransportSecurityRequirement(); // Only for development
-
-                // Your custom event handlers - these work with default endpoints
-                options.AddEventHandler<HandleAuthorizationRequestContext>(builder =>
-                    builder.UseScopedHandler<LoginRedirectHandler>()
-                           .SetOrder(int.MinValue));
-
-                options.AddEventHandler<ApplyTokenResponseContext>(builder =>
-                    builder.UseScopedHandler<RefreshTokenCookieHandler>());
-
-                options.AddEventHandler<ProcessSignInContext>(builder =>
-                    builder.UseScopedHandler<SessionSignInHandler>());
-
-                // Uncomment if you need to handle refresh tokens from cookies
-                // options.AddEventHandler<ProcessAuthenticationContext>(builder =>
-                //     builder.UseScopedHandler<RefreshTokenFromCookieHandler>());
             })
             .AddValidation(options =>
             {
@@ -87,16 +72,6 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddOpenIddictServer(configuration);
-
-        // Register your custom handlers
-        services.AddScoped<LoginRedirectHandler>();
-        services.AddScoped<SessionSignInHandler>();
-        services.AddScoped<RefreshTokenCookieHandler>();
-        //services.AddScoped<SessionActivityHandler>();
-        // services.AddScoped<RefreshTokenFromCookieHandler>();
-
-        // Add session management
-        //services.AddSessionManagement(configuration);
 
         return services;
     }
