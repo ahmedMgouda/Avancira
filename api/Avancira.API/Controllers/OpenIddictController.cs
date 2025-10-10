@@ -30,7 +30,7 @@ public sealed class OpenIddictController : Controller
             OpenIddictConstants.Scopes.Profile,
             OpenIddictConstants.Scopes.Email,
             OpenIddictConstants.Scopes.OfflineAccess,
-            AuthConstants.Scopes.OfflineAccess
+            "api" // Add your API scope
         };
 
     private readonly SignInManager<IdentityUser> _signInManager;
@@ -53,14 +53,90 @@ public sealed class OpenIddictController : Controller
         _logger = logger;
     }
 
+    /// <summary>
+    /// Authorization endpoint - GET method
+    /// User must be authenticated via Identity cookies before reaching this endpoint
+    /// </summary>
     [HttpGet("authorize")]
-    [IgnoreAntiforgeryToken]
-    public Task<IActionResult> AuthorizeGet() => HandleAuthorizeRequestAsync();
-
     [HttpPost("authorize")]
     [IgnoreAntiforgeryToken]
-    public Task<IActionResult> AuthorizePost() => HandleAuthorizeRequestAsync();
+    public async Task<IActionResult> Authorize()
+    {
+        var request = HttpContext.GetOpenIddictServerRequest()
+            ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
+        // ⭐ Check if user is authenticated via Identity cookies
+        var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+        
+        if (!result.Succeeded || result.Principal == null)
+        {
+            // User not authenticated - redirect to login page
+            var returnUrl = Request.Path + Request.QueryString;
+            _logger.LogDebug("User not authenticated, redirecting to login: {ReturnUrl}", returnUrl);
+            
+            return Challenge(
+                authenticationSchemes: IdentityConstants.ApplicationScheme,
+                properties: new AuthenticationProperties
+                {
+                    RedirectUri = returnUrl
+                });
+        }
+
+        // Get the authenticated user
+        var user = await _signInManager.UserManager.GetUserAsync(result.Principal);
+        if (user == null)
+        {
+            _logger.LogWarning("User principal exists but user not found in database");
+            return Challenge(IdentityConstants.ApplicationScheme);
+        }
+
+        // Ensure user can still sign in (not locked out, etc.)
+        if (!await _signInManager.CanSignInAsync(user))
+        {
+            _logger.LogWarning("User {UserId} cannot sign in", user.Id);
+            
+            return Forbid(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is not allowed to sign in."
+                }));
+        }
+
+        // Create principal with OpenIddict-compatible claims
+        var principal = await _signInManager.CreateUserPrincipalAsync(user);
+        
+        // Get or create device ID for session tracking
+        _networkContextService.GetOrCreateDeviceId();
+
+        // Validate and set requested scopes
+        var requestedScopes = request.GetScopes();
+        var allowedRequestedScopes = requestedScopes.Where(scope => AllowedScopes.Contains(scope)).ToList();
+        
+        if (!allowedRequestedScopes.Any())
+        {
+            _logger.LogWarning("No valid scopes requested. Requested: {Scopes}", string.Join(", ", requestedScopes));
+            allowedRequestedScopes = new List<string> { OpenIddictConstants.Scopes.OpenId };
+        }
+
+        principal.SetScopes(allowedRequestedScopes);
+
+        // Set destinations for claims
+        AttachDestinations(principal);
+
+        _logger.LogInformation(
+            "Authorizing user {UserId} with scopes: {Scopes}",
+            user.Id,
+            string.Join(", ", allowedRequestedScopes));
+
+        // Sign in with OpenIddict - this generates the authorization code
+        return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Token endpoint - exchanges authorization code for access/refresh tokens
+    /// </summary>
     [HttpPost("token")]
     [IgnoreAntiforgeryToken]
     [Produces("application/json")]
@@ -69,56 +145,96 @@ public sealed class OpenIddictController : Controller
         var request = HttpContext.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
+        // ⭐ Authorization Code Flow
         if (request.IsAuthorizationCodeGrantType())
         {
+            // Retrieve the claims principal from the authorization code
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             var principal = result.Principal
                 ?? throw new InvalidOperationException("The authorization code principal cannot be retrieved.");
 
-            var validationResult = await EnsureUserStillAllowedAsync(
-                principal,
-                "authorization code exchange");
-
-            if (validationResult is not null)
+            // Validate the user still exists and can sign in
+            var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
+            var user = await _signInManager.UserManager.FindByIdAsync(userId!);
+            
+            if (user == null || !await _signInManager.CanSignInAsync(user))
             {
-                return validationResult;
+                _logger.LogWarning("User {UserId} not found or cannot sign in during token exchange", userId);
+                
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer allowed to sign in."
+                    }));
             }
 
+            // Create or retrieve session
             await EnsureSessionCreatedAsync(principal, HttpContext.RequestAborted);
+            
+            // Set destinations for claims
             AttachDestinations(principal);
+
+            _logger.LogInformation("Exchanging authorization code for tokens for user {UserId}", userId);
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
+        // ⭐ Refresh Token Flow
         if (request.IsRefreshTokenGrantType())
         {
+            // Retrieve the claims principal from the refresh token
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             var principal = result.Principal
                 ?? throw new InvalidOperationException("The refresh token principal cannot be retrieved.");
 
-            var validationResult = await EnsureUserStillAllowedAsync(
-                principal,
-                "refresh token exchange");
-
-            if (validationResult is not null)
+            // Validate the user still exists and can sign in
+            var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
+            var user = await _signInManager.UserManager.FindByIdAsync(userId!);
+            
+            if (user == null || !await _signInManager.CanSignInAsync(user))
             {
-                return validationResult;
+                _logger.LogWarning("User {UserId} not found or cannot sign in during token refresh", userId);
+                
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The token is no longer valid."
+                    }));
             }
 
+            // Update session activity
             await UpdateSessionActivityAsync(principal, HttpContext.RequestAborted);
+            
+            // Set destinations for claims
             AttachDestinations(principal);
+
+            _logger.LogInformation("Refreshing tokens for user {UserId}", userId);
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         _logger.LogWarning("Unsupported grant type received: {GrantType}", request.GrantType);
-        return ForbidWithError(
-            OpenIddictConstants.Errors.UnsupportedGrantType,
-            "The specified grant type is not supported.");
+        
+        return Forbid(
+            authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            properties: new AuthenticationProperties(new Dictionary<string, string?>
+            {
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.UnsupportedGrantType,
+                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The specified grant type is not supported."
+            }));
     }
 
+    /// <summary>
+    /// Revocation endpoint - revokes access and refresh tokens
+    /// </summary>
     [HttpPost("revoke")]
-    [HttpPost("revocation")]
+    [HttpPost("revocation")] // Support both endpoints
+    [IgnoreAntiforgeryToken]
+    [Produces("application/json")]
     public async Task<IActionResult> Revoke(CancellationToken cancellationToken)
     {
         var request = HttpContext.GetOpenIddictServerRequest()
@@ -133,12 +249,16 @@ public sealed class OpenIddictController : Controller
             });
         }
 
+        // Find the token by reference ID
         var token = await _tokenManager.FindByReferenceIdAsync(request.Token, cancellationToken);
         if (token is null)
         {
+            _logger.LogDebug("Token not found for revocation: {Token}", request.Token);
+            // Return success even if token not found (per RFC 7009)
             return Ok();
         }
 
+        // Extract principal from token to get session info
         ClaimsPrincipal? principal = null;
         try
         {
@@ -146,12 +266,14 @@ public sealed class OpenIddictController : Controller
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Failed to extract principal from token being revoked.");
+            _logger.LogWarning(exception, "Failed to extract principal from token being revoked");
         }
 
+        // Revoke the token
         await _tokenManager.TryRevokeAsync(token, cancellationToken);
-        _logger.LogInformation("Token revoked successfully.");
+        _logger.LogInformation("Token revoked successfully");
 
+        // Revoke associated session if exists
         if (principal is not null)
         {
             var sessionIdClaim = principal.GetClaim(AuthConstants.Claims.SessionId);
@@ -159,11 +281,12 @@ public sealed class OpenIddictController : Controller
             {
                 try
                 {
-                    await _sessionService.RevokeAsync(sessionId, "Token revoked via revocation endpoint", cancellationToken);
+                    await _sessionService.RevokeAsync(sessionId, "Token revoked by user", cancellationToken);
+                    _logger.LogInformation("Session {SessionId} revoked", sessionId);
                 }
                 catch (Exception exception)
                 {
-                    _logger.LogError(exception, "Failed to revoke session {SessionId} associated with token revocation.", sessionId);
+                    _logger.LogError(exception, "Failed to revoke session {SessionId}", sessionId);
                 }
             }
         }
@@ -171,6 +294,9 @@ public sealed class OpenIddictController : Controller
         return Ok();
     }
 
+    /// <summary>
+    /// UserInfo endpoint - returns user information
+    /// </summary>
     [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
     [HttpGet("userinfo")]
     [HttpPost("userinfo")]
@@ -180,14 +306,14 @@ public sealed class OpenIddictController : Controller
         var userId = User.GetClaim(OpenIddictConstants.Claims.Subject);
         if (string.IsNullOrEmpty(userId))
         {
-            _logger.LogWarning("Userinfo request did not include a subject claim.");
+            _logger.LogWarning("No subject claim found in userinfo request");
             return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         var user = await _signInManager.UserManager.FindByIdAsync(userId);
-        if (user is null)
+        if (user == null)
         {
-            _logger.LogWarning("User {UserId} referenced in userinfo request no longer exists.", userId);
+            _logger.LogWarning("User {UserId} not found for userinfo request", userId);
             return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
@@ -209,6 +335,7 @@ public sealed class OpenIddictController : Controller
             claims[OpenIddictConstants.Claims.EmailVerified] = user.EmailConfirmed;
         }
 
+        // Add roles if needed
         var roles = await _signInManager.UserManager.GetRolesAsync(user);
         if (roles.Any())
         {
@@ -218,75 +345,9 @@ public sealed class OpenIddictController : Controller
         return Ok(claims);
     }
 
-    private async Task<IActionResult> HandleAuthorizeRequestAsync()
-    {
-        var request = HttpContext.GetOpenIddictServerRequest()
-            ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
-
-        var authenticationResult = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
-
-        if (!authenticationResult.Succeeded || authenticationResult.Principal is null)
-        {
-            var redirectUri = Request.Path + Request.QueryString;
-            _logger.LogDebug(
-                "Authorization request requires login, redirecting to {RedirectUri}.",
-                redirectUri);
-
-            return Challenge(
-                IdentityConstants.ApplicationScheme,
-                new AuthenticationProperties
-                {
-                    RedirectUri = redirectUri
-                });
-        }
-
-        var user = await _signInManager.UserManager.GetUserAsync(authenticationResult.Principal);
-        if (user is null)
-        {
-            _logger.LogWarning("Authenticated principal could not be resolved to a user.");
-            await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-
-            return Challenge(
-                IdentityConstants.ApplicationScheme,
-                new AuthenticationProperties
-                {
-                    RedirectUri = Request.Path + Request.QueryString
-                });
-        }
-
-        if (!await _signInManager.CanSignInAsync(user))
-        {
-            _logger.LogWarning("User {UserId} is not allowed to sign in during authorization.", user.Id);
-            return ForbidWithError(
-                OpenIddictConstants.Errors.InvalidGrant,
-                "The user is not allowed to sign in.");
-        }
-
-        var principal = await _signInManager.CreateUserPrincipalAsync(user);
-
-        _networkContextService.GetOrCreateDeviceId();
-
-        var requestedScopes = request.GetScopes();
-        var grantedScopes = requestedScopes
-            .Where(scope => AllowedScopes.Contains(scope))
-            .ToHashSet(StringComparer.Ordinal);
-
-        if (grantedScopes.Count == 0)
-        {
-            grantedScopes.Add(OpenIddictConstants.Scopes.OpenId);
-        }
-
-        principal.SetScopes(grantedScopes);
-        AttachDestinations(principal);
-
-        _logger.LogInformation(
-            "Authorizing user {UserId} with scopes: {Scopes}.",
-            user.Id,
-            string.Join(", ", grantedScopes.OrderBy(scope => scope, StringComparer.Ordinal)));
-
-        return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-    }
-
+    /// <summary>
+    /// Creates a session for the user on first token exchange
+    /// </summary>
     private async Task EnsureSessionCreatedAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
@@ -294,20 +355,21 @@ public sealed class OpenIddictController : Controller
 
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(authorizationId))
         {
-            _logger.LogDebug("Skipping session creation because user or authorization is missing.");
+            _logger.LogDebug("Skipping session creation: missing user or authorization");
             return;
         }
 
         if (!Guid.TryParse(authorizationId, out var authorizationGuid))
         {
-            _logger.LogWarning("Authorization identifier {AuthorizationId} is not a valid GUID.", authorizationId);
+            _logger.LogWarning("Authorization ID {AuthorizationId} is not a valid GUID", authorizationId);
             return;
         }
 
+        // Check if session already exists
         var existingSessionId = principal.GetClaim(AuthConstants.Claims.SessionId);
         if (Guid.TryParse(existingSessionId, out _))
         {
-            _logger.LogDebug("Session already associated with authorization {AuthorizationId}.", authorizationId);
+            _logger.LogDebug("Session already exists for authorization {AuthorizationId}", authorizationId);
             return;
         }
 
@@ -318,34 +380,40 @@ public sealed class OpenIddictController : Controller
                 cancellationToken);
 
             principal.SetClaim(AuthConstants.Claims.SessionId, session.Id.ToString());
-            _logger.LogInformation("Created session {SessionId} for user {UserId}.", session.Id, userId);
+            _logger.LogInformation("Created session {SessionId} for user {UserId}", session.Id, userId);
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to create session for user {UserId}.", userId);
+            _logger.LogError(exception, "Failed to create session for user {UserId}", userId);
         }
     }
 
+    /// <summary>
+    /// Updates session activity on token refresh
+    /// </summary>
     private async Task UpdateSessionActivityAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var sessionIdClaim = principal.GetClaim(AuthConstants.Claims.SessionId);
         if (!Guid.TryParse(sessionIdClaim, out var sessionId))
         {
-            _logger.LogDebug("Refresh request did not contain a valid session identifier.");
+            _logger.LogDebug("No valid session ID found in refresh token");
             return;
         }
 
         try
         {
             await _sessionService.UpdateActivityAsync(sessionId, cancellationToken);
-            _logger.LogDebug("Updated activity timestamp for session {SessionId}.", sessionId);
+            _logger.LogDebug("Updated activity for session {SessionId}", sessionId);
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to update activity for session {SessionId}.", sessionId);
+            _logger.LogError(exception, "Failed to update activity for session {SessionId}", sessionId);
         }
     }
 
+    /// <summary>
+    /// Sets claim destinations (which tokens they appear in)
+    /// </summary>
     private static void AttachDestinations(ClaimsPrincipal principal)
     {
         foreach (var claim in principal.Claims)
@@ -358,107 +426,60 @@ public sealed class OpenIddictController : Controller
         }
     }
 
+    /// <summary>
+    /// Determines which tokens each claim should appear in
+    /// </summary>
     private static IEnumerable<string> GetDestinations(Claim claim, ClaimsPrincipal principal)
     {
         switch (claim.Type)
         {
+            // Subject always goes to access token
             case OpenIddictConstants.Claims.Subject:
                 yield return OpenIddictConstants.Destinations.AccessToken;
                 yield break;
 
+            // Name claims go to access token and optionally id_token
             case OpenIddictConstants.Claims.Name:
             case OpenIddictConstants.Claims.GivenName:
             case OpenIddictConstants.Claims.FamilyName:
                 yield return OpenIddictConstants.Destinations.AccessToken;
-
                 if (principal.HasScope(OpenIddictConstants.Scopes.Profile))
                 {
                     yield return OpenIddictConstants.Destinations.IdentityToken;
                 }
-
                 yield break;
 
+            // Email claims go to access token and optionally id_token
             case OpenIddictConstants.Claims.Email:
             case OpenIddictConstants.Claims.EmailVerified:
                 yield return OpenIddictConstants.Destinations.AccessToken;
-
                 if (principal.HasScope(OpenIddictConstants.Scopes.Email))
                 {
                     yield return OpenIddictConstants.Destinations.IdentityToken;
                 }
-
                 yield break;
 
-            case OpenIddictConstants.Claims.Role:
-                yield return OpenIddictConstants.Destinations.AccessToken;
-                yield break;
-
-            case OpenIddictConstants.Claims.Audience:
-                yield return OpenIddictConstants.Destinations.AccessToken;
-                yield break;
-
+            // Session ID goes to access token and refresh token
             case AuthConstants.Claims.SessionId:
                 yield return OpenIddictConstants.Destinations.AccessToken;
                 yield return OpenIddictConstants.Destinations.RefreshToken;
                 yield break;
+
+            // Roles only in access token
+            case OpenIddictConstants.Claims.Role:
+                yield return OpenIddictConstants.Destinations.AccessToken;
+                yield break;
+
+            // Audience always in access token
+            case OpenIddictConstants.Claims.Audience:
+                yield return OpenIddictConstants.Destinations.AccessToken;
+                yield break;
         }
 
+        // Default: include in access token if openid scope is present
         if (principal.HasScope(OpenIddictConstants.Scopes.OpenId))
         {
             yield return OpenIddictConstants.Destinations.AccessToken;
         }
-    }
-
-    private async Task<IActionResult?> EnsureUserStillAllowedAsync(
-        ClaimsPrincipal principal,
-        string operation)
-    {
-        var userId = principal.GetClaim(OpenIddictConstants.Claims.Subject);
-        if (string.IsNullOrEmpty(userId))
-        {
-            _logger.LogWarning(
-                "Principal received for {Operation} did not contain a subject identifier.",
-                operation);
-
-            return ForbidWithError(
-                OpenIddictConstants.Errors.InvalidGrant,
-                "The token is no longer valid.");
-        }
-
-        var user = await _signInManager.UserManager.FindByIdAsync(userId);
-        if (user is null)
-        {
-            _logger.LogWarning(
-                "User {UserId} referenced by token during {Operation} no longer exists.",
-                userId);
-
-            return ForbidWithError(
-                OpenIddictConstants.Errors.InvalidGrant,
-                "The user is no longer allowed to sign in.");
-        }
-
-        if (!await _signInManager.CanSignInAsync(user))
-        {
-            _logger.LogWarning(
-                "User {UserId} is not allowed to sign in during {Operation}.",
-                userId);
-
-            return ForbidWithError(
-                OpenIddictConstants.Errors.InvalidGrant,
-                "The user is no longer allowed to sign in.");
-        }
-
-        return null;
-    }
-
-    private ForbidResult ForbidWithError(string error, string description)
-    {
-        var properties = new AuthenticationProperties(new Dictionary<string, string?>
-        {
-            [OpenIddictServerAspNetCoreConstants.Properties.Error] = error,
-            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = description
-        });
-
-        return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, properties);
     }
 }
