@@ -1,7 +1,7 @@
-using System;
 using Avancira.Application;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
+using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Exceptions;
@@ -41,29 +41,14 @@ public static class Extensions
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
 
-        // Identity & OpenIddict (server + validation should be inside AddInfrastructureIdentity)
-        builder.Services.ConfigureIdentity();                       // registers Identity (users/roles/cookies)
-        builder.Services.AddInfrastructureIdentity(builder.Configuration); // registers OpenIddict server+validation
+        builder.Services.ConfigureIdentity();
+        builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
         // Authentication: default = OpenIddict (for APIs). Identity cookies for web UI.
         builder.Services.AddAuthentication(options =>
         {
-            options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
             options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultForbidScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-            options.ForwardDefaultSelector = context =>
-            {
-                var path = context.Request.Path;
-
-                if (!path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
-                {
-                    return IdentityConstants.ApplicationScheme;
-                }
-
-                return null;
-            };
         })
         .AddIdentityCookies(options =>
         {
@@ -173,11 +158,9 @@ public static class Extensions
         });
         app.UseStaticFilesUploads();
 
-        // AuthN/Z
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Current user context
         app.UseMiddleware<CurrentUserMiddleware>();
 
         return app;
