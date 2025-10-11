@@ -1,13 +1,15 @@
-﻿using Avancira.Infrastructure.Messaging;
+using Avancira.API.Extensions;
 using Avancira.Infrastructure;
+using Avancira.Infrastructure.Auth;
+using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Avancira.Infrastructure.Auth;
 
-public partial class Program {
+public partial class Program
+{
     private static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +32,8 @@ public partial class Program {
             builder.ConfigureAvanciraFramework();
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
+
+        builder.Services.AddApiAuthentication();
 
         builder.Services.AddControllers(options =>
         {

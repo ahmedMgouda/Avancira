@@ -22,11 +22,8 @@ using Avancira.ServiceDefaults;
 using FluentValidation;
 using Mapster;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using OpenIddict.Validation.AspNetCore;
 
 namespace Avancira.Infrastructure;
 
@@ -43,40 +40,6 @@ public static class Extensions
 
         builder.Services.ConfigureIdentity();
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
-
-        // Authentication: default = OpenIddict (for APIs). Identity cookies for web UI.
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-        })
-        .AddIdentityCookies(options =>
-        {
-            // Application (login) cookie
-            options.ApplicationCookie?.Configure(o =>
-            {
-                o.Cookie.Name = ".Avancira.Identity";
-                o.LoginPath = "/account/login";
-                o.LogoutPath = "/account/logout";
-                o.Cookie.HttpOnly = true;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                o.Cookie.SameSite = SameSiteMode.Lax;
-                o.SlidingExpiration = true;
-                o.ExpireTimeSpan = TimeSpan.FromHours(2);
-            });
-
-            // External (Google/Facebook) temp cookie
-            options.ExternalCookie?.Configure(o =>
-            {
-                o.Cookie.Name = ".Avancira.Identity.External";
-                o.ExpireTimeSpan = TimeSpan.FromMinutes(15);
-                o.Cookie.HttpOnly = true;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                o.Cookie.SameSite = SameSiteMode.Lax;
-            });
-        });
-
-        builder.Services.AddAuthorization();
 
         // Feature services
         builder.Services.ConfigureCatalog();
