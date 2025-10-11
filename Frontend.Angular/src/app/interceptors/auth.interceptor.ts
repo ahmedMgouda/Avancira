@@ -1,3 +1,7 @@
+
+// ============================================
+// src/app/core/interceptors/auth.interceptor.ts
+// ============================================
 import {
   HttpContextToken,
   HttpErrorResponse,
@@ -5,7 +9,7 @@ import {
   HttpHandlerFn,
   HttpInterceptorFn,
   HttpRequest,
-  HttpStatusCode
+  HttpStatusCode,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
@@ -16,25 +20,30 @@ import { AuthService } from '../services/auth.service';
 import { environment } from '../environments/environment';
 
 /**
- * Bypass auth entirely for this request (no token acquisition, no Authorization header).
+ * Skip auth entirely for this request
+ * Used for /connect/authorize, /connect/token, /connect/revoke
  */
 export const SKIP_AUTH = new HttpContextToken<boolean>(() => false);
 
 /**
- * Does this request need Authorization?
- * Default: true for API requests, false otherwise.
- */
-export const REQUIRES_AUTH = new HttpContextToken<boolean | undefined>(() => undefined);
-
-/**
- * Should this request send cookies (withCredentials)?
- * Default: false. For refresh-token requests set to true.
+ * Include credentials (withCredentials=true) for this request
+ * Used for OAuth endpoints that need cookies
  */
 export const INCLUDE_CREDENTIALS = new HttpContextToken<boolean>(() => false);
 
-/** Prevent infinite retry loops */
+/** Prevent infinite retry loops on 401 */
 const ALREADY_RETRIED = new HttpContextToken<boolean>(() => false);
 
+/**
+ * HTTP Interceptor for Authorization
+ *
+ * Responsibilities:
+ * 1. Identify API requests (match against environment.apiUrl)
+ * 2. Skip auth for requests marked with SKIP_AUTH token
+ * 3. Acquire valid access token (triggers refresh if needed)
+ * 4. Add Authorization: Bearer <token> header
+ * 5. Handle 401 errors with single retry + redirect
+ */
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
@@ -43,27 +52,32 @@ export const authInterceptor: HttpInterceptorFn = (
 
   const isApiRequest = isApiCall(req, environment.apiUrl);
   const skipAuth = req.context.get(SKIP_AUTH);
-  const requiresAuth = req.context.get(REQUIRES_AUTH) ?? isApiRequest;
-  const withCreds = true; //todo
-  // const withCreds = req.context.get(INCLUDE_CREDENTIALS) || isRefreshTokenRequest(req) || isApiRequest;
 
-  const baseReq = applyCredentials(req, withCreds);
+  // Conditionally enable credentials for this request
+  let baseReq = req;
+  if (req.context.get(INCLUDE_CREDENTIALS)) {
+    baseReq = req.withCredentials !== true ? req.clone({ withCredentials: true }) : req;
+  }
 
-  // No auth needed → forward request
-  if (!isApiRequest || skipAuth || !requiresAuth) {
+  // Skip auth if not an API request or explicitly marked to skip
+  if (!isApiRequest || skipAuth) {
     return next(baseReq);
   }
 
-  // Acquire token from AuthService (handles refresh internally)
+  // Acquire valid token and add Authorization header
   return authService.getValidAccessToken().pipe(
-    switchMap(token => next(addAuthHeader(baseReq, token))),
-    catchError(error => handleAuthError(error, baseReq, next, authService))
+    switchMap((token) => next(addAuthHeader(baseReq, token))),
+    catchError((error) => handleAuthError(error, baseReq, next, authService))
   );
 };
 
 /**
- * Handle errors with one safe retry on 401.
- * Does not trigger refresh again (AuthService already did that).
+ * Handle HTTP errors - particularly 401 Unauthorized
+ *
+ * Strategy:
+ * 1. If 401 and not retried: get fresh token and retry
+ * 2. If 401 after retry or no token: redirect to signin
+ * 3. Other errors: pass through
  */
 function handleAuthError(
   error: unknown,
@@ -72,58 +86,40 @@ function handleAuthError(
   authService: AuthService
 ): Observable<HttpEvent<unknown>> {
   const alreadyRetried = req.context.get(ALREADY_RETRIED);
-  const is401 = error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized;
-  const is403 = error instanceof HttpErrorResponse && error.status === HttpStatusCode.Forbidden;
+  const is401 =
+    error instanceof HttpErrorResponse &&
+    error.status === HttpStatusCode.Unauthorized;
 
+  // Retry on 401 with fresh token (not stale one)
   if (is401 && !alreadyRetried) {
-    console.info('🔄 Retrying once after 401 with current token');
-
-    return authService.getAccessToken() // just reuse latest token, no new refresh
-      ? next(
+    return authService.getValidAccessToken().pipe(
+      switchMap((freshToken) =>
+        next(
           addAuthHeader(
             req.clone({ context: req.context.set(ALREADY_RETRIED, true) }),
-            authService.getAccessToken()
+            freshToken
           )
         )
-      : throwError(() => error);
+      )
+    );
   }
 
+  // Unauthorized after retry or no token available - redirect to signin
   if (is401) {
-    console.warn('⚠️ Unauthorized request - token invalid or expired', { url: req.url });
     authService.handleUnauthorized();
-  } else if (is403) {
-    console.warn('⚠️ Forbidden request - insufficient permissions', { url: req.url });
   }
 
   return throwError(() => error);
 }
 
-/** Detect API calls */
+/** Check if URL is an API call (matches environment.apiUrl) */
 function isApiCall(req: HttpRequest<unknown>, apiBaseUrl: string): boolean {
-  try {
-    const requestUrl = new URL(req.url, window.location.origin);
-    const apiUrl = new URL(apiBaseUrl, window.location.origin);
-    const apiPath = apiUrl.pathname.endsWith('/') ? apiUrl.pathname : apiUrl.pathname + '/';
-    return requestUrl.origin === apiUrl.origin && requestUrl.pathname.startsWith(apiPath);
-  } catch {
-    return false;
-  }
+  // Simple and robust: prefix match for absolute API URLs
+  const base = apiBaseUrl.endsWith('/') ? apiBaseUrl : apiBaseUrl + '/';
+  return req.url.startsWith(base);
 }
 
-/** Detect refresh token requests */
-function isRefreshTokenRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.includes('/connect/token') &&
-         typeof req.body === 'object' &&
-         req.body !== null &&
-         (req.body as any)['grant_type'] === 'refresh_token';
-}
-
-/** Clone with credentials */
-function applyCredentials<T>(req: HttpRequest<T>, withCredentials: boolean): HttpRequest<T> {
-  return req.withCredentials !== withCredentials ? req.clone({ withCredentials }) : req;
-}
-
-/** Add Authorization header */
+/** Add Authorization: Bearer <token> header */
 function addAuthHeader<T>(req: HttpRequest<T>, token: string | null): HttpRequest<T> {
   if (!token?.trim()) return req;
   const newAuth = `Bearer ${token}`;
@@ -131,3 +127,4 @@ function addAuthHeader<T>(req: HttpRequest<T>, token: string | null): HttpReques
     ? req
     : req.clone({ setHeaders: { Authorization: newAuth } });
 }
+

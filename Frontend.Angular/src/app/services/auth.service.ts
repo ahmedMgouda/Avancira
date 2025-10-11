@@ -1,10 +1,11 @@
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { Router, UrlTree } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   defer,
-  from,
+  firstValueFrom,
+  forkJoin,
   Observable,
   of,
   ReplaySubject,
@@ -25,124 +26,81 @@ import {
   tap,
   timeout,
 } from 'rxjs/operators';
-import { AuthConfig, OAuthEvent, OAuthService } from 'angular-oauth2-oidc';
 
-import { SessionService } from './session.service';
-
+import { AuthError, AuthErrorType, AuthState, PermissionsResponse, TokenResponse, UserInfoResponse, UserProfile, UserProfileResponse } from '../core/models/auth.models';
+import { getJwtExpSeconds } from '../core/utils/jwt.util';
+import { createPkcePair, generateRandomState } from '../core/utils/pkce.util';
 import { environment } from '../environments/environment';
 import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
-import { RegisterUserRequest } from '../models/register-user-request';
-import { RegisterUserResponseDto } from '../models/register-user-response';
-import { UserProfile } from '../models/UserProfile';
 
-// --- Types ---
-interface IdTokenClaims {
-  sub: string;
-  email?: string;
-  given_name?: string;
-  family_name?: string;
-  name?: string;
-  timezone?: string;
-  ip_address?: string;
-  image?: string;
-  device_id?: string;
-  sid?: string;
-  session_id?: string;
-  country?: string;
-  city?: string;
-  role?: string | string[];
-  permission?: string | string[];
-  exp?: number | string;
-  iat?: number | string;
-  nbf?: number | string;
-  aud?: string | string[];
-  iss?: string;
-  [key: string]: unknown;
-}
+const SESSION_STORAGE_KEYS = {
+  ACCESS_TOKEN: 'auth:access_token',
+  REFRESH_TOKEN: 'auth:refresh_token',
+  TOKEN_EXPIRES_AT: 'auth:token_expires_at',
+  RETURN_URL: 'auth:return_url',
+  CODE_VERIFIER: 'auth:code_verifier',
+  STATE: 'auth:state',
+} as const;
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: UserProfile | null;
-  isLoading: boolean;
-  error: AuthError | null;
-  tokenExpiresAt: number | null;
-  refreshInProgress: boolean;
-}
-
-export enum AuthErrorType {
-  INITIALIZATION_FAILED = 'INITIALIZATION_FAILED',
-  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-  REFRESH_FAILED = 'REFRESH_FAILED',
-  LOGIN_FAILED = 'LOGIN_FAILED',
-  LOGOUT_FAILED = 'LOGOUT_FAILED',
-  REGISTRATION_FAILED = 'REGISTRATION_FAILED',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  DISCOVERY_FAILED = 'DISCOVERY_FAILED',
-  INVALID_TOKEN = 'INVALID_TOKEN',
-}
-
-export interface AuthError {
-  type: AuthErrorType;
-  message: string;
-  timestamp: number;
-  originalError?: any;
-  retryable: boolean;
-  userMessage?: string;
-}
-
-// --- Defaults & Constants ---
 const defaultAuthState: AuthState = {
   isAuthenticated: false,
   user: null,
+  roles: [],
+  permissions: [],
   isLoading: false,
   error: null,
   tokenExpiresAt: null,
   refreshInProgress: false,
 };
 
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;     // 5 minutes
-const TOKEN_EXPIRY_WARNING_MS = 10 * 60 * 1000;    // 10 minutes
-const MIN_TOKEN_LIFETIME_MS = 60 * 1000;
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 1000;
-const NETWORK_TIMEOUT_MS = 15000;
+// Token timing constants
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;      // Refresh 5min before expiry
+const TOKEN_EXPIRY_WARNING_MS = 10 * 60 * 1000;     // Warn 10min before expiry
+const MIN_TOKEN_LIFETIME_MS = 60 * 1000;            // Don't refresh if <1min left
+const CLOCK_SKEW_SEC = 60;                          // Clock skew leeway for exp
 
-const OAUTH_STORAGE_KEYS = [
-  'access_token',
-  'refresh_token',
-  'id_token',
-  'nonce',
-  'state',
-  'code_verifier',
-  'PKCE_verifier',
-  'auth_return_url',
-  'auth_config',
-] as const;
+// Network constants
+const MAX_RETRY_ATTEMPTS = 2;
+const RETRY_BASE_DELAY_MS = 1000;
+const NETWORK_TIMEOUT_MS = 10000;
+const REVOKE_TIMEOUT_MS = 3000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly api = environment.apiUrl;
+  private readonly authUrl = environment.authUrl;
   private readonly destroy$ = new Subject<void>();
 
+  // Cross-tab synchronization
+  private readonly bc = this.initializeBroadcastChannel();
+
+  // Single-flight refresh observable (multicast)
   private refresh$?: Observable<string>;
+
+  // Token expiry timers
   private tokenExpiryTimer?: ReturnType<typeof setTimeout>;
   private tokenExpiryWarningTimer?: ReturnType<typeof setTimeout>;
-  private initPromise?: Promise<void>;
-  private readonly tokenExpiringSoon$ = new ReplaySubject<void>(1);
-  private redirectingToSignIn = false;
 
-  // --- State ---
+  // Initialization tracking
+  private initPromise?: Promise<void>;
+
+  // Token expiry warning stream
+  private readonly tokenExpiringSoon$ = new ReplaySubject<void>(1);
+
+  // --- Reactive State (Angular Signals) ---
   private readonly authState = signal<AuthState>({ ...defaultAuthState });
 
-  // --- Computed ---
+  // --- Computed Properties ---
   readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
   readonly currentUser = computed(() => this.authState().user);
+  readonly roles = computed(() => this.authState().roles);
+  readonly permissions = computed(() => this.authState().permissions);
   readonly isLoading = computed(() => this.authState().isLoading);
   readonly authError = computed(() => this.authState().error);
   readonly tokenExpiresAt = computed(() => this.authState().tokenExpiresAt);
   readonly refreshInProgress = computed(() => this.authState().refreshInProgress);
 
-  // --- Observables ---
+  // --- Observable Streams ---
   readonly authState$ = toObservable(this.authState).pipe(
     distinctUntilChanged((a, b) => this.authStatesEqual(a, b))
   );
@@ -154,219 +112,511 @@ export class AuthService implements OnDestroy {
 
   readonly currentUser$ = this.authState$.pipe(
     map((s) => s.user),
-    distinctUntilChanged((a, b) => this.usersEqual(a, b))
-  );
-
-  readonly authError$ = this.authState$.pipe(
-    map((s) => s.error),
     distinctUntilChanged()
   );
 
   readonly tokenExpiring$ = this.tokenExpiringSoon$.asObservable();
 
   // --- Dependencies ---
-  private readonly oauth = inject(OAuthService);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly sessionService = inject(SessionService);
 
   constructor() {
-    this.configureOAuth();
-    this.setupEventListeners();
+    this.restoreSessionFromStorage();
+    this.setupBroadcastChannel();
+    this.setupVisibilityListener();
   }
 
   ngOnDestroy(): void {
-    this.resetAuth();
     this.destroy$.next();
     this.destroy$.complete();
-    this.tokenExpiringSoon$.complete(); // ✅ prevent ReplaySubject leak
+    this.tokenExpiringSoon$.complete();
+    this.bc.close();
   }
 
-  // ------------------
-  // Public API
-  // ------------------
+  // ====================
+  // PUBLIC API
+  // ====================
 
+  /**
+   * Initialize auth on app startup
+   * Restores session from storage and loads user data if tokens valid
+   */
   async init(): Promise<void> {
     if (this.initPromise) return this.initPromise;
     this.initPromise = this.performInit();
     return this.initPromise;
   }
 
+  /**
+   * Get current access token from session storage
+   */
   getAccessToken(): string | null {
-    return this.oauth.getAccessToken();
+    return sessionStorage.getItem(SESSION_STORAGE_KEYS.ACCESS_TOKEN);
   }
 
+  /**
+   * Get valid access token, refreshing if necessary
+   * Prevents race conditions with microtask queue guard
+   */
   getValidAccessToken(): Observable<string> {
-    const token = this.oauth.getAccessToken();
-    if (this.isAuthenticated() && this.isTokenValid() && token) return of(token);
+    const token = this.getAccessToken();
+
+    // Token exists and is valid - return immediately
+    if (this.isAuthenticated() && this.isTokenValid() && token) {
+      return of(token);
+    }
+
+    // Refresh already in progress - return existing observable
     if (this.refresh$) return this.refresh$;
-    this.refresh$ = this.createRefreshTokenObservable();
+
+    // Start new refresh cycle with race condition guard
+    if (!this.refresh$) {
+      this.refresh$ = this.createRefreshTokenObservable();
+      // Clear refresh$ after completion to allow new refresh cycles
+      queueMicrotask(() => {
+        this.refresh$?.subscribe();
+      });
+    }
+
     return this.refresh$;
   }
 
-  waitForRefresh(): Observable<string | null> {
-    return this.refresh$ ?? of(null); // ✅ safer than EMPTY/NEVER
-  }
-
-  startLogin(returnUrl: string = this.router.url): void {
+  /**
+   * Initiate OAuth2 Authorization Code flow with PKCE
+   * Redirects user to /connect/authorize on backend
+   */
+  async startLogin(returnUrl: string = this.router.url): Promise<void> {
     try {
       const sanitized = this.sanitizeReturnUrl(returnUrl);
-      sessionStorage.setItem('auth_return_url', sanitized);
-      this.setAuthState({ isLoading: true, error: null });
-      this.oauth.initCodeFlow(sanitized);
+      sessionStorage.setItem(SESSION_STORAGE_KEYS.RETURN_URL, sanitized);
+
+      // Generate PKCE pair (code_verifier + code_challenge)
+      const { code_verifier, code_challenge } = await createPkcePair();
+      sessionStorage.setItem(SESSION_STORAGE_KEYS.CODE_VERIFIER, code_verifier);
+
+      // Generate state for CSRF protection
+      const state = generateRandomState();
+      sessionStorage.setItem(SESSION_STORAGE_KEYS.STATE, state);
+
+      // Build authorization URL
+      const params = new URLSearchParams({
+        client_id: environment.clientId,
+        response_type: 'code',
+        scope: 'openid profile email offline_access',
+        redirect_uri: environment.redirectUri,
+        code_challenge,
+        code_challenge_method: 'S256',
+        state,
+      });
+
+      // Redirect to backend authorize endpoint
+      window.location.href = `${this.authUrl}/connect/authorize?${params.toString()}`;
     } catch (error) {
-      this.failWithError(AuthErrorType.LOGIN_FAILED, 'Failed to start login process', error, true);
+      this.failWithError(
+        AuthErrorType.LOGIN_FAILED,
+        'Failed to start login process',
+        error,
+        true
+      );
     }
   }
 
-  logout(clearOnly = false): Observable<void> {
-    const sessionId = this.currentUser()?.sessionId;
+  /**
+   * Handle OAuth callback from backend
+   * Validates state, exchanges code for tokens, loads user data
+   */
+  handleAuthCallback(code: string, state: string): Observable<void> {
+    if (!code || !state) {
+      return throwError(() =>
+        this.createAuthError(AuthErrorType.LOGIN_FAILED, 'Missing code or state')
+      );
+    }
+
+    // Validate CSRF state
+    const storedState = sessionStorage.getItem(SESSION_STORAGE_KEYS.STATE);
+    if (!storedState || storedState !== state) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEYS.STATE);
+      return throwError(() =>
+        this.createAuthError(AuthErrorType.INVALID_STATE, 'OAuth state mismatch')
+      );
+    }
+    sessionStorage.removeItem(SESSION_STORAGE_KEYS.STATE);
+
+    // Retrieve PKCE verifier
+    const code_verifier = sessionStorage.getItem(SESSION_STORAGE_KEYS.CODE_VERIFIER);
+    if (!code_verifier) {
+      return throwError(() =>
+        this.createAuthError(AuthErrorType.LOGIN_FAILED, 'PKCE verifier not found')
+      );
+    }
+    sessionStorage.removeItem(SESSION_STORAGE_KEYS.CODE_VERIFIER);
+
     this.setAuthState({ isLoading: true });
 
-    const revoke$ = !clearOnly && sessionId
-      ? this.sessionService.revokeSession(sessionId).pipe(
-        timeout(5000),
-        catchError(() => of(void 0))
+    // Exchange authorization code for tokens
+    return defer(() =>
+      this.http.post<TokenResponse>(
+        `${this.authUrl}/connect/token`,
+        {
+          grant_type: 'authorization_code',
+          code,
+          client_id: environment.clientId,
+          redirect_uri: environment.redirectUri,
+          code_verifier,
+        },
+        {
+          context: new HttpContext()
+            .set(SKIP_AUTH, true)
+            .set(INCLUDE_CREDENTIALS, true),
+        }
       )
+    ).pipe(
+      timeout(NETWORK_TIMEOUT_MS),
+      tap((response) => this.storeTokens(response)),
+      switchMap(() => this.loadUserDataAndPermissions()),
+      catchError((error) => {
+        this.failWithError(
+          AuthErrorType.LOGIN_FAILED,
+          'Failed to exchange authorization code',
+          error,
+          this.isRetryableError(error)
+        );
+        return throwError(() => error);
+      }),
+      finalize(() => this.setAuthState({ isLoading: false })),
+      takeUntil(this.destroy$),
+      map(() => void 0)
+    );
+  }
+
+  /**
+   * Logout: revoke refresh token and clear session
+   * Skips if refresh is already in progress (may succeed)
+   */
+  logout(): Observable<void> {
+    if (this.refreshInProgress()) {
+      return of(void 0);
+    }
+
+    this.setAuthState({ isLoading: true });
+
+    const refreshToken = sessionStorage.getItem(SESSION_STORAGE_KEYS.REFRESH_TOKEN);
+
+    const revoke$ = refreshToken
+      ? this.revokeToken(refreshToken).pipe(
+          timeout(REVOKE_TIMEOUT_MS),
+          catchError(() => of(void 0))
+        )
       : of(void 0);
 
     return revoke$.pipe(
-      tap(() => this.performLogout(clearOnly)),
-      finalize(() => this.setAuthState({ isLoading: false })),
+      tap(() => this.clearAuthSession()),
+      finalize(() => {
+        this.setAuthState({ isLoading: false });
+        void this.router.navigate(['/signin']);
+      }),
       takeUntil(this.destroy$)
     );
   }
 
-  register(data: RegisterUserRequest): Observable<RegisterUserResponseDto> {
-    return this.http
-      .post<RegisterUserResponseDto>(`${this.api}/users/register`, data, {
-        context: new HttpContext().set(SKIP_AUTH, true).set(INCLUDE_CREDENTIALS, true),
-      })
-      .pipe(
-        timeout(NETWORK_TIMEOUT_MS),
-        retry({ count: 2, delay: (_, i) => timer(i * 2000) }),
-        catchError((error: HttpErrorResponse) =>
-          throwError(() =>
-            this.createAuthError(
-              AuthErrorType.REGISTRATION_FAILED,
-              this.getErrorMessage(error),
-              error,
-              this.isRetryableError(error),
-              'Registration failed. Please try again.'
-            )
-          )
-        )
-      );
-  }
-
-  getUserProfile(): UserProfile | null {
-    return this.decodeTokenClaims();
-  }
-
-  redirectToSignIn(returnUrl: string = this.router.url): UrlTree {
-    return this.router.createUrlTree(['/signin'], {
-      queryParams: { returnUrl: this.sanitizeReturnUrl(returnUrl) },
-    });
-  }
-
+  /**
+   * Redirect to signin on 401 Unauthorized
+   * Skips if refresh is in progress (let it recover)
+   */
   handleUnauthorized(returnUrl: string = this.router.url): void {
-    if (this.redirectingToSignIn) return;
+    if (this.refreshInProgress()) return;
 
     const sanitized = this.sanitizeReturnUrl(returnUrl);
-    this.redirectingToSignIn = true;
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.RETURN_URL, sanitized);
+    this.clearAuthSession();
 
-    sessionStorage.setItem('auth_return_url', sanitized);
-    this.resetAuth();
-
-    const target = this.redirectToSignIn(sanitized);
     queueMicrotask(() => {
-      void this.router.navigateByUrl(target).finally(() => {
-        this.redirectingToSignIn = false;
+      void this.router.navigate(['/signin'], {
+        queryParams: {
+          returnUrl: sessionStorage.getItem(SESSION_STORAGE_KEYS.RETURN_URL) ?? '/',
+        },
       });
     });
   }
 
-  // ------------------
-  // Private helpers
-  // ------------------
+  // ====================
+  // PRIVATE HELPERS
+  // ====================
 
+  private restoreSessionFromStorage(): void {
+    const accessToken = sessionStorage.getItem(SESSION_STORAGE_KEYS.ACCESS_TOKEN);
+    const expiresAt = sessionStorage.getItem(SESSION_STORAGE_KEYS.TOKEN_EXPIRES_AT);
+
+    if (accessToken && expiresAt && parseInt(expiresAt, 10) > Date.now()) {
+      this.setAuthState({
+        isAuthenticated: true,
+        tokenExpiresAt: parseInt(expiresAt, 10),
+      });
+    }
+  }
+
+  /**
+   * Setup BroadcastChannel for cross-tab session sync
+   * When user logs in/out in one tab, all tabs update
+   * Safe for SSR environments
+   */
+  private initializeBroadcastChannel() {
+    if (typeof BroadcastChannel === 'undefined') {
+      // SSR or environment without BroadcastChannel support
+      return {
+        postMessage: () => {},
+        close: () => {},
+        onmessage: null as any,
+      };
+    }
+    return new BroadcastChannel('auth');
+  }
+
+  /**
+   * Setup BroadcastChannel listener for cross-tab sync
+   */
+  private setupBroadcastChannel(): void {
+    if (!this.bc.onmessage) return; // Not initialized
+
+    this.bc.onmessage = (event: MessageEvent) => {
+      if (event.data?.type === 'auth:update') {
+        this.restoreSessionFromStorage();
+      } else if (event.data?.type === 'auth:clear') {
+        this.clearAuthSession();
+      }
+    };
+  }
+
+  /**
+   * Pause token timers when tab is hidden (battery saving)
+   * Resume when tab is visible
+   */
+  private setupVisibilityListener(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (!this.isAuthenticated()) return;
+
+      if (document.hidden) {
+        this.stopTokenTimers();
+      } else {
+        this.setupTokenExpiryTimer();
+      }
+    });
+  }
+
+  /**
+   * Perform initialization: check existing session, load user data
+   */
   private async performInit(): Promise<void> {
     try {
       this.setAuthState({ isLoading: true });
 
-      const success = await this.oauth.loadDiscoveryDocumentAndTryLogin({
-        onTokenReceived: () => {
-          this.updateAuthState();
-          this.setupTokenExpiryTimer();
-        },
-      });
+      const token = this.getAccessToken();
+      const expAt = this.tokenExpiresAt();
 
-      if (!success) throw new Error('Discovery document loading or login failed');
+      // No valid token - user not authenticated
+      if (!token || !expAt || Date.now() >= expAt - TOKEN_REFRESH_BUFFER_MS) {
+        this.clearAuthSession();
+        return;
+      }
 
-      if (this.oauth.getRefreshToken()) this.setupTokenExpiryTimer();
-
-      this.updateAuthState();
+      // Token exists and valid - load user data
+      await firstValueFrom(this.loadUserDataAndPermissions());
+      this.setupTokenExpiryTimer();
     } catch (error) {
-      this.failWithError(AuthErrorType.INITIALIZATION_FAILED, 'Auth initialization failed', error, true);
+      this.failWithError(
+        AuthErrorType.INITIALIZATION_FAILED,
+        'Failed to initialize auth',
+        error,
+        true
+      );
+      this.clearAuthSession();
     } finally {
       this.setAuthState({ isLoading: false });
     }
   }
 
-  private configureOAuth(): void {
-    const authConfig: AuthConfig = {
-      issuer: environment.baseApiUrl,
-      clientId: environment.clientId,
-      responseType: 'code',
-      scope: 'openid profile email offline_access',
-      redirectUri: environment.redirectUri,
-      postLogoutRedirectUri: environment.postLogoutRedirectUri,
-      strictDiscoveryDocumentValidation: true,
-      showDebugInformation: !environment.production,
-      clearHashAfterLogin: true,
-      timeoutFactor: 0.75,
-      sessionChecksEnabled: true,
-      checkOrigin: true,
-      requireHttps: environment.production,
-    };
-    this.oauth.configure(authConfig);
-    this.oauth.setStorage(sessionStorage);
+  /**
+   * Load user data from three endpoints in parallel
+   * More efficient than sequential calls
+   */
+  private loadUserDataAndPermissions(): Observable<void> {
+    const ctx = new HttpContext().set(INCLUDE_CREDENTIALS, true);
+
+    const userInfo$ = this.http.get<UserInfoResponse>(
+      `${this.authUrl}/connect/userinfo`,
+      { context: ctx }
+    );
+
+    const perms$ = this.http.get<PermissionsResponse>(
+      `${this.api}/users/permissions`,
+      { context: ctx }
+    );
+
+    const profile$ = this.http.get<UserProfileResponse>(
+      `${this.api}/users/profile`,
+      { context: ctx }
+    );
+
+    return forkJoin({ userInfo: userInfo$, permResponse: perms$, profile: profile$ }).pipe(
+      tap(({ userInfo, permResponse, profile }) => {
+        const userProfile: UserProfile = {
+          id: userInfo.sub,
+          email: userInfo.email ?? profile.email ?? '',
+          firstName: userInfo.given_name ?? profile.firstName ?? '',
+          lastName: userInfo.family_name ?? profile.lastName ?? '',
+          fullName: userInfo.name ?? profile.fullName ?? '',
+          imageUrl: userInfo.picture ?? profile.imageUrl ?? '',
+          roles: userInfo.role ?? [],
+        };
+
+        this.setAuthState({
+          isAuthenticated: true,
+          user: userProfile,
+          permissions: permResponse.permissions ?? [],
+          roles: userInfo.role ?? [],
+          error: null,
+        });
+      }),
+      catchError((error) => {
+        this.failWithError(
+          AuthErrorType.NETWORK_ERROR,
+          'Failed to load user data',
+          error,
+          this.isRetryableError(error)
+        );
+        return throwError(() => error);
+      }),
+      map(() => void 0)
+    );
   }
 
-  private setupEventListeners(): void {
-    this.oauth.events.pipe(takeUntil(this.destroy$)).subscribe((event: OAuthEvent) => {
-      switch (event.type) {
-        case 'token_received':
-        case 'token_refreshed':
-          this.updateAuthState();
-          this.setupTokenExpiryTimer();
-          this.setAuthError(null);
-          break;
-        case 'token_error':
-        case 'token_refresh_error':
-          this.failWithError(AuthErrorType.TOKEN_EXPIRED, 'Token expired or invalid', event, true);
-          break;
-        case 'logout':
-        case 'session_terminated':
-          this.resetAuth();
-          break;
+  /**
+   * Store tokens with JWT exp parsing
+   * Prefers JWT exp over expires_in for accuracy
+   * Applies clock skew leeway (60 seconds)
+   * Broadcasts to other tabs
+   */
+  private storeTokens(response: TokenResponse): void {
+    const expFromJwt = getJwtExpSeconds(response.access_token);
+    const expMs = expFromJwt
+      ? (expFromJwt - CLOCK_SKEW_SEC) * 1000
+      : Date.now() + response.expires_in * 1000;
+
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.ACCESS_TOKEN, response.access_token);
+    if (response.refresh_token) {
+      sessionStorage.setItem(SESSION_STORAGE_KEYS.REFRESH_TOKEN, response.refresh_token);
+    }
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.TOKEN_EXPIRES_AT, expMs.toString());
+
+    this.setAuthState({ tokenExpiresAt: expMs });
+    this.setupTokenExpiryTimer();
+
+    // Sync across tabs
+    this.bc.postMessage({ type: 'auth:update' });
+  }
+
+  /**
+   * Refresh token exchange with exponential backoff + jitter
+   * Multicast via shareReplay to prevent duplicate HTTP requests
+   */
+  private createRefreshTokenObservable(): Observable<string> {
+    this.setAuthState({ refreshInProgress: true });
+
+    const refresh$ = defer(() => {
+      const refreshToken = sessionStorage.getItem(SESSION_STORAGE_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) {
+        throw this.createAuthError(
+          AuthErrorType.REFRESH_FAILED,
+          'No refresh token available'
+        );
       }
-    });
+
+      return this.http.post<TokenResponse>(
+        `${this.authUrl}/connect/token`,
+        {
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: environment.clientId,
+        },
+        {
+          context: new HttpContext()
+            .set(SKIP_AUTH, true)
+            .set(INCLUDE_CREDENTIALS, true),
+        }
+      );
+    }).pipe(
+      timeout(NETWORK_TIMEOUT_MS),
+      retry({
+        count: MAX_RETRY_ATTEMPTS,
+        delay: (_, i) => {
+          const base = Math.pow(2, i) * RETRY_BASE_DELAY_MS; // 1s, 2s, 4s
+          const jitter = Math.floor(Math.random() * 250); // +0-250ms
+          return timer(base + jitter);
+        },
+      }),
+      tap((response) => {
+        this.storeTokens(response);
+        // Reload user data after successful refresh
+        this.loadUserDataAndPermissions().pipe(take(1)).subscribe();
+      }),
+      map(() => this.getAccessToken()!),
+      catchError((error) => {
+        const authError = this.createAuthError(
+          AuthErrorType.REFRESH_FAILED,
+          'Token refresh failed',
+          error
+        );
+        this.setAuthError(authError);
+        this.clearAuthSession();
+        return throwError(() => authError);
+      }),
+      finalize(() => {
+        this.refresh$ = undefined;
+        this.setAuthState({ refreshInProgress: false });
+      }),
+      // Multicast: all subscribers share single HTTP request
+      // refCount: true allows observable to teardown after completion
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    return refresh$;
   }
 
+  /**
+   * Revoke refresh token on backend
+   */
+  private revokeToken(token: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.authUrl}/connect/revoke`,
+      { token },
+      {
+        context: new HttpContext()
+          .set(SKIP_AUTH, true)
+          .set(INCLUDE_CREDENTIALS, true),
+      }
+    ).pipe(
+      timeout(REVOKE_TIMEOUT_MS),
+      catchError(() => of(void 0))
+    );
+  }
+
+  /**
+   * Setup timers for automatic token refresh
+   * Warning timer: 10min before expiry (emits tokenExpiring$)
+   * Refresh timer: 5min before expiry (calls getValidAccessToken)
+   */
   private setupTokenExpiryTimer(): void {
     this.stopTokenTimers();
 
-    const user = this.currentUser();
-    if (!user?.exp) return;
+    const expiresAt = this.tokenExpiresAt();
+    if (!expiresAt) return;
 
-    const expiresAt = user.exp * 1000;
     const now = Date.now();
     const timeUntilRefresh = expiresAt - now - TOKEN_REFRESH_BUFFER_MS;
     const timeUntilWarning = expiresAt - now - TOKEN_EXPIRY_WARNING_MS;
 
-    this.setAuthState({ tokenExpiresAt: expiresAt });
-
+    // Warn subscriber that token is about to expire
     if (timeUntilWarning > 0) {
       this.tokenExpiryWarningTimer = setTimeout(
         () => this.tokenExpiringSoon$.next(),
@@ -374,61 +624,13 @@ export class AuthService implements OnDestroy {
       );
     }
 
+    // Automatically refresh token before expiry
     if (timeUntilRefresh > MIN_TOKEN_LIFETIME_MS) {
       this.tokenExpiryTimer = setTimeout(() => {
-        if (this.isAuthenticated() && this.oauth.getRefreshToken()) {
+        if (this.isAuthenticated()) {
           this.getValidAccessToken().pipe(take(1)).subscribe();
         }
       }, timeUntilRefresh);
-    }
-  }
-
-  private createRefreshTokenObservable(): Observable<string> {
-    this.setAuthState({ refreshInProgress: true });
-
-    return defer(() => {
-      if (!this.oauth.getRefreshToken()) {
-        throw this.createAuthError(AuthErrorType.REFRESH_FAILED, 'No refresh token available');
-      }
-      return from(this.oauth.refreshToken());
-    }).pipe(
-      timeout(NETWORK_TIMEOUT_MS),
-      retry({ count: MAX_RETRY_ATTEMPTS, delay: (_, i) => timer(Math.pow(2, i) * RETRY_BASE_DELAY_MS) }),
-      switchMap(() => {
-        const token = this.oauth.getAccessToken();
-        if (!token) {
-          throw this.createAuthError(AuthErrorType.REFRESH_FAILED, 'No access token after refresh');
-        }
-        this.updateAuthState();
-        this.setupTokenExpiryTimer();
-        return of(token);
-      }),
-      catchError((error) => {
-        const authError = this.createAuthError(AuthErrorType.REFRESH_FAILED, 'Token refresh failed', error);
-        this.setAuthError(authError);
-        this.performLogout(true);
-        return throwError(() => authError);
-      }),
-      finalize(() => {
-        this.refresh$ = undefined;
-        this.setAuthState({ refreshInProgress: false });
-      }),
-      shareReplay({ bufferSize: 1, refCount: false })
-    );
-  }
-
-  private performLogout(clearOnly: boolean): void {
-    try {
-      const arg = clearOnly
-        ? true
-        : { logoutUrl: `${environment.baseApiUrl}/connect/logout`, postLogoutRedirectUri: environment.postLogoutRedirectUri };
-      this.oauth.logOut(arg);
-    } finally {
-      this.clearAuthStorage();
-      this.clearAuthState();
-      this.stopTokenTimers();
-      this.refresh$ = undefined;
-      this.initPromise = undefined;
     }
   }
 
@@ -438,98 +640,35 @@ export class AuthService implements OnDestroy {
     this.tokenExpiryTimer = this.tokenExpiryWarningTimer = undefined;
   }
 
-  private clearAuthStorage(): void {
-    OAUTH_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+  private clearAuthSession(): void {
+    this.stopTokenTimers();
+    Object.values(SESSION_STORAGE_KEYS).forEach((key) => {
+      sessionStorage.removeItem(key);
+    });
+    this.authState.set({ ...defaultAuthState });
+    this.refresh$ = undefined;
+    this.initPromise = undefined;
+    this.bc.postMessage({ type: 'auth:clear' });
   }
 
   private setAuthState(partial: Partial<AuthState>): void {
     this.authState.update((s) => ({ ...s, ...partial }));
   }
 
-  private clearAuthState(): void {
-    this.authState.set({ ...defaultAuthState });
-  }
-
   private setAuthError(error: AuthError | null): void {
     this.authState.update((s) => ({ ...s, error, isLoading: false }));
   }
 
-  private updateAuthState(): void {
-    const claims = this.decodeTokenClaims();
-    this.setAuthState({
-      isAuthenticated: !!claims,
-      user: claims,
-      isLoading: false,
-      error: null,
-      tokenExpiresAt: claims?.exp ? claims.exp * 1000 : null,
-    });
-  }
-
-  // --- Token claim decoding ---
-  private decodeTokenClaims(): UserProfile | null {
-    try {
-      const claims = this.oauth.getIdentityClaims() as IdTokenClaims | null;
-      if (!claims?.sub) return null;
-
-      return {
-        id: claims.sub,
-        email: this.getString(claims, 'email'),
-        firstName: this.getString(claims, 'given_name'),
-        lastName: this.getString(claims, 'family_name'),
-        fullName: this.getString(claims, 'name'),
-        timeZoneId: this.getString(claims, 'timezone'),
-        ipAddress: this.getString(claims, 'ip_address'),
-        imageUrl: this.getString(claims, 'image'),
-        deviceId: this.getString(claims, 'device_id'),
-        sessionId: this.getString(claims, 'sid') || this.getString(claims, 'session_id'),
-        country: this.getString(claims, 'country'),
-        city: this.getString(claims, 'city'),
-        roles: this.getArray(claims, 'role'),
-        permissions: this.getArray(claims, 'permission'),
-        exp: this.getNumber(claims, 'exp'),
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  // --- Claim parsing helpers ---
-  private getString(c: IdTokenClaims, k: keyof IdTokenClaims, fallback = ''): string {
-    const v = c[k];
-    return typeof v === 'string' && v.trim() ? v.trim() : fallback;
-  }
-
-  private getNumber(c: IdTokenClaims, k: keyof IdTokenClaims, fallback = 0): number {
-    const v = c[k];
-    if (typeof v === 'number') return v;
-    if (typeof v === 'string') {
-      const n = Number(v);
-      return isNaN(n) ? fallback : n;
-    }
-    return fallback;
-  }
-
-  private getArray(c: IdTokenClaims, k: keyof IdTokenClaims): string[] {
-    const v = c[k];
-    if (Array.isArray(v)) {
-      return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
-    }
-    if (typeof v === 'string' && v.trim().length > 0) {
-      return [v.trim()];
-    }
-    return [];
-  }
-
-  // --- Error helpers ---
   private failWithError(
     type: AuthErrorType,
     message: string,
     originalError?: any,
-    retryable = false,
-    userMessage?: string
+    retryable = false
   ): void {
-    const error = this.createAuthError(type, message, originalError, retryable, userMessage);
-    if (!environment.production) console.error('[AuthService]', error);
+    const error = this.createAuthError(type, message, originalError, retryable);
+    if (!environment.production) {
+      console.error('[AuthService]', error);
+    }
     this.setAuthError(error);
   }
 
@@ -537,49 +676,9 @@ export class AuthService implements OnDestroy {
     type: AuthErrorType,
     message: string,
     originalError?: any,
-    retryable = false,
-    userMessage?: string
+    retryable = false
   ): AuthError {
-    return { type, message, timestamp: Date.now(), originalError, retryable, userMessage };
-  }
-
-  // --- Equality helpers ---
-  private errorsEqual(a: AuthError | null, b: AuthError | null): boolean {
-    if (a === b) return true;
-    if (!a || !b) return false;
-    return a.type === b.type && a.message === b.message && a.retryable === b.retryable;
-  }
-
-  private usersEqual(a: UserProfile | null, b: UserProfile | null): boolean {
-    if (a === b) return true;
-    if (!a || !b) return false;
-    return (
-      a.id === b.id &&
-      a.email === b.email &&
-      a.sessionId === b.sessionId &&
-      a.exp === b.exp &&
-      a.firstName === b.firstName &&
-      a.lastName === b.lastName
-    );
-  }
-
-  private authStatesEqual(a: AuthState, b: AuthState): boolean {
-    return (
-      a.isAuthenticated === b.isAuthenticated &&
-      a.isLoading === b.isLoading &&
-      a.refreshInProgress === b.refreshInProgress &&
-      a.tokenExpiresAt === b.tokenExpiresAt &&
-      this.errorsEqual(a.error, b.error) &&
-      this.usersEqual(a.user, b.user)
-    );
-  }
-
-  private resetAuth(): void {
-    this.clearAuthState();
-    this.stopTokenTimers();
-    this.clearAuthStorage();
-    this.refresh$ = undefined;
-    this.initPromise = undefined;
+    return { type, message, timestamp: Date.now(), originalError, retryable };
   }
 
   private isTokenValid(): boolean {
@@ -587,23 +686,13 @@ export class AuthService implements OnDestroy {
     return !!expiresAt && Date.now() < expiresAt - TOKEN_REFRESH_BUFFER_MS;
   }
 
-  private isRetryableError(error: HttpErrorResponse): boolean {
+  private isRetryableError(error: any): boolean {
+    if (!(error instanceof HttpErrorResponse)) return false;
     return (
-      error.status === 0 ||     // network
-      error.status === 408 ||
-      error.status === 429 ||
-      (error.status >= 500 && error.status < 600)
-    );
-  }
-
-  private getErrorMessage(error: HttpErrorResponse): string {
-    const e = error.error ?? {};
-    return (
-      e.message ??
-      e.error_description ??
-      e.detail ??
-      (error.message !== 'Unknown Error' ? error.message : null) ??
-      `HTTP ${error.status}: ${error.statusText}`
+      error.status === 0 || // Network error
+      error.status === 408 || // Request timeout
+      error.status === 429 || // Too many requests
+      (error.status >= 500 && error.status < 600) // Server error
     );
   }
 
@@ -618,5 +707,16 @@ export class AuthService implements OnDestroy {
     } catch {
       return '/';
     }
+  }
+
+  private authStatesEqual(a: AuthState, b: AuthState): boolean {
+    return (
+      a.isAuthenticated === b.isAuthenticated &&
+      a.isLoading === b.isLoading &&
+      a.refreshInProgress === b.refreshInProgress &&
+      a.tokenExpiresAt === b.tokenExpiresAt &&
+      a.permissions.join(',') === b.permissions.join(',') &&
+      a.roles.join(',') === b.roles.join(',')
+    );
   }
 }

@@ -1,116 +1,104 @@
-// src/app/guards/auth.guard.ts
 import { inject } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
 import {
   CanActivateChildFn,
-  CanActivateFn, 
+  CanActivateFn,
   CanMatchFn,
   Router,
-  UrlTree
+  UrlTree,
 } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { catchError, map, switchMap, take } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
 /**
- * Main authentication guard (for routes requiring login).
+ * Main authentication guard - redirects to signin if not authenticated
  */
-export const authGuard: CanActivateFn = (route, state) =>
-  runAuthCheck(state.url);
+export const authGuard: CanActivateFn = (_route, state) =>
+  checkAuthentication(state.url);
 
 /**
- * Same logic for child routes.
+ * Guard for child routes
  */
-export const authChildGuard: CanActivateChildFn = (route, state) =>
-  runAuthCheck(state.url);
+export const authChildGuard: CanActivateChildFn = (_route, state) =>
+  checkAuthentication(state.url);
 
 /**
- * Same logic for CanMatch.
+ * Guard for CanMatch (route matching)
  */
 export const authMatchGuard: CanMatchFn = (_route, segments) => {
-  const currentUrl = '/' + segments.map(s => s.path).join('/');
-  return runAuthCheck(currentUrl);
+  const currentUrl = '/' + segments.map((s) => s.path).join('/');
+  return checkAuthentication(currentUrl);
 };
 
 /**
- * Role-based guard.
+ * Role-based guard: user must have at least one required role
  */
 export const roleGuard = (requiredRoles: string[]): CanActivateFn => {
   return (_route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    return runAuthCheck(state.url).pipe(
-      switchMap(result => {
-        if (result !== true) return of(result);
+    return checkAuthentication(state.url).pipe(
+      switchMap((isAuth) => {
+        if (isAuth !== true) return of(isAuth);
 
-        const user = authService.currentUser();
-        if (!user) {
-          return of(createSignInRedirect(router, state.url));
+        const userRoles = authService.roles();
+        if (hasAnyRole(userRoles, requiredRoles)) {
+          return of(true);
         }
 
-        if (!hasRequiredRole(user.roles, requiredRoles)) {
-          return of(createAccessDeniedRedirect(router, state.url));
-        }
-
-        return of(true);
+        return of(createAccessDeniedRedirect(router, state.url));
       })
     );
   };
 };
 
 /**
- * Permission-based guard.
+ * Permission-based guard: user must have all required permissions
  */
 export const permissionGuard = (requiredPermissions: string[]): CanActivateFn => {
   return (_route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    return runAuthCheck(state.url).pipe(
-      switchMap(result => {
-        if (result !== true) return of(result);
+    return checkAuthentication(state.url).pipe(
+      switchMap((isAuth) => {
+        if (isAuth !== true) return of(isAuth);
 
-        const user = authService.currentUser();
-        if (!user) {
-          return of(createSignInRedirect(router, state.url));
+        const userPerms = authService.permissions();
+        if (hasAllPermissions(userPerms, requiredPermissions)) {
+          return of(true);
         }
 
-        if (!hasRequiredPermissions(user.permissions, requiredPermissions)) {
-          return of(createAccessDeniedRedirect(router, state.url));
-        }
-
-        return of(true);
+        return of(createAccessDeniedRedirect(router, state.url));
       })
     );
   };
 };
 
 /**
- * Combined role + permission guard.
+ * Combined role + permission guard
  */
 export const rolePermissionGuard = (
-  requiredRoles: string[], 
+  requiredRoles: string[],
   requiredPermissions: string[]
 ): CanActivateFn => {
   return (_route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    return runAuthCheck(state.url).pipe(
-      switchMap(result => {
-        if (result !== true) return of(result);
+    return checkAuthentication(state.url).pipe(
+      switchMap((isAuth) => {
+        if (isAuth !== true) return of(isAuth);
 
-        const user = authService.currentUser();
-        if (!user) {
-          return of(createSignInRedirect(router, state.url));
-        }
+        const userRoles = authService.roles();
+        const userPerms = authService.permissions();
 
-        const hasRole = hasRequiredRole(user.roles, requiredRoles);
-        const hasPerm = hasRequiredPermissions(user.permissions, requiredPermissions);
+        const hasRole = hasAnyRole(userRoles, requiredRoles);
+        const hasPerms = hasAllPermissions(userPerms, requiredPermissions);
 
-        if (!hasRole || !hasPerm) {
+        if (!hasRole || !hasPerms) {
           return of(createAccessDeniedRedirect(router, state.url));
         }
 
@@ -121,97 +109,117 @@ export const rolePermissionGuard = (
 };
 
 /**
- * Guard for anonymous-only routes (e.g. login/register).
+ * Guard for anonymous-only routes (login, register)
+ * Redirects authenticated users to dashboard
  */
-export const anonymousGuard: CanActivateFn = (route, _state) => {
+export const anonymousGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   if (authService.isAuthenticated()) {
-    const redirectUrl = route.queryParams?.['redirect'] || '/dashboard';
-    return router.createUrlTree([redirectUrl]);
+    return of(router.createUrlTree(['/dashboard']));
   }
 
-  return true;
+  return of(true);
 };
 
-/* -------------------------------------------------------------------------- */
-/* 🔑 Core authentication check logic                                         */
-/* -------------------------------------------------------------------------- */
+/* ---------- Helper Functions ---------- */
 
-function runAuthCheck(returnUrl: string): Observable<boolean | UrlTree> {
+/**
+ * Core authentication check
+ * Returns true if authenticated, UrlTree redirect if not
+ */
+function checkAuthentication(
+  returnUrl: string
+): Observable<boolean | UrlTree> {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Fast path
-  if (authService.isAuthenticated()) return of(true);
+  if (authService.isAuthenticated()) {
+    return of(true);
+  }
 
-  // Wait until authentication state resolves (reactive signals → observable)
-  return toObservable(authService.isAuthenticated).pipe(
-    take(1),
-    map(isAuth => (isAuth ? true : createSignInRedirect(router, returnUrl))),
-    catchError(() => of(createSignInRedirect(router, returnUrl)))
-  );
+  return of(createSignInRedirect(router, returnUrl));
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🔑 Redirect helpers                                                        */
-/* -------------------------------------------------------------------------- */
-
+/**
+ * Create signin redirect with return URL
+ */
 function createSignInRedirect(router: Router, returnUrl: string): UrlTree {
   const safeUrl = sanitizeReturnUrl(returnUrl);
-  return router.createUrlTree(['/signin'], { queryParams: { returnUrl: safeUrl } });
+  return router.createUrlTree(['/signin'], {
+    queryParams: { returnUrl: safeUrl },
+  });
 }
 
+/**
+ * Create access denied redirect
+ */
 function createAccessDeniedRedirect(router: Router, returnUrl: string): UrlTree {
-  return router.createUrlTree(['/access-denied'], { queryParams: { returnUrl } });
+  return router.createUrlTree(['/access-denied'], {
+    queryParams: { returnUrl },
+  });
 }
 
+/**
+ * Validate URL to prevent open redirect attacks
+ */
 function sanitizeReturnUrl(url: string): string {
   try {
-    if (url.startsWith('/')) return url;
+    if (!url || url === '/') return '/';
+    if (url.startsWith('/') && !url.startsWith('//')) return url;
     const parsed = new URL(url, window.location.origin);
     if (parsed.origin === window.location.origin) {
       return parsed.pathname + parsed.search + parsed.hash;
     }
-    console.warn('⚠️ Suspicious return URL blocked:', url);
     return '/';
   } catch {
-    console.warn('⚠️ Invalid return URL, defaulting to /');
     return '/';
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🔑 Role & permission checks                                                */
-/* -------------------------------------------------------------------------- */
-
-function hasRequiredRole(userRoles: string[], requiredRoles: string[]): boolean {
+/**
+ * Check if user has at least one required role (case-insensitive)
+ */
+function hasAnyRole(userRoles: string[], requiredRoles: string[]): boolean {
   if (!requiredRoles?.length) return true;
   if (!userRoles?.length) return false;
-  const set = new Set(userRoles.map(r => r.toLowerCase()));
-  return requiredRoles.some(r => set.has(r.toLowerCase()));
+  const lowerUserRoles = userRoles.map((r) => r.toLowerCase());
+  return requiredRoles.some((r) => lowerUserRoles.includes(r.toLowerCase()));
 }
 
-function hasRequiredPermissions(userPermissions: string[], requiredPermissions: string[]): boolean {
-  if (!requiredPermissions?.length) return true;
-  if (!userPermissions?.length) return false;
-  const set = new Set(userPermissions.map(p => p.toLowerCase()));
-  return requiredPermissions.every(p => set.has(p.toLowerCase()));
+/**
+ * Check if user has all required permissions (case-insensitive)
+ */
+function hasAllPermissions(
+  userPerms: string[],
+  requiredPerms: string[]
+): boolean {
+  if (!requiredPerms?.length) return true;
+  if (!userPerms?.length) return false;
+  const lowerUserPerms = userPerms.map((p) => p.toLowerCase());
+  return requiredPerms.every((p) => lowerUserPerms.includes(p.toLowerCase()));
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🔑 Convenience helpers                                                     */
-/* -------------------------------------------------------------------------- */
+/* ---------- Convenience Helpers ---------- */
 
+/**
+ * Check if user is admin
+ */
 export function isAdmin(userRoles: string[]): boolean {
-  return hasRequiredRole(userRoles, ['admin', 'administrator', 'super_admin']);
+  return hasAnyRole(userRoles, ['admin', 'administrator', 'super_admin']);
 }
 
+/**
+ * Check if user is moderator
+ */
 export function isModerator(userRoles: string[]): boolean {
-  return hasRequiredRole(userRoles, ['moderator', 'mod']);
+  return hasAnyRole(userRoles, ['moderator', 'mod']);
 }
 
+/**
+ * Get highest role in hierarchy
+ */
 export function getHighestRole(userRoles: string[]): string | null {
   if (!userRoles?.length) return null;
   const roleHierarchy = [
@@ -223,10 +231,10 @@ export function getHighestRole(userRoles: string[]): string | null {
     'editor',
     'author',
     'contributor',
-    'user'
+    'user',
   ];
   for (const role of roleHierarchy) {
-    if (userRoles.some(r => r.toLowerCase() === role.toLowerCase())) {
+    if (userRoles.some((r) => r.toLowerCase() === role.toLowerCase())) {
       return role;
     }
   }

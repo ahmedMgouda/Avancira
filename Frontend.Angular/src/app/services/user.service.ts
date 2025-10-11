@@ -5,9 +5,8 @@ import { BehaviorSubject, map, Observable, of, switchMap, tap, throwError } from
 import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
 import { UserPaymentSchedule } from '../models/enums/user-payment-schedule';
-import { User } from '../models/user';
 import { ResetPasswordRequest } from '../models/reset-password-request';
-import { REQUIRES_AUTH } from '../interceptors/auth.interceptor';
+import { User } from '../models/user';
 
 @Injectable({
   providedIn: 'root',
@@ -241,7 +240,7 @@ export class UserService {
     return this.http.post<void>(
       `${this.apiUrl}/forgot-password`,
       { email },
-      { context: new HttpContext().set(REQUIRES_AUTH, false) }
+      { context: new HttpContext() }
     );
   }
 
@@ -259,7 +258,7 @@ export class UserService {
         confirmPassword: data.confirmPassword,
         token: data.token,
       },
-      { context: new HttpContext().set(REQUIRES_AUTH, false) }
+      { context: new HttpContext()}
     );
   }
 

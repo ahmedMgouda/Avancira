@@ -89,28 +89,10 @@ var env = new EnvVars(
 
 #endregion
 
-#region ===== AUTH SERVER (MVC) =====
-
-var authServer = builder.AddProject<Projects.Avancira_Auth>("avancira-auth")
-    .WithReference(postgresDb)
-    .WithHttpEndpoint(port: 5100, targetPort: 5100, name: "http")
-    .WithHttpEndpoint(port: 5100, targetPort: 5100, name: "http")
-    .WithEnvironment("ASPNETCORE_URLS", "https://+:9100;http://+:5100")
-    .WithDatabaseEnvironments(env)
-    .WithAppEnvironments(env)
-    .WithAuthEnvironments(env)
-    .WithExternalServiceEnvironments(env)
-    .WithNotificationEnvironments(env)
-    .WithPaymentEnvironments(env)
-    .WaitFor(postgresql);
-
-#endregion
-
 #region ===== BACKEND API =====
 
 var backend = builder.AddProject<Projects.Avancira_API>("avancira-api")
     .WithReference(postgresDb)
-    .WithReference(authServer)
     .WithEnvironment("ASPIRE_DROP_DATABASE", dropDatabase.Resource.Value)
     .WithEnvironment("ASPIRE_RUN_SEEDING", runSeeding.Resource.Value)
     .WithDatabaseEnvironments(env)
@@ -121,9 +103,22 @@ var backend = builder.AddProject<Projects.Avancira_API>("avancira-api")
     .WithNotificationEnvironments(env)
     .WithPaymentEnvironments(env)
     .WithJitsiEnvironments(env)
-    .WaitFor(postgresql)
-    .WaitFor(authServer);
+    .WaitFor(postgresql);
 
+#endregion
+
+#region ===== AUTH SERVER (MVC) =====
+
+var authServer = builder.AddProject<Projects.Avancira_Auth>("avancira-auth")
+    .WithReference(postgresDb)
+    .WithDatabaseEnvironments(env)
+    .WithAppEnvironments(env)
+    .WithAuthEnvironments(env)
+    .WithExternalServiceEnvironments(env)
+    .WithNotificationEnvironments(env)
+    .WithPaymentEnvironments(env)
+    .WaitFor(postgresql)
+    .WaitFor(backend);
 #endregion
 
 #region ===== FRONTEND =====

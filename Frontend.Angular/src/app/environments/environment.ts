@@ -1,6 +1,7 @@
 export const environment = {
   baseApiUrl: 'https://localhost:9000/',
   apiUrl: `https://localhost:9000/api`,
+  authUrl: `https://localhost:9100`,
   frontendUrl: 'https://localhost:4200',
   useSignalR: true,
   /** OAuth client identifier */

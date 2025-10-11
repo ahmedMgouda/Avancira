@@ -107,11 +107,14 @@ public static class Extensions
         return builder;
     }
 
-    public static WebApplication UseAvanciraFramework(this WebApplication app)
+    public static WebApplication UseAvanciraFramework(this WebApplication app, bool runDatabasePreparation = false)
     {
         app.MapDefaultEndpoints();
 
-        app.SetupDatabases();
+        if (runDatabasePreparation)
+        {
+            app.SetupDatabases();
+        }
 
         app.UseRateLimit();
         app.UseSecurityHeaders();

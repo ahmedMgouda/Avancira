@@ -9,7 +9,6 @@ import { ConfigService } from './services/config.service';
 import { NotificationService } from './services/notification.service';
 
 import { ConfigKey } from './models/config-key';
-import { NotificationEvent } from './models/enums/notification-event';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +25,7 @@ export class AppComponent implements OnInit {
     private configService: ConfigService
   ) { }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.configService.loadConfig().subscribe({
       next: () => console.log('Config loaded:', this.configService.get(ConfigKey.StripePublishableKey)),
       error: (err) => console.error('Failed to load configuration:', err.message),
@@ -38,21 +37,10 @@ export class AppComponent implements OnInit {
       }
     });
 
-    if (this.authService.isAuthenticated()) {
-      this.notificationService.startConnection(this.authService.getAccessToken() ?? "");
 
-      this.notificationService.onReceiveNotification((notification) => {
-        if (notification.eventName === NotificationEvent.NewMessage) {
-          // Only show toast notification for messages if NOT on the messages page
-          // The message-thread component will handle displaying messages when on the messages page
-          if (this.currentRoute !== '/messages') {
-            this.toastr.info(notification.data.content, notification.message);
-          }
-        } else {
-          // For all other notification types, show the toast
-          this.toastr.info(notification.data.content, notification.message);
-        }
-      });
-    }
+    // Initialize auth state on app startup
+    // - Restores tokens from sessionStorage
+    // - Loads user profile and permissions if valid tokens exist
+    await this.authService.init();
   }
 }

@@ -122,43 +122,10 @@ export class SignupComponent implements OnInit, OnDestroy {
       this.signupForm.markAllAsTouched();
       return;
     }
-    const { verifyPassword, ...rest } = this.signupForm.getRawValue();
-    const payload: RegisterUserRequest = {
-      ...rest,
-      confirmPassword: verifyPassword,
-      phoneNumber: rest.phoneNumber || undefined,
-      timeZoneId: rest.timeZoneId || undefined,
-      referralToken: this.referralToken ?? undefined,
-    };
+    this.signupForm.getRawValue();
     this.signupError = '';
     this.isSubmitting = true;
     this.spinner.show();
-
-    this.authService
-      .register(payload)
-      .pipe(
-        finalize(() => {
-          this.spinner.hide();
-          this.isSubmitting = false;
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.toastr.success(
-            'Registration successful! Please verify your email before signing in.'
-          );
-          this.router.navigate(['/check-email']);
-        },
-        error: (err) => {
-          const errors = err?.error?.errors;
-          if (errors) {
-            this.signupError = Object.values(errors).flat().join(' ');
-          } else {
-            this.signupError =
-              err?.error?.message || err?.error?.title || err?.message || 'Signup failed. Please try again.';
-          }
-        },
-      });
   }
 
   authenticate(_provider: SocialProvider): void {

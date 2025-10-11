@@ -89,7 +89,7 @@ export class ProfileComponent implements OnInit {
     this.fetchDiplomaStatus();
     this.loadUserProfile();
     this.loadTimezones();
-    this.currentSession = this.authService.getUserProfile();
+   // this.currentSession = this.authService.getUserProfile();
   }
 
   loadTimezones(): void {

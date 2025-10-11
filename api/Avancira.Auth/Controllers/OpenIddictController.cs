@@ -30,8 +30,7 @@ public sealed class OpenIddictController : Controller
             OpenIddictConstants.Scopes.OpenId,
             OpenIddictConstants.Scopes.Profile,
             OpenIddictConstants.Scopes.Email,
-            OpenIddictConstants.Scopes.OfflineAccess,
-            "api"
+            OpenIddictConstants.Scopes.OfflineAccess
         };
 
     private readonly SignInManager<IdentityUser> _signInManager;
