@@ -1,6 +1,3 @@
-using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 #region ===== INFRASTRUCTURE =====
@@ -96,6 +93,8 @@ var env = new EnvVars(
 
 var authServer = builder.AddProject<Projects.Avancira_Auth>("avancira-auth")
     .WithReference(postgresDb)
+    .WithHttpEndpoint(port: 5100, targetPort: 5100, name: "http")
+    .WithHttpEndpoint(port: 5100, targetPort: 5100, name: "http")
     .WithEnvironment("ASPNETCORE_URLS", "https://+:9100;http://+:5100")
     .WithDatabaseEnvironments(env)
     .WithAppEnvironments(env)

@@ -10,7 +10,7 @@ namespace Avancira.Infrastructure.Identity;
 public static class OpenIddictSetup
 {
     /// <summary>
-    /// CHANGE 1: Configures OpenIddict SERVER for the Auth MVC project
+    /// Configures OpenIddict SERVER for the Auth MVC project
     /// This issues tokens - only used by the Auth server
     /// </summary>
     public static IServiceCollection AddOpenIddictServer(
@@ -42,33 +42,31 @@ public static class OpenIddictSetup
             // ===== Server Configuration (Token Issuing) =====
             .AddServer(options =>
             {
-                // CHANGE 2: Configure all required endpoints
+                // Configure all required endpoints
                 options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
-                       .SetTokenEndpointUris(AuthConstants.Endpoints.Token)
-                       .SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation)
-                       .SetUserInfoEndpointUris("/connect/userinfo")
-                       .SetIntrospectionEndpointUris("/connect/introspect");
+                       .SetTokenEndpointUris(AuthConstants.Endpoints.Token);
+                       //.SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation);
 
-                // CHANGE 3: Set issuer (must match what clients expect)
+                // Set issuer (must match what clients expect)
                 options.SetIssuer(new Uri(issuer));
 
-                // CHANGE 4: Enable authorization code flow with PKCE
+                // Enable authorization code flow with PKCE
                 options.AllowAuthorizationCodeFlow()
                        .RequireProofKeyForCodeExchange(); // PKCE for security
 
-                // CHANGE 5: Enable refresh token flow
+                // Enable refresh token flow
                 options.AllowRefreshTokenFlow();
 
-                // CHANGE 6: Configure token lifetimes
+                // Configure token lifetimes
                 options.SetAccessTokenLifetime(serverSettings.AccessTokenLifetime)
                        .SetRefreshTokenLifetime(serverSettings.RefreshTokenLifetime)
                        .SetAuthorizationCodeLifetime(serverSettings.AuthorizationCodeLifetime);
 
-                // CHANGE 7: Use reference tokens for refresh tokens (more secure)
+                // Use reference tokens for refresh tokens (more secure)
                 // Reference tokens can be revoked, whereas JWT refresh tokens cannot
                 options.UseReferenceRefreshTokens();
 
-                // CHANGE 8: Register scopes that clients can request
+                // Register scopes that clients can request
                 options.RegisterScopes(
                     OpenIddictConstants.Scopes.OpenId,
                     OpenIddictConstants.Scopes.Profile,
@@ -78,15 +76,13 @@ public static class OpenIddictSetup
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
-                // CHANGE 11: ASP.NET Core integration
+                // ASP.NET Core integration
                 options.UseAspNetCore()
                        .EnableAuthorizationEndpointPassthrough()
-                       .EnableTokenEndpointPassthrough()
-                       .EnableEndSessionEndpointPassthrough()
-                       .EnableUserInfoEndpointPassthrough();
+                       .EnableTokenEndpointPassthrough();
             })
 
-            // ===== CHANGE 14: Add validation for local token validation =====
+            // Add validation for local token validation =====
             // This allows the Auth server to validate its own tokens if needed
             .AddValidation(options =>
             {
@@ -98,7 +94,7 @@ public static class OpenIddictSetup
     }
 
     /// <summary>
-    /// CHANGE 15: Main entry point for configuring OpenIddict in Auth project
+    /// Main entry point for configuring OpenIddict in Auth project
     /// Call this from your Auth project's Program.cs/Startup.cs
     /// </summary>
     public static IServiceCollection AddInfrastructureIdentity(

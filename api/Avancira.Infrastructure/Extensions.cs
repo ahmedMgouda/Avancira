@@ -25,20 +25,16 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 
 namespace Avancira.Infrastructure;
 
 public static class Extensions
 {
-    /// <summary>
-    /// CHANGE 1: Configure the Avancira framework
-    /// This is called by BOTH Auth and API projects
-    /// </summary>
     public static WebApplicationBuilder ConfigureAvanciraFramework(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // ===== Base Infrastructure =====
         builder.AddServiceDefaults();
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
@@ -66,7 +62,7 @@ public static class Extensions
         builder.Services.ConfigureRateLimit(builder.Configuration);
         builder.Services.ConfigureSecurityHeaders(builder.Configuration);
 
-        // ===== CHANGE 4: Configure Options =====
+        // ===== Configure Options =====
         // These are used throughout the application
         builder.Services.Configure<OpenIddictServerSettings>(
             builder.Configuration.GetSection("Auth:OpenIddict"));
@@ -111,41 +107,39 @@ public static class Extensions
         return builder;
     }
 
-    /// <summary>
-    /// CHANGE 5: Use the Avancira framework middleware pipeline
-    /// This is called by BOTH Auth and API projects
-    /// </summary>
     public static WebApplication UseAvanciraFramework(this WebApplication app)
     {
-        // ===== Service Defaults (Health checks, etc.) =====
         app.MapDefaultEndpoints();
 
-        // ===== Database Setup =====
         app.SetupDatabases();
 
-        // ===== Security =====
         app.UseRateLimit();
         app.UseSecurityHeaders();
         app.UseExceptionHandler();
 
-        // ===== CHANGE 6: CRITICAL - Routing must come first =====
         app.UseRouting();
 
-        // ===== CHANGE 7: CORS after routing, before authentication =====
         app.UseCorsPolicy();
 
-        // ===== OpenAPI & Jobs =====
         app.UseOpenApi();
         app.UseJobDashboard(app.Configuration);
 
-        // ===== Static Files =====
         app.UseStaticFiles();
-        app.UseStaticFiles(new StaticFileOptions
+
+        var assetsPath = Path.Combine(app.Environment.ContentRootPath, "assets");
+        if (Directory.Exists(assetsPath))
         {
-            FileProvider = new PhysicalFileProvider(
-                Path.Combine(Directory.GetCurrentDirectory(), "assets")),
-            RequestPath = new PathString("/api/assets")
-        });
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(assetsPath),
+                RequestPath = new PathString("/api/assets")
+            });
+        }
+        else
+        {
+            app.Logger.LogWarning("Static assets directory '{AssetsPath}' was not found. Static assets will not be served.", assetsPath);
+        }
+
         app.UseStaticFilesUploads();
 
         app.UseAuthentication();
