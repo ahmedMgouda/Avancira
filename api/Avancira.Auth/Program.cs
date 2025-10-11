@@ -1,10 +1,11 @@
+using Avancira.Auth.Extensions;
 using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
-using Avancira.Auth;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 public partial class Program
 {
@@ -28,6 +29,8 @@ public partial class Program
             builder.ConfigureAvanciraFramework();
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
+
+        builder.Services.AddAuthServerAuthentication();
 
         builder.Services.AddControllersWithViews(options =>
         {
