@@ -1,16 +1,16 @@
 using System.Security.Claims;
+using Avancira.Auth.Helpers;
 using Avancira.Auth.Models.Account;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Identity.Users;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Facebook;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 
 namespace Avancira.Auth.Controllers;
@@ -24,49 +24,45 @@ public class AccountController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly IUserService _userService;
     private readonly IMemoryCache _cache;
-
-    private static readonly HashSet<string> AllowedProviders =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            GoogleDefaults.AuthenticationScheme,
-            FacebookDefaults.AuthenticationScheme
-        };
+    private readonly ILogger<AccountController> _logger;
 
     private static readonly TimeSpan ResetCooldown = TimeSpan.FromSeconds(30);
 
     public AccountController(
         SignInManager<User> signInManager,
         IUserService userService,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        ILogger<AccountController> logger)
     {
         _signInManager = signInManager;
         _userService = userService;
         _cache = cache;
+        _logger = logger;
     }
 
-    [HttpGet("login")]
-    public IActionResult Login(string? returnUrl = null, string? provider = null)
-    {
-        var targetUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl;
+    #region Login
 
-        if (!string.IsNullOrWhiteSpace(provider) && AllowedProviders.Contains(provider))
+    [HttpGet("login")]
+    public IActionResult Login(string? returnUrl = null)
+    {
+        if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect($"/api/auth/external-login?provider={provider}&returnUrl={targetUrl}");
+            return LocalRedirect(returnUrl ?? "/connect/authorize");
         }
 
-        var model = new LoginViewModel { ReturnUrl = targetUrl };
+        var model = new LoginViewModel { ReturnUrl = returnUrl ?? "/connect/authorize" };
         ViewData["Title"] = "Login";
         return View(model);
     }
 
     [HttpPost("login")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        var returnUrl = string.IsNullOrEmpty(model.ReturnUrl) ? "/connect/authorize" : model.ReturnUrl;
+        var returnUrl = model.ReturnUrl ?? "/connect/authorize";
 
         if (!ModelState.IsValid)
         {
-            model.ReturnUrl = returnUrl;
             ViewData["Title"] = "Login";
             return View(model);
         }
@@ -74,51 +70,57 @@ public class AccountController : Controller
         var user = await _signInManager.UserManager.FindByEmailAsync(model.Email);
         if (user is null || !await _signInManager.UserManager.CheckPasswordAsync(user, model.Password))
         {
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-            model.ReturnUrl = returnUrl;
+            ModelState.AddModelError(string.Empty, UiMessages.InvalidCredentials);
+            ViewData["Title"] = "Login";
+            return View(model);
+        }
+
+        if (await _signInManager.UserManager.IsLockedOutAsync(user))
+        {
+            ModelState.AddModelError(string.Empty, UiMessages.LockedAccount);
+            ViewData["Title"] = "Login";
+            return View(model);
+        }
+
+        if (!await _signInManager.CanSignInAsync(user))
+        {
+            ModelState.AddModelError(string.Empty, "Sign-in not allowed for this account.");
             ViewData["Title"] = "Login";
             return View(model);
         }
 
         var principal = await _signInManager.CreateUserPrincipalAsync(user);
-        var identity = (ClaimsIdentity)principal.Identity!;
+        await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
 
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Subject, user.Id);
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Name, user.UserName);
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.GivenName, user.FirstName);
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.FamilyName, user.LastName);
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.Email, user.Email);
-        AddClaimIfMissing(identity, OpenIddictConstants.Claims.EmailVerified, "true", ClaimValueTypes.Boolean);
-
-        var roles = await _signInManager.UserManager.GetRolesAsync(user);
-        foreach (var role in roles)
-        {
-            AddClaimIfMissing(identity, OpenIddictConstants.Claims.Role, role, matchValue: true);
-        }
-
-        await HttpContext.SignInAsync(
-            IdentityConstants.ApplicationScheme,
-            principal);
-
+        TempData["SuccessMessage"] = $"Welcome back, {user.FirstName ?? user.UserName}!";
         return LocalRedirect(returnUrl);
     }
+
+    #endregion
+
+    #region Register
 
     [HttpGet("register")]
     public IActionResult Register(string? returnUrl = null)
     {
-        var model = new RegisterViewModel { ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl };
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return LocalRedirect(returnUrl ?? "/connect/authorize");
+        }
+
+        var model = new RegisterViewModel { ReturnUrl = returnUrl ?? "/connect/authorize" };
         ViewData["Title"] = "Register";
         return View(model);
     }
 
     [HttpPost("register")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        var returnUrl = string.IsNullOrEmpty(model.ReturnUrl) ? "/connect/authorize" : model.ReturnUrl;
+        var returnUrl = model.ReturnUrl ?? "/connect/authorize";
 
         if (!ModelState.IsValid)
         {
-            model.ReturnUrl = returnUrl;
             ViewData["Title"] = "Register";
             return View(model);
         }
@@ -135,19 +137,29 @@ public class AccountController : Controller
         };
 
         var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
+
         try
         {
             await _userService.RegisterAsync(dto, origin, HttpContext.RequestAborted);
+            TempData["SuccessMessage"] = UiMessages.AccountCreated;
             return RedirectToAction(nameof(Login), new { returnUrl });
         }
         catch (AvanciraException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
-            model.ReturnUrl = returnUrl;
+            _logger.LogWarning(ex, "Registration failed for {Email}", model.Email);
+
+            var errors = ex.ErrorMessages.Any() ? ex.ErrorMessages : new[] { ex.Message };
+            foreach (var e in errors)
+                ModelState.AddModelError(string.Empty, e);
+
             ViewData["Title"] = "Register";
             return View(model);
         }
     }
+
+    #endregion
+
+    #region Forgot Password
 
     [HttpGet("forgot-password")]
     public IActionResult ForgotPassword()
@@ -157,6 +169,7 @@ public class AccountController : Controller
     }
 
     [HttpPost("forgot-password")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
     {
         if (!ModelState.IsValid)
@@ -169,96 +182,45 @@ public class AccountController : Controller
         var cacheKey = $"pwreset:{model.Email}:{ip}";
         var now = DateTimeOffset.UtcNow;
 
-        if (_cache.TryGetValue(cacheKey, out DateTimeOffset lastRequest))
+        if (_cache.TryGetValue(cacheKey, out DateTimeOffset last))
         {
-            var elapsed = now - lastRequest;
+            var elapsed = now - last;
             if (elapsed < ResetCooldown)
             {
-                model.RemainingCooldown = (int)Math.Ceiling((ResetCooldown - elapsed).TotalSeconds);
-                ModelState.AddModelError(string.Empty, $"Please wait {model.RemainingCooldown} seconds before requesting another password reset.");
+                ModelState.AddModelError(
+                    string.Empty,
+                    $"Please wait {(int)(ResetCooldown - elapsed).TotalSeconds} seconds before retrying.");
                 ViewData["Title"] = "Forgot Password";
                 return View(model);
             }
         }
 
-        await _userService.ForgotPasswordAsync(new ForgotPasswordDto { Email = model.Email }, HttpContext.RequestAborted);
-        _cache.Set(cacheKey, now, ResetCooldown);
-        model.RemainingCooldown = (int)ResetCooldown.TotalSeconds;
-        model.Message = "If an account with that email exists, a password reset link has been sent.";
-        ViewData["Title"] = "Forgot Password";
-        return View(model);
-    }
-
-    [HttpGet("reset-password")]
-    public IActionResult ResetPassword(string? userId, string? token)
-    {
-        var model = new ResetPasswordViewModel
-        {
-            UserId = userId ?? string.Empty,
-            Token = token ?? string.Empty
-        };
-
-        ViewData["Title"] = "Reset Password";
-        return View(model);
-    }
-
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            ViewData["Title"] = "Reset Password";
-            return View(model);
-        }
-
-        var dto = new ResetPasswordDto
-        {
-            UserId = model.UserId,
-            Password = model.Password,
-            ConfirmPassword = model.ConfirmPassword,
-            Token = model.Token
-        };
-
         try
         {
-            await _userService.ResetPasswordAsync(dto, HttpContext.RequestAborted);
-            TempData["SuccessMessage"] = "Password reset successfully.";
-            return RedirectToAction(nameof(Login));
+            await _userService.ForgotPasswordAsync(new ForgotPasswordDto { Email = model.Email }, HttpContext.RequestAborted);
+            _cache.Set(cacheKey, now, ResetCooldown);
+            TempData["SuccessMessage"] = UiMessages.PasswordResetSent;
         }
-        catch (AvanciraException ex)
+        catch
         {
-            var errors = ex.ErrorMessages.Any() ? ex.ErrorMessages : new[] { ex.Message };
-            foreach (var error in errors)
-            {
-                ModelState.AddModelError(string.Empty, error);
-            }
-
-            ViewData["Title"] = "Reset Password";
-            return View(model);
+            TempData["SuccessMessage"] = UiMessages.PasswordResetSent; // Do not reveal errors
         }
+
+        return RedirectToAction(nameof(Login));
     }
 
-    private static void AddClaimIfMissing(
-        ClaimsIdentity identity,
-        string type,
-        string? value,
-        string? valueType = null,
-        bool matchValue = false)
+    #endregion
+
+    #region Logout
+
+    [HttpPost("logout")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Logout()
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return;
-        }
-
-        bool hasClaim = matchValue
-            ? identity.HasClaim(c => c.Type == type && c.Value == value)
-            : identity.HasClaim(c => c.Type == type);
-
-        if (!hasClaim)
-        {
-            identity.AddClaim(valueType is null
-                ? new Claim(type, value)
-                : new Claim(type, value, valueType));
-        }
+        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        TempData["SuccessMessage"] = "You have been logged out successfully.";
+        return RedirectToAction(nameof(Login));
     }
+
+    #endregion
 }

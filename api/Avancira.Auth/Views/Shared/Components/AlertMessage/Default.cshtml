@@ -1,0 +1,17 @@
+﻿@model (string Type, string Message)
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    var alertClass = Model.Type switch
+    {
+        "success" => "alert alert-success alert-dismissible fade show",
+        "error" => "alert alert-danger alert-dismissible fade show",
+        "warning" => "alert alert-warning alert-dismissible fade show",
+        _ => "alert alert-info alert-dismissible fade show"
+    };
+
+    <div class="@alertClass" role="alert">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}

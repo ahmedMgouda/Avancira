@@ -1,39 +1,61 @@
 @model LoginViewModel
 @{
-    ViewData["Title"] = ViewData["Title"] ?? "Login";
+    ViewData["Title"] = "Login";
 }
 
-@if (TempData["SuccessMessage"] is string successMessage)
+<h2 class="mb-3">Login</h2>
+
+@if (!ViewData.ModelState.IsValid)
 {
-    <p>@successMessage</p>
+    <div class="alert alert-danger">
+        @Html.ValidationSummary(excludePropertyErrors: true)
+    </div>
 }
 
-<form asp-action="Login" method="post">
+<form asp-action="Login" method="post" id="loginForm">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ReturnUrl" />
 
-    <div>
-        <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" />
-        <span asp-validation-for="Email"></span>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control @(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "is-invalid" : "")" />
+        <span asp-validation-for="Email" class="invalid-feedback"></span>
     </div>
-    <div>
-        <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" />
-        <span asp-validation-for="Password"></span>
-        <a asp-action="ForgotPassword">Forgot your password?</a>
-        <br />
+
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" type="password" class="form-control @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "is-invalid" : "")" />
+        <span asp-validation-for="Password" class="invalid-feedback"></span>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a asp-action="ForgotPassword">Forgot password?</a>
         <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Register</a>
     </div>
-    <button type="submit">Log in</button>
+
+    <button id="loginButton" type="submit" class="btn btn-primary w-100">
+        Log in
+    </button>
 </form>
 
-<hr />
+<hr class="my-4" />
 
-<a href="/api/auth/external-login?provider=Google&returnUrl=@Model.ReturnUrl">Sign in with Google</a>
-<br />
-<a href="/api/auth/external-login?provider=Facebook&returnUrl=@Model.ReturnUrl">Sign in with Facebook</a>
+<div class="d-grid gap-2">
+    <a class="btn btn-outline-dark" href="/api/auth/external-login?provider=Google&returnUrl=@Model.ReturnUrl">
+        <i class="bi bi-google"></i> Sign in with Google
+    </a>
+    <a class="btn btn-outline-primary" href="/api/auth/external-login?provider=Facebook&returnUrl=@Model.ReturnUrl">
+        <i class="bi bi-facebook"></i> Sign in with Facebook
+    </a>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('loginForm')?.addEventListener('submit', function () {
+            const btn = document.getElementById('loginButton');
+            btn.disabled = true;
+            btn.innerHTML = 'Logging in... <span class="spinner-border spinner-border-sm"></span>';
+        });
+    </script>
 }
