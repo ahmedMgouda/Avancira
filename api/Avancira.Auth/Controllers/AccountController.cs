@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Avancira.API.Models.Account;
+using Avancira.Auth.Models.Account;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Domain.Common.Exceptions;
@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OpenIddict.Abstractions;
 
-namespace Avancira.API.Controllers;
+namespace Avancira.Auth.Controllers;
 
 [AllowAnonymous]
 [AutoValidateAntiforgeryToken]
