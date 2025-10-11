@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Avancira.API.Models.Account;
+namespace Avancira.Auth.Models.Account;
 
 public class ForgotPasswordViewModel
 {

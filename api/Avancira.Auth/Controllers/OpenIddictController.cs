@@ -16,9 +16,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using Microsoft.AspNetCore;
 
-namespace Avancira.API.Controllers;
+namespace Avancira.Auth.Controllers;
 
 [AllowAnonymous]
 [Route("connect")]

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
-namespace Avancira.API;
+namespace Avancira.Auth;
 
 public static class AuthenticationExtensions
 {

@@ -1,13 +1,13 @@
-﻿using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure;
 using Avancira.Infrastructure.Persistence;
 using Avancira.ServiceDefaults;
+using Avancira.Auth;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Avancira.Infrastructure.Auth;
 
-public partial class Program {
+public partial class Program
+{
     private static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +17,6 @@ public partial class Program {
 
         if (isUsingAspire)
         {
-            // Aspire mode - let Aspire handle database configuration
             builder.ConfigureAvanciraFramework();
             builder.AddNpgsqlDbContext<AvanciraDbContext>("avancira", configureDbContextOptions: options =>
             {
@@ -26,28 +25,30 @@ public partial class Program {
         }
         else
         {
-            // Production mode - use traditional database configuration
             builder.ConfigureAvanciraFramework();
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
 
-        builder.Services.AddControllers(options =>
+        builder.Services.AddControllersWithViews(options =>
         {
-            options.Filters.Add(new ProducesAttribute("application/json"));
+            options.Filters.Add(new ProducesAttribute("text/html"));
         })
         .AddJsonOptions(options =>
         {
-            options.JsonSerializerOptions.Converters.Add(
-                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
         });
+
+        builder.Services.AddMemoryCache();
+
+        using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+        var authLogger = authLoggerFactory.CreateLogger("AuthenticationExtensions");
+        builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 
         var app = builder.Build();
 
         app.UseAvanciraFramework();
 
         app.UseHttpsRedirection();
-
-        app.MapHub<NotificationHub>(AuthConstants.Endpoints.Notification);
 
         app.MapControllers();
 

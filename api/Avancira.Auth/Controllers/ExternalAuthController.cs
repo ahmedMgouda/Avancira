@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Avancira.Infrastructure.Identity.Users;
 
-namespace Avancira.API.Controllers;
+namespace Avancira.Auth.Controllers;
 
 [ApiController]
 [Route("api/auth")]
