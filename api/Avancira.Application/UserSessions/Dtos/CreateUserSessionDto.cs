@@ -1,4 +1,12 @@
-﻿namespace Avancira.Application.UserSessions.Dtos;
+using System;
+
+namespace Avancira.Application.UserSessions.Dtos;
+
 public sealed record CreateUserSessionDto(
     string UserId,
-    Guid AuthorizationId);
+    string? DeviceId,
+    string? DeviceName,
+    string? UserAgent,
+    string? IpAddress,
+    string? RefreshTokenReferenceId,
+    DateTimeOffset? TokenExpiresAt);

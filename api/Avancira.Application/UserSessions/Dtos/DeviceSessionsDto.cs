@@ -6,9 +6,6 @@ namespace Avancira.Application.UserSessions.Dtos;
 public sealed record DeviceSessionsDto(
     string DeviceId,
     string? DeviceName,
-    string? OperatingSystem,
     string? UserAgent,
-    string? Country,
-    string? City,
-    DateTime LastActivityUtc,
+    DateTimeOffset LastActivityAt,
     IReadOnlyList<UserSessionDto> Sessions);

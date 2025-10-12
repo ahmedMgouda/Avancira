@@ -1,5 +1,4 @@
 using Avancira.Application;
-using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
@@ -155,10 +154,7 @@ public static class Extensions
 
     private static IServiceCollection ConfigureUserSessions(this IServiceCollection services)
     {
-        services.AddScoped<ISessionMetadataCollectionService, SessionMetadataCollectionService>();
         services.AddScoped<INetworkContextService, NetworkContextService>();
-        services.AddSingleton<IUserAgentAnalysisService, UserAgentAnalysisService>();
-        services.AddHttpClient<IGeolocationService, GeolocationService>();
         return services;
     }
     private static IServiceCollection ConfigureMessaging(this IServiceCollection services)

@@ -1,5 +1,3 @@
-﻿using Avancira.Domain.UserSessions.ValueObjects;
-
 namespace Avancira.Application.UserSessions.Services;
 
 /// <summary>
@@ -7,6 +5,6 @@ namespace Avancira.Application.UserSessions.Services;
 /// </summary>
 public interface INetworkContextService
 {
-    IpAddress GetIpAddress();
-    DeviceIdentifier GetOrCreateDeviceId();
+    string? GetIpAddress();
+    string GetOrCreateDeviceId();
 }
