@@ -1,5 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using Avancira.Domain.UserSessions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
 
@@ -13,59 +18,71 @@ public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
 
         builder.HasKey(s => s.Id);
 
-        builder.HasIndex(s => s.Id)
-            .HasDatabaseName("IX_UserSessions_SessionId")
-            .IsUnique();
-
         builder.Property(s => s.UserId)
             .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(s => s.AuthorizationId)
-            .IsRequired();
+            .HasMaxLength(256);
 
         builder.Property(s => s.DeviceId)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(256);
 
         builder.Property(s => s.DeviceName)
-            .HasMaxLength(200);
+            .HasMaxLength(256);
 
         builder.Property(s => s.UserAgent)
-            .HasMaxLength(500);
-
-        builder.Property(s => s.OperatingSystem)
-            .HasMaxLength(200);
+            .HasMaxLength(512);
 
         builder.Property(s => s.IpAddress)
-            .IsRequired()
-            .HasMaxLength(45); // IPv6 max length
+            .HasMaxLength(64);
 
-        builder.Property(s => s.Country)
-            .HasMaxLength(100);
-
-        builder.Property(s => s.City)
-            .HasMaxLength(100);
-
-        builder.Property(s => s.CreatedAtUtc)
+        builder.Property(s => s.Status)
             .IsRequired();
 
-        builder.Property(s => s.AbsoluteExpiryUtc)
+        builder.Property(s => s.RefreshTokenReferenceId)
+            .HasMaxLength(512);
+
+        builder.Property(s => s.TokenExpiresAt);
+
+        builder.Property(s => s.CreatedAt)
             .IsRequired();
 
-        builder.Property(s => s.LastActivityUtc)
+        builder.Property(s => s.LastActivityAt)
             .IsRequired();
 
-        builder.Property(s => s.RevokedAtUtc);
+        builder.Property(s => s.RevokedAt);
 
-        // Useful indexes
+        builder.Property(s => s.RevocationReason)
+            .HasMaxLength(512);
+
+        builder.Property(s => s.RequiresUserNotification)
+            .IsRequired();
+
+        var comparer = new ValueComparer<ICollection<string>>(
+            (left, right) =>
+                left != null && right != null && left.SequenceEqual(right),
+            collection =>
+                collection == null
+                    ? 0
+                    : collection.Aggregate(0, (current, value) => HashCode.Combine(current, value.GetHashCode())),
+            collection =>
+                collection == null
+                    ? new List<string>()
+                    : collection.ToList());
+
+        builder.Property(s => s.AccessedResourceIds)
+            .HasConversion(
+                collection => JsonSerializer.Serialize(collection, (JsonSerializerOptions?)null),
+                json => string.IsNullOrWhiteSpace(json)
+                    ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>())
+            .Metadata.SetValueComparer(comparer);
+
         builder.HasIndex(s => s.UserId);
-        builder.HasIndex(s => s.AuthorizationId);
         builder.HasIndex(s => s.DeviceId);
-        builder.HasIndex(s => s.IpAddress);
-        builder.HasIndex(s => s.CreatedAtUtc);
-        builder.HasIndex(s => s.AbsoluteExpiryUtc);
-        builder.HasIndex(s => s.LastActivityUtc);
-        builder.HasIndex(s => s.RevokedAtUtc);
+        builder.HasIndex(s => s.Status);
+        builder.HasIndex(s => s.RefreshTokenReferenceId);
+        builder.HasIndex(s => s.TokenExpiresAt);
+        builder.HasIndex(s => s.LastActivityAt);
+        builder.HasIndex(s => s.RevokedAt);
     }
 }

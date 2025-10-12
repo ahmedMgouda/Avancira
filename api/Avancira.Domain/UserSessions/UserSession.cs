@@ -1,112 +1,82 @@
-using Avancira.Domain.Common;
+using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations.Schema;
 using Avancira.Domain.Common.Contracts;
-using Avancira.Domain.Common.Exceptions;
-using Avancira.Domain.UserSessions.Events;
-using Avancira.Domain.UserSessions.ValueObjects;
+using Avancira.Domain.Common.Events;
 
 namespace Avancira.Domain.UserSessions;
 
-public sealed class UserSession : BaseEntity, IAggregateRoot
+/// <summary>
+/// Represents a user session tracked across devices
+/// Stored in database for audit trail and multi-device tracking
+/// </summary>
+public class UserSession : IAggregateRoot
 {
-    private UserSession() { }
+    /// <summary>Primary key - correlates with refresh token reference ID at auth server</summary>
+    public Guid Id { get; set; }
 
-    private UserSession(
-        string userId,
-        Guid authorizationId,
-        SessionMetadata metadata,
-        DateTime absoluteExpiry)
-    {
-        if (string.IsNullOrWhiteSpace(userId))
-            throw new AvanciraValidationException("User ID is required");
+    /// <summary>Foreign key to user</summary>
+    public string UserId { get; set; } = null!;
 
-        if (authorizationId == Guid.Empty)
-            throw new AvanciraValidationException("Authorization ID is required");
+    /// <summary>Device identifier (from network context)</summary>
+    public string DeviceId { get; set; } = null!;
 
-        UserId = userId;
-        AuthorizationId = authorizationId;
-        DeviceId = metadata.DeviceId.Value;
-        IpAddress = metadata.IpAddress.Value;
-        UserAgent = metadata.UserAgent.Value;
-        DeviceName = metadata.DeviceInfo.Name;
-        OperatingSystem = metadata.DeviceInfo.OperatingSystem;
-        Country = metadata.Location?.Country;
-        City = metadata.Location?.City;
-        CreatedAtUtc = DateTime.UtcNow;
-        AbsoluteExpiryUtc = absoluteExpiry;
-        LastActivityUtc = CreatedAtUtc;
+    /// <summary>Device name/description provided by client</summary>
+    public string? DeviceName { get; set; }
 
-        QueueDomainEvent(new SessionCreatedEvent(Id, userId, metadata.DeviceInfo.Category));
-    }
+    /// <summary>User agent from the login request</summary>
+    public string? UserAgent { get; set; }
 
-    // Properties
-    public string UserId { get; private set; } = default!;
-    public Guid AuthorizationId { get; private set; }
-    public string DeviceId { get; private set; } = default!;
-    public string? DeviceName { get; private set; }
-    public string? UserAgent { get; private set; }
-    public string? OperatingSystem { get; private set; }
-    public string IpAddress { get; private set; } = default!;
-    public string? Country { get; private set; }
-    public string? City { get; private set; }
-    public DateTime CreatedAtUtc { get; private set; }
-    public DateTime AbsoluteExpiryUtc { get; private set; }
-    public DateTime LastActivityUtc { get; private set; }
-    public DateTime? RevokedAtUtc { get; private set; }
+    /// <summary>IP address of the login</summary>
+    public string? IpAddress { get; set; }
 
-    // Factory method
-    public static UserSession Create(
-        string userId,
-        Guid authorizationId,
-        SessionMetadata metadata,
-        TimeSpan? duration = null)
-    {
-        var expiry = DateTime.UtcNow.Add(duration ?? TimeSpan.FromDays(30));
-        return new UserSession(userId, authorizationId, metadata, expiry);
-    }
+    /// <summary>Status of the session</summary>
+    public SessionStatus Status { get; set; } = SessionStatus.Active;
 
-    // Business methods
-    public void UpdateActivity()
-    {
-        var now = DateTime.UtcNow;
-        if (!IsActiveAt(now))
-            throw new AvanciraConflictException("Cannot update activity on inactive session");
+    /// <summary>Reference ID of the refresh token at auth server (OpenIddict RefreshTokenId)</summary>
+    public string? RefreshTokenReferenceId { get; set; }
 
-        LastActivityUtc = now;
-        QueueDomainEvent(new SessionActivityUpdatedEvent(Id, UserId));
-    }
+    /// <summary>When the refresh token expires</summary>
+    public DateTimeOffset? TokenExpiresAt { get; set; }
 
-    public void Revoke(string? reason = null)
-    {
-        if (RevokedAtUtc.HasValue)
-            throw new AvanciraConflictException("Session is already revoked");
+    /// <summary>When this session was created</summary>
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-        RevokedAtUtc = DateTime.UtcNow;
-        QueueDomainEvent(new SessionRevokedEvent(Id, UserId, reason));
-    }
+    /// <summary>Last activity on this session</summary>
+    public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
 
-    public void UpdateMetadata(SessionMetadata metadata)
-    {
-        if (!IsActiveAt(DateTime.UtcNow))
-            throw new AvanciraConflictException("Cannot update metadata on inactive session");
+    /// <summary>When session was revoked/logged out</summary>
+    public DateTimeOffset? RevokedAt { get; set; }
 
-        DeviceName = metadata.DeviceInfo.Name;
-        UserAgent = metadata.UserAgent.Value;
-        OperatingSystem = metadata.DeviceInfo.OperatingSystem;
-        Country = metadata.Location?.Country;
-        City = metadata.Location?.City;
+    /// <summary>Reason for revocation (manual logout, expired, security event, etc)</summary>
+    public string? RevocationReason { get; set; }
 
-        QueueDomainEvent(new SessionMetadataUpdatedEvent(Id, UserId));
-    }
+    /// <summary>True if we should notify user (security event)</summary>
+    public bool RequiresUserNotification { get; set; }
 
-    // Query methods
-    public bool IsActiveAt(DateTime utc) =>
-        !RevokedAtUtc.HasValue && AbsoluteExpiryUtc > utc;
+    /// <summary>For future use: multi-device logout support</summary>
+    public ICollection<string> AccessedResourceIds { get; set; } = new List<string>();
 
-    public bool IsExpiredAt(DateTime utc) =>
-        AbsoluteExpiryUtc <= utc;
+    /// <inheritdoc />
+    [NotMapped]
+    public Collection<DomainEvent> DomainEvents { get; } = new();
+}
 
-    public TimeSpan TimeUntilExpiry() =>
-        AbsoluteExpiryUtc > DateTime.UtcNow
-            ? AbsoluteExpiryUtc - DateTime.UtcNow
-            : TimeSpan.Zero;
+/// <summary>Session status enum</summary>
+public enum SessionStatus
+{
+    /// <summary>Active and valid</summary>
+    Active = 0,
+
+    /// <summary>Refresh token expired but not yet cleaned up</summary>
+    Expired = 1,
+
+    /// <summary>Manually revoked by user or admin</summary>
+    Revoked = 2,
+
+    /// <summary>Revoked due to security incident</summary>
+    RevokedBySecurityEvent = 3,
+
+    /// <summary>Revoked because refresh token was invalidated</summary>
+    RevokedByTokenInvalidation = 4
 }

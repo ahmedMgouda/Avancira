@@ -1,37 +1,31 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Avancira.Application.Persistence;
 using Avancira.Application.UserSessions.Dtos;
+using Avancira.Application.UserSessions.Services;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.UserSessions;
 using Mapster;
 using Microsoft.Extensions.Logging;
-using OpenIddict.Abstractions;
 
 namespace Avancira.Application.UserSessions;
 
 public class UserSessionService : IUserSessionService
 {
     private readonly IRepository<UserSession> _sessionRepository;
-    private readonly ISessionMetadataCollectionService _metadataService;
-    private readonly IOpenIddictAuthorizationManager _authorizationManager;
-    private readonly IOpenIddictTokenManager _tokenManager;
+    private readonly INetworkContextService _networkContextService;
     private readonly ILogger<UserSessionService> _logger;
-
-    // Absolute session lifetime (e.g. 90 days)
-    private static readonly TimeSpan AbsoluteSessionLifetime = TimeSpan.FromDays(90);
 
     public UserSessionService(
         IRepository<UserSession> sessionRepository,
-        ISessionMetadataCollectionService metadataService,
-        IOpenIddictAuthorizationManager authorizationManager,
-        IOpenIddictTokenManager tokenManager,
+        INetworkContextService networkContextService,
         ILogger<UserSessionService> logger)
     {
         _sessionRepository = sessionRepository;
-        _metadataService = metadataService;
-        _authorizationManager = authorizationManager;
-        _tokenManager = tokenManager;
+        _networkContextService = networkContextService;
         _logger = logger;
     }
 
@@ -61,7 +55,7 @@ public class UserSessionService : IUserSessionService
             .Select(group =>
             {
                 var ordered = group
-                    .OrderByDescending(s => s.LastActivityUtc)
+                    .OrderByDescending(s => s.LastActivityAt)
                     .ToList();
 
                 var first = ordered[0];
@@ -69,14 +63,11 @@ public class UserSessionService : IUserSessionService
                 return new DeviceSessionsDto(
                     first.DeviceId,
                     first.DeviceName,
-                    first.OperatingSystem,
                     first.UserAgent,
-                    first.Country,
-                    first.City,
-                    ordered[0].LastActivityUtc,
+                    first.LastActivityAt,
                     ordered);
             })
-            .OrderByDescending(group => group.LastActivityUtc)
+            .OrderByDescending(group => group.LastActivityAt)
             .ToList();
 
         return groupedSessions;
@@ -84,13 +75,35 @@ public class UserSessionService : IUserSessionService
 
     public async Task<UserSessionDto> CreateAsync(CreateUserSessionDto dto, CancellationToken cancellationToken = default)
     {
-        if (dto is null) throw new ArgumentNullException(nameof(dto));
+        if (dto is null)
+        {
+            throw new ArgumentNullException(nameof(dto));
+        }
 
-        var metadata = await _metadataService.CollectAsync(cancellationToken);
-
-        var session = UserSession.Create(dto.UserId, dto.AuthorizationId, metadata, AbsoluteSessionLifetime);
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = dto.UserId,
+            DeviceId = string.IsNullOrWhiteSpace(dto.DeviceId)
+                ? _networkContextService.GetOrCreateDeviceId()
+                : dto.DeviceId!,
+            DeviceName = dto.DeviceName,
+            UserAgent = dto.UserAgent,
+            IpAddress = dto.IpAddress ?? _networkContextService.GetIpAddress(),
+            RefreshTokenReferenceId = dto.RefreshTokenReferenceId,
+            TokenExpiresAt = dto.TokenExpiresAt,
+            CreatedAt = DateTimeOffset.UtcNow,
+            LastActivityAt = DateTimeOffset.UtcNow,
+            Status = SessionStatus.Active
+        };
 
         await _sessionRepository.AddAsync(session, cancellationToken);
+
+        _logger.LogInformation(
+            "Created session {SessionId} for user {UserId} on device {DeviceId}",
+            session.Id,
+            session.UserId,
+            session.DeviceId);
 
         return session.Adapt<UserSessionDto>();
     }
@@ -100,7 +113,8 @@ public class UserSessionService : IUserSessionService
         var session = await _sessionRepository.GetByIdAsync(sessionId, cancellationToken)
             ?? throw new AvanciraNotFoundException($"Session with ID '{sessionId}' not found.");
 
-        session.UpdateActivity();
+        session.LastActivityAt = DateTimeOffset.UtcNow;
+
         await _sessionRepository.UpdateAsync(session, cancellationToken);
 
         return session.Adapt<UserSessionDto>();
@@ -111,16 +125,19 @@ public class UserSessionService : IUserSessionService
         var session = await _sessionRepository.GetByIdAsync(sessionId, cancellationToken)
             ?? throw new AvanciraNotFoundException($"Session with ID '{sessionId}' not found.");
 
-        if (!await TryDisableAuthorizationAsync(session.AuthorizationId, cancellationToken))
+        if (session.Status is SessionStatus.Revoked or SessionStatus.RevokedBySecurityEvent or SessionStatus.RevokedByTokenInvalidation)
         {
-            _logger.LogWarning(
-                "Skipping revocation for session {SessionId} because its authorization could not be disabled.",
-                sessionId);
+            _logger.LogDebug("Session {SessionId} is already revoked.", sessionId);
             return false;
         }
 
-        session.Revoke(reason);
+        session.Status = SessionStatus.Revoked;
+        session.RevokedAt = DateTimeOffset.UtcNow;
+        session.RevocationReason = reason;
+
         await _sessionRepository.UpdateAsync(session, cancellationToken);
+
+        _logger.LogInformation("Revoked session {SessionId} for user {UserId}", sessionId, session.UserId);
 
         return true;
     }
@@ -133,104 +150,23 @@ public class UserSessionService : IUserSessionService
         foreach (var session in sessions)
         {
             if (excludeSessionId.HasValue && session.Id == excludeSessionId.Value)
-                continue;
-
-            if (!await TryDisableAuthorizationAsync(session.AuthorizationId, cancellationToken))
             {
-                _logger.LogWarning(
-                    "Failed to disable authorization for session {SessionId}; leaving it active.",
-                    session.Id);
                 continue;
             }
 
-            session.Revoke("Bulk revocation");
+            session.Status = SessionStatus.Revoked;
+            session.RevokedAt = DateTimeOffset.UtcNow;
+            session.RevocationReason = "Bulk revocation";
+
             await _sessionRepository.UpdateAsync(session, cancellationToken);
             revokedCount++;
         }
 
+        if (revokedCount > 0)
+        {
+            _logger.LogInformation("Revoked {Count} sessions for user {UserId}", revokedCount, userId);
+        }
+
         return revokedCount;
-    }
-
-    private async Task<bool> TryDisableAuthorizationAsync(Guid authorizationId, CancellationToken cancellationToken)
-    {
-        var identifier = authorizationId.ToString();
-
-        try
-        {
-            await foreach (var token in _tokenManager.FindByAuthorizationIdAsync(identifier, cancellationToken))
-            {
-                try
-                {
-                    var revoked = await _tokenManager.TryRevokeAsync(token, cancellationToken);
-                    if (!revoked)
-                    {
-                        _logger.LogDebug(
-                            "Token linked to authorization {AuthorizationId} was already revoked.",
-                            authorizationId);
-                    }
-
-                    await _tokenManager.DeleteAsync(token, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Failed to revoke token linked to authorization {AuthorizationId}.",
-                        authorizationId);
-                    return false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to enumerate tokens for authorization {AuthorizationId}.", authorizationId);
-            return false;
-        }
-
-        object? authorization;
-        try
-        {
-            authorization = await _authorizationManager.FindByIdAsync(identifier, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load authorization {AuthorizationId}.", authorizationId);
-            return false;
-        }
-
-        if (authorization is null)
-        {
-            _logger.LogDebug(
-                "No authorization found for identifier {AuthorizationId}; assuming it is already removed.",
-                authorizationId);
-            return true;
-        }
-
-        try
-        {
-            if (!await _authorizationManager.TryRevokeAsync(authorization, cancellationToken))
-            {
-                _logger.LogDebug(
-                    "Authorization {AuthorizationId} was already revoked.",
-                    authorizationId);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to revoke authorization {AuthorizationId}.", authorizationId);
-            return false;
-        }
-
-        try
-        {
-            await _authorizationManager.DeleteAsync(authorization, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete authorization {AuthorizationId}.", authorizationId);
-            return false;
-        }
-
-        return true;
     }
 }

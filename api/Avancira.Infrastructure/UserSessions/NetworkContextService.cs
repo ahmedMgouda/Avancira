@@ -1,52 +1,50 @@
-﻿using Avancira.Application.UserSessions.Services;
-using Avancira.Domain.UserSessions.ValueObjects;
+using System;
+using Avancira.Application.UserSessions.Services;
 using Microsoft.AspNetCore.Http;
 
-namespace Avancira.Infrastructure.UserSessions
+namespace Avancira.Infrastructure.UserSessions;
+
+public sealed class NetworkContextService : INetworkContextService
 {
+    private const string DeviceIdCookieName = "device_id";
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public sealed class NetworkContextService : INetworkContextService
+    public NetworkContextService(IHttpContextAccessor httpContextAccessor)
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor;
+    }
 
-        public NetworkContextService(IHttpContextAccessor httpContextAccessor)
+    public string? GetIpAddress()
+    {
+        var context = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("HTTP context not available");
+
+        return context.Connection.RemoteIpAddress?.ToString();
+    }
+
+    public string GetOrCreateDeviceId()
+    {
+        var context = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("HTTP context not available");
+
+        if (context.Request.Cookies.TryGetValue(DeviceIdCookieName, out var deviceId) && !string.IsNullOrWhiteSpace(deviceId))
         {
-            _httpContextAccessor = httpContextAccessor;
+            return deviceId;
         }
 
-        public IpAddress GetIpAddress()
+        var generated = $"gen-{Guid.NewGuid():N}";
+
+        var options = new CookieOptions
         {
-            var context = _httpContextAccessor.HttpContext
-                ?? throw new InvalidOperationException("HTTP context not available");
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddYears(1)
+        };
 
-            var ip = context.Connection.RemoteIpAddress?.ToString();
-            return IpAddress.Create(ip);
-        }
+        context.Response.Cookies.Append(DeviceIdCookieName, generated, options);
 
-        public DeviceIdentifier GetOrCreateDeviceId()
-        {
-            var context = _httpContextAccessor.HttpContext
-                ?? throw new InvalidOperationException("HTTP context not available");
-
-            if (context.Request.Cookies.TryGetValue("device_id", out var deviceId))
-            {
-                return DeviceIdentifier.Create(deviceId);
-            }
-
-            var generated = DeviceIdentifier.Generate("gen");
-
-            var options = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None, 
-                Path = "/",
-                Expires = DateTimeOffset.UtcNow.AddYears(1)
-            };
-
-            context.Response.Cookies.Append("device_id", generated.Value, options);
-
-            return generated;
-        }
+        return generated;
     }
 }

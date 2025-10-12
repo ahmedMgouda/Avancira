@@ -1,16 +1,15 @@
-﻿using Ardalis.Specification;
+using System;
+using Ardalis.Specification;
 using Avancira.Domain.UserSessions;
 
+namespace Avancira.Application.UserSessions;
 
-namespace Avancira.Application.UserSessions
+public sealed class ActiveUserSessionsSpec : Specification<UserSession>
 {
-    public sealed class ActiveUserSessionsSpec : Specification<UserSession>
+    public ActiveUserSessionsSpec(string userId)
     {
-        public ActiveUserSessionsSpec(string userId)
-        {
-            Query.Where(s => s.UserId == userId &&
-                             !s.RevokedAtUtc.HasValue &&
-                             s.AbsoluteExpiryUtc > DateTime.UtcNow);
-        }
+        Query.Where(s => s.UserId == userId
+                          && s.Status == SessionStatus.Active
+                          && (!s.TokenExpiresAt.HasValue || s.TokenExpiresAt > DateTimeOffset.UtcNow));
     }
 }
