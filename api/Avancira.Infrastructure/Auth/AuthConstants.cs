@@ -26,7 +26,14 @@ public static class AuthConstants
 
     public static class Claims
     {
-        public const string SessionId = "sid";
+        /// <summary>Session ID claim - links to database session</summary>
+        public const string SessionId = "session_id";
+
+        /// <summary>Device ID claim - identifies device for multi-session tracking</summary>
+        public const string DeviceId = "device_id";
+
+        /// <summary>Refresh token reference ID from auth server</summary>
+        public const string RefreshTokenId = "refresh_token_id";
     }
 
     public static class GrantTypes

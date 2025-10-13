@@ -16,7 +16,6 @@ using Avancira.Infrastructure.RateLimit;
 using Avancira.Infrastructure.SecurityHeaders;
 using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Storage.Files;
-using Avancira.Infrastructure.UserSessions;
 using Avancira.ServiceDefaults;
 using FluentValidation;
 using Mapster;

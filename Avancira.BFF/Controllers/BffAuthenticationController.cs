@@ -1,11 +1,12 @@
 using System.Security.Claims;
+using Avancira.Application.UserSessions.Services;
 using Avancira.BFF.Services;
-using IdentityModel.AspNetCore.AccessTokenManagement;
+using Avancira.Infrastructure.Auth;
+using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avancira.BFF.Controllers;
@@ -15,180 +16,218 @@ namespace Avancira.BFF.Controllers;
 public class BffAuthenticationController : ControllerBase
 {
     private readonly ILogger<BffAuthenticationController> _logger;
-    private readonly IUserAccessTokenManagementService _userTokenManagementService;
-    private readonly ITokenManagementService _tokenSnapshotService;
+    private readonly IUserTokenManager _userTokenManager;
+    private readonly ISessionManagementService _sessionManagementService;
+    private readonly ITokenManagementService _tokenManagementService;
+    private readonly INetworkContextService _networkContextService;
 
     public BffAuthenticationController(
         ILogger<BffAuthenticationController> logger,
-        IUserAccessTokenManagementService userTokenManagementService,
-        ITokenManagementService tokenSnapshotService)
+        IUserTokenManager userTokenManager,
+        ISessionManagementService sessionManagementService,
+        ITokenManagementService tokenManagementService,
+        INetworkContextService networkContextService)
     {
         _logger = logger;
-        _userTokenManagementService = userTokenManagementService;
-        _tokenSnapshotService = tokenSnapshotService;
+        _userTokenManager = userTokenManager;
+        _sessionManagementService = sessionManagementService;
+        _tokenManagementService = tokenManagementService;
+        _networkContextService = networkContextService;
     }
 
+    // ------------------------------------------------------------
+    // LOGIN
+    // ------------------------------------------------------------
     [HttpGet("login")]
+    [AllowAnonymous]
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
-        {
-            var safeUrl = GetSafeReturnUrl(returnUrl);
-            _logger.LogDebug("User already authenticated, redirecting to {ReturnUrl}", safeUrl);
-            return Redirect(safeUrl);
-        }
+            return Redirect(GetSafeReturnUrl(returnUrl));
 
-        var properties = new AuthenticationProperties
+        var props = new AuthenticationProperties
         {
             RedirectUri = Url.Action(nameof(LoginCallback), new { returnUrl }) ?? "/"
         };
 
-        properties.Items["scheme"] = OpenIdConnectDefaults.AuthenticationScheme;
-
-        _logger.LogInformation("Starting login flow, returnUrl={ReturnUrl}", returnUrl ?? "/");
-
-        return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+        _logger.LogInformation("Starting login with returnUrl={ReturnUrl}", returnUrl ?? "/");
+        return Challenge(props, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
+    // ------------------------------------------------------------
+    // LOGIN CALLBACK
+    // ------------------------------------------------------------
     [HttpGet("login-callback")]
-    public async Task<IActionResult> LoginCallback([FromQuery] string? returnUrl = null)
-    {
-        var snapshot = await _tokenSnapshotService.CaptureAsync(HttpContext);
-        _tokenSnapshotService.StoreSessionSnapshot(HttpContext, snapshot);
-
-        _logger.LogInformation(
-            "User {UserId} logged in, token expires at {ExpiresAt}",
-            User.FindFirstValue("sub"),
-            snapshot.ExpiresAt);
-
-        return Redirect(GetSafeReturnUrl(returnUrl));
-    }
-
-    [HttpPost("logout")]
-    [Authorize]
-    public async Task<IActionResult> Logout()
-    {
-        var userId = User.FindFirstValue("sub");
-        _logger.LogInformation("User {UserId} logging out", userId);
-
-        _tokenSnapshotService.ClearSession(HttpContext);
-
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
-
-        return Ok(new { success = true, message = "Logged out successfully" });
-    }
-
-    [HttpGet("user")]
-    public async Task<IActionResult> GetUser()
-    {
-        if (User.Identity?.IsAuthenticated != true)
-        {
-            return Ok(new { isAuthenticated = false });
-        }
-
-        var snapshot = await _tokenSnapshotService.CaptureAsync(HttpContext);
-        _tokenSnapshotService.StoreSessionSnapshot(HttpContext, snapshot);
-
-        var roles = User.FindAll("role").Select(claim => claim.Value).ToArray();
-
-        return Ok(new
-        {
-            isAuthenticated = true,
-            sub = User.FindFirstValue("sub"),
-            name = User.FindFirstValue("name"),
-            givenName = User.FindFirstValue("given_name"),
-            familyName = User.FindFirstValue("family_name"),
-            email = User.FindFirstValue("email"),
-            emailVerified = bool.TryParse(User.FindFirstValue("email_verified"), out var verified) && verified,
-            roles,
-            tokenExpiry = snapshot.ExpiresAt?.ToString("o"),
-            tokenExpiresIn = snapshot.ExpiresIn?.TotalSeconds
-        });
-    }
-
-    [HttpGet("session")]
-    public IActionResult CheckSession()
-    {
-        if (User.Identity?.IsAuthenticated != true)
-        {
-            return Unauthorized(new
-            {
-                isAuthenticated = false,
-                message = "Not authenticated"
-            });
-        }
-
-        var expiresAt = HttpContext.Session.GetString("ExpiresAt");
-
-        return Ok(new
-        {
-            isAuthenticated = true,
-            userId = User.FindFirstValue("sub"),
-            expiresAt
-        });
-    }
-
-    [HttpPost("refresh")]
-    [Authorize]
-    public async Task<IActionResult> RefreshToken()
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginCallback(
+        [FromQuery] string? returnUrl = null,
+        CancellationToken ct = default)
     {
         try
         {
-            var tokenResult = await _userTokenManagementService.GetUserAccessTokenAsync(User);
-            if (!string.IsNullOrEmpty(tokenResult.Error))
+            var userId = User.FindFirstValue("sub");
+            if (string.IsNullOrEmpty(userId))
+                return Redirect(GetSafeReturnUrl(null));
+
+            var deviceId = _networkContextService.GetOrCreateDeviceId();
+            var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var session = await _sessionManagementService.CreateSessionAsync(
+                userId, deviceId, null, userAgent, ip, ct);
+
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
+            var expiresAtStr = await HttpContext.GetTokenAsync("expires_at");
+            DateTimeOffset.TryParse(expiresAtStr, out var expiresAt);
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+                return Redirect(GetSafeReturnUrl(null));
+
+            await _tokenManagementService.CacheAccessTokenAsync(userId, session.Id, accessToken, expiresAt, ct);
+
+            if (!string.IsNullOrWhiteSpace(refreshToken))
             {
-                _logger.LogWarning("Token refresh failed for {UserId}: {Error}", User.FindFirstValue("sub"), tokenResult.Error);
-                return Unauthorized(new
-                {
-                    success = false,
-                    error = tokenResult.Error,
-                    message = "Failed to refresh token. Please login again."
-                });
+                var refreshTokenId = User.FindFirstValue("refresh_token_id") ?? refreshToken;
+                await _sessionManagementService.UpdateSessionRefreshTokenAsync(session.Id, refreshTokenId, expiresAt, ct);
             }
 
-            var snapshot = await _tokenSnapshotService.CaptureAsync(HttpContext);
-            _tokenSnapshotService.StoreSessionSnapshot(HttpContext, snapshot);
+            HttpContext.Items["SessionId"] = session.Id.ToString();
 
-            return Ok(new
-            {
-                success = true,
-                message = "Token refreshed successfully",
-                expiresAt = snapshot.ExpiresAt?.ToString("o"),
-                expiresIn = snapshot.ExpiresIn?.TotalSeconds
-            });
+            _logger.LogInformation("Login successful for {UserId}, session {SessionId}", userId, session.Id);
+            return Redirect(GetSafeReturnUrl(returnUrl));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing token for user {UserId}", User.FindFirstValue("sub"));
-            return StatusCode(500, new
-            {
-                success = false,
-                message = "An error occurred while refreshing the token"
-            });
+            _logger.LogError(ex, "Login callback error");
+            return Redirect(GetSafeReturnUrl(null));
         }
     }
 
+    // ------------------------------------------------------------
+    // LOGOUT
+    // ------------------------------------------------------------
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(CancellationToken ct = default)
+    {
+        var userId = User.FindFirstValue("sub");
+        var sessionIdClaim = User.FindFirstValue(AuthConstants.Claims.SessionId);
+
+        _logger.LogInformation("Logout for user {UserId}, session {SessionId}", userId, sessionIdClaim);
+
+        try
+        {
+            if (Guid.TryParse(sessionIdClaim, out var sessionId))
+                await _sessionManagementService.RevokeSessionAsync(sessionId, "User logout", false, ct);
+
+            await _userTokenManager.RevokeRefreshTokenAsync(User, ct: ct);
+
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, new { success = false, message = "Logout failed" });
+        }
+    }
+
+    // ------------------------------------------------------------
+    // USER INFO
+    // ------------------------------------------------------------
+    [HttpGet("user")]
+    [Authorize]
+    public async Task<IActionResult> GetUser(CancellationToken ct = default)
+    {
+        var userId = User.FindFirstValue("sub");
+        var sessionIdClaim = User.FindFirstValue(AuthConstants.Claims.SessionId);
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        if (Guid.TryParse(sessionIdClaim, out var sessionId))
+        {
+            if (!await _sessionManagementService.IsSessionValidAsync(sessionId, ct))
+                return Unauthorized(new { message = "Session revoked" });
+
+            await _sessionManagementService.UpdateSessionActivityAsync(sessionId, ct);
+        }
+
+        var access = await _tokenManagementService.GetAccessTokenAsync(userId, sessionId, ct);
+
+        return Ok(new
+        {
+            isAuthenticated = true,
+            sub = userId,
+            name = User.FindFirstValue("name"),
+            email = User.FindFirstValue("email"),
+            roles = User.FindAll("role").Select(r => r.Value),
+            tokenExpiresAt = access.ExpiresAt,
+            tokenExpiresIn = (int)access.ExpiresIn.TotalSeconds,
+            sessionId = sessionIdClaim
+        });
+    }
+
+    // ------------------------------------------------------------
+    // REFRESH TOKEN
+    // ------------------------------------------------------------
+    [HttpPost("refresh")]
+    [Authorize]
+    public async Task<IActionResult> RefreshToken(CancellationToken ct = default)
+    {
+        var userId = User.FindFirstValue("sub");
+        var sessionIdClaim = User.FindFirstValue(AuthConstants.Claims.SessionId);
+
+        if (!Guid.TryParse(sessionIdClaim, out var sessionId))
+            return Unauthorized(new { error = "invalid_session" });
+
+        if (!await _sessionManagementService.IsSessionValidAsync(sessionId, ct))
+            return Unauthorized(new { error = "session_revoked" });
+
+        var tokenResult = await _userTokenManager.GetAccessTokenAsync(User, ct: ct);
+
+        if (!tokenResult.WasSuccessful(out var token, out var failure))
+        {
+            _logger.LogWarning("Refresh failed for {UserId}: {Error}", userId, failure?.Error ?? "unknown_error");
+            return Unauthorized(new { error = failure?.Error ?? "unknown_error" });
+        }
+
+        await _tokenManagementService.CacheAccessTokenAsync(
+            userId, sessionId, token.AccessToken, token.Expiration, ct);
+
+        await _sessionManagementService.UpdateSessionActivityAsync(sessionId, ct);
+
+        return Ok(new
+        {
+            success = true,
+            accessToken = token.AccessToken,
+            expiresAt = token.Expiration.ToString("o"),
+            expiresIn = (int)(token.Expiration - DateTimeOffset.UtcNow).TotalSeconds
+        });
+    }
+
+    // ------------------------------------------------------------
+    // CHECK AUTH
+    // ------------------------------------------------------------
     [HttpGet("check")]
     public IActionResult CheckAuthentication()
     {
-        return User.Identity?.IsAuthenticated == true ? Ok() : Unauthorized();
+        return User.Identity?.IsAuthenticated == true
+            ? Ok(new { isAuthenticated = true })
+            : Unauthorized(new { isAuthenticated = false });
     }
 
+    // ------------------------------------------------------------
+    // HELPERS
+    // ------------------------------------------------------------
     private string GetSafeReturnUrl(string? returnUrl)
     {
-        const string defaultReturnUrl = "/";
-
-        if (string.IsNullOrWhiteSpace(returnUrl))
-        {
-            return defaultReturnUrl;
-        }
-
-        if (!Url.IsLocalUrl(returnUrl))
-        {
-            _logger.LogWarning("Blocked non-local return URL {ReturnUrl}", returnUrl);
-            return defaultReturnUrl;
-        }
+        const string defaultUrl = "/";
+        if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl))
+            return defaultUrl;
 
         return returnUrl;
     }

@@ -1,26 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Avancira.Application.UserSessions.Dtos;
+using Avancira.Domain.UserSessions;
 
 namespace Avancira.Application.UserSessions;
 
+/// <summary>
+/// Defines persistence and business operations for user sessions.
+/// Provides methods to create, update, revoke, and query user sessions.
+/// </summary>
 public interface IUserSessionService
 {
-    Task<UserSessionDto> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task<IEnumerable<UserSessionDto>> GetActiveByUserAsync(string userId, CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<DeviceSessionsDto>> GetActiveByUserGroupedByDeviceAsync(
-        string userId,
-        CancellationToken cancellationToken = default);
-
-    Task<UserSessionDto> CreateAsync(CreateUserSessionDto dto, CancellationToken cancellationToken = default);
-
-    Task<UserSessionDto> UpdateActivityAsync(Guid sessionId, CancellationToken cancellationToken = default);
-
+    Task<UserSession> CreateAsync(UserSession session, CancellationToken cancellationToken = default);
+    Task<UserSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<UserSession>> GetUserSessionsAsync(string userId, CancellationToken cancellationToken = default);
+    Task UpdateAsync(UserSession session, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid sessionId, string? reason = null, CancellationToken cancellationToken = default);
-
     Task<int> RevokeAllAsync(string userId, Guid? excludeSessionId = null, CancellationToken cancellationToken = default);
+    Task<IEnumerable<UserSession>> GetExpiredSessionsAsync(DateTimeOffset beforeDate, CancellationToken cancellationToken = default);
 }

@@ -199,6 +199,14 @@ export class AuthService implements OnDestroy {
       const state = generateRandomState();
       sessionStorage.setItem(SESSION_STORAGE_KEYS.STATE, state);
 
+
+           // DEBUG: Check what's stored
+      console.log('BEFORE REDIRECT:');
+      console.log('State:', sessionStorage.getItem(SESSION_STORAGE_KEYS.STATE));
+      console.log('Code verifier:', sessionStorage.getItem(SESSION_STORAGE_KEYS.CODE_VERIFIER));
+
+
+
       // Build authorization URL
       const params = new URLSearchParams({
         client_id: environment.clientId,

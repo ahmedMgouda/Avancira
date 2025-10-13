@@ -5,14 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avancira.Application.Persistence;
 using Avancira.Application.UserSessions.Dtos;
-using Avancira.Application.UserSessions.Services;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.UserSessions;
 using Mapster;
 using Microsoft.Extensions.Logging;
 
-namespace Avancira.Application.UserSessions;
+namespace Avancira.Application.UserSessions.Services;
 
+/// <summary>
+/// Application-layer service responsible for user session management.
+/// Handles persistence logic, business validation, and transformation.
+/// </summary>
 public class UserSessionService : IUserSessionService
 {
     private readonly IRepository<UserSession> _sessionRepository;
@@ -29,130 +32,104 @@ public class UserSessionService : IUserSessionService
         _logger = logger;
     }
 
-    public async Task<UserSessionDto> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<UserSession> CreateAsync(UserSession session, CancellationToken cancellationToken = default)
     {
-        var session = await _sessionRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new AvanciraNotFoundException($"Session with ID '{id}' not found.");
+        ArgumentNullException.ThrowIfNull(session);
 
-        return session.Adapt<UserSessionDto>();
-    }
+        if (string.IsNullOrWhiteSpace(session.UserId))
+            throw new ArgumentException("UserId cannot be null or empty", nameof(session));
 
-    public async Task<IEnumerable<UserSessionDto>> GetActiveByUserAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var sessions = await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
-        return sessions.Adapt<List<UserSessionDto>>();
-    }
+        if (string.IsNullOrWhiteSpace(session.DeviceId))
+            throw new ArgumentException("DeviceId cannot be null or empty", nameof(session));
 
-    public async Task<IReadOnlyList<DeviceSessionsDto>> GetActiveByUserGroupedByDeviceAsync(
-        string userId,
-        CancellationToken cancellationToken = default)
-    {
-        var sessions = await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
-        var sessionDtos = sessions.Adapt<List<UserSessionDto>>();
-
-        var groupedSessions = sessionDtos
-            .GroupBy(session => session.DeviceId)
-            .Select(group =>
-            {
-                var ordered = group
-                    .OrderByDescending(s => s.LastActivityAt)
-                    .ToList();
-
-                var first = ordered[0];
-
-                return new DeviceSessionsDto(
-                    first.DeviceId,
-                    first.DeviceName,
-                    first.UserAgent,
-                    first.LastActivityAt,
-                    ordered);
-            })
-            .OrderByDescending(group => group.LastActivityAt)
-            .ToList();
-
-        return groupedSessions;
-    }
-
-    public async Task<UserSessionDto> CreateAsync(CreateUserSessionDto dto, CancellationToken cancellationToken = default)
-    {
-        if (dto is null)
-        {
-            throw new ArgumentNullException(nameof(dto));
-        }
-
-        var session = new UserSession
-        {
-            Id = Guid.NewGuid(),
-            UserId = dto.UserId,
-            DeviceId = string.IsNullOrWhiteSpace(dto.DeviceId)
-                ? _networkContextService.GetOrCreateDeviceId()
-                : dto.DeviceId!,
-            DeviceName = dto.DeviceName,
-            UserAgent = dto.UserAgent,
-            IpAddress = dto.IpAddress ?? _networkContextService.GetIpAddress(),
-            RefreshTokenReferenceId = dto.RefreshTokenReferenceId,
-            TokenExpiresAt = dto.TokenExpiresAt,
-            CreatedAt = DateTimeOffset.UtcNow,
-            LastActivityAt = DateTimeOffset.UtcNow,
-            Status = SessionStatus.Active
-        };
+        session.Id = session.Id == Guid.Empty ? Guid.NewGuid() : session.Id;
+        session.CreatedAt = session.CreatedAt == default ? DateTimeOffset.UtcNow : session.CreatedAt;
+        session.LastActivityAt = session.LastActivityAt == default ? DateTimeOffset.UtcNow : session.LastActivityAt;
+        session.Status = session.Status == default ? SessionStatus.Active : session.Status;
 
         await _sessionRepository.AddAsync(session, cancellationToken);
 
-        _logger.LogInformation(
-            "Created session {SessionId} for user {UserId} on device {DeviceId}",
-            session.Id,
-            session.UserId,
-            session.DeviceId);
+        _logger.LogInformation("Created session {SessionId} for user {UserId} on device {DeviceId}",
+            session.Id, session.UserId, session.DeviceId);
 
-        return session.Adapt<UserSessionDto>();
+        return session;
     }
 
-    public async Task<UserSessionDto> UpdateActivityAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    public async Task<UserSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var session = await _sessionRepository.GetByIdAsync(sessionId, cancellationToken)
-            ?? throw new AvanciraNotFoundException($"Session with ID '{sessionId}' not found.");
+        if (id == Guid.Empty)
+            throw new ArgumentException("Session ID cannot be empty", nameof(id));
 
-        session.LastActivityAt = DateTimeOffset.UtcNow;
+        return await _sessionRepository.GetByIdAsync(id, cancellationToken);
+    }
+
+    public async Task<IEnumerable<UserSession>> GetUserSessionsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+
+        return await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
+    }
+
+    public async Task UpdateAsync(UserSession session, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+
+        if (session.Id == Guid.Empty)
+            throw new ArgumentException("Session ID cannot be empty", nameof(session));
+
+        var existing = await _sessionRepository.GetByIdAsync(session.Id, cancellationToken)
+            ?? throw new AvanciraNotFoundException($"Session with ID '{session.Id}' not found.");
 
         await _sessionRepository.UpdateAsync(session, cancellationToken);
-
-        return session.Adapt<UserSessionDto>();
+        _logger.LogDebug("Updated session {SessionId} for user {UserId}", session.Id, session.UserId);
     }
 
     public async Task<bool> RevokeAsync(Guid sessionId, string? reason = null, CancellationToken cancellationToken = default)
     {
-        var session = await _sessionRepository.GetByIdAsync(sessionId, cancellationToken)
-            ?? throw new AvanciraNotFoundException($"Session with ID '{sessionId}' not found.");
+        if (sessionId == Guid.Empty)
+            throw new ArgumentException("Session ID cannot be empty", nameof(sessionId));
 
-        if (session.Status is SessionStatus.Revoked or SessionStatus.RevokedBySecurityEvent or SessionStatus.RevokedByTokenInvalidation)
+        var session = await _sessionRepository.GetByIdAsync(sessionId, cancellationToken);
+        if (session is null)
         {
-            _logger.LogDebug("Session {SessionId} is already revoked.", sessionId);
+            _logger.LogWarning("Cannot revoke: session {SessionId} not found", sessionId);
+            return false;
+        }
+
+        if (session.Status is SessionStatus.Revoked or SessionStatus.RevokedBySecurityEvent or SessionStatus.RevokedByTokenInvalidation or SessionStatus.Expired)
+        {
+            _logger.LogDebug("Session {SessionId} is already revoked or expired", sessionId);
             return false;
         }
 
         session.Status = SessionStatus.Revoked;
         session.RevokedAt = DateTimeOffset.UtcNow;
-        session.RevocationReason = reason;
+        session.RevocationReason = reason ?? "User logout";
 
         await _sessionRepository.UpdateAsync(session, cancellationToken);
 
-        _logger.LogInformation("Revoked session {SessionId} for user {UserId}", sessionId, session.UserId);
+        _logger.LogInformation("Revoked session {SessionId} for user {UserId}, reason: {Reason}",
+            sessionId, session.UserId, reason);
 
         return true;
     }
 
     public async Task<int> RevokeAllAsync(string userId, Guid? excludeSessionId = null, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+
         var sessions = await _sessionRepository.ListAsync(new ActiveUserSessionsSpec(userId), cancellationToken);
 
-        int revokedCount = 0;
+        var revokedCount = 0;
         foreach (var session in sessions)
         {
             if (excludeSessionId.HasValue && session.Id == excludeSessionId.Value)
-            {
                 continue;
-            }
+
+            if (session.Status != SessionStatus.Active)
+                continue;
 
             session.Status = SessionStatus.Revoked;
             session.RevokedAt = DateTimeOffset.UtcNow;
@@ -163,10 +140,45 @@ public class UserSessionService : IUserSessionService
         }
 
         if (revokedCount > 0)
-        {
             _logger.LogInformation("Revoked {Count} sessions for user {UserId}", revokedCount, userId);
-        }
 
         return revokedCount;
+    }
+
+    public async Task<IEnumerable<UserSession>> GetExpiredSessionsAsync(DateTimeOffset beforeDate, CancellationToken cancellationToken = default)
+    {
+        return await _sessionRepository.ListAsync(new ExpiredSessionsSpec(beforeDate), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DeviceSessionsDto>> GetActiveByUserGroupedByDeviceAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+
+        var sessions = await GetUserSessionsAsync(userId, cancellationToken);
+        var sessionDtos = sessions.Adapt<List<UserSessionDto>>();
+
+        var grouped = sessionDtos
+            .GroupBy(s => s.DeviceId)
+            .Select(group =>
+            {
+                var ordered = group.OrderByDescending(s => s.LastActivityAt).ToList();
+                var first = ordered.First();
+
+                return new DeviceSessionsDto(first.DeviceId, first.DeviceName, first.UserAgent, first.LastActivityAt, ordered);
+            })
+            .OrderByDescending(g => g.LastActivityAt)
+            .ToList();
+
+        return grouped;
+    }
+
+    public async Task<IEnumerable<UserSessionDto>> GetActiveByUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+
+        var sessions = await GetUserSessionsAsync(userId, cancellationToken);
+        return sessions.Adapt<List<UserSessionDto>>();
     }
 }

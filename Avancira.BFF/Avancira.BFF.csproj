@@ -1,14 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IdentityModel.AspNetCore" Version="6.1.0" />
+    <PackageReference Include="Duende.AccessTokenManagement" Version="4.0.1" />
+    <PackageReference Include="Duende.AccessTokenManagement.OpenIdConnect" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.6" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
     <PackageReference Include="Yarp.ReverseProxy" Version="2.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\api\Avancira.Infrastructure\Avancira.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

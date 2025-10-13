@@ -92,6 +92,11 @@ export class AuthCallbackComponent implements OnInit {
   error: string | null = null;
 
   ngOnInit(): void {
+console.log('ON CALLBACK:');
+  console.log('State from sessionStorage:', sessionStorage.getItem('auth:state'));
+  console.log('Code verifier from sessionStorage:', sessionStorage.getItem('auth:code_verifier'));
+  console.log('Full sessionStorage:', { ...sessionStorage });
+
     this.handleOAuthCallback();
   }
 
