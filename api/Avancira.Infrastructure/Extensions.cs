@@ -1,5 +1,5 @@
 using Avancira.Application;
-using Avancira.Application.UserSessions.Services;
+using Avancira.Application.Auth;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;

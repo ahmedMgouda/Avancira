@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Avancira.Application.UserSessions.Services;
+using Avancira.Application.Auth;
 using Avancira.BFF.Services;
 using Avancira.Infrastructure.Auth;
 using Duende.AccessTokenManagement.OpenIdConnect;

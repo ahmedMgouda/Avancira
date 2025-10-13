@@ -120,18 +120,41 @@ var authServer = builder.AddProject<Projects.Avancira_Auth>("avancira-auth")
     .WaitFor(postgresql)
     .WaitFor(backend);
 #endregion
+#region ===== BFF =====
+
+var corsOrigins = string.Join(';', new[]
+{
+    env.AppFrontEndUrl,
+    "http://localhost:4300",
+    "https://localhost:4300"
+}.Where(static origin => !string.IsNullOrWhiteSpace(origin)));
+
+var authAuthority = authServer.GetEndpoint("https")
+    ?? authServer.GetEndpoint("http")
+    ?? throw new InvalidOperationException("Auth server endpoint is not configured.");
+
+var backendAddress = backend.GetEndpoint("https")
+    ?? backend.GetEndpoint("http")
+    ?? throw new InvalidOperationException("Backend API endpoint is not configured.");
+
+builder.AddProject<Projects.Avancira_BFF>("avancira-bff")
+    .WithReference(authServer)
+    .WithReference(backend)
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("Auth__Authority", authAuthority)
+    .WithEnvironment("ReverseProxy__Clusters__api-cluster__Destinations__primary__Address", backendAddress)
+    .WithEnvironment("Cors__AllowedOrigins", corsOrigins)
+    .WaitFor(authServer)
+    .WaitFor(backend);
+
+#endregion
+
 
 #region ===== FRONTEND =====
 
 builder.AddNpmApp("avancira-frontend", "../../Frontend.Angular")
     .WithHttpEndpoint(env: "PORT", port: 4300, name: "frontend")
     .WithExternalHttpEndpoints();
-
-#endregion
-
-#region ===== ADMIN DASHBOARD =====
-
-builder.AddProject<Projects.Client>("admin-dashboard");
 
 #endregion
 

@@ -16,7 +16,6 @@ using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Notifications;
-using Avancira.Domain.Identity;
 using Avancira.Domain.UserSessions;
 
 namespace Avancira.Infrastructure.Persistence;

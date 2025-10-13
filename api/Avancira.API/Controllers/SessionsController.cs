@@ -27,9 +27,10 @@ public class SessionsController : BaseApiController
     public async Task<IActionResult> GetSessions(CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId().ToString();
-        var groupedSessions = await _sessionService.GetActiveByUserGroupedByDeviceAsync(userId, cancellationToken);
+        //var groupedSessions = await _sessionService.GetActiveByUserGroupedByDeviceAsync(userId, cancellationToken);
 
-        return Ok(groupedSessions);
+        //return Ok(groupedSessions);
+        return Ok();
     }
 
     [HttpDelete("{id:guid}")]

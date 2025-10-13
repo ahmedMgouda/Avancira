@@ -1,22 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Avancira.Application.UserSessions;
-using Avancira.Application.UserSessions.Dtos;
-using Avancira.Application.UserSessions.Services;
-using Avancira.Infrastructure.Auth;
 using IdentityUser = Avancira.Infrastructure.Identity.Users.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using Microsoft.AspNetCore;
+using Avancira.Application.Auth;
 
 namespace Avancira.Auth.Controllers;
 

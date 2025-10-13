@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Avancira.Application.Auth;
 using Avancira.Application.Persistence;
 using Avancira.Application.UserSessions.Dtos;
 using Avancira.Domain.Common.Exceptions;

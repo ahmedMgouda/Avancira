@@ -1,6 +1,6 @@
 ﻿using Avancira.Application.Categories;
-using Avancira.Application.Jobs;
 using Avancira.Application.UserSessions;
+using Avancira.Application.UserSessions.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;

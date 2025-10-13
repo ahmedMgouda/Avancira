@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Avancira.Application.UserSessions;
-using Avancira.BFF.Services.TokenManagement;
+﻿using Avancira.Application.UserSessions;
 using Avancira.Domain.UserSessions;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Caching.SessionCache;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 
 namespace Avancira.BFF.Services;
 

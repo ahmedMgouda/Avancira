@@ -57,26 +57,6 @@ public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
         builder.Property(s => s.RequiresUserNotification)
             .IsRequired();
 
-        var comparer = new ValueComparer<ICollection<string>>(
-            (left, right) =>
-                left != null && right != null && left.SequenceEqual(right),
-            collection =>
-                collection == null
-                    ? 0
-                    : collection.Aggregate(0, (current, value) => HashCode.Combine(current, value.GetHashCode())),
-            collection =>
-                collection == null
-                    ? new List<string>()
-                    : collection.ToList());
-
-        builder.Property(s => s.AccessedResourceIds)
-            .HasConversion(
-                collection => JsonSerializer.Serialize(collection, (JsonSerializerOptions?)null),
-                json => string.IsNullOrWhiteSpace(json)
-                    ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>())
-            .Metadata.SetValueComparer(comparer);
-
         builder.HasIndex(s => s.UserId);
         builder.HasIndex(s => s.DeviceId);
         builder.HasIndex(s => s.Status);
