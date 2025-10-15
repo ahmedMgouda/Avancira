@@ -1,15 +1,15 @@
 export const environment = {
-  baseApiUrl: 'https://localhost:9000/',
-  apiUrl: `https://localhost:9000/api`,
-  authUrl: `https://localhost:9100`,
-  frontendUrl: 'https://localhost:4200',
+  baseApiUrl: 'https://localhost:9200',
+  apiUrl: `https://localhost:9200/api`,
+  authUrl: `https://localhost:9200/bff/auth`,
+  frontendUrl: 'https://localhost:9200',
   useSignalR: true,
   /** OAuth client identifier */
   clientId: 'avancira-web',
   /** Callback URL used after authentication */
-  redirectUri: 'https://localhost:4200/auth/callback',
+  redirectUri: 'https://localhost:9200/auth/callback',
   /** URL to redirect to after logging out */
-  postLogoutRedirectUri: 'https://localhost:4200',
+  postLogoutRedirectUri: 'https://localhost:9200',
 
   production: false,
 };
