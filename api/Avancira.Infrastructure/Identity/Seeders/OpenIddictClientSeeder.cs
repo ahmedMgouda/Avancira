@@ -9,15 +9,26 @@ namespace Avancira.Infrastructure.Identity.Seeders;
 /// </summary>
 internal sealed class OpenIddictClientSeeder(
     ILogger<OpenIddictClientSeeder> logger,
-    IOpenIddictApplicationManager manager
+    IOpenIddictApplicationManager? manager = null
 ) : BaseSeeder<OpenIddictClientSeeder>(logger)
 {
+    private readonly IOpenIddictApplicationManager? _manager = manager;
+
     public override async Task SeedAsync(CancellationToken cancellationToken = default)
     {
+        if (_manager is null)
+        {
+            Logger.LogWarning(
+                "{Seeder} requires {Manager} which is not registered. Skipping OpenIddict client seeding.",
+                nameof(OpenIddictClientSeeder),
+                nameof(IOpenIddictApplicationManager));
+            return;
+        }
+
         Logger.LogInformation("Starting OpenIddict application seeding...");
 
-        await SeedBffClientAsync(cancellationToken);
-        await SeedPostmanClientAsync(cancellationToken);
+        await SeedBffClientAsync(_manager, cancellationToken);
+        await SeedPostmanClientAsync(_manager, cancellationToken);
 
         Logger.LogInformation("OpenIddict application seeding completed");
     }
@@ -25,7 +36,7 @@ internal sealed class OpenIddictClientSeeder(
     // ============================================================
     // BFF CLIENT (Web, Authorization Code + PKCE)
     // ============================================================
-    private async Task SeedBffClientAsync(CancellationToken ct)
+    private async Task SeedBffClientAsync(IOpenIddictApplicationManager manager, CancellationToken ct)
     {
         const string clientId = "bff-client";
         const string clientSecret = "dev-bff-secret";
@@ -87,7 +98,7 @@ internal sealed class OpenIddictClientSeeder(
     // ============================================================
     // POSTMAN CLIENT (Client Credentials)
     // ============================================================
-    private async Task SeedPostmanClientAsync(CancellationToken ct)
+    private async Task SeedPostmanClientAsync(IOpenIddictApplicationManager manager, CancellationToken ct)
     {
         const string clientId = "postman-client";
         const string clientSecret = "dev-postman-secret";
