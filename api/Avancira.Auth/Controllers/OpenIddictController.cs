@@ -268,24 +268,24 @@ public sealed class OpenIddictController : Controller
         }
 
         // FIXED: Extract principal and revoke associated session
-        ClaimsPrincipal? principal = null;
-        try
-        {
-            principal = await _tokenManager.GetPrincipalAsync(token, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to extract principal from token during revocation");
-        }
+        //ClaimsPrincipal? principal = null;
+        //try
+        //{
+        //    principal = await _tokenManager.GetPrincipalAsync(token, cancellationToken);
+        //}
+        //catch (Exception ex)
+        //{
+        //    _logger.LogWarning(ex, "Failed to extract principal from token during revocation");
+        //}
 
         await _tokenManager.TryRevokeAsync(token, cancellationToken);
         _logger.LogInformation("Token revoked successfully");
 
         // FIXED: Revoke associated session if we have principal
-        if (principal is not null)
-        {
-            await RevokeSessionIfExistsAsync(principal, cancellationToken);
-        }
+        //if (principal is not null)
+        //{
+        //    await RevokeSessionIfExistsAsync(principal, cancellationToken);
+        //}
 
         return Ok();
     }

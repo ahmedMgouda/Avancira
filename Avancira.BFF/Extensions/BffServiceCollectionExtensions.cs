@@ -65,7 +65,7 @@ public static class BffServiceCollectionExtensions
             o.Authority = auth["Authority"] ?? "https://localhost:9100";
             o.ClientId = auth["ClientId"] ?? "bff-client";
             o.ClientSecret = auth["ClientSecret"] ?? "dev-bff-secret";
-            o.RequireHttpsMetadata = true; // ✅ enable for production
+            o.RequireHttpsMetadata = false; // ✅ enable for production
             o.ResponseType = OpenIdConnectResponseType.Code;
             o.UsePkce = true;
 

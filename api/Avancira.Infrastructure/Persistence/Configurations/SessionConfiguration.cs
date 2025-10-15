@@ -41,7 +41,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
         builder.Property(s => s.RefreshTokenReferenceId)
             .HasMaxLength(512);
 
-        builder.Property(s => s.TokenExpiresAt);
+        builder.Property(s => s.RefreshTokenExpiresAt);
 
         builder.Property(s => s.CreatedAt)
             .IsRequired();
@@ -61,7 +61,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
         builder.HasIndex(s => s.DeviceId);
         builder.HasIndex(s => s.Status);
         builder.HasIndex(s => s.RefreshTokenReferenceId);
-        builder.HasIndex(s => s.TokenExpiresAt);
+        builder.HasIndex(s => s.RefreshTokenExpiresAt);
         builder.HasIndex(s => s.LastActivityAt);
         builder.HasIndex(s => s.RevokedAt);
     }
