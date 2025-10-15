@@ -5,7 +5,7 @@ import { catchError, Observable, of, tap, throwError, switchMap, map } from 'rxj
 import { environment } from '../environments/environment';
 import { ConfigKey } from '../models/config-key';
 import { SocialProvider } from '../models/social-provider';
-import { INCLUDE_CREDENTIALS, SKIP_AUTH } from '../interceptors/auth.interceptor';
+import { INCLUDE_CREDENTIALS } from '../interceptors/auth.interceptor';
 
 export type Config = Record<ConfigKey, string>;
 
@@ -41,7 +41,7 @@ export class ConfigService {
     }
 
     const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`, {
-      context: new HttpContext().set(SKIP_AUTH, true)
+      context: new HttpContext().set(INCLUDE_CREDENTIALS, true)
     });
 
     return fetch$.pipe(
