@@ -111,7 +111,7 @@ public static class Extensions
 
         if (runDatabasePreparation)
         {
-            _ = app.SetupDatabasesAsync();
+            app.SetupDatabasesAsync().GetAwaiter().GetResult();
         }
 
         app.UseRateLimit();
