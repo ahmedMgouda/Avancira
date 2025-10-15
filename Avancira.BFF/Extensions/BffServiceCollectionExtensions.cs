@@ -1,10 +1,6 @@
-﻿using System.Security.Claims;
-using Avancira.BFF.Services;
-using Avancira.Infrastructure.Auth;
-using Duende.AccessTokenManagement.OpenIdConnect;
+﻿using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 using Polly.Extensions.Http;
@@ -12,184 +8,135 @@ using Yarp.ReverseProxy.Transforms;
 
 namespace Avancira.BFF.Extensions;
 
-/// <summary>
-/// Service collection extensions for BFF configuration.
-/// Handles authentication, token management, reverse proxy, and authorization.
-/// CORS is now handled by the infrastructure layer.
-/// </summary>
 public static class BffServiceCollectionExtensions
 {
-    // =====================================================================
-    // 1. AUTHENTICATION CONFIGURATION
-    // =====================================================================
+    private const string ApiClientName = "api-client";
+    private const string TokenBackchannelClientName = "token-backchannel";
+
+    // ========================================================================
+    // 1. AUTHENTICATION (Cookie + OpenID Connect)
+    // ========================================================================
     public static IServiceCollection AddBffAuthentication(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var authConfig = configuration.GetSection("Auth");
-        var cookieConfig = configuration.GetSection("Cookie");
+        var auth = configuration.GetSection("Auth");
+        var cookie = configuration.GetSection("Cookie");
 
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-            options.DefaultSignOutScheme = OpenIdConnectDefaults.AuthenticationScheme;
         })
-        // ===== COOKIE AUTHENTICATION =====
-        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o =>
         {
-            options.Cookie.Name = cookieConfig["Name"] ?? ".Avancira.BFF";
-            options.Cookie.HttpOnly = true;
-            options.Cookie.IsEssential = true;
-            options.Cookie.SameSite = Enum.TryParse(cookieConfig["SameSite"], out SameSiteMode sameSite)
-                ? sameSite
-                : SameSiteMode.Strict;
-            options.Cookie.SecurePolicy = Enum.TryParse(cookieConfig["SecurePolicy"], out CookieSecurePolicy securePolicy)
-                ? securePolicy
-                : CookieSecurePolicy.Always;
+            o.Cookie.Name = cookie["Name"] ?? ".Avancira.BFF";
+            o.Cookie.HttpOnly = true;
+            o.Cookie.SameSite = SameSiteMode.Strict;
+            o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            o.SlidingExpiration = true;
+            o.ExpireTimeSpan = TimeSpan.FromHours(2);
 
-            options.SlidingExpiration = true;
-            options.ExpireTimeSpan = TimeSpan.TryParse(cookieConfig["ExpireTimeSpan"], out var lifetime)
-                ? lifetime
-                : TimeSpan.FromHours(2);
-
-            // Prevent redirects for API calls
-            options.Events.OnRedirectToLogin = context =>
+            // Prevent redirect loops for API calls
+            o.Events.OnRedirectToLogin = ctx =>
             {
-                if (context.Request.Path.StartsWithSegments("/bff") ||
-                    context.Request.ContentType?.Contains("application/json") == true)
+                if (IsApiRequest(ctx.Request))
                 {
-                    context.Response.Clear();
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.Headers["X-Unauthenticated"] = "true";
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     return Task.CompletedTask;
                 }
-
-                // Default redirect for normal browser requests
-                context.Response.Redirect(context.RedirectUri);
+                ctx.Response.Redirect(ctx.RedirectUri);
                 return Task.CompletedTask;
             };
 
-            options.Events.OnRedirectToAccessDenied = context =>
+            o.Events.OnRedirectToAccessDenied = ctx =>
             {
-                if (context.Request.Path.StartsWithSegments("/bff") ||
-                    context.Request.ContentType?.Contains("application/json") == true)
+                if (IsApiRequest(ctx.Request))
                 {
-                    context.Response.Clear();
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return Task.CompletedTask;
                 }
-
-                context.Response.Redirect(context.RedirectUri);
+                ctx.Response.Redirect(ctx.RedirectUri);
                 return Task.CompletedTask;
             };
         })
-        // ===== OPENID CONNECT AUTHENTICATION =====
-        .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+        .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, o =>
         {
-            options.Authority = authConfig["Authority"];
-            options.ClientId = authConfig["ClientId"];
-            options.ClientSecret = authConfig["ClientSecret"];
-            options.RequireHttpsMetadata = !bool.TryParse(authConfig["RequireHttpsMetadata"], out var requireHttps) || requireHttps;
+            o.Authority = auth["Authority"] ?? "https://localhost:9100";
+            o.ClientId = auth["ClientId"] ?? "bff-client";
+            o.ClientSecret = auth["ClientSecret"] ?? "dev-bff-secret";
+            o.RequireHttpsMetadata = true; // ✅ enable for production
+            o.ResponseType = OpenIdConnectResponseType.Code;
+            o.UsePkce = true;
 
-            options.ResponseType = OpenIdConnectResponseType.Code;
-            options.ResponseMode = OpenIdConnectResponseMode.Query;
-            options.UsePkce = true;
+            // Scopes
+            o.Scope.Clear();
+            o.Scope.Add("openid");
+            o.Scope.Add("profile");
+            o.Scope.Add("email");
+            o.Scope.Add("offline_access");
+            o.Scope.Add("api");
 
-            // Configure scopes
-            options.Scope.Clear();
-            var scopes = authConfig.GetSection("Scopes").Get<string[]>() ?? new[] { "openid", "profile", "email", "offline_access" };
-            foreach (var scope in scopes)
-                options.Scope.Add(scope);
+            o.SaveTokens = true;
+            o.GetClaimsFromUserInfoEndpoint = true;
+            o.MapInboundClaims = false;
+            o.TokenValidationParameters.NameClaimType = "name";
+            o.TokenValidationParameters.RoleClaimType = "role";
 
-            // Save tokens so Duende can manage them automatically
-            options.SaveTokens = !bool.TryParse(authConfig["SaveTokens"], out var saveTokens) || saveTokens;
-            options.GetClaimsFromUserInfoEndpoint = true;
-            options.MapInboundClaims = false;
-            options.TokenValidationParameters.NameClaimType = "name";
-            options.TokenValidationParameters.RoleClaimType = "role";
-
-            options.CallbackPath = "/signin-oidc";
-            options.SignedOutCallbackPath = "/signout-callback-oidc";
-
-            // Log events for better diagnostics
-            options.Events = new OpenIdConnectEvents
+            // Log or handle OIDC errors gracefully
+            o.Events.OnAuthenticationFailed = ctx =>
             {
-                OnAuthorizationCodeReceived = context =>
+                ctx.HandleResponse();
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                ctx.Response.ContentType = "application/json";
+                return ctx.Response.WriteAsJsonAsync(new
                 {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogDebug("OIDC authorization code received from {Authority}", context.Options.Authority);
-                    return Task.CompletedTask;
-                },
-                OnTokenValidated = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    var userId = context.Principal?.FindFirst("sub")?.Value ?? "unknown";
-                    logger.LogInformation("✅ User {UserId} authenticated via OIDC", userId);
-                    return Task.CompletedTask;
-                },
-                OnRemoteFailure = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(context.Failure, "❌ OIDC authentication failed: {Message}", context.Failure?.Message);
-                    context.Response.Redirect("/");
-                    context.HandleResponse();
-                    return Task.CompletedTask;
-                }
+                    error = "authentication_failed",
+                    error_description = ctx.Exception.Message
+                });
             };
         });
 
         return services;
     }
 
-    // =====================================================================
-    // 2. TOKEN MANAGEMENT CONFIGURATION (DUENDE)
-    // =====================================================================
+    // ========================================================================
+    // 2. TOKEN MANAGEMENT (Duende v4)
+    // ========================================================================
     public static IServiceCollection AddBffTokenManagement(
         this IServiceCollection services,
         IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
-        services.AddHttpClient();
 
-        services.AddSingleton<ITokenManagementService, TokenManagementService>();
-        services.AddScoped<ISessionCacheService, SessionCacheService>();
+        services.AddOpenIdConnectAccessTokenManagement(options =>
+        {
+            options.RefreshBeforeExpiration = TimeSpan.FromMinutes(5);
+        });
 
-        // Correct Duende method
-        services.AddOpenIdConnectAccessTokenManagement();
-
-        // Optional resilient backchannel (used for token refresh & revocation)
-        services.AddHttpClient("token-backchannel")
+        // Token back-channel (used internally by Duende)
+        services.AddHttpClient(TokenBackchannelClientName)
             .AddPolicyHandler(GetRetryPolicy());
 
-        // Optional automatic HttpClient with access token injection
-        services.AddUserAccessTokenHttpClient("api-client",
-        configureClient: client =>
-        {
-            client.BaseAddress = new Uri(configuration["ReverseProxy:Clusters:api-cluster:Destinations:primary:Address"]
-                ?? "https://localhost:5001");
-        });
+        // Configure automatic token-injected HttpClient for the API
+        var apiBaseAddress = configuration["ReverseProxy:Clusters:api-cluster:Destinations:primary:Address"]
+            ?? "https://localhost:9000";
 
-        // Session setup for state/token cache
-        var tokenConfig = configuration.GetSection("TokenManagement");
-        var minutes = double.TryParse(tokenConfig["SessionIdleTimeoutMinutes"], out var m) ? m : 120;
-
-        services.AddSession(options =>
+        services.AddUserAccessTokenHttpClient(ApiClientName, configureClient: client =>
         {
-            options.Cookie.Name = ".Avancira.BFF.Session";
-            options.Cookie.HttpOnly = true;
-            options.Cookie.IsEssential = true;
-            options.Cookie.SameSite = SameSiteMode.Strict;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.IdleTimeout = TimeSpan.FromMinutes(minutes);
-        });
+            client.BaseAddress = new Uri(apiBaseAddress);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.Timeout = TimeSpan.FromSeconds(100);
+        })
+        .AddPolicyHandler(GetRetryPolicy())
+        .AddPolicyHandler(GetCircuitBreakerPolicy());
 
         return services;
     }
 
-    // =====================================================================
-    // 3. REVERSE PROXY CONFIGURATION (YARP)
-    // =====================================================================
+    // ========================================================================
+    // 3. REVERSE PROXY (YARP + Duende token injection)
+    // ========================================================================
     public static IServiceCollection AddBffReverseProxy(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -198,52 +145,29 @@ public static class BffServiceCollectionExtensions
             .LoadFromConfig(configuration.GetSection("ReverseProxy"))
             .AddTransforms(builderContext =>
             {
-                // ===== REQUEST TRANSFORM =====
+                // Automatically attach access token from Duende
                 builderContext.AddRequestTransform(async transformContext =>
                 {
                     var httpContext = transformContext.HttpContext;
-
                     if (httpContext.User.Identity?.IsAuthenticated != true)
                         return;
 
-                    var userId = httpContext.User.FindFirstValue("sub");
-                    var sessionIdClaim = httpContext.User.FindFirstValue(AuthConstants.Claims.SessionId);
+                    var tokenManager = httpContext.RequestServices.GetRequiredService<IUserTokenManager>();
+                    var tokenResult = await tokenManager.GetAccessTokenAsync(httpContext.User);
 
-                    if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(sessionIdClaim, out var sessionId))
-                        return;
-
-                    var tokenService = httpContext.RequestServices.GetRequiredService<ITokenManagementService>();
-                    var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-
-                    try
+                    if (tokenResult.WasSuccessful(out var token))
                     {
-                        var tokenResult = await tokenService.GetAccessTokenAsync(userId, sessionId, httpContext.RequestAborted);
-                        if (tokenResult.IsSuccess && !string.IsNullOrEmpty(tokenResult.Token))
-                        {
-                            transformContext.ProxyRequest.Headers.Authorization =
-                                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenResult.Token);
-
-                            if (tokenResult.NeedsRefresh)
-                                httpContext.Response.Headers["X-Token-Refresh-Required"] = "true";
-                        }
-                        else
-                        {
-                            logger.LogWarning("⚠️ No valid access token for user {UserId}: {Error}", userId, tokenResult.Error);
-                            httpContext.Response.Headers["X-Token-Expired"] = "true";
-                            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                            return;
-                        }
+                        transformContext.ProxyRequest.Headers.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.AccessToken);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        logger.LogError(ex, "Error acquiring access token for proxy request");
-                        httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        httpContext.Response.Headers["X-Token-Expired"] = "true";
-                        return;
+                        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogWarning("Failed to attach access token: {Error}", tokenResult.FailedResult?.Error);
                     }
                 });
 
-                // ===== RESPONSE TRANSFORM =====
+                // Clean response headers
                 builderContext.AddResponseTransform(transformContext =>
                 {
                     transformContext.ProxyResponse?.Headers.Remove("Set-Cookie");
@@ -256,42 +180,47 @@ public static class BffServiceCollectionExtensions
         return services;
     }
 
-    // =====================================================================
-    // 4. AUTHORIZATION CONFIGURATION
-    // =====================================================================
+    // ========================================================================
+    // 4. AUTHORIZATION
+    // ========================================================================
     public static IServiceCollection AddBffAuthorization(this IServiceCollection services)
     {
         services.AddAuthorization(options =>
         {
-            options.AddPolicy("authenticated", policy => policy.RequireAuthenticatedUser());
-            options.AddPolicy("admin", policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.RequireRole("Admin");
-            });
-            options.AddPolicy("device-owner", policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.Requirements.Add(new DeviceOwnerRequirement());
-            });
-        });
+            options.AddPolicy("authenticated", policy =>
+                policy.RequireAuthenticatedUser());
 
-        services.AddSingleton<IAuthorizationHandler, DeviceOwnerHandler>();
+            options.AddPolicy("api-access", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", "api");
+            });
+
+            options.FallbackPolicy = options.GetPolicy("authenticated");
+        });
 
         return services;
     }
 
-    // =====================================================================
-    // 5. HTTP RETRY POLICY
-    // =====================================================================
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+    // ========================================================================
+    // Helper Utilities
+    // ========================================================================
+    private static bool IsApiRequest(HttpRequest request)
     {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .Or<HttpRequestException>(ex => ex.InnerException is TimeoutException)
-            .WaitAndRetryAsync(
-                retryCount: 3,
-                sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-                onRetry: (outcome, timespan, retryCount, context) => { });
+        return request.Path.StartsWithSegments("/api") ||
+               request.Path.StartsWithSegments("/bff") ||
+               request.ContentType?.Contains("application/json") == true ||
+               request.Headers.Accept.Any(h => h?.Contains("application/json") == true);
     }
+
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(3, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
 }
