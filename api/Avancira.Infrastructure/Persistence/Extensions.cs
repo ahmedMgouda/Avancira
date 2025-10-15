@@ -102,7 +102,8 @@ public static class Extensions
         // === Identity Seeders ===
         services.AddScoped<RoleSeeder>();
         services.AddScoped<AdminUserSeeder>();
-        // Note: OpenIddictClientSeeder is static; registration not required.
+        services.AddScoped<UserSeeder>();
+        services.AddScoped<OpenIddictClientSeeder>();
 
         // === Domain Seeders ===
         services.AddScoped<CountrySeeder>();
