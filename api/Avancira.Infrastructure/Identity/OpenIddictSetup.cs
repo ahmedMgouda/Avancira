@@ -1,17 +1,22 @@
-using System;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Persistence;
 using OpenIddict.Abstractions;
 
 namespace Avancira.Infrastructure.Identity;
 
+/// <summary>
+/// FIXED: Proper OpenIddict server configuration with all required scopes
+/// This configures the Auth server to issue tokens with correct scopes and claims
+/// </summary>
 public static class OpenIddictSetup
 {
     /// <summary>
     /// Configures OpenIddict SERVER for the Auth MVC project
-    /// This issues tokens - only used by the Auth server
+    /// This server ISSUES tokens - only used by the Auth server
+    /// 
+    /// Do NOT use this in the BFF project
+    /// BFF uses OpenIddict CLIENT to validate tokens
     /// </summary>
     public static IServiceCollection AddOpenIddictServer(
         this IServiceCollection services,
@@ -28,74 +33,93 @@ public static class OpenIddictSetup
         {
             throw new InvalidOperationException(
                 "Auth:Issuer configuration is required for OpenIddict. " +
-                "This should be the public URL of your Auth server.");
+                "Example: 'https://localhost:5005' (local dev) or 'https://yourdomain.com/auth' (production)");
         }
 
         services.AddOpenIddict()
-            // ===== Core Configuration (Database) =====
+            // ===== CORE: Database Configuration =====
+            // OpenIddict stores clients, tokens, scopes in database
             .AddCore(options =>
             {
                 options.UseEntityFrameworkCore()
                        .UseDbContext<AvanciraDbContext>();
             })
 
-            // ===== Server Configuration (Token Issuing) =====
+            // ===== SERVER: Token Issuance Configuration =====
             .AddServer(options =>
             {
-                // Configure all required endpoints
-                options.SetAuthorizationEndpointUris(AuthConstants.Endpoints.Authorize)
-                       .SetTokenEndpointUris(AuthConstants.Endpoints.Token);
-                       //.SetRevocationEndpointUris(AuthConstants.Endpoints.Revocation);
+                // Configure endpoints
+                options.SetAuthorizationEndpointUris("/connect/authorize")
+                       .SetTokenEndpointUris("/connect/token")
+                       .SetRevocationEndpointUris("/connect/revoke")
+                       .SetIntrospectionEndpointUris("/connect/introspect")
+                       .SetEndSessionEndpointUris("/connect/logout");
 
-                // Set issuer (must match what clients expect)
+                // CRITICAL: Set issuer (must match what clients expect)
                 options.SetIssuer(new Uri(issuer));
 
-                // Enable authorization code flow with PKCE
+                // ===== FLOW CONFIGURATION =====
+                // Authorization Code Flow: Browser → Auth Server → Token
+                // This is the recommended flow for SPAs and native apps
                 options.AllowAuthorizationCodeFlow()
-                       .RequireProofKeyForCodeExchange(); // PKCE for security
+                       .RequireProofKeyForCodeExchange() // PKCE: Prevents code interception
+                       .AllowRefreshTokenFlow()
+                       .AllowClientCredentialsFlow();
 
-                // Enable refresh token flow
-                options.AllowRefreshTokenFlow();
-
-                // Configure token lifetimes
+                // ===== TOKEN LIFETIME CONFIGURATION =====
+                // Access Token: Short-lived (15 minutes)
+                // Refresh Token: Long-lived (14 days)
+                // Authorization Code: Very short (10 minutes)
                 options.SetAccessTokenLifetime(serverSettings.AccessTokenLifetime)
                        .SetRefreshTokenLifetime(serverSettings.RefreshTokenLifetime)
                        .SetAuthorizationCodeLifetime(serverSettings.AuthorizationCodeLifetime);
 
-                // Use reference tokens for refresh tokens (more secure)
-                // Reference tokens can be revoked, whereas JWT refresh tokens cannot
+                // CRITICAL SECURITY: Use reference refresh tokens
+                // Reference tokens can be revoked (unlike JWT tokens)
+                // When user logs out, we revoke the reference
                 options.UseReferenceRefreshTokens();
 
-                // Register scopes that clients can request
+                // ===== SCOPE CONFIGURATION =====
+                // FIXED: Added "api" scope for API access
+                // Clients must request one of these scopes
                 options.RegisterScopes(
-                    OpenIddictConstants.Scopes.OpenId,
-                    OpenIddictConstants.Scopes.Profile,
-                    OpenIddictConstants.Scopes.Email,
-                    OpenIddictConstants.Scopes.OfflineAccess);
+                    OpenIddictConstants.Scopes.OpenId,      // Get user ID
+                    OpenIddictConstants.Scopes.Profile,     // Get user profile (name, etc)
+                    OpenIddictConstants.Scopes.Email,       // Get email address
+                    OpenIddictConstants.Scopes.OfflineAccess, // Get refresh token
+                    "api");                                 // FIXED: Access to backend API
 
+                // ===== CRYPTOGRAPHY =====
+                // For development: Generate temporary certificates
+                // For production: Use real certificates from key vault
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
-                // ASP.NET Core integration
+                // ===== ASP.NET CORE INTEGRATION =====
                 options.UseAspNetCore()
-                       .EnableAuthorizationEndpointPassthrough()
-                       .EnableTokenEndpointPassthrough();
+                       .EnableAuthorizationEndpointPassthrough()  // Allows custom logic
+                       .EnableTokenEndpointPassthrough()          // Allows custom logic
+                       .EnableEndSessionEndpointPassthrough();     // Allows custom logic
             })
 
-            // Add validation for local token validation =====
-            // This allows the Auth server to validate its own tokens if needed
+            // ===== VALIDATION: Token Validation Configuration =====
+            // Allows this Auth server to validate its own tokens if needed
             .AddValidation(options =>
             {
-                options.UseLocalServer();
-                options.UseAspNetCore();
+                options.UseLocalServer();  // Use local configuration
+                options.UseAspNetCore();   // ASP.NET Core integration
             });
+
 
         return services;
     }
 
     /// <summary>
     /// Main entry point for configuring OpenIddict in Auth project
-    /// Call this from your Auth project's Program.cs/Startup.cs
+    /// Call this from your Auth project's Program.cs
+    /// 
+    /// Example:
+    /// builder.Services.AddInfrastructureIdentity(builder.Configuration);
     /// </summary>
     public static IServiceCollection AddInfrastructureIdentity(
         this IServiceCollection services,
@@ -104,7 +128,7 @@ public static class OpenIddictSetup
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // Configure OpenIddict server for token issuing
+        // Configure OpenIddict server for token issuance
         services.AddOpenIddictServer(configuration);
 
         return services;

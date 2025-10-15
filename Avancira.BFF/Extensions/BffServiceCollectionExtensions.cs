@@ -14,7 +14,8 @@ namespace Avancira.BFF.Extensions;
 
 /// <summary>
 /// Service collection extensions for BFF configuration.
-/// Handles authentication, token management, CORS, reverse proxy, and authorization.
+/// Handles authentication, token management, reverse proxy, and authorization.
+/// CORS is now handled by the infrastructure layer.
 /// </summary>
 public static class BffServiceCollectionExtensions
 {
@@ -152,7 +153,7 @@ public static class BffServiceCollectionExtensions
         services.AddHttpClient();
 
         services.AddSingleton<ITokenManagementService, TokenManagementService>();
-        services.AddScoped<ISessionManagementService, SessionManagementService>();
+        services.AddScoped<ISessionCacheService, SessionCacheService>();
 
         // Correct Duende method
         services.AddOpenIdConnectAccessTokenManagement();
@@ -187,43 +188,7 @@ public static class BffServiceCollectionExtensions
     }
 
     // =====================================================================
-    // 3. CORS CONFIGURATION
-    // =====================================================================
-    public static IServiceCollection AddBffCors(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        var corsConfig = configuration.GetSection("Cors");
-        var allowedOrigins = corsConfig["AllowedOrigins"]?
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(o => !string.IsNullOrWhiteSpace(o))
-            .ToArray();
-
-        if (allowedOrigins is null || allowedOrigins.Length == 0)
-        {
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-                allowedOrigins = new[] { "http://localhost:4200", "https://localhost:4200" };
-            else
-                throw new InvalidOperationException("CORS AllowedOrigins must be configured in production.");
-        }
-
-        services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(policy =>
-            {
-                policy.WithOrigins(allowedOrigins)
-                      .AllowCredentials()
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .WithExposedHeaders("X-Token-Expired", "X-Unauthenticated", "X-Token-Refresh-Required");
-            });
-        });
-
-        return services;
-    }
-
-    // =====================================================================
-    // 4. REVERSE PROXY CONFIGURATION (YARP)
+    // 3. REVERSE PROXY CONFIGURATION (YARP)
     // =====================================================================
     public static IServiceCollection AddBffReverseProxy(
         this IServiceCollection services,
@@ -253,7 +218,7 @@ public static class BffServiceCollectionExtensions
                     try
                     {
                         var tokenResult = await tokenService.GetAccessTokenAsync(userId, sessionId, httpContext.RequestAborted);
-                        if (tokenResult.Success && !string.IsNullOrEmpty(tokenResult.Token))
+                        if (tokenResult.IsSuccess && !string.IsNullOrEmpty(tokenResult.Token))
                         {
                             transformContext.ProxyRequest.Headers.Authorization =
                                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenResult.Token);
@@ -292,7 +257,7 @@ public static class BffServiceCollectionExtensions
     }
 
     // =====================================================================
-    // 5. AUTHORIZATION CONFIGURATION
+    // 4. AUTHORIZATION CONFIGURATION
     // =====================================================================
     public static IServiceCollection AddBffAuthorization(this IServiceCollection services)
     {
@@ -317,7 +282,7 @@ public static class BffServiceCollectionExtensions
     }
 
     // =====================================================================
-    // 6. HTTP RETRY POLICY
+    // 5. HTTP RETRY POLICY
     // =====================================================================
     private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
     {

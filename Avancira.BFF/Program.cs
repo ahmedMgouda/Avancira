@@ -1,4 +1,4 @@
-
+﻿
 using Avancira.BFF.Extensions;
 using Avancira.Infrastructure;
 
@@ -12,7 +12,6 @@ builder.ConfigureAvanciraFramework();
 // Authentication, token management, caching, CORS, reverse proxy
 builder.Services.AddBffAuthentication(builder.Configuration);
 builder.Services.AddBffTokenManagement(builder.Configuration);
-builder.Services.AddBffCors(builder.Configuration);
 builder.Services.AddBffAuthorization();
 builder.Services.AddBffReverseProxy(builder.Configuration);
 
@@ -80,7 +79,7 @@ public partial class Program { }
 // 1. AUTHENTICATION LAYER
 //    - Uses OpenID Connect to authenticate with auth server
 //    - Receives ID token + access token from auth server
-//    - Stores session in secure cookie (browser ? BFF)
+//    - Stores session in secure cookie (browser → BFF)
 //    - BFF validates every request using cookie
 //
 // 2. TOKEN MANAGEMENT LAYER

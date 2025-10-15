@@ -1,4 +1,3 @@
-using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using Avancira.Domain.Common.Contracts;
@@ -12,32 +11,25 @@ namespace Avancira.Domain.UserSessions;
 /// </summary>
 public class UserSession : IAggregateRoot
 {
-    /// <summary>Primary key - correlates with refresh token reference ID at auth server</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Foreign key to user</summary>
     public string UserId { get; set; } = null!;
 
-    /// <summary>Device identifier (from network context)</summary>
     public string DeviceId { get; set; } = null!;
 
-    /// <summary>Device name/description provided by client</summary>
     public string? DeviceName { get; set; }
 
-    /// <summary>User agent from the login request</summary>
     public string? UserAgent { get; set; }
 
-    /// <summary>IP address of the login</summary>
     public string? IpAddress { get; set; }
 
-    /// <summary>Status of the session</summary>
     public SessionStatus Status { get; set; } = SessionStatus.Active;
 
     /// <summary>Reference ID of the refresh token at auth server (OpenIddict RefreshTokenId)</summary>
     public string? RefreshTokenReferenceId { get; set; }
 
     /// <summary>When the refresh token expires</summary>
-    public DateTimeOffset? TokenExpiresAt { get; set; }
+    public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
 
     /// <summary>When this session was created</summary>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -53,9 +45,6 @@ public class UserSession : IAggregateRoot
 
     /// <summary>True if we should notify user (security event)</summary>
     public bool RequiresUserNotification { get; set; }
-
-    /// <summary>For future use: multi-device logout support</summary>
-    public ICollection<string> AccessedResourceIds { get; set; } = new List<string>();
 
     /// <inheritdoc />
     [NotMapped]

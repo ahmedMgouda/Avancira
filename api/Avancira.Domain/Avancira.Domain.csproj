@@ -5,6 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Identity\**" />
+    <EmbeddedResource Remove="Identity\**" />
+    <None Remove="Identity\**" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="MediatR" Version="12.5.0" />
@@ -16,7 +22,6 @@
   
   <ItemGroup>
     <Folder Include="Common\ValueObjects\" />
-    <Folder Include="Identity\" />
   </ItemGroup>
 
 </Project>

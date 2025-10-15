@@ -56,19 +56,19 @@ public static class AuthenticationExtensions
 
                 // Use introspection if Auth and API are separate
                 // Comment this out if they share the same database
-                // options.UseIntrospection()
-                //        .SetClientId("api-resource")
-                //        .SetClientSecret("your-secret");
+                options.UseIntrospection()
+                       .SetClientId("bff-client")
+                       .SetClientSecret("dev-bff-secret");
 
                 // Use local validation (both use same database)
                 // This is more efficient than introspection
-                options.UseLocalServer();
+                //options.UseLocalServer();
 
-                // Use ASP.NET Core integration
-                options.UseAspNetCore();
-
-                // Use System.Net.Http for remote validation if needed
+                // Use HTTP for communication with Auth container
                 options.UseSystemNetHttp();
+
+                // Integrate with ASP.NET Core’s authentication system
+                options.UseAspNetCore();
             });
 
         return services;

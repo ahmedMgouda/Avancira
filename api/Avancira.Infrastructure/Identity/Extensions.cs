@@ -5,6 +5,7 @@ using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Roles;
+using Avancira.Infrastructure.Identity.Seeders;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Persistence;
@@ -17,8 +18,8 @@ namespace Avancira.Infrastructure.Identity;
 internal static class Extensions
 {
     /// <summary>
-    /// Configures ASP.NET Core Identity with custom settings
-    /// CHANGE 1: This is shared between Auth and API projects
+    /// Configures ASP.NET Core Identity and registers identity-related seeders.
+    /// Shared between Auth and API projects.
     /// </summary>
     internal static IServiceCollection ConfigureIdentity(this IServiceCollection services)
     {
@@ -34,9 +35,8 @@ internal static class Extensions
         services.AddTransient<IUserService, UserService>();
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<IAuditService, AuditService>();
-        services.AddScoped<IDbInitializer, IdentityDbInitializer>();
 
-        // ===== CHANGE 2: Configure ASP.NET Core Identity =====
+        // ===== ASP.NET Core Identity Configuration =====
         services.AddIdentity<User, Role>(options =>
         {
             // Password requirements
@@ -49,18 +49,17 @@ internal static class Extensions
             // User settings
             options.User.RequireUniqueEmail = true;
 
-            // CHANGE 3: Sign-in settings - Important for external logins
+            // Sign-in settings (Important for external logins)
             options.SignIn.RequireConfirmedAccount = false;
             options.SignIn.RequireConfirmedEmail = false;
-            // NOTE: Setting these to false allows users to sign in immediately
-            // For production, consider setting RequireConfirmedEmail = true
+            // NOTE: For production, consider RequireConfirmedEmail = true
 
-            // CHANGE 4: Lockout settings (security best practice)
+            // Lockout settings (security best practice)
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.AllowedForNewUsers = true;
 
-            // Token providers (for email confirmation, password reset)
+            // Token providers (email confirmation, password reset)
             options.Tokens.PasswordResetTokenProvider = "PasswordReset";
             options.Tokens.EmailConfirmationTokenProvider = "EmailConfirmation";
         })
@@ -69,20 +68,17 @@ internal static class Extensions
         .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
         .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
 
-        // ===== CHANGE 5: Configure token lifespans =====
-        // Default token provider (used for general purposes)
+        // ===== Token Lifespans =====
         services.Configure<DataProtectionTokenProviderOptions>(o =>
         {
-            o.TokenLifespan = TimeSpan.FromHours(2);
+            o.TokenLifespan = TimeSpan.FromHours(2); // General tokens
         });
 
-        // Email confirmation token (longer lifespan)
         services.Configure<DataProtectionTokenProviderOptions>("EmailConfirmation", o =>
         {
             o.TokenLifespan = TimeSpan.FromDays(1);
         });
 
-        // Password reset token (24 hours)
         services.Configure<DataProtectionTokenProviderOptions>("PasswordReset", o =>
         {
             o.TokenLifespan = TimeSpan.FromHours(24);
