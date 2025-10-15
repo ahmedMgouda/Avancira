@@ -38,6 +38,7 @@ public static class Extensions
         builder.ConfigureDatabase();
 
         builder.Services.ConfigureIdentity();
+        builder.Services.AddDatabaseSeeders();
 
         // ===== Feature Services =====
         builder.Services.ConfigureCatalog();
