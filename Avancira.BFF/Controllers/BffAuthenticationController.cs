@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -23,9 +23,9 @@ public class BffAuthenticationController : ControllerBase
         _tokenManager = tokenManager;
     }
 
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     // LOGIN
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     [HttpGet("login")]
     [AllowAnonymous]
     public IActionResult Login([FromQuery] string? returnUrl = null)
@@ -46,60 +46,23 @@ public class BffAuthenticationController : ControllerBase
         return Challenge(props, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
-    // --------------------------------------------------------------
-    // LOGOUT (simplified � no localOnly flag)
-    // --------------------------------------------------------------
-    [HttpPost("logout")]
-    [Authorize]
-    public async Task<IActionResult> Logout(CancellationToken ct = default)
-    {
-        var userId = User.FindFirstValue("sub");
-        _logger.LogInformation("Logout initiated for user {UserId}", userId);
-
-        try
-        {
-            // Try to revoke refresh token on the IdP
-            try
-            {
-                await _tokenManager.RevokeRefreshTokenAsync(User, parameters: null, ct: ct);
-                _logger.LogInformation("Refresh token revoked for user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to revoke refresh token for user {UserId}", userId);
-            }
-
-            // Clear local cookies
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Sign out from OIDC provider (redirect to IdP logout)
-            var props = new AuthenticationProperties { RedirectUri = "/" };
-            await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, props);
-
-            return Ok(new { success = true, message = "Logged out successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during logout for user {UserId}", userId);
-            return StatusCode(500, new { success = false, message = "Error during logout" });
-        }
-    }
-
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     // GET USER
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     [HttpGet("user")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetUser(CancellationToken ct = default)
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return Ok(new { isAuthenticated = false });
+
         var userId = User.FindFirstValue("sub");
         if (string.IsNullOrEmpty(userId))
-            return Unauthorized(new { message = "No user ID found" });
+            return Ok(new { isAuthenticated = false });
 
         try
         {
             var tokenResult = await _tokenManager.GetAccessTokenAsync(User, parameters: null, ct: ct);
-
             if (tokenResult.Succeeded && tokenResult.Token is not null)
             {
                 var token = tokenResult.Token;
@@ -121,98 +84,61 @@ public class BffAuthenticationController : ControllerBase
                 });
             }
 
-            _logger.LogWarning("Failed to get access token for user {UserId}: {Error}",
-                userId,
-                tokenResult.FailedResult?.Error ?? "unknown_error");
-
-            return Unauthorized(new
-            {
-                message = "Token invalid or expired",
-                error = tokenResult.FailedResult?.Error,
-                needsReauth = true
-            });
+            _logger.LogWarning("Failed to get access token for user {UserId}", userId);
+            return Ok(new { isAuthenticated = false });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting user info for user {UserId}", userId);
-            return StatusCode(500, new { message = "Error retrieving user information" });
+            return Ok(new { isAuthenticated = false });
         }
     }
 
-    // --------------------------------------------------------------
-    // REFRESH TOKEN
-    // --------------------------------------------------------------
-    [HttpPost("refresh")]
+    // ══════════════════════════════════════════════════════════════════
+    // LOGOUT
+    // ══════════════════════════════════════════════════════════════════
+    [HttpPost("logout")]
     [Authorize]
-    public async Task<IActionResult> RefreshToken(CancellationToken ct = default)
+    public async Task<IActionResult> Logout(CancellationToken ct = default)
     {
         var userId = User.FindFirstValue("sub");
-        _logger.LogDebug("Token refresh requested for user {UserId}", userId);
+        _logger.LogInformation("Logout initiated for user {UserId}", userId);
 
         try
         {
-            var tokenResult = await _tokenManager.GetAccessTokenAsync(User, parameters: null, ct: ct);
-
-            if (!tokenResult.Succeeded || tokenResult.Token is null)
+            // Try to revoke refresh token
+            try
             {
-                return Unauthorized(new
-                {
-                    success = false,
-                    error = tokenResult.FailedResult?.Error ?? "refresh_failed",
-                    message = "Failed to refresh token. Please login again."
-                });
+                await _tokenManager.RevokeRefreshTokenAsync(User, parameters: null, ct: ct);
+                _logger.LogInformation("Refresh token revoked for user {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to revoke refresh token for user {UserId}", userId);
             }
 
-            var token = tokenResult.Token;
-            var expiresIn = (int)(token.Expiration - DateTimeOffset.UtcNow).TotalSeconds;
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var props = new AuthenticationProperties { RedirectUri = "/" };
+            await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, props);
 
-            return Ok(new
-            {
-                success = true,
-                message = "Token refreshed successfully",
-                expiresAt = token.Expiration.ToString("o"),
-                expiresIn = expiresIn
-            });
+            return Ok(new { success = true, redirectUri = "/" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing token for user {UserId}", userId);
-            return StatusCode(500, new
-            {
-                success = false,
-                error = "server_error",
-                message = "An error occurred while refreshing the token"
-            });
+            _logger.LogError(ex, "Error during logout for user {UserId}", userId);
+            return StatusCode(500, new { success = false, message = "Error during logout" });
         }
     }
 
-    // --------------------------------------------------------------
-    // CHECK AUTH
-    // --------------------------------------------------------------
-    [HttpGet("check")]
-    [AllowAnonymous]
-    public IActionResult CheckAuthentication()
-    {
-        return Ok(new
-        {
-            isAuthenticated = User.Identity?.IsAuthenticated == true,
-            userId = User.FindFirstValue("sub")
-        });
-    }
-
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     // CLAIMS (DEV)
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     [HttpGet("claims")]
     [Authorize]
     public IActionResult GetClaims()
     {
-        if (!HttpContext.RequestServices
-            .GetRequiredService<IWebHostEnvironment>()
-            .IsDevelopment())
-        {
+        if (!HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
             return NotFound();
-        }
 
         var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
         return Ok(new
@@ -223,12 +149,12 @@ public class BffAuthenticationController : ControllerBase
         });
     }
 
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     // HELPERS
-    // --------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
     private string GetSafeReturnUrl(string? returnUrl)
     {
-        const string defaultUrl = "/";
+        const string defaultUrl = "https://localhost:4200/";
         if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl))
             return defaultUrl;
         return returnUrl;

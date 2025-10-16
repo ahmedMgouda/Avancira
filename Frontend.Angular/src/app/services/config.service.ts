@@ -1,11 +1,10 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, isDevMode } from '@angular/core';
-import { catchError, Observable, of, tap, throwError, switchMap, map } from 'rxjs';
+import { catchError, map,Observable, of, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { ConfigKey } from '../models/config-key';
 import { SocialProvider } from '../models/social-provider';
-import { INCLUDE_CREDENTIALS } from '../interceptors/auth.interceptor';
 
 export type Config = Record<ConfigKey, string>;
 
@@ -41,7 +40,7 @@ export class ConfigService {
     }
 
     const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`, {
-      context: new HttpContext().set(INCLUDE_CREDENTIALS, true)
+      context: new HttpContext()
     });
 
     return fetch$.pipe(

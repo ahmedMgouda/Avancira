@@ -57,11 +57,11 @@ internal sealed class OpenIddictClientSeeder(
 
             RedirectUris =
             {
-                new Uri("https://localhost:9200/signin-oidc")
+                new Uri("https://localhost:9200/bff/signin-oidc")
             },
             PostLogoutRedirectUris =
             {
-                new Uri("https://localhost:9200/signout-callback-oidc")
+                new Uri("https://localhost:9200/bff/signout-callback-oidc")
             },
             Permissions =
             {

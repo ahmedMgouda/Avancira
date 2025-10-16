@@ -79,7 +79,7 @@ internal static class Extensions
 
                     if (!string.IsNullOrWhiteSpace(hangfireOptions.Schema))
                     {
-                        options.SchemaName = hangfireOptions.Schema;
+                        //options.SchemaN = hangfireOptions.Schema;
                     }
                 });
                 break;

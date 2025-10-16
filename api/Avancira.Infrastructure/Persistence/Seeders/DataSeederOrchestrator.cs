@@ -29,14 +29,17 @@ internal sealed class DataSeederOrchestrator(
 
         // Order matters (dependencies)
         await SafeRunAsync(roleSeeder, nameof(RoleSeeder), cancellationToken);
+      
+        await SafeRunAsync(categorySeeder, nameof(CategorySeeder), cancellationToken);
+        await SafeRunAsync(countrySeeder, nameof(CountrySeeder), cancellationToken);
+
+        await SafeRunAsync(promoCodeSeeder, nameof(PromoCodeSeeder), cancellationToken);
+       
         await SafeRunAsync(userSeeder, nameof(UserSeeder), cancellationToken);
         await SafeRunAsync(openIdSeeder, nameof(OpenIddictClientSeeder), cancellationToken);
 
-        await SafeRunAsync(countrySeeder, nameof(CountrySeeder), cancellationToken);
-        await SafeRunAsync(categorySeeder, nameof(CategorySeeder), cancellationToken);
         await SafeRunAsync(listingSeeder, nameof(ListingSeeder), cancellationToken);
         await SafeRunAsync(listingCategorySeeder, nameof(ListingCategorySeeder), cancellationToken);
-        await SafeRunAsync(promoCodeSeeder, nameof(PromoCodeSeeder), cancellationToken);
 
         logger.LogInformation("Database seeding completed successfully.");
     }

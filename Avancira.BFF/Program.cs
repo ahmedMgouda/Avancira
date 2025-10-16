@@ -1,10 +1,14 @@
 ﻿using Avancira.BFF.Extensions;
 using Avancira.Infrastructure;
+using Avancira.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // === 1. Infrastructure ===
 builder.ConfigureAvanciraFramework();
+
+builder.Services.BindDbContext<AvanciraDbContext>();
+
 
 // === 2. BFF Services ===
 builder.Services.AddBffAuthentication(builder.Configuration);
@@ -20,6 +24,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseAvanciraFramework(runDatabasePreparation: false);
 // === 4. Middleware ===
 if (app.Environment.IsDevelopment())
 {
@@ -34,9 +39,7 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors();
-app.UseAuthentication();
-app.UseAuthorization();
+
 
 // === 5. Endpoints ===
 app.MapHealthChecks("/health");

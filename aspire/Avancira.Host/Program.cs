@@ -123,8 +123,11 @@ var authServer = builder.AddProject<Projects.Avancira_Auth>("avancira-auth")
 
 #region ===== BFF =====
 builder.AddProject<Projects.Avancira_BFF>("avancira-bff")
+    .WithReference(postgresDb)
     .WithReference(authServer)
     .WithReference(backend)
+    .WithDatabaseEnvironments(env)
+    .WithAppEnvironments(env)
     .WithExternalHttpEndpoints()
     .WaitFor(authServer)
     .WaitFor(backend);

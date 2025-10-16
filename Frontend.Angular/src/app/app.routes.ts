@@ -4,7 +4,6 @@ import { VideoCallWindowComponent } from './components/video-call-window/video-c
 import { FooterLayoutComponent } from './layout/footer-layout/footer-layout.component';
 import { HeaderLayoutComponent } from './layout/header-layout/header-layout.component';
 import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
-import { AuthCallbackComponent } from './pages/auth-callback/auth-callback.component';
 import { CheckEmailComponent } from './pages/check-email/check-email.component';
 import { CompleteRegistrationComponent } from './pages/complete-registration/complete-registration.component';
 import { ConfirmEmailComponent } from './pages/confirm-email/confirm-email.component';
@@ -34,7 +33,6 @@ export const routes: Routes = [
   { path: 'video-call-window', component: VideoCallWindowComponent },
   { path: 'signup', component: SignupComponent },
   { path: 'signin', component: SigninComponent },
-  { path: 'auth/callback', component: AuthCallbackComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },

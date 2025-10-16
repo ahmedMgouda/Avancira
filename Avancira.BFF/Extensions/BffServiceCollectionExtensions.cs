@@ -37,7 +37,7 @@ public static class BffServiceCollectionExtensions
             o.SlidingExpiration = true;
             o.ExpireTimeSpan = TimeSpan.FromHours(2);
 
-            // Prevent redirect loops for API calls
+            // ✅ Custom redirect handling for Angular SPA calls
             o.Events.OnRedirectToLogin = ctx =>
             {
                 if (IsApiRequest(ctx.Request))
@@ -45,6 +45,7 @@ public static class BffServiceCollectionExtensions
                     ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     return Task.CompletedTask;
                 }
+
                 ctx.Response.Redirect(ctx.RedirectUri);
                 return Task.CompletedTask;
             };
@@ -56,6 +57,7 @@ public static class BffServiceCollectionExtensions
                     ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return Task.CompletedTask;
                 }
+
                 ctx.Response.Redirect(ctx.RedirectUri);
                 return Task.CompletedTask;
             };
@@ -65,9 +67,14 @@ public static class BffServiceCollectionExtensions
             o.Authority = auth["Authority"] ?? "https://localhost:9100";
             o.ClientId = auth["ClientId"] ?? "bff-client";
             o.ClientSecret = auth["ClientSecret"] ?? "dev-bff-secret";
-            o.RequireHttpsMetadata = false; // ✅ enable for production
+            o.RequireHttpsMetadata = false; // ✅ set true in production
+
             o.ResponseType = OpenIdConnectResponseType.Code;
             o.UsePkce = true;
+
+
+            o.CallbackPath = new PathString("/bff/signin-oidc");
+            o.SignedOutCallbackPath = new PathString("/bff/signout-callback-oidc");
 
             // Scopes
             o.Scope.Clear();
@@ -80,10 +87,11 @@ public static class BffServiceCollectionExtensions
             o.SaveTokens = true;
             o.GetClaimsFromUserInfoEndpoint = true;
             o.MapInboundClaims = false;
+
             o.TokenValidationParameters.NameClaimType = "name";
             o.TokenValidationParameters.RoleClaimType = "role";
 
-            // Log or handle OIDC errors gracefully
+            // Handle OIDC failures gracefully
             o.Events.OnAuthenticationFailed = ctx =>
             {
                 ctx.HandleResponse();
@@ -101,7 +109,7 @@ public static class BffServiceCollectionExtensions
     }
 
     // ========================================================================
-    // 2. TOKEN MANAGEMENT (Duende v4)
+    // 2. TOKEN MANAGEMENT (Duende)
     // ========================================================================
     public static IServiceCollection AddBffTokenManagement(
         this IServiceCollection services,
@@ -114,11 +122,11 @@ public static class BffServiceCollectionExtensions
             options.RefreshBeforeExpiration = TimeSpan.FromMinutes(5);
         });
 
-        // Token back-channel (used internally by Duende)
+        // Token back-channel (Duende internal)
         services.AddHttpClient(TokenBackchannelClientName)
             .AddPolicyHandler(GetRetryPolicy());
 
-        // Configure automatic token-injected HttpClient for the API
+        // HttpClient used by YARP or app services with user token injection
         var apiBaseAddress = configuration["ReverseProxy:Clusters:api-cluster:Destinations:primary:Address"]
             ?? "https://localhost:9000";
 
@@ -145,7 +153,7 @@ public static class BffServiceCollectionExtensions
             .LoadFromConfig(configuration.GetSection("ReverseProxy"))
             .AddTransforms(builderContext =>
             {
-                // Automatically attach access token from Duende
+                // Inject user access token for proxied API requests
                 builderContext.AddRequestTransform(async transformContext =>
                 {
                     var httpContext = transformContext.HttpContext;
@@ -167,7 +175,7 @@ public static class BffServiceCollectionExtensions
                     }
                 });
 
-                // Clean response headers
+                // ✅ Clean up unnecessary response headers
                 builderContext.AddResponseTransform(transformContext =>
                 {
                     transformContext.ProxyResponse?.Headers.Remove("Set-Cookie");
@@ -185,20 +193,7 @@ public static class BffServiceCollectionExtensions
     // ========================================================================
     public static IServiceCollection AddBffAuthorization(this IServiceCollection services)
     {
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy("authenticated", policy =>
-                policy.RequireAuthenticatedUser());
-
-            options.AddPolicy("api-access", policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.RequireClaim("scope", "api");
-            });
-
-            options.FallbackPolicy = options.GetPolicy("authenticated");
-        });
-
+        services.AddAuthorization();
         return services;
     }
 
@@ -207,10 +202,23 @@ public static class BffServiceCollectionExtensions
     // ========================================================================
     private static bool IsApiRequest(HttpRequest request)
     {
-        return request.Path.StartsWithSegments("/api") ||
-               request.Path.StartsWithSegments("/bff") ||
-               request.ContentType?.Contains("application/json") == true ||
-               request.Headers.Accept.Any(h => h?.Contains("application/json") == true);
+        var path = request.Path;
+
+        // Treat all /bff/... as SPA/AJAX calls
+        // but allow redirects for login/logout flows
+        if (path.StartsWithSegments("/bff", StringComparison.OrdinalIgnoreCase))
+        {
+            if (path.StartsWithSegments("/bff/auth/login", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWithSegments("/bff/auth/logout", StringComparison.OrdinalIgnoreCase))
+            {
+                return false; // Allow browser redirects
+            }
+
+            return true; // All other /bff/* return 401/403 for SPA
+        }
+
+        // Non-/bff requests can redirect normally
+        return false;
     }
 
     private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>

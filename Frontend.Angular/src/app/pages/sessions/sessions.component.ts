@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 
+import { SessionService } from '../../services/session.service';
+
 import { DeviceSessions } from '../../models/device-sessions';
 import { UserSession } from '../../models/session';
-import { SessionService } from '../../services/session.service';
 
 @Component({
   selector: 'app-sessions',
