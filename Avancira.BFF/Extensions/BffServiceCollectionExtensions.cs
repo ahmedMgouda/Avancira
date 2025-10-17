@@ -1,6 +1,8 @@
 ﻿using Duende.AccessTokenManagement.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 using Polly.Extensions.Http;
@@ -32,12 +34,14 @@ public static class BffServiceCollectionExtensions
         {
             o.Cookie.Name = cookie["Name"] ?? ".Avancira.BFF";
             o.Cookie.HttpOnly = true;
-            o.Cookie.SameSite = SameSiteMode.Strict;
+
+            o.Cookie.SameSite = SameSiteMode.None;
+
             o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             o.SlidingExpiration = true;
             o.ExpireTimeSpan = TimeSpan.FromHours(2);
 
-            // ✅ Custom redirect handling for Angular SPA calls
+            // Custom redirect handling for Angular SPA calls
             o.Events.OnRedirectToLogin = ctx =>
             {
                 if (IsApiRequest(ctx.Request))
@@ -64,6 +68,8 @@ public static class BffServiceCollectionExtensions
         })
         .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, o =>
         {
+            o.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
             o.Authority = auth["Authority"] ?? "https://localhost:9100";
             o.ClientId = auth["ClientId"] ?? "bff-client";
             o.ClientSecret = auth["ClientSecret"] ?? "dev-bff-secret";
@@ -71,7 +77,6 @@ public static class BffServiceCollectionExtensions
 
             o.ResponseType = OpenIdConnectResponseType.Code;
             o.UsePkce = true;
-
 
             o.CallbackPath = new PathString("/bff/signin-oidc");
             o.SignedOutCallbackPath = new PathString("/bff/signout-callback-oidc");
@@ -91,17 +96,89 @@ public static class BffServiceCollectionExtensions
             o.TokenValidationParameters.NameClaimType = "name";
             o.TokenValidationParameters.RoleClaimType = "role";
 
-            // Handle OIDC failures gracefully
-            o.Events.OnAuthenticationFailed = ctx =>
+            // Add comprehensive logging for debugging
+            o.Events = new OpenIdConnectEvents
             {
-                ctx.HandleResponse();
-                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                ctx.Response.ContentType = "application/json";
-                return ctx.Response.WriteAsJsonAsync(new
+                OnRedirectToIdentityProvider = ctx =>
                 {
-                    error = "authentication_failed",
-                    error_description = ctx.Exception.Message
-                });
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("🔵 [OIDC] Redirecting to Identity Provider");
+                    logger.LogDebug("🔵 [OIDC] Redirect URI: {RedirectUri}", ctx.ProtocolMessage.RedirectUri);
+                    return Task.CompletedTask;
+                },
+
+                OnAuthorizationCodeReceived = ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("🟢 [OIDC] Authorization code received from Auth Server");
+                    return Task.CompletedTask;
+                },
+
+                OnTokenResponseReceived = ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("🟢 [OIDC] Token response received. Expires in: {ExpiresIn}s",
+                        ctx.TokenEndpointResponse.ExpiresIn);
+                    return Task.CompletedTask;
+                },
+
+                OnTokenValidated = ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var sub = ctx.Principal?.FindFirst("sub")?.Value;
+                    var name = ctx.Principal?.FindFirst("name")?.Value;
+                    logger.LogInformation("🟢 [OIDC] Token validated successfully for user: {Name} (sub: {Sub})",
+                        name, sub);
+                    return Task.CompletedTask;
+                },
+                OnTicketReceived = async ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var schemeProvider = ctx.HttpContext.RequestServices.GetRequiredService<IAuthenticationSchemeProvider>();
+                    var cookieOptionsMonitor = ctx.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>();
+
+                    var cookieScheme = await schemeProvider.GetDefaultAuthenticateSchemeAsync();
+                    var cookieOptions = cookieOptionsMonitor.Get(cookieScheme?.Name ?? CookieAuthenticationDefaults.AuthenticationScheme);
+
+                    logger.LogInformation("🟢 [OIDC] Authentication ticket received");
+                    logger.LogInformation("🍪 [OIDC] Cookie settings: Name={Name}, SameSite={SameSite}, Secure={Secure}, HttpOnly={HttpOnly}",
+                        cookieOptions.Cookie.Name,
+                        cookieOptions.Cookie.SameSite,
+                        cookieOptions.Cookie.SecurePolicy,
+                        cookieOptions.Cookie.HttpOnly);
+
+                    logger.LogInformation("🔄 [OIDC] Redirecting user to: {ReturnUri}", ctx.ReturnUri);
+                },
+
+                OnRemoteFailure = ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ctx.Failure, "🔴 [OIDC] Remote authentication failure");
+
+                    ctx.HandleResponse();
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    ctx.Response.ContentType = "application/json";
+                    return ctx.Response.WriteAsJsonAsync(new
+                    {
+                        error = "authentication_failed",
+                        error_description = ctx.Failure?.Message ?? "Remote authentication failed"
+                    });
+                },
+
+                OnAuthenticationFailed = ctx =>
+                {
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ctx.Exception, "🔴 [OIDC] Authentication failed");
+
+                    ctx.HandleResponse();
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    ctx.Response.ContentType = "application/json";
+                    return ctx.Response.WriteAsJsonAsync(new
+                    {
+                        error = "authentication_failed",
+                        error_description = ctx.Exception.Message
+                    });
+                }
             };
         });
 

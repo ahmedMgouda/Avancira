@@ -47,13 +47,6 @@ public static class Extensions
                     policy.WithOrigins(corsOptions.AllowedOrigins.ToArray())
                           .AllowCredentials();
                 }
-
-                // ===== BFF-SPECIFIC: Expose custom authentication headers =====
-                // These headers are used by BFF to communicate token/auth state to frontend
-                policy.WithExposedHeaders(
-                    "X-Token-Expired",
-                    "X-Unauthenticated",
-                    "X-Token-Refresh-Required");
             });
         });
 
@@ -65,3 +58,4 @@ public static class Extensions
         return app.UseCors(CorsPolicyName);
     }
 }
+
