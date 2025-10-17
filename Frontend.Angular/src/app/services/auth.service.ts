@@ -89,14 +89,18 @@ export class AuthService {
   /**
    * Starts login via BFF (redirects to MVC login page)
    */
+
   startLogin(returnUrl: string = this.router.url): void {
     const sanitized = this.sanitizeReturnUrl(returnUrl);
     sessionStorage.setItem('auth:return_url', sanitized);
 
+    const fullReturnUrl = `${window.location.origin}${sanitized}`;
+
     window.location.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(
-      sanitized
+      fullReturnUrl
     )}`;
   }
+
 
   /**
    * Logs out via BFF (revokes session and redirects)
@@ -125,13 +129,13 @@ export class AuthService {
    */
   handleUnauthorized(returnUrl: string = this.router.url): void {
     this.clearState();
-    const safeUrl = this.sanitizeReturnUrl(returnUrl);
+    const sanitized = this.sanitizeReturnUrl(returnUrl);
+    const fullReturnUrl = `${window.location.origin}${sanitized}`;
 
     window.location.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(
-      safeUrl
+      fullReturnUrl
     )}`;
   }
-
   // ----------------------------------------------------------
   // Helpers / State Management
   // ----------------------------------------------------------
