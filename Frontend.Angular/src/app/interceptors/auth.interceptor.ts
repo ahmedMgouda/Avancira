@@ -24,7 +24,10 @@ export const authInterceptor: HttpInterceptorFn = (
   const authService = inject(AuthService);
 
   // Always include credentials for your BFF or API calls
-  const isBffRequest = req.url.startsWith(environment.baseUrl);
+  const isBffRequest =
+  req.url.startsWith('/bff') ||
+  req.url.startsWith(environment.baseUrl);
+
   const request = isBffRequest
     ? req.clone({ withCredentials: true })
     : req;
@@ -32,6 +35,7 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(request).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && isBffRequest) {
+        console.log('[Auth Interceptor] 401 detected, redirecting to login');
         authService.handleUnauthorized();
       }
       return throwError(() => error);

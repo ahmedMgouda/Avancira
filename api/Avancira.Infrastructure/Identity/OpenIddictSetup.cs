@@ -77,6 +77,7 @@ public static class OpenIddictSetup
                 // CRITICAL SECURITY: Use reference refresh tokens
                 // Reference tokens can be revoked (unlike JWT tokens)
                 // When user logs out, we revoke the reference
+                options.UseReferenceAccessTokens();
                 options.UseReferenceRefreshTokens();
 
                 // ===== SCOPE CONFIGURATION =====

@@ -1,32 +1,27 @@
-using Avancira.Infrastructure.Persistence;
+﻿using Avancira.Infrastructure.Persistence;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Validation.AspNetCore;
+using OpenIddict.Validation;
+using OpenIddict.Abstractions;
 
 namespace Avancira.API.Extensions;
 
 /// <summary>
-/// Authentication configuration for the API project
-/// This project validates access tokens issued by the Auth server
+/// Authentication configuration for the API project.
+/// This project validates access tokens issued by the Auth server.
 /// </summary>
 public static class AuthenticationExtensions
 {
-    /// <summary>
-    /// Configures authentication for API endpoints using OpenIddict validation
-    /// 
-    /// The API should ONLY validate tokens, not issue them
-    /// </summary>
     public static IServiceCollection AddApiAuthentication(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-
-        // This validates tokens issued by the Auth server's OpenIddict
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
         });
 
         services.AddAuthorization();
-
         return services;
     }
 
@@ -51,24 +46,77 @@ public static class AuthenticationExtensions
             })
             .AddValidation(options =>
             {
-                // This tells the API where to validate tokens from
+                // === Basic Setup ===
                 options.SetIssuer(authServerUrl);
 
-                // Use introspection if Auth and API are separate
-                // Comment this out if they share the same database
+                // Use introspection because Auth and API run in different containers
                 options.UseIntrospection()
                        .SetClientId("bff-client")
                        .SetClientSecret("dev-bff-secret");
 
-                // Use local validation (both use same database)
-                // This is more efficient than introspection
-                //options.UseLocalServer();
-
-                // Use HTTP for communication with Auth container
                 options.UseSystemNetHttp();
-
-                // Integrate with ASP.NET Core�s authentication system
                 options.UseAspNetCore();
+
+                // === 🔍 Diagnostic Event Hooks ===
+
+                options.AddEventHandler<OpenIddictValidationEvents.ApplyIntrospectionRequestContext>(builder =>
+                {
+                    builder.UseInlineHandler(context =>
+                    {
+                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
+                        var logger = httpContext?.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("OpenIddict.Introspection");
+
+                        logger?.LogInformation("📡 Sending introspection request to: {Address}",
+                            context.RequestUri?.AbsoluteUri ?? "unknown");
+
+                        return default;
+                    });
+                });
+
+                options.AddEventHandler<OpenIddictValidationEvents.HandleIntrospectionResponseContext>(builder =>
+                {
+                    builder.UseInlineHandler(context =>
+                    {
+                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
+                        var logger = httpContext?.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("OpenIddict.Introspection");
+
+                        logger?.LogInformation("🔍 Introspection response: {Response}",
+                            context.Response?.ToString() ?? "(null)");
+
+                        return default;
+                    });
+                });
+
+                options.AddEventHandler<OpenIddictValidationEvents.ProcessAuthenticationContext>(builder =>
+                {
+                    builder.UseInlineHandler(context =>
+                    {
+                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
+                        var logger = httpContext?.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("OpenIddict.Validation");
+
+                        if (context.AccessTokenPrincipal is not null)
+                        {
+                            logger?.LogInformation(
+                                "✅ Token validated successfully. Sub: {Sub}, Scopes: {Scopes}",
+                                context.AccessTokenPrincipal.GetClaim(OpenIddictConstants.Claims.Subject));
+                        }
+                        else
+                        {
+                            logger?.LogWarning(
+                                "❌ Token validation failed. Error: {Error}, Description: {Description}",
+                                context.Error ?? "unknown",
+                                context.ErrorDescription ?? "no details");
+                        }
+
+                        return default;
+                    });
+                });
             });
 
         return services;

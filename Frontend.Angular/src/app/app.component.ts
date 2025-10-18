@@ -11,14 +11,19 @@ import { AuthService } from './services/auth.service';
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly auth: AuthService) { }
 
   async ngOnInit(): Promise<void> {
     try {
       await this.auth.init();
-      console.log(this.auth.isAuthenticated()
-        ? '[App] Session restored'
-        : '[App] Anonymous user');
+
+      queueMicrotask(() => {
+        console.log(
+          this.auth.isAuthenticated()
+            ? '[App] Session restored'
+            : '[App] Anonymous user'
+        );
+      });
     } catch (e) {
       console.error('[App] Init failed', e);
     }

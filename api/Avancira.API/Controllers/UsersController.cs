@@ -237,7 +237,7 @@ public class UsersController : BaseApiController
         return Ok(result);
     }
 
-
+    [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetCurrentUser")]

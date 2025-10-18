@@ -66,6 +66,7 @@ export class AuthService {
       );
 
       if (response.isAuthenticated) {
+        console.log("isAuthenticated" + response.isAuthenticated);
         this.setState({
           isAuthenticated: true,
           user: response as UserProfile,

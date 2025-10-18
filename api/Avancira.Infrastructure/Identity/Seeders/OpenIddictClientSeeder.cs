@@ -69,6 +69,7 @@ internal sealed class OpenIddictClientSeeder(
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.Endpoints.Revocation,
+                 OpenIddictConstants.Permissions.Endpoints.Introspection,
 
                 // Grant types
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
