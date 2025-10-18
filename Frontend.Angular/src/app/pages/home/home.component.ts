@@ -8,6 +8,7 @@ import { CarouselModule } from 'ngx-owl-carousel-o';
 
 import { GoogleMapsService } from '../../services/google-maps.service';
 import { LandingService } from '../../services/landing.service';
+import { AuthService } from '../../services/auth.service';
 
 import { LessonCategory } from '../../models/lesson-category';
 @Component({
@@ -95,7 +96,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
   constructor(
     private googleMapsService: GoogleMapsService,
     private landingService: LandingService,
-    private router: Router
+    private router: Router,
+    private authService: AuthService,
   ) { }
 
   ngOnInit(): void {
@@ -255,5 +257,10 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
   navigateToSearch(item: string): void {
     this.router.navigate(['/search-results'], { queryParams: { query: item } });
+  }
+
+  startLogin(event?: Event): void {
+    event?.preventDefault();
+    this.authService.startLogin();
   }
 }

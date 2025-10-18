@@ -41,7 +41,7 @@
         </ul>
         <ul class="main-nav" *ngIf="!isLoggedIn();">
           <li class="login-link">
-            <a [routerLink]="'signin'">Login / Signup</a>
+            <a href="javascript:void(0);" (click)="startLogin($event)">Login / Signup</a>
           </li>
         </ul>
       </div>
@@ -50,7 +50,9 @@
           <a class="nav-link header-login" href="signup"><img src="assets/img/icon/sign-icon.svg" alt=""> Sign up</a>
         </li> -->
         <li class="nav-item signin" *ngIf="!isLoggedIn()">
-          <a class="nav-link" href="signin"> <img src="assets/img/icon/log-icon.svg" alt=""> Log In</a>
+          <a class="nav-link" href="javascript:void(0);" (click)="startLogin($event)">
+            <img src="assets/img/icon/log-icon.svg" alt=""> Log In
+          </a>
         </li>
 
         <li class="nav-item dropdown has-arrow logged-item" *ngIf="isLoggedIn()">
