@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { AuthService } from '../../../services/auth.service';
@@ -26,7 +26,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
 
   constructor(
-    private router: Router,
     private userService: UserService,
     private authService: AuthService
   ) { }
@@ -75,7 +74,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   logout() {
     this.authService.logout();
-    this.router.navigate(['/']);
   }
 
   fetchUserInfo() {
