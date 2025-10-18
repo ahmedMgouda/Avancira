@@ -6,7 +6,7 @@ using Avancira.Domain.UserSessions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
+using IdentityDefaults = Avancira.Shared.Authorization.IdentityDefaults;
 
 namespace Avancira.Infrastructure.Persistence.Configurations;
 
@@ -14,7 +14,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<UserSession>
 {
     public void Configure(EntityTypeBuilder<UserSession> builder)
     {
-        builder.ToTable("Sessions", IdentityConstants.SchemaName);
+        builder.ToTable("Sessions", IdentityDefaults.SchemaName);
 
         builder.HasKey(s => s.Id);
 

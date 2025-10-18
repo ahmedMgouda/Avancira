@@ -15,7 +15,4 @@
   <ItemGroup>
     <ProjectReference Include="..\api\Avancira.Infrastructure\Avancira.Infrastructure.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
 </Project>

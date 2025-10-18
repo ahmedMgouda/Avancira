@@ -11,7 +11,7 @@ using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using IdentityConstants = Avancira.Shared.Authorization.IdentityConstants;
+using IdentityDefaults = Avancira.Shared.Authorization.IdentityDefaults;
 
 namespace Avancira.Infrastructure.Identity;
 
@@ -40,7 +40,7 @@ internal static class Extensions
         services.AddIdentity<User, Role>(options =>
         {
             // Password requirements
-            options.Password.RequiredLength = IdentityConstants.PasswordLength;
+            options.Password.RequiredLength = IdentityDefaults.PasswordLength;
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;
             options.Password.RequireNonAlphanumeric = false;

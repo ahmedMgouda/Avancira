@@ -1,4 +1,8 @@
-﻿using System.Security.Claims;
+﻿namespace Avancira.BFF.Controllers;
+
+using System.Security.Claims;
+using Avancira.BFF.Configuration;
+using Duende.AccessTokenManagement;
 using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -6,33 +10,36 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Avancira.BFF.Controllers;
-
 [ApiController]
 [Route("bff/auth")]
 public class BffAuthenticationController : ControllerBase
 {
     private readonly ILogger<BffAuthenticationController> _logger;
     private readonly IUserTokenManager _tokenManager;
+    private readonly BffSettings _settings;
 
     public BffAuthenticationController(
         ILogger<BffAuthenticationController> logger,
-        IUserTokenManager tokenManager)
+        IUserTokenManager tokenManager,
+        BffSettings settings)
     {
         _logger = logger;
         _tokenManager = tokenManager;
+        _settings = settings;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // LOGIN
-    // ══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // GET /bff/auth/login
+    // Initiates login flow
+    // ═══════════════════════════════════════════════════════════════════════
     [HttpGet("login")]
     [AllowAnonymous]
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            _logger.LogDebug("User already authenticated, redirecting to {ReturnUrl}", returnUrl ?? "/");
+            _logger.LogDebug("User already authenticated, redirecting to {ReturnUrl}",
+                returnUrl ?? "/");
             return Redirect(GetSafeReturnUrl(returnUrl));
         }
 
@@ -42,121 +49,183 @@ public class BffAuthenticationController : ControllerBase
             IsPersistent = true
         };
 
-        _logger.LogInformation("Starting login flow with returnUrl={ReturnUrl}", returnUrl ?? "/");
+        _logger.LogInformation("Login flow initiated");
         return Challenge(props, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // GET USER
-    // ══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // GET /bff/auth/user
+    // Returns current user info (if authenticated)
+    //
+    // NOTE: Only returns sub and token expiry.
+    // Full user data (name, email, roles) is in the JWT access token
+    // which the API receives automatically.
+    // ═══════════════════════════════════════════════════════════════════════
     [HttpGet("user")]
     [AllowAnonymous]
     public async Task<IActionResult> GetUser(CancellationToken ct = default)
     {
         if (User.Identity?.IsAuthenticated != true)
+        {
             return Ok(new { isAuthenticated = false });
+        }
 
         var userId = User.FindFirstValue("sub");
         if (string.IsNullOrEmpty(userId))
+        {
             return Ok(new { isAuthenticated = false });
+        }
 
         try
         {
-            var tokenResult = await _tokenManager.GetAccessTokenAsync(User, parameters: null, ct: ct);
-            if (tokenResult.Succeeded && tokenResult.Token is not null)
-            {
-                var token = tokenResult.Token;
-                var expiresIn = (int)(token.Expiration - DateTimeOffset.UtcNow).TotalSeconds;
+            // Get access token result from Duende (server-side)
+            var tokenResult = await _tokenManager.GetAccessTokenAsync(User);
 
-                return Ok(new
-                {
-                    isAuthenticated = true,
-                    sub = userId,
-                    name = User.FindFirstValue("name"),
-                    givenName = User.FindFirstValue("given_name"),
-                    familyName = User.FindFirstValue("family_name"),
-                    email = User.FindFirstValue("email"),
-                    emailVerified = bool.TryParse(User.FindFirstValue("email_verified"), out var verified) && verified,
-                    roles = User.FindAll("role").Select(c => c.Value).ToArray(),
-                    scopes = User.FindAll("scope").Select(c => c.Value).ToArray(),
-                    tokenExpiresAt = token.Expiration.ToString("o"),
-                    tokenExpiresIn = expiresIn
-                });
+            // New pattern: WasSuccessful(out token, out failure)
+            if (!tokenResult.WasSuccessful(out var token, out var failure))
+            {
+                _logger.LogWarning(
+                    "Token retrieval failed for {UserId}: {Error} - {Description}",
+                    userId,
+                    failure?.Error ?? "unknown",
+                    failure?.ErrorDescription ?? "no description"
+                );
+
+                return Ok(new { isAuthenticated = false });
             }
 
-            _logger.LogWarning("Failed to get access token for user {UserId}", userId);
-            return Ok(new { isAuthenticated = false });
+            // Compute expiration (avoid negative)
+            var expiresIn = Math.Max(0,
+                (int)(token.Expiration - DateTimeOffset.UtcNow).TotalSeconds);
+
+            return Ok(new
+            {
+                isAuthenticated = true,
+                sub = userId,
+                tokenExpiresIn = expiresIn
+                // NOTE: name, email, roles are in JWT (available in API)
+                // BFF doesn't need them in cookie
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user info for user {UserId}", userId);
+            _logger.LogError(ex, "Error getting user info for {UserId}", userId);
             return Ok(new { isAuthenticated = false });
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // LOGOUT
-    // ══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // POST /bff/auth/logout
+    // Logs out current user
+    //
+    // PROCESS:
+    // 1. Revoke refresh token (prevents token refresh)
+    // 2. Sign out from cookie scheme (clears BFF cookie)
+    // 3. Sign out from OIDC scheme (notifies auth server)
+    // ═══════════════════════════════════════════════════════════════════════
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout(CancellationToken ct = default)
     {
         var userId = User.FindFirstValue("sub");
-        _logger.LogInformation("Logout initiated for user {UserId}", userId);
+        var sessionId = User.FindFirstValue("sid");
+
+        _logger.LogInformation(
+            "Logout initiated - UserId: {UserId}, SessionId: {SessionId}",
+            userId,
+            sessionId);
 
         try
         {
-            // Try to revoke refresh token
+            // Step 1: Revoke refresh token (safe, non-critical failure)
             try
             {
-                await _tokenManager.RevokeRefreshTokenAsync(User, parameters: null, ct: ct);
-                _logger.LogInformation("Refresh token revoked for user {UserId}", userId);
+                await _tokenManager.RevokeRefreshTokenAsync(User);
+                _logger.LogInformation("Refresh token revoked for {UserId}", userId);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to revoke refresh token for user {UserId}", userId);
+                _logger.LogWarning(ex,
+                    "Failed to revoke refresh token for {UserId}, SessionId: {SessionId}",
+                    userId,
+                    sessionId);
             }
 
+            // Step 2: Clear BFF cookie
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            var props = new AuthenticationProperties { RedirectUri = "/" };
+
+            // Step 3: Notify OpenID Connect provider
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = _settings.Auth.DefaultRedirectUrl
+            };
             await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, props);
+
+            _logger.LogInformation(
+                "User logged out - UserId: {UserId}, SessionId: {SessionId}",
+                userId,
+                sessionId);
 
             return Ok(new { success = true, redirectUri = "/" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during logout for user {UserId}", userId);
-            return StatusCode(500, new { success = false, message = "Error during logout" });
+            _logger.LogError(ex,
+                "Logout failed for {UserId}, SessionId: {SessionId}",
+                userId,
+                sessionId);
+
+            return StatusCode(500, new { success = false, message = "Logout failed" });
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // CLAIMS (DEV)
-    // ══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // GET /bff/auth/claims
+    // Returns all claims (development only)
+    // ═══════════════════════════════════════════════════════════════════════
     [HttpGet("claims")]
     [Authorize]
     public IActionResult GetClaims()
     {
-        if (!HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+        if (!HttpContext.RequestServices
+            .GetRequiredService<IWebHostEnvironment>()
+            .IsDevelopment())
+        {
             return NotFound();
+        }
 
         var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
         return Ok(new
         {
             identity = User.Identity?.Name,
             isAuthenticated = User.Identity?.IsAuthenticated,
+            authenticationType = User.Identity?.AuthenticationType,
             claims
         });
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // HELPERS
-    // ══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // Validates and sanitizes return URLs
+    // Prevents open redirect vulnerabilities
+    // ═══════════════════════════════════════════════════════════════════════
     private string GetSafeReturnUrl(string? returnUrl)
     {
-        const string defaultUrl = "https://localhost:4200/";
-        if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl))
-            return defaultUrl;
-        return returnUrl;
+        if (string.IsNullOrWhiteSpace(returnUrl))
+            return _settings.Auth.DefaultRedirectUrl;
+
+        // Allow local URLs
+        if (Url.IsLocalUrl(returnUrl))
+            return returnUrl;
+
+        // Check if URL matches allowed origins
+        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var uri))
+        {
+            var origin = $"{uri.Scheme}://{uri.Authority}";
+            if (_settings.Cors.AllowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                return returnUrl;
+        }
+
+        _logger.LogWarning("Invalid return URL rejected: {ReturnUrl}", returnUrl);
+        return _settings.Auth.DefaultRedirectUrl;
     }
 }

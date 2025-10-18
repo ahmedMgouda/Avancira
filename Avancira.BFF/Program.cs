@@ -1,57 +1,37 @@
-﻿using Avancira.BFF.Extensions;
-using Avancira.Infrastructure;
-using Avancira.Infrastructure.Persistence;
+﻿using Avancira.BFF.Configuration;
+using Avancira.BFF.Extensions;
+using SendGrid.Helpers.Mail;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// === 1. Infrastructure ===
-builder.ConfigureAvanciraFramework();
-
-builder.Services.BindDbContext<AvanciraDbContext>();
-
-
-// === 2. BFF Services ===
-builder.Services.AddBffAuthentication(builder.Configuration);
-builder.Services.AddBffTokenManagement(builder.Configuration);
-builder.Services.AddBffAuthorization();
-builder.Services.AddBffReverseProxy(builder.Configuration);
-
-// === 3. MVC + Diagnostics ===
-builder.Services.AddControllers();
-builder.Services.AddHealthChecks();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Configure services
+builder.Services.AddBffServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
-app.UseAvanciraFramework(runDatabasePreparation: false);
-// === 4. Middleware ===
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    app.UseExceptionHandler("/error");
-    app.UseHsts();
-}
+// Configure middleware pipeline
+app.UseBffMiddleware(builder.Environment);
 
-app.UseHttpsRedirection();
+// Map endpoints
+app.MapBffEndpoints(builder.Environment);
 
-
-// === 5. Endpoints ===
-app.MapHealthChecks("/health");
-app.MapControllers();
-app.MapReverseProxy();
-
-// === 6. Logging ===
+// Startup logging
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("BFF started in {Env}", app.Environment.EnvironmentName);
-logger.LogInformation("Authority: {Auth}", builder.Configuration["Auth:Authority"]);
-logger.LogInformation("API Target: {Target}",
-    builder.Configuration["ReverseProxy:Clusters:api-cluster:Destinations:primary:Address"]);
+var settings = app.Services.GetRequiredService<BffSettings>();
+
+logger.LogInformation("════════════════════════════════════════════════════════");
+logger.LogInformation("🚀 Avancira BFF Service Started");
+logger.LogInformation("════════════════════════════════════════════════════════");
+logger.LogInformation("📍 Environment: {Env}", app.Environment.EnvironmentName);
+logger.LogInformation("🔐 Authority: {Authority}", settings.Auth.Authority);
+logger.LogInformation("🎯 API Target: {ApiUrl}", settings.ApiBaseUrl);
+logger.LogInformation("🍪 Cookie: {Cookie} (Essential claims: {Claims})",
+    settings.Cookie.Name,
+    string.Join(", ", settings.EssentialClaims));
+logger.LogInformation("💾 Token Storage: {Storage}",
+    settings.HasRedis ? "Redis (Production)" : "Memory (Development)");
+logger.LogInformation("📊 Expected Cookie Size: ~350-450 bytes");
+logger.LogInformation("════════════════════════════════════════════════════════");
 
 app.Run();
 
