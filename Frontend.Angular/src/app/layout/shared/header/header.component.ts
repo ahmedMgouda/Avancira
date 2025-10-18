@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy,OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -83,5 +83,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
       next: (userData) => (this.user = userData),
       error: (err) => console.error('Failed to load user data:', err),
     });
+  }
+
+  startLogin(event?: Event): void {
+    event?.preventDefault();
+    this.authService.startLogin();
   }
 }
