@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
@@ -30,7 +29,6 @@ export class MessageListComponent implements OnInit, OnDestroy {
   user!: User;
 
   constructor(
-    private router: Router,
     private userService: UserService,
     private authService: AuthService,
     private chatService: ChatService,
@@ -62,7 +60,6 @@ export class MessageListComponent implements OnInit, OnDestroy {
 
   logout() {
     this.authService.logout();
-    this.router.navigate(['/']);
   }
 
   fetchUserInfo() {
