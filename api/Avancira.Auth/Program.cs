@@ -63,7 +63,7 @@ public partial class Program
 
         var app = builder.Build();
 
-        app.UseAvanciraFramework(runDatabasePreparation: false);
+        app.UseAvanciraFramework(runDatabasePreparation: true);
         
         app.UseHttpsRedirection();
 

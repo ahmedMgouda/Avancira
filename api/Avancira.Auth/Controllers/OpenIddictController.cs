@@ -18,20 +18,23 @@ public sealed class OpenIddictController : Controller
 {
     private readonly SignInManager<User> _signInManager;
     private readonly IOpenIddictTokenManager _tokenManager;
+    private readonly IOpenIddictScopeManager _scopeManager;
     private readonly ILogger<OpenIddictController> _logger;
 
     public OpenIddictController(
         SignInManager<User> signInManager,
         IOpenIddictTokenManager tokenManager,
+        IOpenIddictScopeManager scopeManager,
         ILogger<OpenIddictController> logger)
     {
         _signInManager = signInManager;
         _tokenManager = tokenManager;
+        _scopeManager = scopeManager;
         _logger = logger;
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // AUTHORIZE ENDPOINT
+    // AUTHORIZE ENDPOINT (Aligned with OpenIddict official sample)
     // ══════════════════════════════════════════════════════════════════
     [HttpGet("authorize")]
     [HttpPost("authorize")]
@@ -39,7 +42,7 @@ public sealed class OpenIddictController : Controller
     public async Task<IActionResult> Authorize(CancellationToken cancellationToken = default)
     {
         var request = HttpContext.GetOpenIddictServerRequest();
-        if (request == null)
+        if (request is null)
         {
             _logger.LogError("OpenID Connect request cannot be retrieved");
             return BadRequest(new
@@ -49,7 +52,9 @@ public sealed class OpenIddictController : Controller
             });
         }
 
-        // Validate client_id
+        // ───────────────────────────────────────────────────────────────
+        // 1. Validate client_id
+        // ───────────────────────────────────────────────────────────────
         if (string.IsNullOrWhiteSpace(request.ClientId))
         {
             _logger.LogWarning("Authorization request missing client_id");
@@ -60,9 +65,11 @@ public sealed class OpenIddictController : Controller
             });
         }
 
-        // Check if user is authenticated
+        // ───────────────────────────────────────────────────────────────
+        // 2. Authenticate user session (cookie)
+        // ───────────────────────────────────────────────────────────────
         var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
-        if (!result.Succeeded || result.Principal == null)
+        if (!result.Succeeded || result.Principal is null)
         {
             var returnUrl = Request.Path + Request.QueryString;
             _logger.LogDebug("User not authenticated, redirecting to login: {ReturnUrl}", returnUrl);
@@ -72,15 +79,16 @@ public sealed class OpenIddictController : Controller
                 properties: new AuthenticationProperties { RedirectUri = returnUrl });
         }
 
-        // Get user from database
+        // ───────────────────────────────────────────────────────────────
+        // 3. Validate user from database
+        // ───────────────────────────────────────────────────────────────
         var user = await _signInManager.UserManager.GetUserAsync(result.Principal);
-        if (user == null)
+        if (user is null)
         {
             _logger.LogWarning("User principal exists but user not found in database");
             return Challenge(IdentityConstants.ApplicationScheme);
         }
 
-        // Validate user can sign in
         if (!await _signInManager.CanSignInAsync(user))
         {
             _logger.LogWarning("User {UserId} cannot sign in", user.Id);
@@ -91,7 +99,6 @@ public sealed class OpenIddictController : Controller
                     "The user is not allowed to sign in."));
         }
 
-        // Check email confirmation if required
         if (!user.EmailConfirmed && _signInManager.Options.SignIn.RequireConfirmedEmail)
         {
             _logger.LogWarning("User {UserId} email not confirmed", user.Id);
@@ -102,28 +109,24 @@ public sealed class OpenIddictController : Controller
                     "Email confirmation is required."));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // READ SESSION ID (created in AccountController.Login)
-        // Do NOT create a new session ID here
-        // ═══════════════════════════════════════════════════════════════
+        // ───────────────────────────────────────────────────────────────
+        // 4. Ensure session ID exists
+        // ───────────────────────────────────────────────────────────────
         var sessionId = result.Principal.GetClaim(OidcClaimTypes.SessionId);
-
-        // If session ID doesn't exist (shouldn't happen), generate one as fallback
         if (string.IsNullOrEmpty(sessionId))
         {
             _logger.LogWarning("Session ID missing from principal, generating new one (this shouldn't happen)");
             sessionId = ClaimsHelper.GenerateSessionId();
 
-            // Add it to the principal
             var identity = (ClaimsIdentity)result.Principal.Identity!;
             identity.AddClaim(new Claim(OidcClaimTypes.SessionId, sessionId));
         }
 
-        // Add required claims (sub, email, email_verified)
-        // Note: sid already exists, no need to add it again
+        // ───────────────────────────────────────────────────────────────
+        // 5. Add user and profile claims
+        // ───────────────────────────────────────────────────────────────
         ClaimsHelper.EnsureRequiredClaims(result.Principal, user, sessionId);
 
-        // Add profile claims if profile scope requested
         var requestedScopes = request.GetScopes().ToList();
 
         if (requestedScopes.Contains(OpenIddictConstants.Scopes.Profile))
@@ -131,33 +134,28 @@ public sealed class OpenIddictController : Controller
             ClaimsHelper.AddProfileClaims(result.Principal, user);
         }
 
-        // Add roles
         await ClaimsHelper.AddRoleClaimsAsync(result.Principal, user, _signInManager.UserManager);
-
 
         result.Principal.SetScopes(requestedScopes);
 
-        // Set resources
-        if (requestedScopes.Contains("api"))
-        {
-            result.Principal.SetResources("api-resource");
-        }
-
-        // ═══════════════════════════════════════════════════════════════
-        // CRITICAL: Attach claim destinations
-        // This controls which claims go to ID token vs access token
-        // ═══════════════════════════════════════════════════════════════
+        // ───────────────────────────────────────────────────────────────
+        // 6. Dynamically resolve resources (scopes → resources)
+        // ───────────────────────────────────────────────────────────────
+   
+        result.Principal.SetResources(
+            await _scopeManager.ListResourcesAsync(result.Principal.GetScopes(), cancellationToken).ToListAsync());
+ 
+        // ───────────────────────────────────────────────────────────────
+        // 7. Attach claim destinations (ID token vs Access token)
+        // ───────────────────────────────────────────────────────────────
         ClaimsHelper.AttachDestinations(result.Principal);
 
-        _logger.LogInformation(
-            "User authorized - UserId: {UserId}, SessionId: {SessionId}, Client: {ClientId}, Scopes: {Scopes}",
-            user.Id,
-            sessionId,
-            request.ClientId,
-            string.Join(", ", requestedScopes));
-
+        // ───────────────────────────────────────────────────────────────
+        // 8. Return authorization response (token issuance)
+        // ───────────────────────────────────────────────────────────────
         return SignIn(result.Principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
+
 
     // ══════════════════════════════════════════════════════════════════
     // TOKEN ENDPOINT
@@ -245,64 +243,6 @@ public sealed class OpenIddictController : Controller
         await _tokenManager.PruneAsync(DateTimeOffset.UtcNow.AddDays(-30), cancellationToken);
 
         return Ok();
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    // USERINFO ENDPOINT
-    // ══════════════════════════════════════════════════════════════════
-    [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
-    [HttpGet("userinfo")]
-    [HttpPost("userinfo")]
-    [Produces("application/json")]
-    public async Task<IActionResult> Userinfo(CancellationToken cancellationToken = default)
-    {
-        var userId = User.GetClaim(OpenIddictConstants.Claims.Subject);
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            _logger.LogWarning("No subject claim found in userinfo request");
-            return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-        }
-
-        var user = await _signInManager.UserManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            _logger.LogWarning("User {UserId} not found for userinfo request", userId);
-            return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-        }
-
-        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
-        {
-            [OpenIddictConstants.Claims.Subject] = user.Id
-        };
-
-        // Profile scope claims
-        if (User.HasScope(OpenIddictConstants.Scopes.Profile))
-        {
-            claims[OpenIddictConstants.Claims.Name] = user.UserName ?? string.Empty;
-
-            if (!string.IsNullOrEmpty(user.FirstName))
-                claims[OpenIddictConstants.Claims.GivenName] = user.FirstName;
-
-            if (!string.IsNullOrEmpty(user.LastName))
-                claims[OpenIddictConstants.Claims.FamilyName] = user.LastName;
-        }
-
-        // Email scope claims
-        if (User.HasScope(OpenIddictConstants.Scopes.Email))
-        {
-            claims[OpenIddictConstants.Claims.Email] = user.Email ?? string.Empty;
-            claims[OpenIddictConstants.Claims.EmailVerified] = user.EmailConfirmed;
-        }
-
-        // Roles
-        var roles = await _signInManager.UserManager.GetRolesAsync(user);
-        if (roles.Count > 0)
-        {
-            claims[OpenIddictConstants.Claims.Role] = roles.ToArray();
-        }
-
-        _logger.LogDebug("Userinfo returned for user {UserId}", userId);
-        return Ok(claims);
     }
 
     // ══════════════════════════════════════════════════════════════════

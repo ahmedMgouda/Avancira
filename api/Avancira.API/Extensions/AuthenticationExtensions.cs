@@ -46,77 +46,36 @@ public static class AuthenticationExtensions
             })
             .AddValidation(options =>
             {
-                // === Basic Setup ===
                 options.SetIssuer(authServerUrl);
 
-                // Use introspection because Auth and API run in different containers
+                // Use introspection to validate encrypted tokens
                 options.UseIntrospection()
                        .SetClientId("bff-client")
                        .SetClientSecret("dev-bff-secret");
 
+
                 options.UseSystemNetHttp();
                 options.UseAspNetCore();
 
-                // === 🔍 Diagnostic Event Hooks ===
-
-                options.AddEventHandler<OpenIddictValidationEvents.ApplyIntrospectionRequestContext>(builder =>
-                {
-                    builder.UseInlineHandler(context =>
+                // Debug logging
+                options.AddEventHandler<OpenIddict.Validation.OpenIddictValidationEvents.ProcessAuthenticationContext>(
+                    handler => handler.UseInlineHandler(context =>
                     {
-                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
-                        var logger = httpContext?.RequestServices
-                            .GetRequiredService<ILoggerFactory>()
-                            .CreateLogger("OpenIddict.Introspection");
-
-                        logger?.LogInformation("📡 Sending introspection request to: {Address}",
-                            context.RequestUri?.AbsoluteUri ?? "unknown");
-
-                        return default;
-                    });
-                });
-
-                options.AddEventHandler<OpenIddictValidationEvents.HandleIntrospectionResponseContext>(builder =>
-                {
-                    builder.UseInlineHandler(context =>
-                    {
-                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
-                        var logger = httpContext?.RequestServices
-                            .GetRequiredService<ILoggerFactory>()
-                            .CreateLogger("OpenIddict.Introspection");
-
-                        logger?.LogInformation("🔍 Introspection response: {Response}",
-                            context.Response?.ToString() ?? "(null)");
-
-                        return default;
-                    });
-                });
-
-                options.AddEventHandler<OpenIddictValidationEvents.ProcessAuthenticationContext>(builder =>
-                {
-                    builder.UseInlineHandler(context =>
-                    {
-                        var httpContext = context.Transaction.GetProperty<HttpContext>(typeof(HttpContext).FullName!);
-                        var logger = httpContext?.RequestServices
-                            .GetRequiredService<ILoggerFactory>()
-                            .CreateLogger("OpenIddict.Validation");
-
                         if (context.AccessTokenPrincipal is not null)
                         {
-                            logger?.LogInformation(
-                                "✅ Token validated successfully. Sub: {Sub}, Scopes: {Scopes}",
-                                context.AccessTokenPrincipal.GetClaim(OpenIddictConstants.Claims.Subject));
+                            Console.WriteLine("✅ TOKEN VALIDATED");
+                            Console.WriteLine($"   Subject: {context.AccessTokenPrincipal.FindFirst("sub")?.Value}");
+                            Console.WriteLine($"   Scopes: {context.AccessTokenPrincipal.FindFirst("scope")?.Value}");
                         }
                         else
                         {
-                            logger?.LogWarning(
-                                "❌ Token validation failed. Error: {Error}, Description: {Description}",
-                                context.Error ?? "unknown",
-                                context.ErrorDescription ?? "no details");
+                            Console.WriteLine("❌ TOKEN VALIDATION FAILED");
+                            Console.WriteLine($"   Error: {context.Error}");
+                            Console.WriteLine($"   Description: {context.ErrorDescription}");
                         }
-
                         return default;
-                    });
-                });
+                    }));
+
             });
 
         return services;

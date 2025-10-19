@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 using Polly.Extensions.Http;
+using System.Net.Http.Headers;
 using Yarp.ReverseProxy.Transforms;
 
 public static class ServiceCollectionExtensions
@@ -153,9 +154,11 @@ public static class ServiceCollectionExtensions
 
             // Minimal scopes (only what's needed)
             options.Scope.Clear();
-            options.Scope.Add("openid");      // Required
-            options.Scope.Add("offline_access"); // For refresh tokens
-            options.Scope.Add("api");         // Access to API
+            options.Scope.Add("openid");
+            options.Scope.Add("profile");
+            options.Scope.Add("email");
+            options.Scope.Add("offline_access");
+            options.Scope.Add("api");       
 
             // CRITICAL: Tokens stored server-side by Duende
             options.SaveTokens = true;
@@ -199,12 +202,25 @@ public static class ServiceCollectionExtensions
         services.AddUserAccessTokenHttpClient("api-client", null, client =>
         {
             client.BaseAddress = new Uri(settings.ApiBaseUrl);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             client.DefaultRequestHeaders.Add("User-Agent", "Avancira-BFF/1.0");
             client.Timeout = TimeSpan.FromSeconds(100);
         })
         .AddPolicyHandler(GetRetryPolicy())
         .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        // Auth server client
+        services.AddUserAccessTokenHttpClient("auth-client", null, client =>
+        {
+            client.BaseAddress = new Uri(settings.Auth.Authority);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Add("User-Agent", "Avancira-BFF/1.0");
+            client.Timeout = TimeSpan.FromSeconds(100);
+        })
+        .AddPolicyHandler(GetRetryPolicy())
+        .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        services.AddScoped<AuthServerClient>();
 
         return services;
     }

@@ -1,6 +1,10 @@
 ﻿using Avancira.Infrastructure.Common;
+using Google.Apis.Auth.OAuth2;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
+using System.Globalization;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Avancira.Infrastructure.Identity.Seeders;
 
@@ -9,129 +13,135 @@ namespace Avancira.Infrastructure.Identity.Seeders;
 /// </summary>
 internal sealed class OpenIddictClientSeeder(
     ILogger<OpenIddictClientSeeder> logger,
-    IOpenIddictApplicationManager? manager = null
+    IOpenIddictApplicationManager? manager = null,
+    IOpenIddictScopeManager? scopeManager = null
 ) : BaseSeeder<OpenIddictClientSeeder>(logger)
 {
     private readonly IOpenIddictApplicationManager? _manager = manager;
-
+    private readonly IOpenIddictScopeManager? _scopeManager = scopeManager;
     public override async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        if (_manager is null)
-        {
-            Logger.LogWarning(
-                "{Seeder} requires {Manager} which is not registered. Skipping OpenIddict client seeding.",
-                nameof(OpenIddictClientSeeder),
-                nameof(IOpenIddictApplicationManager));
-            return;
-        }
-
         Logger.LogInformation("Starting OpenIddict application seeding...");
 
-        await SeedBffClientAsync(_manager, cancellationToken);
-        await SeedPostmanClientAsync(_manager, cancellationToken);
+        await RegisterApplicationsAsync(_manager!);
+        await RegisterScopesAsync(_scopeManager!);
 
         Logger.LogInformation("OpenIddict application seeding completed");
     }
 
-    // ============================================================
-    // BFF CLIENT (Web, Authorization Code + PKCE)
-    // ============================================================
-    private async Task SeedBffClientAsync(IOpenIddictApplicationManager manager, CancellationToken ct)
+    private async Task RegisterApplicationsAsync(IOpenIddictApplicationManager manager)
     {
-        const string clientId = "bff-client";
-        const string clientSecret = "dev-bff-secret";
-
-        if (await manager.FindByClientIdAsync(clientId, ct) is not null)
+        // API
+        if (await manager.FindByClientIdAsync("resource_server") == null)
         {
-            Logger.LogInformation("BFF client already exists, skipping.");
-            return;
+            var descriptor = new OpenIddictApplicationDescriptor
+            {
+                ClientId = "resource_server",
+                ClientSecret = "846B62D0-DEF9-4215-A99D-86E6B8DAB342",
+                Permissions =
+                    {
+                        Permissions.Endpoints.Introspection
+                    }
+            };
+
+            await manager.CreateAsync(descriptor);
         }
 
-        var descriptor = new OpenIddictApplicationDescriptor
+        // BFF
+        if (await manager.FindByClientIdAsync("bff-client") is null)
         {
-            ClientId = clientId,
-            ClientSecret = clientSecret,
-            DisplayName = "Avancira BFF (Web Application)",
-            ClientType = OpenIddictConstants.ClientTypes.Confidential,
-            ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-
-            RedirectUris =
+            var descriptor = new OpenIddictApplicationDescriptor
             {
-                new Uri("https://localhost:9200/bff/signin-oidc")
-            },
-            PostLogoutRedirectUris =
-            {
-                new Uri("https://localhost:9200/bff/signout-callback-oidc")
-            },
-            Permissions =
-            {
-                // Endpoints
-                OpenIddictConstants.Permissions.Endpoints.Authorization,
-                OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.Endpoints.Revocation,
-                 OpenIddictConstants.Permissions.Endpoints.Introspection,
+                ClientId = "bff-client",
+                ClientSecret = "dev-bff-secret",
+                DisplayName = "Avancira PKCE",
+                ClientType = OpenIddictConstants.ClientTypes.Confidential,
+                ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
 
-                // Grant types
-                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
-                OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                RedirectUris =
+                {
+                    new Uri("https://localhost:9200/bff/signin-oidc")
+                },
+                    PostLogoutRedirectUris =
+                {
+                    new Uri("https://localhost:9200/bff/signout-callback-oidc")
+                },
+                Permissions =
+                {
+                    // Endpoints
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                        Permissions.Endpoints.Revocation,
+                    Permissions.Endpoints.EndSession,
 
-                // Response types
-                OpenIddictConstants.Permissions.ResponseTypes.Code,
 
-                // Scopes
-                OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.OpenId,
-                OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.Profile,
-                OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.Email,
-                OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.OfflineAccess,
-                OpenIddictConstants.Permissions.Prefixes.Scope + "api"
-            },
-            Requirements =
-            {
-                // PKCE required
-                OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
-            }
-        };
+                    // Grant types
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                        Permissions.Endpoints.Introspection,
 
-        await manager.CreateAsync(descriptor, ct);
-        Logger.LogInformation("Seeded BFF client: {ClientId}", clientId);
-    }
+                    // Response types
+                    Permissions.ResponseTypes.Code,
 
-    // ============================================================
-    // POSTMAN CLIENT (Client Credentials)
-    // ============================================================
-    private async Task SeedPostmanClientAsync(IOpenIddictApplicationManager manager, CancellationToken ct)
-    {
-        const string clientId = "postman-client";
-        const string clientSecret = "dev-postman-secret";
+                    // Scopes
+                    Permissions.Prefixes.Scope + Scopes.OpenId,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + Scopes.OfflineAccess,
+                    Permissions.Prefixes.Scope + "api"
+                },
+                    Requirements =
+                    {
+                        // PKCE required
+                        OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
+                    }
+                };
 
-        if (await manager.FindByClientIdAsync(clientId, ct) is not null)
-        {
-            Logger.LogInformation("Postman client already exists, skipping.");
-            return;
+            await manager.CreateAsync(descriptor);
         }
 
-        var descriptor = new OpenIddictApplicationDescriptor
+        // Postman / External Tool
+        if (await manager.FindByClientIdAsync("postman-client") is null)
         {
-            ClientId = clientId,
-            ClientSecret = clientSecret,
-            DisplayName = "Postman / External Tool Client",
-            ClientType = OpenIddictConstants.ClientTypes.Confidential,
-            ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
-            Permissions =
+            var descriptor = new OpenIddictApplicationDescriptor
+            {
+                ClientId = "postman-client",
+                ClientSecret = "dev-postman-secret",
+                DisplayName = "Postman / External Tool Client",
+                ClientType = OpenIddictConstants.ClientTypes.Confidential,
+                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+                Permissions =
             {
                 // Endpoints
-                OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.Endpoints.Revocation,
+                Permissions.Endpoints.Token,
+                Permissions.Endpoints.Revocation,
 
                 // Client credentials flow
-                OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+                Permissions.GrantTypes.ClientCredentials,
 
                 // API scope
-                OpenIddictConstants.Permissions.Prefixes.Scope + "api"
+                Permissions.Prefixes.Scope + "api"
             }
-        };
+            };
 
-        await manager.CreateAsync(descriptor, ct);
-        Logger.LogInformation("Seeded Postman client: {ClientId}", clientId);
+            await manager.CreateAsync(descriptor);
+        }
+
+    }
+    private async Task RegisterScopesAsync(IOpenIddictScopeManager manager)
+    {
+        if (await manager.FindByNameAsync("api") is null)
+        {
+            await manager.CreateAsync(new OpenIddictScopeDescriptor
+            {
+                DisplayName = "Avancira API access",
+                Name = "api",
+                Resources =
+                    {
+                        "resource_server"
+                    }
+            });
+        }
     }
 }

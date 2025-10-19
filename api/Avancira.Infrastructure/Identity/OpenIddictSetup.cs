@@ -53,7 +53,9 @@ public static class OpenIddictSetup
                        .SetTokenEndpointUris("/connect/token")
                        .SetRevocationEndpointUris("/connect/revoke")
                        .SetIntrospectionEndpointUris("/connect/introspect")
-                       .SetEndSessionEndpointUris("/connect/logout");
+                       .SetEndSessionEndpointUris("/connect/logout")
+                       .SetUserInfoEndpointUris("/connect/userinfo");
+                      
 
                 // CRITICAL: Set issuer (must match what clients expect)
                 options.SetIssuer(new Uri(issuer));
@@ -77,8 +79,8 @@ public static class OpenIddictSetup
                 // CRITICAL SECURITY: Use reference refresh tokens
                 // Reference tokens can be revoked (unlike JWT tokens)
                 // When user logs out, we revoke the reference
-                options.UseReferenceAccessTokens();
                 options.UseReferenceRefreshTokens();
+                options.UseReferenceAccessTokens();
 
                 // ===== SCOPE CONFIGURATION =====
                 // FIXED: Added "api" scope for API access

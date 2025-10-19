@@ -143,7 +143,7 @@ public static class Extensions
             LogContext.Information("Starting database setup...");
 
             // === Optional Reset ===
-            if (dropDatabase)
+            if (!dropDatabase)
             {
                 await context.Database.EnsureDeletedAsync();
                 LogContext.Warning("Database dropped (ASPIRE_DROP_DATABASE=true).");
@@ -165,7 +165,7 @@ public static class Extensions
             }
 
             // === Run Seeders ===
-            if (runSeeding)
+            if (!runSeeding)
             {
                 LogContext.Information("Executing seeders via {Orchestrator}...", nameof(DataSeederOrchestrator));
 

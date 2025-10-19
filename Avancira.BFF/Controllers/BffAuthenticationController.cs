@@ -2,6 +2,7 @@
 
 using System.Security.Claims;
 using Avancira.BFF.Configuration;
+using Avancira.BFF.Services;
 using Duende.AccessTokenManagement;
 using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
@@ -16,15 +17,20 @@ public class BffAuthenticationController : ControllerBase
 {
     private readonly ILogger<BffAuthenticationController> _logger;
     private readonly IUserTokenManager _tokenManager;
+    private readonly AuthServerClient _authClient;
     private readonly BffSettings _settings;
-
+    private readonly IHttpClientFactory _factory;
     public BffAuthenticationController(
         ILogger<BffAuthenticationController> logger,
         IUserTokenManager tokenManager,
+        AuthServerClient authClient,
+        IHttpClientFactory factory,
         BffSettings settings)
     {
         _logger = logger;
         _tokenManager = tokenManager;
+        _authClient = authClient;
+        _factory = factory;
         _settings = settings;
     }
 
@@ -53,64 +59,61 @@ public class BffAuthenticationController : ControllerBase
         return Challenge(props, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GET /bff/auth/user
-    // Returns current user info (if authenticated)
-    //
-    // NOTE: Only returns sub and token expiry.
-    // Full user data (name, email, roles) is in the JWT access token
-    // which the API receives automatically.
-    // ═══════════════════════════════════════════════════════════════════════
-    [HttpGet("user")]
+
+    [HttpGet("validate")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetUser(CancellationToken ct = default)
+    [Produces("application/json")]
+    public IActionResult ValidateSession()
     {
-        if (User.Identity?.IsAuthenticated != true)
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        if (!isAuthenticated)
         {
+            _logger.LogDebug("ValidateSession: user not authenticated.");
             return Ok(new { isAuthenticated = false });
         }
 
-        var userId = User.FindFirstValue("sub");
-        if (string.IsNullOrEmpty(userId))
+        return Ok(new { isAuthenticated = true });
+    }
+
+
+    [HttpGet("user")]
+    [Authorize]
+    public async Task<IActionResult> GetUser(CancellationToken ct)
+    {
+        var user = await _authClient.GetUserInfoAsync(ct);
+        if (user is null)
         {
-            return Ok(new { isAuthenticated = false });
+            _logger.LogWarning("Failed to fetch user info for {Sub}", User.FindFirstValue("sub"));
+            return Ok(new { isAuthenticated = true, user = (object?)null });
         }
 
+        return Ok(new
+        {
+            isAuthenticated = true,
+            user
+        });
+    }
+
+    // Add this to test endpoint connectivity
+    [HttpGet("test-auth")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestAuthConnection()
+    {
         try
         {
-            // Get access token result from Duende (server-side)
-            var tokenResult = await _tokenManager.GetAccessTokenAsync(User);
-
-            // New pattern: WasSuccessful(out token, out failure)
-            if (!tokenResult.WasSuccessful(out var token, out var failure))
-            {
-                _logger.LogWarning(
-                    "Token retrieval failed for {UserId}: {Error} - {Description}",
-                    userId,
-                    failure?.Error ?? "unknown",
-                    failure?.ErrorDescription ?? "no description"
-                );
-
-                return Ok(new { isAuthenticated = false });
-            }
-
-            // Compute expiration (avoid negative)
-            var expiresIn = Math.Max(0,
-                (int)(token.Expiration - DateTimeOffset.UtcNow).TotalSeconds);
-
+            var client = _factory.CreateClient("auth-client");
+            var response = await client.GetAsync(".well-known/openid-configuration",
+                HttpCompletionOption.ResponseHeadersRead);
             return Ok(new
             {
-                isAuthenticated = true,
-                sub = userId,
-                tokenExpiresIn = expiresIn
-                // NOTE: name, email, roles are in JWT (available in API)
-                // BFF doesn't need them in cookie
+                status = response.StatusCode,
+                baseAddress = client.BaseAddress,
+                reachable = response.IsSuccessStatusCode
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user info for {UserId}", userId);
-            return Ok(new { isAuthenticated = false });
+            return BadRequest(new { error = ex.Message });
         }
     }
 
@@ -177,31 +180,6 @@ public class BffAuthenticationController : ControllerBase
 
             return StatusCode(500, new { success = false, message = "Logout failed" });
         }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // GET /bff/auth/claims
-    // Returns all claims (development only)
-    // ═══════════════════════════════════════════════════════════════════════
-    [HttpGet("claims")]
-    [Authorize]
-    public IActionResult GetClaims()
-    {
-        if (!HttpContext.RequestServices
-            .GetRequiredService<IWebHostEnvironment>()
-            .IsDevelopment())
-        {
-            return NotFound();
-        }
-
-        var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
-        return Ok(new
-        {
-            identity = User.Identity?.Name,
-            isAuthenticated = User.Identity?.IsAuthenticated,
-            authenticationType = User.Identity?.AuthenticationType,
-            claims
-        });
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -39,9 +39,6 @@ public static class ClaimsHelper
     {
         var identity = (ClaimsIdentity)principal.Identity!;
 
-        // ═══════════════════════════════════════════════════════════════
-        // CRITICAL: sub (user ID) - Required by OAuth 2.0
-        // ═══════════════════════════════════════════════════════════════
         if (!identity.HasClaim(c => c.Type == OpenIddictConstants.Claims.Subject))
         {
             identity.AddClaim(new Claim(
@@ -50,11 +47,7 @@ public static class ClaimsHelper
             ));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // CRITICAL: sid (session ID) - Enables multi-device sessions
-        // NOTE: This should already exist (added in AccountController)
-        // We only add it here as a safety fallback
-        // ═══════════════════════════════════════════════════════════════
+       
         if (!identity.HasClaim(c => c.Type == OidcClaimTypes.SessionId))
         {
             identity.AddClaim(new Claim(
@@ -63,9 +56,6 @@ public static class ClaimsHelper
             ));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Optional: Email (if available)
-        // ═══════════════════════════════════════════════════════════════
         if (!identity.HasClaim(c => c.Type == OpenIddictConstants.Claims.Email) &&
             !string.IsNullOrEmpty(user.Email))
         {
@@ -75,9 +65,6 @@ public static class ClaimsHelper
             ));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Email verification status
-        // ═══════════════════════════════════════════════════════════════
         if (!identity.HasClaim(c => c.Type == OpenIddictConstants.Claims.EmailVerified))
         {
             identity.AddClaim(new Claim(
@@ -88,10 +75,6 @@ public static class ClaimsHelper
         }
     }
 
-    /// <summary>
-    /// Adds user profile claims (name, given_name, family_name) to the principal.
-    /// These will ONLY go to the access token (not ID token).
-    /// </summary>
     public static void AddProfileClaims(ClaimsPrincipal principal, User user)
     {
         var identity = (ClaimsIdentity)principal.Identity!;
@@ -122,12 +105,17 @@ public static class ClaimsHelper
                 user.LastName
             ));
         }
+
+        // Profile picture
+        if (user.ImageUrl is not null)
+        {
+            identity.AddClaim(new Claim(
+                OpenIddictConstants.Claims.Picture,
+                user.ImageUrl.ToString()
+            ));
+        }
     }
 
-    /// <summary>
-    /// Adds role claims to the principal.
-    /// These will ONLY go to the access token (not ID token).
-    /// </summary>
     public static async Task AddRoleClaimsAsync(
         ClaimsPrincipal principal,
         User user,
@@ -213,119 +201,42 @@ public static class ClaimsHelper
     /// </summary>
     private static IEnumerable<string> GetClaimDestinations(
         Claim claim,
-        ClaimsPrincipal principal)
-    {
-        return claim.Type switch
+        ClaimsPrincipal principal) => claim.Type switch
         {
-            // ═══════════════════════════════════════════════════════════
-            // ALWAYS in both tokens (required by OAuth 2.0 spec)
-            // ═══════════════════════════════════════════════════════════
-            OpenIddictConstants.Claims.Subject => new[]
-            {
+            OpenIddictConstants.Claims.Subject =>
+            [
                 OpenIddictConstants.Destinations.AccessToken,
                 OpenIddictConstants.Destinations.IdentityToken
-            },
+            ],
 
-            // ═══════════════════════════════════════════════════════════
-            // Session ID: ONLY in ID token (for BFF multi-session support)
-            // ═══════════════════════════════════════════════════════════
-            OidcClaimTypes.SessionId => new[]
-            {
+            OidcClaimTypes.SessionId =>
+            [
                 OpenIddictConstants.Destinations.IdentityToken
-            },
+            ],
 
-            // ═══════════════════════════════════════════════════════════
-            // Profile claims: ONLY in access token (API needs them)
-            // NOT in ID token (BFF doesn't need them - reduces cookie size)
-            // ═══════════════════════════════════════════════════════════
+
             OpenIddictConstants.Claims.Name or
             OpenIddictConstants.Claims.GivenName or
-            OpenIddictConstants.Claims.FamilyName =>
+            OpenIddictConstants.Claims.FamilyName or
+            OpenIddictConstants.Claims.Picture =>
                 principal.HasScope(OpenIddictConstants.Scopes.Profile)
-                    ? new[] { OpenIddictConstants.Destinations.AccessToken }
+                    ? [OpenIddictConstants.Destinations.AccessToken]
                     : Array.Empty<string>(),
 
-            // ═══════════════════════════════════════════════════════════
-            // Email claims: ONLY in access token
-            // ═══════════════════════════════════════════════════════════
+
             OpenIddictConstants.Claims.Email or
             OpenIddictConstants.Claims.EmailVerified =>
                 principal.HasScope(OpenIddictConstants.Scopes.Email)
-                    ? new[] { OpenIddictConstants.Destinations.AccessToken }
+                    ? [OpenIddictConstants.Destinations.AccessToken]
                     : Array.Empty<string>(),
 
-            // ═══════════════════════════════════════════════════════════
-            // Roles: ONLY in access token (for API authorization)
-            // ═══════════════════════════════════════════════════════════
-            OpenIddictConstants.Claims.Role => new[]
-            {
+          
+            OpenIddictConstants.Claims.Role =>
+            [
                 OpenIddictConstants.Destinations.AccessToken
-            },
+            ],
 
-            // ═══════════════════════════════════════════════════════════
-            // All other claims: Access token only
-            // ═══════════════════════════════════════════════════════════
-            _ => new[] { OpenIddictConstants.Destinations.AccessToken }
+          
+            _ => [OpenIddictConstants.Destinations.AccessToken]
         };
-    }
 }
-
-
-// ════════════════════════════════════════════════════════════════════════════
-// EXPLANATION: Why This Strategy?
-// ════════════════════════════════════════════════════════════════════════════
-
-/*
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          TOKEN DISTRIBUTION                               │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                           │
-│  ID Token (goes to BFF cookie):                                         │
-│  ┌────────────────────────────────────────────┐                         │
-│  │ {                                          │                         │
-│  │   "sub": "user-123",                       │  ← User ID              │
-│  │   "sid": "sess_abc123"                     │  ← Session ID           │
-│  │ }                                          │                         │
-│  └────────────────────────────────────────────┘                         │
-│  Size: ~200 bytes (JWT overhead + 2 claims)                             │
-│  Encrypted in BFF cookie: ~400 bytes total                              │
-│                                                                           │
-│  ─────────────────────────────────────────────────────────────────────   │
-│                                                                           │
-│  Access Token (goes to API):                                            │
-│  ┌────────────────────────────────────────────┐                         │
-│  │ {                                          │                         │
-│  │   "sub": "user-123",                       │  ← User ID              │
-│  │   "sid": "sess_abc123",                    │  ← Session ID           │
-│  │   "name": "John Doe",                      │  ← Full name            │
-│  │   "given_name": "John",                    │  ← First name           │
-│  │   "family_name": "Doe",                    │  ← Last name            │
-│  │   "email": "john@example.com",             │  ← Email                │
-│  │   "email_verified": true,                  │  ← Verification         │
-│  │   "role": ["User", "Admin"],               │  ← Roles                │
-│  │   "scope": ["openid", "profile", "api"]    │  ← Scopes               │
-│  │ }                                          │                         │
-│  └────────────────────────────────────────────┘                         │
-│  Size: ~800-1200 bytes                                                   │
-│  Stored server-side by Duende (NOT in cookie)                           │
-│                                                                           │
-└──────────────────────────────────────────────────────────────────────────┘
-
-BENEFITS:
-✅ BFF cookie: 75% smaller (only sub + sid)
-✅ API gets all data: Full user information in access token
-✅ Multi-device support: Unique sid per login session
-✅ Security: No sensitive data in browser cookie
-✅ Performance: Smaller cookies = less bandwidth
-
-MULTI-SESSION EXAMPLE:
-─────────────────────────────────────────────────────────────────────────
-User logs in from 3 devices:
-
-1. Chrome (Desktop):   sub=user-123, sid=sess_aaa111
-2. Safari (iPhone):    sub=user-123, sid=sess_bbb222  
-3. Firefox (Work):     sub=user-123, sid=sess_ccc333
-
-Each session is independent! Logout from one doesn't affect others.
-Duende stores tokens using: {sub}:{sid} as key
-*/
