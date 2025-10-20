@@ -1,4 +1,4 @@
-namespace Avancira.Infrastructure.Identity;
+namespace Avancira.Auth.OpenIddict;
 
 /// <summary>
 /// OpenIddict server settings from configuration

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Avancira.Infrastructure.Identity.Seeders;
+namespace Avancira.Infrastructure.Persistence.Seeders;
 
 /// <summary>
 /// Seeds default system roles and permissions.

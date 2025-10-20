@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Avancira.Infrastructure.Persistence;
 using OpenIddict.Abstractions;
 
-namespace Avancira.Infrastructure.Identity;
+namespace Avancira.Auth.OpenIddict;
 
 /// <summary>
 /// FIXED: Proper OpenIddict server configuration with all required scopes
@@ -55,7 +55,7 @@ public static class OpenIddictSetup
                        .SetIntrospectionEndpointUris("/connect/introspect")
                        .SetEndSessionEndpointUris("/connect/logout")
                        .SetUserInfoEndpointUris("/connect/userinfo");
-                      
+
 
                 // CRITICAL: Set issuer (must match what clients expect)
                 options.SetIssuer(new Uri(issuer));

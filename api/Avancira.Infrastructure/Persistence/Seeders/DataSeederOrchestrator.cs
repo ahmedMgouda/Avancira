@@ -1,5 +1,4 @@
-﻿using Avancira.Infrastructure.Identity.Seeders;
-using Avancira.Infrastructure.Common;
+﻿using Avancira.Infrastructure.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +18,6 @@ internal sealed class DataSeederOrchestrator(
 
         var roleSeeder = sp.GetRequiredService<RoleSeeder>();
         var userSeeder = sp.GetRequiredService<UserSeeder>();
-        var openIdSeeder = sp.GetRequiredService<OpenIddictClientSeeder>();
 
         var countrySeeder = sp.GetRequiredService<CountrySeeder>();
         var categorySeeder = sp.GetRequiredService<CategorySeeder>();
@@ -36,7 +34,6 @@ internal sealed class DataSeederOrchestrator(
         await SafeRunAsync(promoCodeSeeder, nameof(PromoCodeSeeder), cancellationToken);
        
         await SafeRunAsync(userSeeder, nameof(UserSeeder), cancellationToken);
-        await SafeRunAsync(openIdSeeder, nameof(OpenIddictClientSeeder), cancellationToken);
 
         await SafeRunAsync(listingSeeder, nameof(ListingSeeder), cancellationToken);
         await SafeRunAsync(listingCategorySeeder, nameof(ListingCategorySeeder), cancellationToken);

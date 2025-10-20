@@ -1,6 +1,6 @@
 using Avancira.Auth.Extensions;
+using Avancira.Auth.OpenIddict;
 using Avancira.Infrastructure;
-using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;
 using System.Text.Json;
 using System.Text.Json.Serialization;

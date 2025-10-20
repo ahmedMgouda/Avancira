@@ -10,7 +10,6 @@ using Serilog;
 using Avancira.Infrastructure.Persistence.Interceptors;
 using Avancira.Infrastructure.Common.Extensions;
 using Avancira.Infrastructure.Persistence.Seeders;
-using Avancira.Infrastructure.Identity.Seeders;
 
 namespace Avancira.Infrastructure.Persistence;
 

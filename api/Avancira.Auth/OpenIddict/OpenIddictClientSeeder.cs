@@ -6,7 +6,7 @@ using OpenIddict.Abstractions;
 using System.Globalization;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-namespace Avancira.Infrastructure.Identity.Seeders;
+namespace Avancira.Auth.OpenIddict;
 
 /// <summary>
 /// Seeds OpenId application clients (BFF, Postman, etc.)

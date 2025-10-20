@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using Avancira.Application.Origin;
 using Avancira.Infrastructure.Common;
 
-namespace Avancira.Infrastructure.Identity.Seeders;
+namespace Avancira.Infrastructure.Persistence.Seeders;
 
 /// <summary>
 /// Seeds the default admin user and assigns the Admin role.

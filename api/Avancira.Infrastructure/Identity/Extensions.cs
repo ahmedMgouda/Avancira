@@ -1,11 +1,9 @@
 ﻿using Avancira.Application.Audit;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Users.Abstractions;
-using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Identity.Audit;
 using Avancira.Infrastructure.Identity.Roles;
-using Avancira.Infrastructure.Identity.Seeders;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Persistence;
