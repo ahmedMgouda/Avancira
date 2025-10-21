@@ -1,71 +1,94 @@
-﻿using Avancira.Infrastructure.Common;
-using Avancira.Infrastructure.Identity.Roles;
-using Avancira.Infrastructure.Persistence;
-using Avancira.Shared.Authorization;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Avancira.Shared.Authorization;
+using Avancira.Shared.Constants;
+using Avancira.Infrastructure.Identity.Roles;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
 
-/// <summary>
-/// Seeds default system roles and permissions.
-/// </summary>
-internal sealed class RoleSeeder(
-    ILogger<RoleSeeder> logger,
-    RoleManager<Role> roleManager,
-    AvanciraDbContext dbContext,
-    TimeProvider timeProvider
-) : BaseSeeder<RoleSeeder>(logger)
+internal sealed class RoleSeeder : ISeeder
 {
-    public override async Task SeedAsync(CancellationToken cancellationToken = default)
+    private readonly RoleManager<Role> _roleManager;
+    private readonly ILogger<RoleSeeder> _logger;
+
+    public string Name => nameof(RoleSeeder);
+
+    public RoleSeeder(RoleManager<Role> roleManager, ILogger<RoleSeeder> logger)
     {
-        foreach (var roleName in AvanciraRoles.DefaultRoles)
-        {
-            var role = await roleManager.Roles
-                .SingleOrDefaultAsync(r => r.Name == roleName, cancellationToken);
-
-            if (role is null)
-            {
-                role = new Role(roleName, $"{roleName} Role");
-                await roleManager.CreateAsync(role);
-                Logger.LogInformation("Created role: {Role}", roleName);
-            }
-
-            if (roleName == AvanciraRoles.Basic)
-                await AssignPermissionsAsync(role, AvanciraPermissions.Basic, cancellationToken);
-            else if (roleName == AvanciraRoles.Admin)
-            {
-                await AssignPermissionsAsync(role, AvanciraPermissions.Admin, cancellationToken);
-                await AssignPermissionsAsync(role, AvanciraPermissions.Root, cancellationToken);
-            }
-        }
+        _roleManager = roleManager;
+        _logger = logger;
     }
 
-    private async Task AssignPermissionsAsync(Role role, IReadOnlyList<AvanciraPermission> permissions, CancellationToken ct)
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var currentClaims = await roleManager.GetClaimsAsync(role);
+        _logger.LogInformation("Starting RoleSeeder...");
+
+        // Define the role-permission mapping
+        var rolePermissions = new Dictionary<string, IReadOnlyList<AvanciraPermission>>
+        {
+            [SeedDefaults.Roles.Admin] = AvanciraPermissions.Admin,
+            [SeedDefaults.Roles.Tutor] = AvanciraPermissions.Tutor,
+            [SeedDefaults.Roles.Student] = AvanciraPermissions.Student
+        };
+
+        foreach (var (roleName, permissions) in rolePermissions)
+        {
+            // Create role if not exists
+            var role = await _roleManager.Roles
+                .FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
+
+            if (role == null)
+            {
+                role = new Role(roleName, $"{roleName} role");
+                var result = await _roleManager.CreateAsync(role);
+
+                if (result.Succeeded)
+                    _logger.LogInformation("Created role: {Role}", roleName);
+                else
+                {
+                    _logger.LogError("Failed to create role {Role}: {Errors}",
+                        roleName,
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                    continue;
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Role {Role} already exists", roleName);
+            }
+
+            // Assign permissions (as claims)
+            await AssignPermissionsAsync(role, permissions, cancellationToken);
+        }
+
+        _logger.LogInformation("RoleSeeder completed successfully.");
+    }
+
+    private async Task AssignPermissionsAsync(
+        Role role,
+        IReadOnlyList<AvanciraPermission> permissions,
+        CancellationToken ct)
+    {
+        var currentClaims = await _roleManager.GetClaimsAsync(role);
 
         var newClaims = permissions
             .Where(p => !currentClaims.Any(c =>
                 c.Type == AvanciraClaims.Permission && c.Value == p.Name))
-            .Select(p => new RoleClaim
-            {
-                RoleId = role.Id,
-                ClaimType = AvanciraClaims.Permission,
-                ClaimValue = p.Name,
-                CreatedBy = "system",
-                CreatedOn = timeProvider.GetUtcNow()
-            })
+            .Select(p => new Claim(AvanciraClaims.Permission, p.Name))
             .ToList();
 
         if (newClaims.Count == 0)
+        {
+            _logger.LogInformation("No new permissions to add for {Role}", role.Name);
             return;
-
-        await dbContext.RoleClaims.AddRangeAsync(newClaims, ct);
-        await dbContext.SaveChangesAsync(ct);
+        }
 
         foreach (var claim in newClaims)
-            Logger.LogInformation("Added permission '{Permission}' to role {Role}", claim.ClaimValue, role.Name);
+        {
+            await _roleManager.AddClaimAsync(role, claim);
+            _logger.LogInformation("Added permission '{Permission}' to role {Role}", claim.Value, role.Name);
+        }
     }
 }

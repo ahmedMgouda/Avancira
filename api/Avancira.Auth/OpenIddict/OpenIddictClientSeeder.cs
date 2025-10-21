@@ -1,9 +1,5 @@
 ﻿using Avancira.Infrastructure.Common;
-using Google.Apis.Auth.OAuth2;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
-using System.Globalization;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Avancira.Auth.OpenIddict;
@@ -55,8 +51,8 @@ internal sealed class OpenIddictClientSeeder(
                 ClientId = "bff-client",
                 ClientSecret = "dev-bff-secret",
                 DisplayName = "Avancira PKCE",
-                ClientType = OpenIddictConstants.ClientTypes.Confidential,
-                ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
+                ClientType = ClientTypes.Confidential,
+                ConsentType = ConsentTypes.Explicit,
 
                 RedirectUris =
                 {
@@ -94,7 +90,7 @@ internal sealed class OpenIddictClientSeeder(
                     Requirements =
                     {
                         // PKCE required
-                        OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange
+                        Requirements.Features.ProofKeyForCodeExchange
                     }
                 };
 
@@ -109,8 +105,8 @@ internal sealed class OpenIddictClientSeeder(
                 ClientId = "postman-client",
                 ClientSecret = "dev-postman-secret",
                 DisplayName = "Postman / External Tool Client",
-                ClientType = OpenIddictConstants.ClientTypes.Confidential,
-                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+                ClientType = ClientTypes.Confidential,
+                ConsentType = ConsentTypes.Implicit,
                 Permissions =
             {
                 // Endpoints

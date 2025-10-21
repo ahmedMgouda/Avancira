@@ -244,6 +244,7 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
+
         if (string.IsNullOrWhiteSpace(userId))
         {
             return Unauthorized();

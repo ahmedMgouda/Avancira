@@ -3,7 +3,6 @@
 using System.Security.Claims;
 using Avancira.BFF.Configuration;
 using Avancira.BFF.Services;
-using Duende.AccessTokenManagement;
 using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -60,30 +59,25 @@ public class BffAuthenticationController : ControllerBase
     }
 
 
-    [HttpGet("validate")]
-    [AllowAnonymous]
+    [HttpGet("user")]
     [Produces("application/json")]
-    public IActionResult ValidateSession()
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUser(CancellationToken ct)
     {
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+
         if (!isAuthenticated)
         {
-            _logger.LogDebug("ValidateSession: user not authenticated.");
+            _logger.LogDebug("User not authenticated.");
             return Ok(new { isAuthenticated = false });
         }
 
-        return Ok(new { isAuthenticated = true });
-    }
-
-
-    [HttpGet("user")]
-    [Authorize]
-    public async Task<IActionResult> GetUser(CancellationToken ct)
-    {
+        var sub = User.FindFirstValue("sub");
         var user = await _authClient.GetUserInfoAsync(ct);
+
         if (user is null)
         {
-            _logger.LogWarning("Failed to fetch user info for {Sub}", User.FindFirstValue("sub"));
+            _logger.LogWarning("Failed to fetch user info for {Sub}", sub);
             return Ok(new { isAuthenticated = true, user = (object?)null });
         }
 

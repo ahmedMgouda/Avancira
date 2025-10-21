@@ -45,62 +45,39 @@ export class AuthService {
     return this.initPromise;
   }
 
-
   private async performInit(): Promise<void> {
-  try {
-    // Step 1: Check if session is valid
-    const validate = await firstValueFrom(
-      this.http
-        .get<{ isAuthenticated: boolean }>(`${this.bffUrl}/auth/validate`, {
-          withCredentials: true,
-        })
-        .pipe(
-          timeout(10000),
-          catchError((err) => {
-            console.warn('[Auth] Validation failed:', err);
-            return of({ isAuthenticated: false });
-          })
-        )
-    );
+    try {
+      const response = await firstValueFrom(
+        this.http
+          .get<{ isAuthenticated: boolean; user: UserProfile | null }>(
+            `${this.bffUrl}/auth/user`,
+            { withCredentials: true }
+          )
+          .pipe(
+            timeout(15000),
+            catchError((err) => {
+              console.warn('[Auth] Failed to load user session:', err);
+              return of({ isAuthenticated: false, user: null });
+            })
+          )
+      );
 
-    if (!validate.isAuthenticated) {
+      if (response.isAuthenticated && response.user) {
+        this.setState({
+          isAuthenticated: true,
+          user: response.user,
+          error: null,
+        });
+      } else {
+        this.clearState();
+      }
+    } catch (error) {
+      console.error('[Auth] Init error:', error);
       this.clearState();
-      return;
+    } finally {
+      this.initialized = true;
     }
-
-    // Step 2: Get full user info
-    const userResponse = await firstValueFrom(
-      this.http
-        .get<{ isAuthenticated: boolean; user: UserProfile }>(
-          `${this.bffUrl}/auth/user`,
-          { withCredentials: true }
-        )
-        .pipe(
-          timeout(15000),
-          catchError((err) => {
-            console.error('[Auth] Failed to load user info:', err);
-            return of({ isAuthenticated: false, user: null as any });
-          })
-        )
-    );
-
-    if (userResponse.isAuthenticated && userResponse.user) {
-      this.setState({
-        isAuthenticated: true,
-        user: userResponse.user,
-        error: null,
-      });
-    } else {
-      this.clearState();
-    }
-  } catch (error) {
-    console.error('[Auth] Init error:', error);
-    this.clearState();
-  } finally {
-    this.initialized = true;
   }
-}
-
 
   // ----------------------------------------------------------
   // Login / Logout

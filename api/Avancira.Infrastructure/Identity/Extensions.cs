@@ -7,81 +7,140 @@ using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Infrastructure.Identity.Users.Services;
 using Avancira.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using IdentityDefaults = Avancira.Shared.Authorization.IdentityDefaults;
 
 namespace Avancira.Infrastructure.Identity;
 
-internal static class Extensions
+public static class Extensions
 {
     /// <summary>
-    /// Configures ASP.NET Core Identity and registers identity-related seeders.
-    /// Shared between Auth and API projects.
+    /// Registers ASP.NET Core Identity with environment-aware configuration.
     /// </summary>
-    internal static IServiceCollection ConfigureIdentity(this IServiceCollection services)
+    public static IServiceCollection ConfigureIdentity(
+        this IServiceCollection services,
+        IConfiguration? configuration = null,
+        IWebHostEnvironment? environment = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // ===== Current User Services =====
+        // 1️⃣ Current User Context
         services.AddScoped<CurrentUserMiddleware>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped(sp => (ICurrentUserInitializer)sp.GetRequiredService<ICurrentUser>());
 
-        // ===== Identity Application Services =====
+        // 2️⃣ Application Identity & Audit Services
         services.AddTransient<IdentityLinkBuilder>();
         services.AddTransient<IUserService, UserService>();
         services.AddTransient<IRoleService, RoleService>();
         services.AddTransient<IAuditService, AuditService>();
 
-        // ===== ASP.NET Core Identity Configuration =====
-        services.AddIdentity<User, Role>(options =>
+        // 3️⃣ Choose Identity Setup by Environment
+        bool isAuthServer = environment?.ApplicationName?.Contains("Auth", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        if (isAuthServer)
         {
-            // Password requirements
-            options.Password.RequiredLength = IdentityDefaults.PasswordLength;
-            options.Password.RequireDigit = false;
-            options.Password.RequireLowercase = false;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireUppercase = false;
+            // Full Identity stack (used in Auth Server with login UI)
+            services.AddIdentity<User, Role>(options =>
+            {
+                ConfigurePassword(options.Password);
+                ConfigureUser(options.User);
+                ConfigureSignIn(options.SignIn, environment);
+                ConfigureLockout(options.Lockout);
+                ConfigureTokens(options.Tokens);
+            })
+            .AddEntityFrameworkStores<AvanciraDbContext>()
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
+            .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
+        }
+        else
+        {
+            // Lightweight identity (for API / BFF)
+            services.AddIdentityCore<User>(options =>
+            {
+                ConfigurePassword(options.Password);
+                ConfigureUser(options.User);
+            })
+            .AddRoles<Role>()
+            .AddEntityFrameworkStores<AvanciraDbContext>()
+            .AddDefaultTokenProviders();
+        }
 
-            // User settings
-            options.User.RequireUniqueEmail = true;
+        // 4️⃣ Token Lifespans
+        ConfigureTokenLifespans(services, configuration);
 
-            // Sign-in settings (Important for external logins)
-            options.SignIn.RequireConfirmedAccount = false;
-            options.SignIn.RequireConfirmedEmail = false;
-            // NOTE: For production, consider RequireConfirmedEmail = true
+        return services;
+    }
 
-            // Lockout settings (security best practice)
-            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.AllowedForNewUsers = true;
+    // ───────────────────────────────
+    // Helper Configurations
+    // ───────────────────────────────
 
-            // Token providers (email confirmation, password reset)
-            options.Tokens.PasswordResetTokenProvider = "PasswordReset";
-            options.Tokens.EmailConfirmationTokenProvider = "EmailConfirmation";
-        })
-        .AddEntityFrameworkStores<AvanciraDbContext>()
-        .AddDefaultTokenProviders()
-        .AddTokenProvider<DataProtectorTokenProvider<User>>("EmailConfirmation")
-        .AddTokenProvider<DataProtectorTokenProvider<User>>("PasswordReset");
+    private static void ConfigurePassword(PasswordOptions options)
+    {
+        options.RequiredLength = IdentityDefaults.PasswordLength;
+        options.RequireDigit = false;
+        options.RequireLowercase = false;
+        options.RequireNonAlphanumeric = false;
+        options.RequireUppercase = false;
+    }
 
-        // ===== Token Lifespans =====
+    private static void ConfigureUser(UserOptions options)
+    {
+        options.RequireUniqueEmail = true;
+    }
+
+    private static void ConfigureSignIn(SignInOptions options, IWebHostEnvironment? env)
+    {
+        bool isDevelopment = env?.IsDevelopment() ?? false;
+        options.RequireConfirmedAccount = !isDevelopment;
+        options.RequireConfirmedEmail = !isDevelopment;
+    }
+
+    private static void ConfigureLockout(LockoutOptions options)
+    {
+        options.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        options.MaxFailedAccessAttempts = 5;
+        options.AllowedForNewUsers = true;
+    }
+
+    private static void ConfigureTokens(TokenOptions options)
+    {
+        options.PasswordResetTokenProvider = "PasswordReset";
+        options.EmailConfirmationTokenProvider = "EmailConfirmation";
+    }
+
+    private static void ConfigureTokenLifespans(IServiceCollection services, IConfiguration? config)
+    {
+        var generalLifespan = GetTokenLifespan(config, "Identity:Tokens:GeneralHours", TimeSpan.FromHours(2));
+        var emailLifespan = GetTokenLifespan(config, "Identity:Tokens:EmailHours", TimeSpan.FromDays(1));
+        var passwordLifespan = GetTokenLifespan(config, "Identity:Tokens:PasswordHours", TimeSpan.FromHours(24));
+
         services.Configure<DataProtectionTokenProviderOptions>(o =>
         {
-            o.TokenLifespan = TimeSpan.FromHours(2); // General tokens
+            o.TokenLifespan = generalLifespan;
         });
 
         services.Configure<DataProtectionTokenProviderOptions>("EmailConfirmation", o =>
         {
-            o.TokenLifespan = TimeSpan.FromDays(1);
+            o.TokenLifespan = emailLifespan;
         });
 
         services.Configure<DataProtectionTokenProviderOptions>("PasswordReset", o =>
         {
-            o.TokenLifespan = TimeSpan.FromHours(24);
+            o.TokenLifespan = passwordLifespan;
         });
+    }
 
-        return services;
+    private static TimeSpan GetTokenLifespan(IConfiguration? config, string key, TimeSpan fallback)
+    {
+        if (config == null) return fallback;
+        var value = config[key];
+        return int.TryParse(value, out var hours) ? TimeSpan.FromHours(hours) : fallback;
     }
 }

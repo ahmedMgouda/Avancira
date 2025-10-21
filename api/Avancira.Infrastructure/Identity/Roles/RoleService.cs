@@ -4,6 +4,7 @@ using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Shared.Authorization;
+using Avancira.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -75,7 +76,7 @@ public class RoleService(RoleManager<Role> roleManager,
     {
         var role = await _roleManager.FindByIdAsync(request.RoleId);
         _ = role ?? throw new AvanciraNotFoundException("role not found");
-        if (role.Name == AvanciraRoles.Admin)
+        if (role.Name == SeedDefaults.Roles.Admin)
         {
             throw new AvanciraException("operation not permitted");
         }

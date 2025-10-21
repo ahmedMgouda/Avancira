@@ -1,79 +1,52 @@
-﻿using Avancira.Infrastructure.Common;
-using Avancira.Domain.Catalog;
-using Microsoft.EntityFrameworkCore;
+﻿using Avancira.Domain.Catalog;
 using Microsoft.Extensions.Logging;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
 
-/// <summary>
-/// Maps demo listings to their related categories.
-/// </summary>
-internal sealed class ListingCategorySeeder(
-    ILogger<ListingCategorySeeder> logger,
-    AvanciraDbContext dbContext
-) : BaseSeeder<ListingCategorySeeder>(logger)
+internal sealed class ListingCategorySeeder : ISeeder
 {
-    public override async Task SeedAsync(CancellationToken cancellationToken = default)
+    private readonly AvanciraDbContext _context;
+    private readonly ILogger<ListingCategorySeeder> _logger;
+
+    public string Name => nameof(ListingCategorySeeder);
+
+    public ListingCategorySeeder(AvanciraDbContext context, ILogger<ListingCategorySeeder> logger)
     {
-        if (await dbContext.ListingCategories.AnyAsync(cancellationToken))
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_context.ListingCategories.Any())
+            return;
+
+        var listings = _context.Listings.ToList();
+        var categories = _context.Categories.ToList();
+
+        if (!listings.Any() || !categories.Any())
         {
-            Logger.LogInformation("Skipping {Seeder} — listing categories already exist.", nameof(ListingCategorySeeder));
+            _logger.LogWarning("Cannot seed listing categories: Missing dependencies");
             return;
         }
-
-        // Helper to find IDs by name (case-insensitive)
-        async Task<Guid?> FindListingIdAsync(string name) =>
-            await dbContext.Listings
-                .Where(l => EF.Functions.ILike(l.Name, name))
-                .Select(l => (Guid?)l.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-
-        async Task<Guid?> FindCategoryIdAsync(string name) =>
-            await dbContext.Categories
-                .Where(c => EF.Functions.ILike(c.Name, name))
-                .Select(c => (Guid?)c.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-
-        var pairs = new (string Listing, string Category)[]
-        {
-            ("Advanced Programming Lessons (C++)", "C++"),
-            ("AWS and DevOps Fundamentals", "AWS"),
-            ("Introduction to Machine Learning", "Machine Learning"),
-            ("Backend Development with .NET", "Backend Development"),
-            ("Financial Planning & Investment Strategies", "Finance"),
-            ("Photography Masterclass: From Beginner to Pro", "Photography"),
-            ("Video Editing with Adobe Premiere Pro", "Video Editing")
-        };
 
         var listingCategories = new List<ListingCategory>();
 
-        foreach (var (listingName, categoryName) in pairs)
+        foreach (var listing in listings)
         {
-            var listingId = await FindListingIdAsync(listingName);
-            var categoryId = await FindCategoryIdAsync(categoryName);
-
-            if (listingId is null || categoryId is null)
+            var category = categories.FirstOrDefault();
+            if (category != null)
             {
-                Logger.LogWarning("Skipping mapping: {Listing} → {Category} (missing ID)", listingName, categoryName);
-                continue;
+                listingCategories.Add(new ListingCategory
+                {
+                    ListingId = listing.Id,
+                    CategoryId = category.Id
+                });
             }
-
-            listingCategories.Add(new ListingCategory
-            {
-                ListingId = listingId.Value,
-                CategoryId = categoryId.Value
-            });
         }
 
-        if (listingCategories.Count == 0)
-        {
-            Logger.LogWarning("No listing-category pairs to insert.");
-            return;
-        }
-
-        await dbContext.ListingCategories.AddRangeAsync(listingCategories, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        Logger.LogInformation("{Count} listing-category pairs seeded successfully.", listingCategories.Count);
+        _context.ListingCategories.AddRange(listingCategories);
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Seeded {Count} listing categories", listingCategories.Count);
     }
 }

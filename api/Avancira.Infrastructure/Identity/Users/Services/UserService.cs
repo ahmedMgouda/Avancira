@@ -17,11 +17,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text;
 using Avancira.Domain.Common.Exceptions;
+using Avancira.Shared.Constants;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(
     UserManager<User> userManager,
-    SignInManager<User> signInManager,
     RoleManager<Role> roleManager,
     AvanciraDbContext db,
     ICacheService cache,
@@ -152,7 +152,7 @@ internal sealed partial class UserService(
             }
 
             // add basic role
-            IdentityResult roleResult = await userManager.AddToRoleAsync(user, AvanciraRoles.Basic);
+            IdentityResult roleResult = await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
             if (!roleResult.Succeeded)
             {
                 var errors = roleResult.Errors.Select(error => error.Description).ToList();
@@ -197,7 +197,7 @@ internal sealed partial class UserService(
         var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         _ = user ?? throw new AvanciraNotFoundException("User Not Found.");
 
-        bool isAdmin = await userManager.IsInRoleAsync(user, AvanciraRoles.Admin);
+        bool isAdmin = await userManager.IsInRoleAsync(user, SeedDefaults.Roles.Admin);
         if (isAdmin)
             throw new AvanciraException("Administrators Profile's Status cannot be toggled");
 
@@ -309,7 +309,6 @@ internal sealed partial class UserService(
         // if (request.IsStripeConnected.HasValue) user.IsStripeConnected = request.IsStripeConnected.Value;
 
         var result = await userManager.UpdateAsync(user);
-        await signInManager.RefreshSignInAsync(user);
 
         if (!result.Succeeded)
         {
@@ -354,11 +353,11 @@ internal sealed partial class UserService(
         _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         // Check if the user is an admin for which the admin role is getting disabled
-        if (await userManager.IsInRoleAsync(user, AvanciraRoles.Admin)
-            && request.UserRoles.Exists(a => !a.Enabled && a.RoleName == AvanciraRoles.Admin))
+        if (await userManager.IsInRoleAsync(user, SeedDefaults.Roles.Admin)
+            && request.UserRoles.Exists(a => !a.Enabled && a.RoleName == SeedDefaults.Roles.Admin))
         {
             // Get count of users in Admin Role
-            int adminCount = (await userManager.GetUsersInRoleAsync(AvanciraRoles.Admin)).Count;
+            int adminCount = (await userManager.GetUsersInRoleAsync(SeedDefaults.Roles.Admin)).Count;
 
             // Ensure at least 2 admins exist in the tenant
             if (adminCount <= 2)

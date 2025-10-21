@@ -1,81 +1,98 @@
-using Avancira.Auth.Extensions;
+﻿using Avancira.Auth.Extensions;
 using Avancira.Auth.OpenIddict;
-using Avancira.Infrastructure;
+using Avancira.Infrastructure.Composition;
+using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
 public partial class Program
 {
-    private static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
-        // ===== STEP 1: Database Configuration =====
-        var isUsingAspire = builder.Configuration.GetConnectionString("avancira") != null ||
-                   builder.Environment.IsDevelopment();
-        
-        if (isUsingAspire)
+
+        builder.AddAvanciraInfrastructure();
+
+        // Database binding (works for Aspire and non-Aspire)
+        var isAspire = builder.Configuration.GetConnectionString("avancira") is not null ||
+                       builder.Environment.IsDevelopment();
+
+        if (isAspire)
         {
-            // Aspire mode - let Aspire handle database configuration
-            builder.ConfigureAvanciraFramework();
-            builder.AddNpgsqlDbContext<AvanciraDbContext>("avancira", configureDbContextOptions: options =>
+            builder.AddNpgsqlDbContext<AvanciraDbContext>("avancira", configureDbContextOptions: opts =>
             {
-                options.EnableSensitiveDataLogging();
+                opts.EnableSensitiveDataLogging();
             });
         }
         else
         {
-            // Production mode - use traditional database configuration
-            builder.ConfigureAvanciraFramework();
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
 
-        // ===== STEP 2: Add OpenIddict SERVER (Auth project only) =====
-        // CRITICAL: This must come after ConfigureAvanciraFramework
+      
+
+        builder.Services.AddAuthServerAuthentication();
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
 
-        // ===== STEP 3: Configure Auth server authentication =====
-        // This configures Identity cookies (ApplicationScheme and ExternalScheme)
-        builder.Services.AddAuthServerAuthentication();
-
-        // ===== STEP 4: Add external authentication providers =====
-        // Get logger for external auth configuration
-        using var authLoggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
-        var authLogger = authLoggerFactory.CreateLogger("AuthenticationExtensions");
-        
+        // External providers (Google, Facebook, etc.)
+        using var authLoggerFactory = LoggerFactory.Create(cfg => cfg.AddConsole());
+        var authLogger = authLoggerFactory.CreateLogger("ExternalAuth");
         builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 
-        // ===== STEP 5: Add MVC with Views (for login/register pages) =====
-        builder.Services.AddControllersWithViews(options =>
-        {
-            // API controllers should return JSON
-            // options.Filters.Add(new ProducesAttribute("text/html")); // REMOVED
-        })
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.Converters.Add(
-                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        });
+        builder.Services.AddControllersWithViews()
+            .AddJsonOptions(opt =>
+            {
+                opt.JsonSerializerOptions.Converters.Add(
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            });
 
-
+    
         builder.Services.AddMemoryCache();
+        builder.Services.AddScoped<OpenIddictClientSeeder>();
 
+  
         var app = builder.Build();
 
-        app.UseAvanciraFramework(runDatabasePreparation: true);
-        
+
         app.UseHttpsRedirection();
+        app.UseRouting();
+
+        app.UseCorsPolicy();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapControllers();
-        
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
 
-        app.Run();
+        try
+        {
+            await app.InitializeDatabaseAsync();
+
+            using var scope = app.Services.CreateScope();
+            var seeder = scope.ServiceProvider.GetRequiredService<OpenIddictClientSeeder>();
+            await seeder.SeedAsync();
+
+            app.Logger.LogInformation("Database and OpenIddict seeding completed successfully.");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogCritical(ex, "Database initialization failed: {Error}", ex.Message);
+            throw;
+        }
+
+        // ═════════════════════════════════════════════════════════
+        // 7. STARTUP LOGGING
+        // ═════════════════════════════════════════════════════════
+        app.Logger.LogInformation(" Avancira Auth Server Started");
+        app.Logger.LogInformation(" Environment: {Env}", app.Environment.EnvironmentName);
+        app.Logger.LogInformation(" OpenIddict Authority: {Issuer}", builder.Configuration["Auth:Issuer"]);
+
+        await app.RunAsync();
     }
 }
 
-// Required for integration tests
 public partial class Program { }

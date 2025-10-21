@@ -1,35 +1,34 @@
 ﻿using Avancira.Domain.PromoCodes;
-using Avancira.Infrastructure.Common;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
 
-internal sealed class PromoCodeSeeder(
-    ILogger<PromoCodeSeeder> logger,
-    AvanciraDbContext dbContext
-) : BaseSeeder<PromoCodeSeeder>(logger)
+internal sealed class PromoCodeSeeder : ISeeder
 {
-    public override async Task SeedAsync(CancellationToken cancellationToken = default)
-    {
-        if (await dbContext.PromoCodes.AnyAsync(cancellationToken))
-        {
-            Logger.LogInformation("Skipping {Seeder} — PromoCodes already exist.", nameof(PromoCodeSeeder));
-            return;
-        }
+    private readonly AvanciraDbContext _context;
+    private readonly ILogger<PromoCodeSeeder> _logger;
 
-        var promoCodes = new List<PromoCode>
+    public string Name => nameof(PromoCodeSeeder);
+
+    public PromoCodeSeeder(AvanciraDbContext context, ILogger<PromoCodeSeeder> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_context.PromoCodes.Any())
+            return;
+
+        var promoCodes = new[]
         {
-            new() { Code = "WELCOME10", DiscountAmount = 10, IsActive = true },
-            new() { Code = "WELCOME20", DiscountAmount = 20, IsActive = true },
-            new() { Code = "WELCOME25PCT", DiscountPercentage = 25, IsActive = true },
-            new() { Code = "WELCOME50PCT", DiscountPercentage = 50, IsActive = true },
-            new() { Code = "WELCOME100PCT", DiscountPercentage = 100, IsActive = true }
+            new PromoCode { Code = "WELCOME10", DiscountAmount = 10, IsActive = true },
+            new PromoCode { Code = "SAVE20", DiscountAmount = 20, IsActive = true }
         };
 
-        await dbContext.PromoCodes.AddRangeAsync(promoCodes, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        Logger.LogInformation("{Count} promo codes seeded successfully.", promoCodes.Count);
+        _context.PromoCodes.AddRange(promoCodes);
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Seeded {Count} promo codes", promoCodes.Length);
     }
 }
