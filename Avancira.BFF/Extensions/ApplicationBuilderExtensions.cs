@@ -29,6 +29,7 @@ public static class ApplicationBuilderExtensions
 
         // Request pipeline
         app.UseHttpsRedirection();
+        app.UseWebSockets();
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
