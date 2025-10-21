@@ -9,7 +9,7 @@ import { environment } from '../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   /** Base BFF endpoint (from environment) */
-  private readonly bffUrl = environment.baseUrl;
+  private readonly bffUrl = environment.bffBaseUrl;
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 

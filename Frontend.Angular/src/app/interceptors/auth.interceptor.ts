@@ -25,8 +25,8 @@ export const authInterceptor: HttpInterceptorFn = (
 
   // Always include credentials for your BFF or API calls
   const isBffRequest =
-  req.url.startsWith('/bff') ||
-  req.url.startsWith(environment.baseUrl);
+    req.url.startsWith('/bff') ||
+    req.url.startsWith(environment.bffBaseUrl);
 
   const request = isBffRequest
     ? req.clone({ withCredentials: true })

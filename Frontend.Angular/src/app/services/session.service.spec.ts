@@ -56,7 +56,7 @@ describe('SessionService', () => {
     let result: DeviceSessions[] | undefined;
     service.getSessions().subscribe(data => (result = data));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/auth/sessions`);
+    const req = httpMock.expectOne(`${environment.bffBaseUrl}/api/auth/sessions`);
     expect(req.request.method).toBe('GET');
     expect(req.request.withCredentials).toBeTrue();
     req.flush(mockResponse);

@@ -129,10 +129,7 @@ export class PaymentComponent implements OnInit {
   }
 
   goToLogin(): void {
-    const currentUrl = this.router.url;
-    this.router.navigate(['/signin'], {
-      queryParams: { returnUrl: currentUrl },
-    });
+    this.authService.startLogin(this.router.url);
   }
 
 

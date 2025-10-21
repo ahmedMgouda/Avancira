@@ -10,7 +10,7 @@ import { SendMessage } from '../models/send-message';
   providedIn: 'root',
 })
 export class ChatService {
-  private apiUrl = `${environment.apiUrl}/chats`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/chats`;
 
   constructor(private http: HttpClient) { }
 

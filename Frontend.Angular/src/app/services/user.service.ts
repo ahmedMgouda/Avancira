@@ -12,7 +12,7 @@ import { User } from '../models/user';
   providedIn: 'root',
 })
 export class UserService {
-  private apiUrl = `${environment.apiUrl}/users`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/users`;
   private cachedUser: User | null = null;
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();

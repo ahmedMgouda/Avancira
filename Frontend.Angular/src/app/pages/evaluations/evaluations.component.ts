@@ -48,7 +48,7 @@ export class EvaluationsComponent {
       next: (user: User) => {
         if (user.recommendationToken) {
           this.recommendationLink = `${environment.frontendUrl}/recommendation/${user.recommendationToken}`;
-          this.sponsorLink = `${environment.frontendUrl}/signup?referral=${user.recommendationToken}`;
+          this.sponsorLink = `${environment.bffBaseUrl}/auth/register?referral=${user.recommendationToken}`;
         }
       },
       error: (err) => {

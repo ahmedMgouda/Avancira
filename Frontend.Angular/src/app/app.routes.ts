@@ -9,7 +9,6 @@ import { CompleteRegistrationComponent } from './pages/complete-registration/com
 import { ConfirmEmailComponent } from './pages/confirm-email/confirm-email.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { EvaluationsComponent } from './pages/evaluations/evaluations.component';
-import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
 import { GoodbyeComponent } from './pages/goodbye/goodbye.component';
 import { HomeComponent } from './pages/home/home.component';
 import { InvoicesComponent } from './pages/invoices/invoices.component';
@@ -19,10 +18,7 @@ import { MessagesComponent } from './pages/messages/messages.component';
 import { PaymentsComponent } from './pages/payments/payments.component';
 import { PrivacyComponent } from './pages/privacy/privacy.component';
 import { ProfileComponent } from './pages/profile/profile.component';
-import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { SessionsComponent } from './pages/sessions/sessions.component';
-import { SigninComponent } from './pages/signin/signin.component';
-import { SignupComponent } from './pages/signup/signup.component';
 import { TabletestComponent } from './pages/tabletest/tabletest.component';
 import { TermsComponent } from './pages/terms/terms.component';
 
@@ -31,10 +27,6 @@ import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: 'video-call-window', component: VideoCallWindowComponent },
-  { path: 'signup', component: SignupComponent },
-  { path: 'signin', component: SigninComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
   { path: 'check-email', component: CheckEmailComponent },
   { path: 'complete-registration', component: CompleteRegistrationComponent },

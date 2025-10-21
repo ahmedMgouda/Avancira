@@ -17,6 +17,7 @@ export interface ConfigResponse {
   providedIn: 'root'
 })
 export class ConfigService {
+  private readonly apiBase = `${environment.bffBaseUrl}/api`;
   private config: Config | null = null;
   private enabledSocialProviders: SocialProvider[] = [];
 
@@ -39,7 +40,7 @@ export class ConfigService {
       return of(this.config);
     }
 
-    const fetch$ = this.http.get<ConfigResponse>(`${environment.apiUrl}/configs`, {
+    const fetch$ = this.http.get<ConfigResponse>(`${this.apiBase}/configs`, {
       context: new HttpContext()
     });
 

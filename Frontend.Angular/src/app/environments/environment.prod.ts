@@ -1,7 +1,8 @@
+const bffBaseUrl = 'https://avaicira.com/bff';
+
 export const environment = {
-  baseApiUrl: 'https://www.avancira.com/bff',
-  apiUrl: `https://www.avancira.com/api`,
-  authUrl: `https://www.avancira.com/bff/auth`,
-  frontendUrl: 'https://www.avancira.com',
+  production: true,
+  frontendUrl: 'https://avaicira.com',
+  bffBaseUrl,
   useSignalR: true,
 };

@@ -18,7 +18,7 @@ import { StripeConnectionResult } from '../models/stripe-connection-result';
   providedIn: 'root',
 })
 export class PaymentService {
-  private apiUrl = `${environment.apiUrl}/payments`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/payments`;
 
   constructor(
     private router: Router,
