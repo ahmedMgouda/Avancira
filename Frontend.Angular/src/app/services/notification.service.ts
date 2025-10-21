@@ -22,7 +22,7 @@ export class NotificationService {
     }
 
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${environment.baseApiUrl}/notification`, {
+      .withUrl(`${environment.bffBaseUrl}/notification`, {
         accessTokenFactory: () => token,
       })
       .build();

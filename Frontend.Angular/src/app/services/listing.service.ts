@@ -10,7 +10,7 @@ import { PagedResult } from '../models/paged-result';
   providedIn: 'root'
 })
 export class ListingService {
-  private apiUrl = `${environment.apiUrl}/listings`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/listings`;
 
   constructor(private http: HttpClient) { }
 

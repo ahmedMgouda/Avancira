@@ -12,7 +12,7 @@ import { SubscriptionStatusCheck } from '../models/subscription-status-check';
   providedIn: 'root'
 })
 export class SubscriptionService {
-  private apiUrl = `${environment.apiUrl}/subscriptions`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/subscriptions`;
 
   constructor(private http: HttpClient) { }
   

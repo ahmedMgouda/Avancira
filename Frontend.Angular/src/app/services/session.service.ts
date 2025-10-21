@@ -7,7 +7,7 @@ import { DeviceSessions } from '../models/device-sessions';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  private readonly api = environment.apiUrl;
+  private readonly api = `${environment.bffBaseUrl}/api`;
 
   constructor(private http: HttpClient) {}
 
