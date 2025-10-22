@@ -1,4 +1,6 @@
 ﻿using Avancira.Application.Categories;
+using Avancira.Application.SubjectCategories;
+using Avancira.Application.Subjects;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
 using FluentValidation;
@@ -11,6 +13,8 @@ public static class Extensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ISubjectCategoryService, SubjectCategoryService>();
+        services.AddScoped<ISubjectService, SubjectService>();
         services.AddScoped<IUserSessionService, UserSessionService>();
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

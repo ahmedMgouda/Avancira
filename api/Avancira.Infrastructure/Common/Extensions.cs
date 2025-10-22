@@ -25,6 +25,8 @@ using System.Threading.Tasks;
 using Avancira.Application.Categories;
 using Avancira.Infrastructure.Payments;
 using UAParser;
+using Avancira.Application.SubjectCategories;
+using Avancira.Application.Subjects;
 
 namespace Avancira.Infrastructure.Catalog
 {
@@ -43,6 +45,8 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<IEvaluationService, EvaluationService>();
             services.AddTransient<IChatService, ChatService>();
             services.AddTransient<ICategoryService, CategoryService>();
+            services.AddTransient<ISubjectCategoryService, SubjectCategoryService>();
+            services.AddTransient<ISubjectService, SubjectService>();
             services.AddTransient<ISubscriptionService, SubscriptionService>();
             services.AddTransient<INotificationService, NotificationService>();
             services.AddTransient<IWalletService, WalletService>();

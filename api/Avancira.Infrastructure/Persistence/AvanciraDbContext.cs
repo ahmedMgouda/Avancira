@@ -16,6 +16,7 @@ using Avancira.Domain.Subscription;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Notifications;
+using Avancira.Domain.Subjects;
 using Avancira.Domain.UserSessions;
 
 namespace Avancira.Infrastructure.Persistence;
@@ -39,6 +40,8 @@ public class AvanciraDbContext : IdentityDbContext<
 
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<SubjectCategory> SubjectCategories { get; set; }
+    public DbSet<Subject> Subjects { get; set; }
 
     public DbSet<Address> Addresses { get; set; }
     public DbSet<Country> Countries { get; set; }
