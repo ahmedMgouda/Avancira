@@ -32,7 +32,6 @@ public static class AvanciraPermissions
         new("Search Listings", AvanciraActions.Search, AvanciraResources.Listings, IsStudent: true),
         new("View Categories", AvanciraActions.View, AvanciraResources.Categories, IsStudent: true),
         new("Search Categories", AvanciraActions.Search, AvanciraResources.Categories, IsStudent: true),
-
         // Tutor permissions
         new("Create Listings", AvanciraActions.Create, AvanciraResources.Listings, IsTutor: true),
         new("Update Listings", AvanciraActions.Update, AvanciraResources.Listings, IsTutor: true),
@@ -44,7 +43,6 @@ public static class AvanciraPermissions
         new("Manage Listings", AvanciraActions.Update, AvanciraResources.Listings),
         new("Delete Listings", AvanciraActions.Delete, AvanciraResources.Listings),
         new("Export Listings", AvanciraActions.Export, AvanciraResources.Listings),
-
         // ──────────────────────────────
         // DASHBOARD & SYSTEM
         // ──────────────────────────────
