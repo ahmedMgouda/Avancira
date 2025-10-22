@@ -115,83 +115,77 @@ internal sealed partial class UserService(
     public async Task<RegisterUserResponseDto> RegisterAsync(RegisterUserDto request, string origin, CancellationToken cancellationToken)
     {
         if (await ExistsWithEmailAsync(request.Email))
-        {
             throw new AvanciraException("Email already in use");
-        }
 
         if (await ExistsWithNameAsync(request.UserName))
-        {
             throw new AvanciraException("Username already in use");
-        }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var strategy = db.Database.CreateExecutionStrategy();
 
-        User user;
-        try
+        RegisterUserResponseDto response = null!;
+
+        await strategy.ExecuteAsync(async () =>
         {
-            // create user entity
-            user = new User
-            {
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                UserName = request.UserName,
-                PhoneNumber = request.PhoneNumber,
-                TimeZoneId = request.TimeZoneId,
-                IsActive = false,
-                EmailConfirmed = false,
-                PhoneNumberConfirmed = false,
-            };
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
-            // register user
-            var result = await userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(error => error.Description).ToList();
-                throw new AvanciraException("error while registering a new user", errors);
-            }
-
-            // add basic role
-            IdentityResult roleResult = await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
-            if (!roleResult.Succeeded)
-            {
-                var errors = roleResult.Errors.Select(error => error.Description).ToList();
-                throw new AvanciraException("error while assigning user role", errors);
-            }
-
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
-
-        // send confirmation mail after commit so user creation succeeds even if notification fails
-        if (!string.IsNullOrEmpty(user.Email))
-        {
             try
             {
-                string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
-                var confirmEmailEvent = new ConfirmEmailEvent
+                var user = new User
                 {
-                    UserId = user.Id,
-                    Email = user.Email,
-                    ConfirmationLink = emailVerificationUri
+                    Email = request.Email,
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    UserName = request.UserName,
+                    PhoneNumber = request.PhoneNumber,
+                    TimeZoneId = request.TimeZoneId,
+                    IsActive = false,
+                    EmailConfirmed = false,
+                    PhoneNumberConfirmed = false,
                 };
 
-                // Use notification service to send email confirmation
-                await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
+                var result = await userManager.CreateAsync(user, request.Password);
+                if (!result.Succeeded)
+                    throw new AvanciraException("Error while registering user", result.Errors.Select(e => e.Description));
+
+                var roleResult = await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
+                if (!roleResult.Succeeded)
+                    throw new AvanciraException("Error while assigning user role", roleResult.Errors.Select(e => e.Description));
+
+                await transaction.CommitAsync(cancellationToken);
+
+                // send confirmation mail after commit
+                if (!string.IsNullOrEmpty(user.Email))
+                {
+                    try
+                    {
+                        string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
+                        var confirmEmailEvent = new ConfirmEmailEvent
+                        {
+                            UserId = user.Id,
+                            Email = user.Email,
+                            ConfirmationLink = emailVerificationUri
+                        };
+
+                        await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
+                    }
+                    catch
+                    {
+                        // swallow notification errors
+                    }
+                }
+
+                response = new RegisterUserResponseDto(user.Id);
             }
             catch
             {
-                // Intentionally swallow exceptions so that user registration is not affected
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
-        }
+        });
 
-        return new RegisterUserResponseDto(user.Id);
+        return response;
     }
-
+  
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
     {
         var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

@@ -123,7 +123,7 @@ public class BffAuthenticationController : ControllerBase
     // 5. Auth server redirects back to BFF callback (/bff/signout-callback-oidc)
     // 6. BFF clears its cookie and redirects to SPA
     // ═══════════════════════════════════════════════════════════════════════
-    [HttpPost("logout")]
+    [HttpPost("logout"), HttpGet("logout")]
     [Authorize]
     public IActionResult Logout()
     {
@@ -154,17 +154,7 @@ public class BffAuthenticationController : ControllerBase
             CookieAuthenticationDefaults.AuthenticationScheme,
             OpenIdConnectDefaults.AuthenticationScheme);
     }
-
-
-
-    [HttpGet("/bff/signout-callback-oidc")]
-    [AllowAnonymous]
-    public IActionResult SignoutCallback()
-    {
-        _logger.LogInformation("Sign-out callback reached, redirecting to SPA.");
-        return Redirect(_settings.Auth.DefaultRedirectUrl);
-    }
-
+    
     // ═══════════════════════════════════════════════════════════════════════
     // Validates and sanitizes return URLs
     // Prevents open redirect vulnerabilities

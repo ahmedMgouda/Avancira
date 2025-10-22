@@ -162,7 +162,6 @@ public static class ServiceCollectionExtensions
             options.SignedOutCallbackPath = "/bff/signout-callback-oidc";
             options.SignedOutRedirectUri = "https://localhost:4200/";
 
-
             // CRITICAL: Tokens stored server-side by Duende
             options.SaveTokens = true;
 

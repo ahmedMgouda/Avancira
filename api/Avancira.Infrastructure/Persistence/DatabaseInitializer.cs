@@ -36,7 +36,6 @@ internal sealed class DatabaseInitializer : IDatabaseInitializer
         {
             _logger.LogInformation("=== Database Initialization Started ===");
 
-            // Check environment flags
             var dropDatabase = _configuration.GetValue("ASPIRE_DROP_DATABASE", false);
             var runSeeding = _configuration.GetValue("ASPIRE_RUN_SEEDING", true);
 
@@ -47,40 +46,31 @@ internal sealed class DatabaseInitializer : IDatabaseInitializer
                 _logger.LogWarning("Database dropped successfully.");
             }
 
-            // Ensure database exists and apply migrations
-            _logger.LogInformation("Applying EF Core migrations...");
-            await _context.Database.MigrateAsync(cancellationToken);
+            // 1️⃣ Ensure DB physically exists
+            await _context.Database.EnsureCreatedAsync(cancellationToken);
 
-            // Sanity check — confirm schema exists
-            if (!await _context.Database.CanConnectAsync(cancellationToken))
+            // 2️⃣ Apply migrations only if there are any
+            var pendingMigrations = (await _context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+            if (pendingMigrations.Any())
             {
-                _logger.LogError("❌ Failed to connect to the database after migration.");
-                return;
+                _logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count);
+                await _context.Database.MigrateAsync(cancellationToken);
+                _logger.LogInformation("✅ Migrations applied successfully.");
             }
 
-            var pending = (await _context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
-            if (pending.Count > 0)
-            {
-                _logger.LogWarning("⚠️ {Count} migrations still pending after MigrateAsync.", pending.Count);
-            }
-            else
-            {
-                _logger.LogInformation("✅ Database schema is up to date.");
-            }
-
-            // Run seeding if enabled
+            // 3️⃣ Run seeding last
             if (runSeeding)
             {
                 _logger.LogInformation("Running data seeders...");
                 await _orchestrator.RunAsync(cancellationToken);
-                _logger.LogInformation("Data seeding completed.");
+                _logger.LogInformation("✅ Database seeding completed.");
             }
 
             _logger.LogInformation("=== Database Initialization Completed Successfully ===");
         }
         catch (Exception ex)
         {
-            _logger.LogCritical(ex, "Database initialization failed: {Message}", ex.Message);
+            _logger.LogCritical(ex, "Database initialization failed: {Error}", ex.Message);
             throw;
         }
         finally

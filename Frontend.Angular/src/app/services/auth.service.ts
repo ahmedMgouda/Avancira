@@ -103,23 +103,14 @@ export class AuthService {
    * Logs out via BFF (revokes session and redirects)
    */
   logout(): void {
+    // Step 1: local cleanup + optional API logout
+    this.clearState();
     sessionStorage.removeItem('auth:return_url');
 
-    this.http
-      .post<{ redirectUri?: string }>(`${this.bffUrl}/auth/logout`, {})
-      .pipe(
-        catchError((error) => {
-          console.error('[Auth] Logout failed:', error);
-          return of<{ redirectUri?: string }>({ redirectUri: undefined });
-        })
-      )
-      .subscribe(({ redirectUri }) => {
-        this.clearState();
-        // Prefer server-provided redirectUri, fallback to login
-        window.location.href =
-          redirectUri ?? `${this.bffUrl}/auth/login`;
-      });
+    // Step 2: full navigation logout
+    window.location.assign(`${this.bffUrl}/auth/logout`);
   }
+
 
   /**
    * Called by interceptor when unauthorized
