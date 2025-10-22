@@ -3,18 +3,25 @@ using Avancira.Auth.OpenIddict;
 using Avancira.Infrastructure.Composition;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Infrastructure.Persistence.Seeders;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 public partial class Program
 {
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // ============================================================
+        // 1️⃣ Add Infrastructure (no Hangfire started yet)
+        // ============================================================
         builder.AddAvanciraInfrastructure();
 
-        // Database binding (works for Aspire and non-Aspire)
+        // ============================================================
+        // 2️⃣ Configure Database (local or Aspire mode)
+        // ============================================================
         var isAspire = builder.Configuration.GetConnectionString("avancira") is not null ||
                        builder.Environment.IsDevelopment();
 
@@ -30,16 +37,23 @@ public partial class Program
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
 
-      
-
+        // ============================================================
+        // 3️⃣ Authentication & Identity
+        // ============================================================
         builder.Services.AddAuthServerAuthentication();
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
+        builder.Services.AddScoped<OpenIddictClientSeeder>();
 
-        // External providers (Google, Facebook, etc.)
+        // ============================================================
+        // 4️⃣ External Providers (Google, Facebook, etc.)
+        // ============================================================
         using var authLoggerFactory = LoggerFactory.Create(cfg => cfg.AddConsole());
         var authLogger = authLoggerFactory.CreateLogger("ExternalAuth");
         builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
 
+        // ============================================================
+        // 5️⃣ MVC / JSON
+        // ============================================================
         builder.Services.AddControllersWithViews()
             .AddJsonOptions(opt =>
             {
@@ -47,19 +61,26 @@ public partial class Program
                     new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
 
-    
         builder.Services.AddMemoryCache();
-        builder.Services.AddScoped<OpenIddictClientSeeder>();
 
-  
+
         var app = builder.Build();
 
+        // ============================================================
+        // 6️⃣ Run Database Initialization FIRST (migrations + seeding)
+        // ============================================================
+        using (var scope = app.Services.CreateScope())
+        {
+            var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
+            await initializer.InitializeAsync();
+        }
 
+        // ============================================================
+        // 8️⃣ Middleware Pipeline
+        // ============================================================
         app.UseHttpsRedirection();
         app.UseRouting();
-
         app.UseCorsPolicy();
-
         app.UseAuthentication();
         app.UseAuthorization();
 
@@ -68,28 +89,12 @@ public partial class Program
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
 
-        try
-        {
-            await app.InitializeDatabaseAsync();
-
-            using var scope = app.Services.CreateScope();
-            var seeder = scope.ServiceProvider.GetRequiredService<OpenIddictClientSeeder>();
-            await seeder.SeedAsync();
-
-            app.Logger.LogInformation("Database and OpenIddict seeding completed successfully.");
-        }
-        catch (Exception ex)
-        {
-            app.Logger.LogCritical(ex, "Database initialization failed: {Error}", ex.Message);
-            throw;
-        }
-
-        // ═════════════════════════════════════════════════════════
-        // 7. STARTUP LOGGING
-        // ═════════════════════════════════════════════════════════
-        app.Logger.LogInformation(" Avancira Auth Server Started");
-        app.Logger.LogInformation(" Environment: {Env}", app.Environment.EnvironmentName);
-        app.Logger.LogInformation(" OpenIddict Authority: {Issuer}", builder.Configuration["Auth:Issuer"]);
+        // ============================================================
+        // 9️⃣ Logging Info
+        // ============================================================
+        app.Logger.LogInformation("✅ Avancira Auth Server Started");
+        app.Logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
+        app.Logger.LogInformation("OpenIddict Authority: {Issuer}", builder.Configuration["Auth:Issuer"]);
 
         await app.RunAsync();
     }

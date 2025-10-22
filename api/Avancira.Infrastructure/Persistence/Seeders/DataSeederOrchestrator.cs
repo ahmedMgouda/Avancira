@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
 
 /// <summary>
-/// Orchestrates all registered data seeders by dependency phase.
-/// Each phase runs after the previous completes; seeders within a phase run in parallel,
-/// each with its own DI scope and DbContext instance.
+/// Runs all seeders in defined phases with safe parallel execution and isolation.
+/// Each phase waits for the previous to finish. Each seeder has its own DbContext.
 /// </summary>
 internal sealed class DataSeederOrchestrator
 {
@@ -23,41 +23,54 @@ internal sealed class DataSeederOrchestrator
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting database seeding process...");
+        _logger.LogInformation("=== Starting Database Seeding Process ===");
 
+        // Check schema health before starting
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
+            var canConnect = await db.Database.CanConnectAsync(cancellationToken);
+            if (!canConnect)
+            {
+                _logger.LogError("❌ Cannot connect to database. Seeding aborted.");
+                return;
+            }
+
+            var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+            if (pending.Count > 0)
+            {
+                _logger.LogWarning("⚠️ Found {Count} pending migrations before seeding. Applying them now...", pending.Count);
+                await db.Database.MigrateAsync(cancellationToken);
+                _logger.LogInformation("✅ Pending migrations applied before seeding.");
+            }
+        }
+
+        // Define seeders and their phases
         var seeders = new (int Phase, Type SeederType)[]
         {
-            // Phase 1: Critical base data
+            (0, typeof(OpenIddictClientSeeder)),
             (1, typeof(RoleSeeder)),
             (1, typeof(CountrySeeder)),
             (1, typeof(CategorySeeder)),
             (1, typeof(PromoCodeSeeder)),
-
-            // Phase 2: Users
             (2, typeof(UserSeeder)),
-
-            // Phase 3: Listings
             (3, typeof(ListingSeeder)),
-
-            // Phase 4: Listing-Category mappings
             (4, typeof(ListingCategorySeeder))
         };
 
-        var allResults = new List<(string Name, bool Success, long DurationMs)>();
+        var results = new List<(string Name, bool Success, long DurationMs)>();
 
-        // Sequential by phase, parallel within each phase (but isolated scopes)
-        foreach (var group in seeders.GroupBy(s => s.Phase).OrderBy(g => g.Key))
+        foreach (var phase in seeders.GroupBy(s => s.Phase).OrderBy(g => g.Key))
         {
-            _logger.LogInformation("Phase {Phase} ({Count} seeders)", group.Key, group.Count());
+            _logger.LogInformation("── Phase {Phase} ({Count} seeders) ──", phase.Key, phase.Count());
 
-            // Run in parallel, but each seeder has its own scope (and DbContext)
-            var tasks = group.Select(s => ExecuteSeederAsync(s.SeederType, cancellationToken));
-            var results = await Task.WhenAll(tasks);
+            var tasks = phase.Select(s => ExecuteSeederAsync(s.SeederType, cancellationToken));
+            var phaseResults = await Task.WhenAll(tasks);
 
-            allResults.AddRange(results);
+            results.AddRange(phaseResults);
         }
 
-        LogSummary(allResults);
+        LogSummary(results);
     }
 
     private async Task<(string Name, bool Success, long DurationMs)> ExecuteSeederAsync(
@@ -69,19 +82,26 @@ internal sealed class DataSeederOrchestrator
 
         try
         {
+            var db = scope.ServiceProvider.GetRequiredService<AvanciraDbContext>();
+            if (!await db.Database.CanConnectAsync(cancellationToken))
+            {
+                _logger.LogWarning("Skipping {SeederName}: Cannot connect to DB.", seederType.Name);
+                return (seederType.Name, false, 0);
+            }
+
             var start = Environment.TickCount64;
-            _logger.LogInformation("Starting {SeederName}...", seeder.Name);
+            _logger.LogInformation("▶ Running {SeederName}...", seeder.Name);
 
             await seeder.SeedAsync(cancellationToken);
 
             var duration = Environment.TickCount64 - start;
-            _logger.LogInformation("{SeederName} completed successfully in {DurationMs} ms", seeder.Name, duration);
+            _logger.LogInformation("✅ {SeederName} completed in {Duration} ms", seeder.Name, duration);
 
             return (seeder.Name, true, duration);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed {SeederName}: {Error}", seederType.Name, ex.Message);
+            _logger.LogError(ex, "❌ Failed {SeederName}: {Error}", seederType.Name, ex.Message);
             return (seederType.Name, false, 0);
         }
     }
@@ -90,9 +110,15 @@ internal sealed class DataSeederOrchestrator
     {
         var succeeded = results.Count(r => r.Success);
         var failed = results.Count(r => !r.Success);
-        var totalMs = results.Sum(r => r.DurationMs);
+        var total = results.Sum(r => r.DurationMs);
 
-        _logger.LogInformation("SEEDING SUMMARY: {Succeeded} succeeded, {Failed} failed, Total {TotalMs} ms",
-            succeeded, failed, totalMs);
+        _logger.LogInformation("=== SEEDING SUMMARY: {Succeeded} succeeded, {Failed} failed, Total {TotalMs} ms ===",
+            succeeded, failed, total);
+
+        foreach (var result in results)
+        {
+            var status = result.Success ? "✔️" : "❌";
+            _logger.LogInformation("  {Status} {Seeder} ({Ms} ms)", status, result.Name, result.DurationMs);
+        }
     }
 }

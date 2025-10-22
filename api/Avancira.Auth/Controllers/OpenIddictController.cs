@@ -245,6 +245,71 @@ public sealed class OpenIddictController : Controller
         return Ok();
     }
 
+
+    //[HttpGet("logout")]
+    //[HttpPost("logout")]
+    //[IgnoreAntiforgeryToken]
+    //public async Task<IActionResult> Logout()
+    //{
+    //    var request = HttpContext.GetOpenIddictServerRequest();
+
+    //    _logger.LogInformation(
+    //        "Logout endpoint called - PostLogoutRedirectUri: {RedirectUri}",
+    //        request?.PostLogoutRedirectUri);
+
+    //    // Step 1: Get the authenticated user (if any)
+    //    var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+
+    //    if (result?.Succeeded == true && result.Principal != null)
+    //    {
+    //        var userId = result.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    //        var sessionId = result.Principal.FindFirstValue("sid");
+
+    //        _logger.LogInformation(
+    //            "Logging out user - UserId: {UserId}, SessionId: {SessionId}",
+    //            userId,
+    //            sessionId);
+
+    //        // Step 2: Sign out from Identity (clears the cookie)
+    //        await _signInManager.SignOutAsync();
+    //    }
+    //    else
+    //    {
+    //        _logger.LogDebug("No authenticated user found during logout");
+    //    }
+
+    //    // Step 3: Determine where to redirect after logout
+    //    var redirectUri = request?.PostLogoutRedirectUri;
+
+    //    // If no redirect URI provided, use default
+    //    if (string.IsNullOrWhiteSpace(redirectUri))
+    //    {
+    //        redirectUri = "/";
+    //        _logger.LogDebug("No post_logout_redirect_uri provided, using default: {RedirectUri}", redirectUri);
+    //    }
+
+    //    return Redirect(redirectUri);
+    //}
+
+    [HttpGet("logout")]
+    [HttpPost("logout")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> Logout()
+    {
+        var request = HttpContext.GetOpenIddictServerRequest();
+        var redirectUri = request?.PostLogoutRedirectUri ?? "/";
+
+        _logger.LogInformation("Logout endpoint called - Redirect: {RedirectUri}", redirectUri);
+
+        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+        return SignOut(
+            new AuthenticationProperties { RedirectUri = redirectUri },
+            OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+
     // ══════════════════════════════════════════════════════════════════
     // PRIVATE HELPERS
     // ══════════════════════════════════════════════════════════════════

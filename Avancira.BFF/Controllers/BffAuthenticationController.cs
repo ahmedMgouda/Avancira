@@ -113,67 +113,56 @@ public class BffAuthenticationController : ControllerBase
 
     // ═══════════════════════════════════════════════════════════════════════
     // POST /bff/auth/logout
-    // Logs out current user
+    // FIXED: Initiates logout flow (doesn't complete it)
     //
-    // PROCESS:
-    // 1. Revoke refresh token (prevents token refresh)
-    // 2. Sign out from cookie scheme (clears BFF cookie)
-    // 3. Sign out from OIDC scheme (notifies auth server)
+    // CORRECT FLOW:
+    // 1. SPA calls this endpoint (POST /bff/auth/logout)
+    // 2. This endpoint revokes tokens and initiates OIDC sign-out
+    // 3. Browser is redirected to Auth server logout endpoint
+    // 4. Auth server clears its identity cookie
+    // 5. Auth server redirects back to BFF callback (/bff/signout-callback-oidc)
+    // 6. BFF clears its cookie and redirects to SPA
     // ═══════════════════════════════════════════════════════════════════════
     [HttpPost("logout")]
     [Authorize]
-    public async Task<IActionResult> Logout(CancellationToken ct = default)
+    public IActionResult Logout()
     {
         var userId = User.FindFirstValue("sub");
         var sessionId = User.FindFirstValue("sid");
 
-        _logger.LogInformation(
-            "Logout initiated - UserId: {UserId}, SessionId: {SessionId}",
-            userId,
-            sessionId);
+        _logger.LogInformation("Logout initiated - UserId: {UserId}, SessionId: {SessionId}", userId, sessionId);
 
+        // Optional: revoke refresh token (safe to skip)
         try
         {
-            // Step 1: Revoke refresh token (safe, non-critical failure)
-            try
-            {
-                await _tokenManager.RevokeRefreshTokenAsync(User);
-                _logger.LogInformation("Refresh token revoked for {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Failed to revoke refresh token for {UserId}, SessionId: {SessionId}",
-                    userId,
-                    sessionId);
-            }
-
-            // Step 2: Clear BFF cookie
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Step 3: Notify OpenID Connect provider
-            var props = new AuthenticationProperties
-            {
-                RedirectUri = _settings.Auth.DefaultRedirectUrl
-            };
-            await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, props);
-
-            _logger.LogInformation(
-                "User logged out - UserId: {UserId}, SessionId: {SessionId}",
-                userId,
-                sessionId);
-
-            return Ok(new { success = true, redirectUri = "/" });
+            _tokenManager.RevokeRefreshTokenAsync(User).Wait();
+            _logger.LogInformation("Refresh token revoked for {UserId}", userId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "Logout failed for {UserId}, SessionId: {SessionId}",
-                userId,
-                sessionId);
-
-            return StatusCode(500, new { success = false, message = "Logout failed" });
+            _logger.LogWarning(ex, "Failed to revoke refresh token for {UserId}", userId);
         }
+
+        // 👇 Return a SignOutResult instead of calling SignOutAsync
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = "https://localhost:4200/" // final SPA page after full logout
+        };
+
+        return SignOut(
+            props,
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            OpenIdConnectDefaults.AuthenticationScheme);
+    }
+
+
+
+    [HttpGet("/bff/signout-callback-oidc")]
+    [AllowAnonymous]
+    public IActionResult SignoutCallback()
+    {
+        _logger.LogInformation("Sign-out callback reached, redirecting to SPA.");
+        return Redirect(_settings.Auth.DefaultRedirectUrl);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

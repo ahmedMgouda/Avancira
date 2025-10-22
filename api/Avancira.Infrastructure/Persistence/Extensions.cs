@@ -75,6 +75,7 @@ public static class Extensions
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
         services.AddScoped<DataSeederOrchestrator>();
 
+       
         services.AddScoped<RoleSeeder>();
         services.AddScoped<UserSeeder>();
         services.AddScoped<CountrySeeder>();

@@ -1,8 +1,6 @@
-const bffBaseUrl = 'https://avaicira.com/bff';
-
 export const environment = {
-  production: true,
   frontendUrl: 'https://avaicira.com',
-  bffBaseUrl,
+  bffBaseUrl: 'https://avaicira.com/bff',
+  production: true,
   useSignalR: true,
 };

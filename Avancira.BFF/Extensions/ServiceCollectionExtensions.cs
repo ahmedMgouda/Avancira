@@ -3,6 +3,7 @@
 using Avancira.BFF.Configuration;
 using Avancira.BFF.Services;
 using Duende.AccessTokenManagement.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -148,17 +149,19 @@ public static class ServiceCollectionExtensions
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.UsePkce = true;
 
-            options.CallbackPath = "/bff/signin-oidc";
-            options.SignedOutCallbackPath = "/bff/signout-callback-oidc";
-            options.RemoteSignOutPath = "/bff/signout-oidc";
-
-            // Minimal scopes (only what's needed)
+            // Scopes to request
             options.Scope.Clear();
             options.Scope.Add("openid");
             options.Scope.Add("profile");
             options.Scope.Add("email");
+            options.Scope.Add("api");
             options.Scope.Add("offline_access");
-            options.Scope.Add("api");       
+
+            // Callback paths 
+            options.CallbackPath = "/bff/signin-oidc";
+            options.SignedOutCallbackPath = "/bff/signout-callback-oidc";
+            options.SignedOutRedirectUri = "https://localhost:4200/";
+
 
             // CRITICAL: Tokens stored server-side by Duende
             options.SaveTokens = true;
@@ -173,6 +176,18 @@ public static class ServiceCollectionExtensions
             options.TokenValidationParameters.ValidateAudience = true;
             options.TokenValidationParameters.ValidateIssuer = true;
 
+            options.Events = new OpenIdConnectEvents
+            {
+                OnRedirectToIdentityProviderForSignOut = context =>
+                {
+                    var idToken = context.Properties.GetTokenValue("id_token");
+                    if (!string.IsNullOrEmpty(idToken))
+                    {
+                        context.ProtocolMessage.IdTokenHint = idToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
             // Event handlers from separate service
             options.Events = OidcEventHandlers.CreateEvents();
         });
