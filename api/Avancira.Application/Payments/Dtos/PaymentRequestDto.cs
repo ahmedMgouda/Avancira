@@ -13,7 +13,6 @@ namespace Avancira.Application.Payments.Dtos
         public string Currency { get; set; } = "AUD";
         public string ReturnUrl { get; set; }
         public string CancelUrl { get; set; }
-        public int? ListingId { get; set; }
 
         public PaymentRequestDto()
         {

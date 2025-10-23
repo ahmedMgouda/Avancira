@@ -5,7 +5,6 @@ namespace Avancira.Application.Messaging.Dtos;
 public class ChatDto
 {
     public Guid Id { get; set; }
-    public Guid ListingId { get; set; }
     public string TutorId { get; set; }
     public string StudentId { get; set; }
     public string RecipientId { get; set; }

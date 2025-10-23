@@ -29,9 +29,6 @@ namespace Avancira.Application.Catalog.Dtos
         public bool? IsStripeConnected { get; set; }
         public bool? IsPayPalConnected { get; set; }
 
-        // Analytics
-        public int? LessonsCompleted { get; set; }
-        public int? Evaluations { get; set; }
         public int ProfileCompletion { get; set; }
     }
 }
