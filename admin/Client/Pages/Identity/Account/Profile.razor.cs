@@ -21,7 +21,7 @@ public partial class Profile
 
     private readonly UpdateUserDto _profileModel = new();
 
-    private string? _imageUrl;
+    private string? _profileImageUrl;
     private string? _userId;
     private char _firstLetterOfName;
 
@@ -36,9 +36,9 @@ public partial class Profile
             _profileModel.FirstName = user.GetFirstName() ?? string.Empty;
             _profileModel.LastName = user.GetSurname() ?? string.Empty;
             _profileModel.PhoneNumber = user.GetPhoneNumber();
-            if (user.GetImageUrl() != null)
+            if (user.GetProfileImageUrl() != null)
             {
-                _imageUrl = user.GetImageUrl()!.ToString();
+                _profileImageUrl = user.GetProfileImageUrl()!.ToString();
             }
             if (_userId is not null) _profileModel.Id = _userId;
         }

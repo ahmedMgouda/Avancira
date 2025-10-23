@@ -43,9 +43,6 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<User>
         builder.Property(u => u.TimeZoneId)
             .HasMaxLength(100);
 
-        builder.Property(u => u.ObjectId)
-            .HasMaxLength(256);
-
         builder.Property(u => u.CountryCode)
             .HasMaxLength(3)
             .IsRequired();
@@ -59,32 +56,10 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<User>
             .HasMaxLength(20)
             .IsRequired();
 
-        builder.Property(u => u.PhoneNumberWithoutDialCode)
-            .HasMaxLength(20)
-            .IsRequired();
-
-        builder.Property(u => u.ImageUrl)
+        builder.Property(u => u.ProfileImageUrl)
             .HasConversion(
                 uri => uri != null ? uri.ToString() : null,
                 value => string.IsNullOrWhiteSpace(value) ? null : new Uri(value));
-
-        builder.Property(u => u.Bio)
-            .HasMaxLength(500);
-
-        builder.Property(u => u.PayPalAccountId)
-            .HasMaxLength(255);
-
-        builder.Property(u => u.StripeCustomerId)
-            .HasMaxLength(255);
-
-        builder.Property(u => u.StripeConnectedAccountId)
-            .HasMaxLength(255);
-
-        builder.Property(u => u.SkypeId)
-            .HasMaxLength(255);
-
-        builder.Property(u => u.HangoutId)
-            .HasMaxLength(255);
 
         builder.Property(u => u.CreatedOnUtc)
             .HasColumnType("timestamp without time zone");

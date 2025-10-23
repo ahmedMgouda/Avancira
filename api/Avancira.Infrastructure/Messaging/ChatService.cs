@@ -114,7 +114,7 @@ public class ChatService : IChatService
             RecipientId = recipientId,
             Details = "Conversation",
             Name = recipient != null ? $"{recipient.FirstName} {recipient.LastName}".Trim() : string.Empty,
-            ImageUrl = recipient?.ImageUrl?.ToString() ?? string.Empty,
+            ImageUrl = recipient?.ProfileImageUrl?.ToString() ?? string.Empty,
             LastMessage = messages.LastOrDefault()?.Content ?? "No messages yet",
             Timestamp = messages.LastOrDefault()?.SentAt.DateTime ?? chat.CreatedAt.DateTime,
             Messages = messages.Select(message => new MessageDto

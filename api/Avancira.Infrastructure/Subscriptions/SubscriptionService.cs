@@ -108,9 +108,7 @@ namespace Avancira.Infrastructure.Catalog
                 //TransactionDate = DateTime.UtcNow,
                 //Status = TransactionStatus.Created, // Initial status
                 //PayPalPaymentId = request.PayPalPaymentId, // If using PayPal
-                //StripeCustomerId = user.StripeCustomerId // If using Stripe
             };
-            transaction.AssignStripeCustomer(user.StripeCustomerId);
             await _dbContext.Transactions.AddAsync(transaction);
             await _dbContext.SaveChangesAsync();
 

@@ -86,9 +86,15 @@ namespace Avancira.Infrastructure.Catalog
 
                     // Step 3: Proceed with payout using the payment gateway
                     var gateway = _paymentGatewayFactory.GetPaymentGateway(gatewayName);
-                    var recipientAccountId = (user.PaymentGateway == "PayPal") ? user.PayPalAccountId
-                        : user.StripeConnectedAccountId;
-                    var payoutResult = await gateway.CreatePayoutAsync(recipientAccountId ?? string.Empty, amount, currency);
+                    var recipientAccountId = string.Empty;
+
+                    if (string.IsNullOrWhiteSpace(recipientAccountId))
+                    {
+                        _logger.LogWarning("User {UserId} does not have a configured payout account.", userId);
+                        throw new InvalidOperationException("User payout account not configured.");
+                    }
+
+                    var payoutResult = await gateway.CreatePayoutAsync(recipientAccountId, amount, currency);
 
                     // Step 4: Use _walletService to update the wallet balance
                     await _walletService.ModifyWalletBalanceAsync(

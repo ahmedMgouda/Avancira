@@ -27,9 +27,9 @@ public static class ClaimsPrincipalExtensions
     {
         return principal.FindFirstValue(AvanciraClaims.TimeZoneId);
     }
-    public static Uri? GetImageUrl(this ClaimsPrincipal principal)
+    public static Uri? GetProfileImageUrl(this ClaimsPrincipal principal)
     {
-        var imageUrl = principal.FindFirstValue(AvanciraClaims.ImageUrl);
+        var imageUrl = principal.FindFirstValue(AvanciraClaims.ProfileImageUrl);
         return Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri) ? uri : null;
     }
 

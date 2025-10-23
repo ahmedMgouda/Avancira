@@ -37,8 +37,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.AdminUser.Password,
             SeedDefaults.Roles.Admin,
             SeedDefaults.AdminUser.FirstName,
-            SeedDefaults.AdminUser.LastName,
-            "System administrator account.");
+            SeedDefaults.AdminUser.LastName);
 
         // Seed Tutor
         await SeedUserAsync(
@@ -47,8 +46,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.TutorUser.Password,
             SeedDefaults.Roles.Tutor,
             SeedDefaults.TutorUser.FirstName,
-            SeedDefaults.TutorUser.LastName,
-            "Default tutor account for demonstration.");
+            SeedDefaults.TutorUser.LastName);
 
         // Seed Student
         await SeedUserAsync(
@@ -57,8 +55,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.StudentUser.Password,
             SeedDefaults.Roles.Student,
             SeedDefaults.StudentUser.FirstName,
-            SeedDefaults.StudentUser.LastName,
-            "Default student account for demonstration.");
+            SeedDefaults.StudentUser.LastName);
 
         _logger.LogInformation("UserSeeder completed successfully.");
     }
@@ -69,8 +66,7 @@ internal sealed class UserSeeder : ISeeder
         string password,
         string role,
         string firstName,
-        string lastName,
-        string bio)
+        string lastName)
     {
         var existingUser = await _userManager.FindByEmailAsync(email);
         if (existingUser != null)
@@ -86,12 +82,10 @@ internal sealed class UserSeeder : ISeeder
             EmailConfirmed = true,
             FirstName = firstName,
             LastName = lastName,
-            Bio = bio,
             IsActive = true,
-            ImageUrl = new Uri($"https://robohash.org/{username}?size=200x200&set=set1"),
+            ProfileImageUrl = new Uri($"https://robohash.org/{username}?size=200x200&set=set1"),
             CountryCode = "AU",
             PhoneNumber = "400000000",
-            PhoneNumberWithoutDialCode = "400000000",
             TimeZoneId = "Australia/Sydney"
         };
 

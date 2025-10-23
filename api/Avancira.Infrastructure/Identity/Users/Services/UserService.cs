@@ -89,7 +89,7 @@ internal sealed partial class UserService(
             .Replace("-", string.Empty, StringComparison.Ordinal);
 
         return await userManager.Users
-            .FirstOrDefaultAsync(x => x.PhoneNumberWithoutDialCode == sanitized) is User user && user.Id != exceptId;
+            .FirstOrDefaultAsync(x => x.PhoneNumber == sanitized) is User user && user.Id != exceptId;
     }
 
     public async Task<UserDetailDto> GetAsync(string userId, CancellationToken cancellationToken)
@@ -158,7 +158,6 @@ internal sealed partial class UserService(
                     LastName = request.LastName,
                     UserName = request.UserName,
                     PhoneNumber = sanitizedPhone,
-                    PhoneNumberWithoutDialCode = sanitizedPhone,
                     TimeZoneId = request.TimeZoneId,
                     CountryCode = normalizedCountryCode,
                     Gender = request.Gender,
@@ -260,7 +259,7 @@ internal sealed partial class UserService(
         _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         // Handle image upload/deletion
-        Uri imageUri = user.ImageUrl ?? null!;
+        var imageUri = user.ProfileImageUrl;
         if (request.Image != null || request.DeleteCurrentImage)
         {
             FileUploadDto? fileUploadDto = null;
@@ -280,8 +279,16 @@ internal sealed partial class UserService(
                 };
             }
             
-            user.ImageUrl = await storageService.UploadAsync<User>(fileUploadDto, FileType.Image);
-            if (request.DeleteCurrentImage && imageUri != null)
+            if (fileUploadDto is not null)
+            {
+                user.ProfileImageUrl = await storageService.UploadAsync<User>(fileUploadDto, FileType.Image);
+            }
+            else if (request.DeleteCurrentImage)
+            {
+                user.ProfileImageUrl = null;
+            }
+
+            if (request.DeleteCurrentImage && imageUri is not null)
             {
                 storageService.Remove(imageUri);
             }
@@ -290,7 +297,6 @@ internal sealed partial class UserService(
         // Update basic user fields
         if (!string.IsNullOrEmpty(request.FirstName)) user.FirstName = request.FirstName;
         if (!string.IsNullOrEmpty(request.LastName)) user.LastName = request.LastName;
-        if (!string.IsNullOrEmpty(request.Bio)) user.Bio = request.Bio;
         if (!string.IsNullOrEmpty(request.TimeZoneId)) user.TimeZoneId = request.TimeZoneId;
         
         // Parse DateOfBirth from string
@@ -302,9 +308,6 @@ internal sealed partial class UserService(
             }
         }
         
-        if (!string.IsNullOrEmpty(request.SkypeId)) user.SkypeId = request.SkypeId;
-        if (!string.IsNullOrEmpty(request.HangoutId)) user.HangoutId = request.HangoutId;
-        
         // Handle phone number update
         if (!string.IsNullOrEmpty(request.PhoneNumber))
         {
@@ -313,7 +316,6 @@ internal sealed partial class UserService(
                 .Replace("-", string.Empty, StringComparison.Ordinal);
 
             user.PhoneNumber = sanitizedPhone;
-            user.PhoneNumberWithoutDialCode = sanitizedPhone;
 
             string? currentPhone = await userManager.GetPhoneNumberAsync(user);
             if (!string.Equals(currentPhone, sanitizedPhone, StringComparison.Ordinal))

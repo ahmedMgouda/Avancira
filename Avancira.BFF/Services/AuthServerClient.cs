@@ -86,7 +86,7 @@ public sealed class AuthServerClient
             Email = GetString(claims, "email"),
             FirstName = GetString(claims, "given_name"),
             LastName = GetString(claims, "family_name"),
-            ImageUrl = GetString(claims, "picture"),
+            ProfileImageUrl = GetString(claims, "picture"),
             Roles = ExtractRoles(claims)
         };
     }

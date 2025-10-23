@@ -31,7 +31,7 @@ public partial class UserProfile
     private string? _lastName;
     private string? _phoneNumber;
     private string? _email;
-    private Uri? _imageUrl;
+    private Uri? _profileImageUrl;
     private bool _loaded;
     private bool _canToggleUserStatus;
 
@@ -43,7 +43,7 @@ public partial class UserProfile
     }
 
     [Parameter]
-    public string? ImageUrl { get; set; }
+    public string? ProfileImageUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,7 +57,7 @@ public partial class UserProfile
             _phoneNumber = user.PhoneNumber;
             _active = user.IsActive;
             _emailConfirmed = user.EmailConfirmed;
-            _imageUrl = user.ImageUrl;
+            _profileImageUrl = user.ProfileImageUrl;
             Title = $"{_firstName} {_lastName}'s Profile";
             Description = _email;
             if (_firstName?.Length > 0)
