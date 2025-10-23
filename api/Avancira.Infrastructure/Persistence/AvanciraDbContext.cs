@@ -46,7 +46,7 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<Subject> Subjects { get; set; }
     public DbSet<Country> Countries { get; set; }
     public DbSet<TutorProfile> TutorProfiles { get; set; }
-    public DbSet<TutorSubject> TutorSubjects { get; set; }
+    public DbSet<Listing> Listings { get; set; }
     public DbSet<TutorAvailability> TutorAvailabilities { get; set; }
     public DbSet<StudentProfile> StudentProfiles { get; set; }
     public DbSet<Lesson> Lessons { get; set; }

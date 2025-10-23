@@ -1,3 +1,4 @@
+using System;
 using Avancira.Application.Lessons.Dtos;
 using FluentValidation;
 
@@ -13,7 +14,7 @@ public class LessonCreateDtoValidator : AbstractValidator<LessonCreateDto>
         RuleFor(x => x.TutorId)
             .NotEmpty();
 
-        RuleFor(x => x.TutorSubjectId)
+        RuleFor(x => x.ListingId)
             .GreaterThan(0);
 
         RuleFor(x => x.DurationMinutes)

@@ -1,16 +1,17 @@
+using System;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Subjects;
 
 namespace Avancira.Domain.Tutors;
 
-public class TutorSubject : BaseEntity<int>, IAggregateRoot
+public class Listing : BaseEntity<int>, IAggregateRoot
 {
-    private TutorSubject()
+    private Listing()
     {
     }
 
-    private TutorSubject(
+    private Listing(
         string tutorId,
         int subjectId,
         decimal hourlyRate,
@@ -41,7 +42,7 @@ public class TutorSubject : BaseEntity<int>, IAggregateRoot
     public string? AdminComment { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
-    public static TutorSubject Create(
+    public static Listing Create(
         string tutorId,
         int subjectId,
         decimal hourlyRate,

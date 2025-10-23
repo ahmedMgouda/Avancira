@@ -1,6 +1,8 @@
-namespace Avancira.Application.TutorSubjects.Dtos;
+using System;
 
-public class TutorSubjectDto
+namespace Avancira.Application.Listings.Dtos;
+
+public class ListingDto
 {
     public int Id { get; set; }
     public string TutorId { get; set; } = default!;

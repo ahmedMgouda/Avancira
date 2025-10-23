@@ -1,4 +1,6 @@
-using Avancira.Application.TutorSubjects.Dtos;
+using System;
+using System.Collections.Generic;
+using Avancira.Application.Listings.Dtos;
 
 namespace Avancira.Application.TutorProfiles.Dtos;
 
@@ -31,7 +33,7 @@ public class TutorProfileDto
     public bool IsRisingTalent { get; set; }
     public string? AdminComment { get; set; }
     public DateTime CreatedOnUtc { get; set; }
-    public IReadOnlyCollection<TutorSubjectDto> Subjects { get; set; } = Array.Empty<TutorSubjectDto>();
+    public IReadOnlyCollection<ListingDto> Listings { get; set; } = Array.Empty<ListingDto>();
     public IReadOnlyCollection<TutorAvailabilityDto> Availabilities { get; set; } = Array.Empty<TutorAvailabilityDto>();
 }
 

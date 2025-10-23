@@ -4,7 +4,7 @@ using System.Threading;
 using Avancira.Application.Persistence;
 using Avancira.Application.TutorProfiles.Dtos;
 using Avancira.Application.TutorProfiles.Specifications;
-using Avancira.Application.TutorSubjects.Dtos;
+using Avancira.Application.Listings.Dtos;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Tutors;
 using Mapster;
@@ -120,23 +120,23 @@ public class TutorProfileService : ITutorProfileService
     {
         var dto = profile.Adapt<TutorProfileDto>();
 
-        dto.Subjects = profile.Subjects
-            .Select(subject => new TutorSubjectDto
+        dto.Listings = profile.Listings
+            .Select(listing => new ListingDto
             {
-                Id = subject.Id,
-                TutorId = subject.TutorId,
-                SubjectId = subject.SubjectId,
-                SubjectName = subject.Subject.Name,
-                SubjectDescription = subject.Subject.Description,
-                HourlyRate = subject.HourlyRate,
-                IsActive = subject.IsActive,
-                IsApproved = subject.IsApproved,
-                IsVisible = subject.IsVisible,
-                IsFeatured = subject.IsFeatured,
-                SortOrder = subject.SortOrder,
-                AverageRating = subject.AverageRating,
-                TotalReviews = subject.TotalReviews,
-                CreatedOnUtc = subject.CreatedOnUtc
+                Id = listing.Id,
+                TutorId = listing.TutorId,
+                SubjectId = listing.SubjectId,
+                SubjectName = listing.Subject.Name,
+                SubjectDescription = listing.Subject.Description,
+                HourlyRate = listing.HourlyRate,
+                IsActive = listing.IsActive,
+                IsApproved = listing.IsApproved,
+                IsVisible = listing.IsVisible,
+                IsFeatured = listing.IsFeatured,
+                SortOrder = listing.SortOrder,
+                AverageRating = listing.AverageRating,
+                TotalReviews = listing.TotalReviews,
+                CreatedOnUtc = listing.CreatedOnUtc
             })
             .ToList();
 

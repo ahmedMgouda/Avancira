@@ -1,11 +1,11 @@
-using Avancira.Application.TutorSubjects.Dtos;
+using Avancira.Application.Listings.Dtos;
 using FluentValidation;
 
-namespace Avancira.Application.TutorSubjects.Validators;
+namespace Avancira.Application.Listings.Validators;
 
-public class TutorSubjectCreateDtoValidator : AbstractValidator<TutorSubjectCreateDto>
+public class ListingCreateDtoValidator : AbstractValidator<ListingCreateDto>
 {
-    public TutorSubjectCreateDtoValidator()
+    public ListingCreateDtoValidator()
     {
         RuleFor(x => x.TutorId)
             .NotEmpty();

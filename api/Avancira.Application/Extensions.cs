@@ -6,7 +6,7 @@ using Avancira.Application.StudentProfiles;
 using Avancira.Application.SubjectCategories;
 using Avancira.Application.Subjects;
 using Avancira.Application.TutorProfiles;
-using Avancira.Application.TutorSubjects;
+using Avancira.Application.Listings;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
 using FluentValidation;
@@ -22,7 +22,7 @@ public static class Extensions
         services.AddScoped<ICountryService, CountryService>();
         services.AddScoped<ISubjectCategoryService, SubjectCategoryService>();
         services.AddScoped<ISubjectService, SubjectService>();
-        services.AddScoped<ITutorSubjectService, TutorSubjectService>();
+        services.AddScoped<IListingService, ListingService>();
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<IStudentProfileService, StudentProfileService>();
         services.AddScoped<ITutorProfileService, TutorProfileService>();

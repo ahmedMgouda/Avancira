@@ -34,9 +34,9 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
         builder.Property(profile => profile.Languages)
             .HasMaxLength(200);
 
-        builder.HasMany(profile => profile.Subjects)
-            .WithOne(subject => subject.Tutor)
-            .HasForeignKey(subject => subject.TutorId)
+        builder.HasMany(profile => profile.Listings)
+            .WithOne(listing => listing.Tutor)
+            .HasForeignKey(listing => listing.TutorId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(profile => profile.Availabilities)

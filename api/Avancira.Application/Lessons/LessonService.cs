@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avancira.Application.Lessons.Dtos;
 using Avancira.Application.Lessons.Specifications;
 using Avancira.Application.Persistence;
-using Avancira.Application.TutorSubjects.Specifications;
+using Avancira.Application.Listings.Specifications;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Students;
@@ -17,16 +18,16 @@ public class LessonService : ILessonService
 {
     private readonly IRepository<Lesson> _lessonRepository;
     private readonly IRepository<StudentProfile> _studentProfileRepository;
-    private readonly IReadRepository<TutorSubject> _tutorSubjectRepository;
+    private readonly IReadRepository<Listing> _listingRepository;
 
     public LessonService(
         IRepository<Lesson> lessonRepository,
         IRepository<StudentProfile> studentProfileRepository,
-        IReadRepository<TutorSubject> tutorSubjectRepository)
+        IReadRepository<Listing> listingRepository)
     {
         _lessonRepository = lessonRepository;
         _studentProfileRepository = studentProfileRepository;
-        _tutorSubjectRepository = tutorSubjectRepository;
+        _listingRepository = listingRepository;
     }
 
     public async Task<LessonDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -52,16 +53,16 @@ public class LessonService : ILessonService
             throw new AvanciraException("Lesson must be scheduled in the future.");
         }
 
-        var tutorSubject = await _tutorSubjectRepository.FirstOrDefaultAsync(new TutorSubjectWithTutorSpec(request.TutorSubjectId), cancellationToken)
-            ?? throw new AvanciraNotFoundException($"Tutor subject '{request.TutorSubjectId}' not found.");
+        var listing = await _listingRepository.FirstOrDefaultAsync(new ListingWithTutorSpec(request.ListingId), cancellationToken)
+            ?? throw new AvanciraNotFoundException($"Listing '{request.ListingId}' not found.");
 
-        if (!tutorSubject.IsActive || !tutorSubject.IsApproved || !tutorSubject.IsVisible)
+        if (!listing.IsActive || !listing.IsApproved || !listing.IsVisible)
         {
             throw new AvanciraException("Selected listing is not available for booking.");
         }
 
-        var tutorProfile = tutorSubject.Tutor
-            ?? throw new AvanciraException("Tutor profile not found for subject.");
+        var tutorProfile = listing.Tutor
+            ?? throw new AvanciraException("Tutor profile not found for listing.");
 
         var studentProfile = await _studentProfileRepository.GetByIdAsync(request.StudentId, cancellationToken)
             ?? throw new AvanciraException("Student profile not found.");
@@ -76,19 +77,19 @@ public class LessonService : ILessonService
         decimal finalPrice;
         if (canUseTrial)
         {
-            finalPrice = tutorProfile.TrialLessonRate ?? tutorSubject.HourlyRate;
+            finalPrice = tutorProfile.TrialLessonRate ?? listing.HourlyRate;
             studentProfile.MarkTrialLessonUsed();
             await _studentProfileRepository.UpdateAsync(studentProfile, cancellationToken);
         }
         else
         {
-            finalPrice = tutorSubject.HourlyRate * (decimal)duration.TotalMinutes / 60m;
+            finalPrice = listing.HourlyRate * (decimal)duration.TotalMinutes / 60m;
         }
 
         var lesson = Lesson.Create(
             request.StudentId,
             request.TutorId,
-            request.TutorSubjectId,
+            request.ListingId,
             request.ScheduledAtUtc,
             duration,
             LessonStatus.Pending,
@@ -204,10 +205,10 @@ public class LessonService : ILessonService
             throw new AvanciraException("New lesson time must be in the future.");
         }
 
-        var tutorSubject = await _tutorSubjectRepository.FirstOrDefaultAsync(new TutorSubjectWithTutorSpec(lesson.TutorSubjectId), cancellationToken)
-            ?? throw new AvanciraNotFoundException("Tutor subject not found.");
+        var listing = await _listingRepository.FirstOrDefaultAsync(new ListingWithTutorSpec(lesson.ListingId), cancellationToken)
+            ?? throw new AvanciraNotFoundException("Listing not found.");
 
-        var tutorProfile = tutorSubject.Tutor
+        var tutorProfile = listing.Tutor
             ?? throw new AvanciraException("Tutor profile not found.");
 
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
@@ -219,7 +220,7 @@ public class LessonService : ILessonService
         var newLesson = Lesson.Create(
             lesson.StudentId,
             lesson.TutorId,
-            lesson.TutorSubjectId,
+            lesson.ListingId,
             request.NewScheduledAtUtc,
             duration,
             LessonStatus.Pending,

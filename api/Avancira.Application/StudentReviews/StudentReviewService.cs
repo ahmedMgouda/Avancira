@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avancira.Application.Lessons.Specifications;
 using Avancira.Application.Persistence;
 using Avancira.Application.StudentReviews.Dtos;
 using Avancira.Application.StudentReviews.Specifications;
-using Avancira.Application.TutorSubjects.Specifications;
+using Avancira.Application.Listings.Specifications;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Lessons;
 using Avancira.Domain.Reviews;
@@ -18,16 +19,16 @@ public class StudentReviewService : IStudentReviewService
 {
     private readonly IRepository<StudentReview> _studentReviewRepository;
     private readonly IRepository<Lesson> _lessonRepository;
-    private readonly IRepository<TutorSubject> _tutorSubjectRepository;
+    private readonly IRepository<Listing> _listingRepository;
 
     public StudentReviewService(
         IRepository<StudentReview> studentReviewRepository,
         IRepository<Lesson> lessonRepository,
-        IRepository<TutorSubject> tutorSubjectRepository)
+        IRepository<Listing> listingRepository)
     {
         _studentReviewRepository = studentReviewRepository;
         _lessonRepository = lessonRepository;
-        _tutorSubjectRepository = tutorSubjectRepository;
+        _listingRepository = listingRepository;
     }
 
     public async Task<StudentReviewDto> GetByLessonIdAsync(int lessonId, CancellationToken cancellationToken = default)
@@ -77,7 +78,7 @@ public class StudentReviewService : IStudentReviewService
 
         await _studentReviewRepository.AddAsync(review, cancellationToken);
 
-        await UpdateTutorSubjectRatingAsync(lesson.TutorSubjectId, cancellationToken);
+        await UpdateListingRatingAsync(lesson.ListingId, cancellationToken);
 
         return review.Adapt<StudentReviewDto>();
     }
@@ -100,32 +101,32 @@ public class StudentReviewService : IStudentReviewService
         return review.Adapt<StudentReviewDto>();
     }
 
-    private async Task UpdateTutorSubjectRatingAsync(int tutorSubjectId, CancellationToken cancellationToken)
+    private async Task UpdateListingRatingAsync(int listingId, CancellationToken cancellationToken)
     {
-        var reviews = await _studentReviewRepository.ListAsync(new StudentReviewsByTutorSubjectSpec(tutorSubjectId), cancellationToken);
-        var tutorSubject = await _tutorSubjectRepository.FirstOrDefaultAsync(new TutorSubjectByIdSpec(tutorSubjectId), cancellationToken)
-            ?? throw new AvanciraNotFoundException($"Tutor subject '{tutorSubjectId}' not found.");
+        var reviews = await _studentReviewRepository.ListAsync(new StudentReviewsByListingSpec(listingId), cancellationToken);
+        var listing = await _listingRepository.FirstOrDefaultAsync(new ListingByIdSpec(listingId), cancellationToken)
+            ?? throw new AvanciraNotFoundException($"Listing '{listingId}' not found.");
 
         if (reviews.Count == 0)
         {
-            tutorSubject.UpdateRatings(0, 0);
+            listing.UpdateRatings(0, 0);
         }
         else
         {
             var averageRating = reviews.Average(r => r.Rating);
-            tutorSubject.UpdateRatings(averageRating, reviews.Count);
+            listing.UpdateRatings(averageRating, reviews.Count);
         }
 
-        await _tutorSubjectRepository.UpdateAsync(tutorSubject, cancellationToken);
+        await _listingRepository.UpdateAsync(listing, cancellationToken);
 
-        if (tutorSubject.Tutor is not null)
+        if (listing.Tutor is not null)
         {
-            var tutorSubjects = await _tutorSubjectRepository.ListAsync(new TutorSubjectsByTutorSpec(tutorSubject.TutorId), cancellationToken);
-            if (tutorSubjects.Count > 0)
+            var listings = await _listingRepository.ListAsync(new ListingsByTutorSpec(listing.TutorId), cancellationToken);
+            if (listings.Count > 0)
             {
-                var totalReviews = tutorSubjects.Sum(ts => ts.TotalReviews);
-                var averageRating = totalReviews == 0 ? 0 : tutorSubjects.Sum(ts => ts.AverageRating * ts.TotalReviews) / totalReviews;
-                tutorSubject.Tutor.UpdateMetrics(averageRating, tutorSubject.Tutor.AverageResponseTimeMinutes, tutorSubject.Tutor.BookingAcceptanceRate);
+                var totalReviews = listings.Sum(l => l.TotalReviews);
+                var averageRating = totalReviews == 0 ? 0 : listings.Sum(l => l.AverageRating * l.TotalReviews) / totalReviews;
+                listing.Tutor.UpdateMetrics(averageRating, listing.Tutor.AverageResponseTimeMinutes, listing.Tutor.BookingAcceptanceRate);
             }
         }
     }

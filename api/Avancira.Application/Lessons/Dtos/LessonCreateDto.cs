@@ -1,10 +1,12 @@
+using System;
+
 namespace Avancira.Application.Lessons.Dtos;
 
 public class LessonCreateDto
 {
     public string StudentId { get; set; } = default!;
     public string TutorId { get; set; } = default!;
-    public int TutorSubjectId { get; set; }
+    public int ListingId { get; set; }
     public DateTime ScheduledAtUtc { get; set; }
     public int DurationMinutes { get; set; }
     public bool UseTrialLesson { get; set; }
