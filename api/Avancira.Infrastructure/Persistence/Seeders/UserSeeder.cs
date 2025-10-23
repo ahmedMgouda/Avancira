@@ -1,7 +1,6 @@
 ﻿using Avancira.Infrastructure.Identity.Users;
 using Avancira.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
@@ -9,36 +8,21 @@ namespace Avancira.Infrastructure.Persistence.Seeders;
 internal sealed class UserSeeder : ISeeder
 {
     private readonly UserManager<User> _userManager;
-    private readonly AvanciraDbContext _dbContext;
     private readonly ILogger<UserSeeder> _logger;
 
     public string Name => nameof(UserSeeder);
 
     public UserSeeder(
         UserManager<User> userManager,
-        AvanciraDbContext dbContext,
         ILogger<UserSeeder> logger)
     {
         _userManager = userManager;
-        _dbContext = dbContext;
         _logger = logger;
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting UserSeeder...");
-
-        // Try to find "AU" country
-        var countryId = await _dbContext.Countries
-            .Where(c => c.Code == "AU")
-            .Select(c => c.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (countryId == 0)
-        {
-            _logger.LogError("UserSeeder aborted — Country with code 'AU' not found. Please seed countries first.");
-            return;
-        }
 
         // Seed Admin
         await SeedUserAsync(
@@ -48,8 +32,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.Roles.Admin,
             SeedDefaults.AdminUser.FirstName,
             SeedDefaults.AdminUser.LastName,
-            "System administrator account.",
-            countryId);
+            "System administrator account.");
 
         // Seed Tutor
         await SeedUserAsync(
@@ -59,8 +42,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.Roles.Tutor,
             SeedDefaults.TutorUser.FirstName,
             SeedDefaults.TutorUser.LastName,
-            "Default tutor account for demonstration.",
-            countryId);
+            "Default tutor account for demonstration.");
 
         // Seed Student
         await SeedUserAsync(
@@ -70,8 +52,7 @@ internal sealed class UserSeeder : ISeeder
             SeedDefaults.Roles.Student,
             SeedDefaults.StudentUser.FirstName,
             SeedDefaults.StudentUser.LastName,
-            "Default student account for demonstration.",
-            countryId);
+            "Default student account for demonstration.");
 
         _logger.LogInformation("UserSeeder completed successfully.");
     }
@@ -83,8 +64,7 @@ internal sealed class UserSeeder : ISeeder
         string role,
         string firstName,
         string lastName,
-        string bio,
-        int countryId)
+        string bio)
     {
         var existingUser = await _userManager.FindByEmailAsync(email);
         if (existingUser != null)
@@ -101,7 +81,6 @@ internal sealed class UserSeeder : ISeeder
             FirstName = firstName,
             LastName = lastName,
             Bio = bio,
-            CountryId = countryId,
             IsActive = true,
             ImageUrl = new Uri($"https://robohash.org/{username}?size=200x200&set=set1")
         };

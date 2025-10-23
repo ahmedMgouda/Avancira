@@ -143,7 +143,6 @@ internal sealed class DisabledPaymentJobService : IPaymentJobService
 
     public Task ProcessDailySubscriptionRenewalsAsync() => DisabledAsync(nameof(ProcessDailySubscriptionRenewalsAsync));
 
-    public Task ProcessHourlyLessonsAsync() => DisabledAsync(nameof(ProcessHourlyLessonsAsync));
 
     public Task ProcessMonthlyPaymentsAsync() => DisabledAsync(nameof(ProcessMonthlyPaymentsAsync));
 }

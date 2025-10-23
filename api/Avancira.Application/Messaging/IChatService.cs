@@ -1,4 +1,3 @@
-using Avancira.Application.Catalog.Dtos;
 using Avancira.Application.Messaging.Dtos;
 using Avancira.Domain.Messaging;
 using System.Collections.Generic;

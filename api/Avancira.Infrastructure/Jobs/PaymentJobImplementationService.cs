@@ -1,6 +1,4 @@
 using Avancira.Application.Jobs;
-using Avancira.Application.Catalog;
-using Avancira.Application.Lessons;
 using Avancira.Application.Payments;
 using Avancira.Application.Subscriptions;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,26 +50,6 @@ public class PaymentJobImplementationService : IPaymentJobService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in monthly payment processing");
-                throw;
-            }
-        }
-    }
-
-    public async Task ProcessHourlyLessonsAsync()
-    {
-        _logger.LogInformation("Processing past booked lessons at {Time}.", DateTime.UtcNow);
-
-        using (var scope = _serviceProvider.CreateScope())
-        {
-            try
-            {
-                var lessonService = scope.ServiceProvider.GetRequiredService<ILessonService>();
-                await lessonService.ProcessPastBookedLessons();
-                _logger.LogInformation("Successfully processed past booked lessons.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing lessons");
                 throw;
             }
         }

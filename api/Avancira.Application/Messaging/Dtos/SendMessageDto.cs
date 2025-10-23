@@ -8,7 +8,7 @@ namespace Avancira.Application.Messaging.Dtos
 {
     public class SendMessageDto
     {
-        public Guid ListingId { get; set; }
+        public Guid? ListingId { get; set; }
         public string? RecipientId { get; set; }
         public string? Content { get; set; }
 

@@ -2,9 +2,7 @@
 using Avancira.Application.Billing;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Persistence;
-using Avancira.Application.Catalog;
 using Avancira.Application.Identity.Users.Abstractions;
-using Avancira.Application.Lessons;
 using Avancira.Application.Messaging;
 using Avancira.Application.Payments;
 using Avancira.Application.Subscriptions;
@@ -22,7 +20,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Avancira.Application.Categories;
 using Avancira.Infrastructure.Payments;
 using UAParser;
 using Avancira.Application.SubjectCategories;
@@ -36,21 +33,16 @@ namespace Avancira.Infrastructure.Catalog
         {
             ArgumentNullException.ThrowIfNull(services);
 
-            services.AddTransient<ILessonCategoryService, LessonCategoryService>();
-            services.AddTransient<IListingService, ListingService>();
             services.AddTransient<IPayPalAccountService, PayPalAccountService>();
             services.AddTransient<IStripeAccountService, StripeAccountService>();
             services.AddTransient<IStripeCardService, StripeCardService>();
             services.AddTransient<IPaymentService, PaymentService>();
-            services.AddTransient<IEvaluationService, EvaluationService>();
             services.AddTransient<IChatService, ChatService>();
-            services.AddTransient<ICategoryService, CategoryService>();
             services.AddTransient<ISubjectCategoryService, SubjectCategoryService>();
             services.AddTransient<ISubjectService, SubjectService>();
             services.AddTransient<ISubscriptionService, SubscriptionService>();
             services.AddTransient<INotificationService, NotificationService>();
             services.AddTransient<IWalletService, WalletService>();
-            services.AddTransient<ILessonService, LessonService>();
             services.AddHttpClient();
             services.AddTransient<IFileUploadService, FileUploadService>();
             services.AddSingleton<Parser>(_ => Parser.GetDefault());
