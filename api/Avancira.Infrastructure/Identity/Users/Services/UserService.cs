@@ -88,7 +88,6 @@ internal sealed partial class UserService(
     {
         var user = await userManager.Users
             .Include(u => u.Address)
-            .Include(u => u.Country)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -293,12 +292,10 @@ internal sealed partial class UserService(
 
         // Note: The following fields don't exist on the User entity, so we'll skip them for now
         // If you need these fields, you'll need to add them to the User entity first:
-        // - ProfileVerified, LessonsCompleted, Evaluations, RecommendationToken, IsStripeConnected
+        // - ProfileVerified, RecommendationToken, IsStripeConnected
         
         // You can add these to the User entity if needed:
         // if (!string.IsNullOrEmpty(request.ProfileVerified)) user.ProfileVerified = request.ProfileVerified;
-        // if (request.LessonsCompleted.HasValue) user.LessonsCompleted = request.LessonsCompleted.Value;
-        // if (request.Evaluations.HasValue) user.Evaluations = request.Evaluations.Value;
         // if (!string.IsNullOrEmpty(request.RecommendationToken)) user.RecommendationToken = request.RecommendationToken;
         // if (request.IsStripeConnected.HasValue) user.IsStripeConnected = request.IsStripeConnected.Value;
 

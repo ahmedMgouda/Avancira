@@ -31,8 +31,6 @@ public class UpdateUserDto
     
     // Profile verification and stats
     public string? ProfileVerified { get; set; } // Comma-separated string
-    public int? LessonsCompleted { get; set; }
-    public int? Evaluations { get; set; }
     public string? RecommendationToken { get; set; }
     public bool? IsStripeConnected { get; set; }
 }

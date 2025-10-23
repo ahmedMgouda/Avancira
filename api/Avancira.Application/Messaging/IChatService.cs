@@ -7,7 +7,7 @@ namespace Avancira.Application.Messaging;
 public interface IChatService
 {
     // Create
-    Chat GetOrCreateChat(string studentId, string tutorId, Guid listingId);
+    Chat GetOrCreateChat(string studentId, string tutorId);
     // Read
     List<ChatDto> GetUserChats(string userId);
     ChatDto GetChat(Guid chatId, string userId);

@@ -24,7 +24,7 @@ public class ChatService : IChatService
         _logger = logger;
     }
 
-    public Chat GetOrCreateChat(string participantA, string participantB, Guid listingId)
+    public Chat GetOrCreateChat(string participantA, string participantB)
     {
         var chat = _dbContext.Chats.FirstOrDefault(c =>
             (c.StudentId == participantA && c.TutorId == participantB) ||
@@ -32,7 +32,7 @@ public class ChatService : IChatService
 
         if (chat == null)
         {
-            chat = Chat.Create(participantA, participantB, listingId, BlockStatus.NotBlocked);
+            chat = Chat.Create(participantA, participantB, BlockStatus.NotBlocked);
             _dbContext.Chats.Add(chat);
             _dbContext.SaveChanges();
         }
@@ -70,8 +70,7 @@ public class ChatService : IChatService
 
         var chat = GetOrCreateChat(
             senderId,
-            messageDto.RecipientId,
-            messageDto.ListingId ?? Guid.Empty);
+            messageDto.RecipientId);
 
         chat.AddMessage(senderId, messageDto.RecipientId, messageDto.Content ?? string.Empty);
 
@@ -110,7 +109,6 @@ public class ChatService : IChatService
         return new ChatDto
         {
             Id = chat.Id,
-            ListingId = chat.ListingId,
             TutorId = chat.TutorId,
             StudentId = chat.StudentId,
             RecipientId = recipientId,
@@ -161,7 +159,6 @@ public class ChatService : IChatService
                 ChatId = chat.Id,
                 SenderId = senderId,
                 SenderName = senderName,
-                ListingId = chat.ListingId,
                 MessagePreview = preview,
                 Timestamp = DateTimeOffset.UtcNow
             });
