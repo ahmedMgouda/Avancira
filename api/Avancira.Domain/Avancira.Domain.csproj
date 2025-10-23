@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Common\ValueObjects\**" />
     <Compile Remove="Identity\**" />
+    <EmbeddedResource Remove="Common\ValueObjects\**" />
     <EmbeddedResource Remove="Identity\**" />
+    <None Remove="Common\ValueObjects\**" />
     <None Remove="Identity\**" />
   </ItemGroup>
   
@@ -18,10 +21,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Avancira.Shared\Avancira.Shared.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Common\ValueObjects\" />
   </ItemGroup>
 
 </Project>

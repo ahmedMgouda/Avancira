@@ -8,8 +8,11 @@
 
   <ItemGroup>
     <Compile Remove="Identity\Tokens\**" />
+    <Compile Remove="UserSessions\**" />
     <EmbeddedResource Remove="Identity\Tokens\**" />
+    <EmbeddedResource Remove="UserSessions\**" />
     <None Remove="Identity\Tokens\**" />
+    <None Remove="UserSessions\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,9 +82,5 @@
     <ProjectReference Include="..\Avancira.Application\Avancira.Application.csproj" />
     <ProjectReference Include="..\Avancira.Domain\Avancira.Domain.csproj" />
     <ProjectReference Include="..\Avancira.Shared\Avancira.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="UserSessions\" />
   </ItemGroup>
 </Project>
