@@ -27,14 +27,12 @@ public class User : IdentityUser<string>
     [MaxLength(20)]
     public string? Gender { get; set; }
 
-    public Uri? ImageUrl { get; set; }
+    public Uri? ProfileImageUrl { get; set; }
 
     public bool IsActive { get; set; }
 
     [MaxLength(100)]
     public string? TimeZoneId { get; set; }
-
-    public string? ObjectId { get; set; }
 
     [Required, MaxLength(3)]
     public string CountryCode { get; set; } = "AU";
@@ -43,10 +41,7 @@ public class User : IdentityUser<string>
     public Country Country { get; set; } = default!;
 
     [Required, MaxLength(20)]
-    public string PhoneNumberWithoutDialCode { get; set; } = string.Empty;
-
-    [MaxLength(500)]
-    public string? Bio { get; set; }
+    public override string? PhoneNumber { get; set; } = string.Empty;
 
     public Address? Address { get; set; }
 
@@ -58,24 +53,6 @@ public class User : IdentityUser<string>
 
     public DateTime? LastModifiedOnUtc { get; set; }
 
-    [MaxLength(255)]
-    public string? PayPalAccountId { get; set; }
-
-    [MaxLength(255)]
-    public string? StripeCustomerId { get; set; }
-
-    [MaxLength(255)]
-    public string? StripeConnectedAccountId { get; set; }
-
-    [MaxLength(255)]
-    public string? SkypeId { get; set; }
-
-    [MaxLength(255)]
-    public string? HangoutId { get; set; }
-
     [NotMapped]
     public string FullName => $"{FirstName} {LastName}".Trim();
-
-    [NotMapped]
-    public string PaymentGateway => !string.IsNullOrEmpty(PayPalAccountId) ? "PayPal" : "Stripe";
 }

@@ -65,8 +65,8 @@ public sealed class UserInfoController : ControllerBase
                 claims[Claims.GivenName] = user.FirstName;
             if (!string.IsNullOrEmpty(user.LastName))
                 claims[Claims.FamilyName] = user.LastName;
-            if (user.ImageUrl is not null)
-                claims[Claims.Picture] = user.ImageUrl.ToString();
+            if (user.ProfileImageUrl is not null)
+                claims[Claims.Picture] = user.ProfileImageUrl.ToString();
         }
 
         if (User.HasScope(Scopes.Email))

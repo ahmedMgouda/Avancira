@@ -107,11 +107,15 @@ public static class ClaimsHelper
         }
 
         // Profile picture
-        if (user.ImageUrl is not null)
+        if (user.ProfileImageUrl is not null)
         {
             identity.AddClaim(new Claim(
                 OpenIddictConstants.Claims.Picture,
-                user.ImageUrl.ToString()
+                user.ProfileImageUrl.ToString()
+            ));
+            identity.AddClaim(new Claim(
+                AvanciraClaims.ProfileImageUrl,
+                user.ProfileImageUrl.ToString()
             ));
         }
     }

@@ -6339,8 +6339,8 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("displayInLandingPage")]
         public bool DisplayInLandingPage { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
-        public System.Uri? ImageUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("profileImageUrl")]
+        public System.Uri? ProfileImageUrl { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("listingCategories")]
         public System.Collections.Generic.ICollection<ListingCategory>? ListingCategories { get; set; } = default!;
@@ -6375,8 +6375,8 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("displayInLandingPage")]
         public bool DisplayInLandingPage { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
-        public System.Uri? ImageUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("profileImageUrl")]
+        public System.Uri? ProfileImageUrl { get; set; } = default!;
 
     }
 
@@ -7256,8 +7256,8 @@ namespace Avancira.Admin.Infrastructure.Api
         [System.Text.Json.Serialization.JsonPropertyName("phoneNumber")]
         public string? PhoneNumber { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("imageUrl")]
-        public System.Uri? ImageUrl { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("profileImageUrl")]
+        public System.Uri? ProfileImageUrl { get; set; } = default!;
 
     }
 

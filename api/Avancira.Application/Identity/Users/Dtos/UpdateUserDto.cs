@@ -11,10 +11,6 @@ public class UpdateUserDto
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? DateOfBirth { get; set; }
-    public string? SkypeId { get; set; }
-    public string? HangoutId { get; set; }
-    [MaxLength(500)]
-    public string? Bio { get; set; }
     public string? TimeZoneId { get; set; }
     public IFormFile? Image { get; set; }
     public bool DeleteCurrentImage { get; set; }
@@ -32,5 +28,4 @@ public class UpdateUserDto
     // Profile verification and stats
     public string? ProfileVerified { get; set; } // Comma-separated string
     public string? RecommendationToken { get; set; }
-    public bool? IsStripeConnected { get; set; }
 }

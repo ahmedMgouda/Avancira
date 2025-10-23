@@ -40,41 +40,8 @@ namespace Avancira.Infrastructure.Catalog
             var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) throw new KeyNotFoundException("User not found.");
 
-            if (string.IsNullOrEmpty(user.StripeCustomerId))
-            {
-                var customerService = new CustomerService();
-                var customer = await customerService.CreateAsync(new CustomerCreateOptions
-                {
-                    Email = user.Email,
-                    Name = $"{user.FirstName} {user.LastName}".Trim(),
-                });
-
-                user.StripeCustomerId = customer.Id;
-                _dbContext.Users.Update(user);
-                await _dbContext.SaveChangesAsync();
-            }
-
-            var cardService = new CardService();
-            var card = await cardService.CreateAsync(user.StripeCustomerId, new CardCreateOptions
-            {
-                Source = request.StripeToken,
-            });
-
-            var userCard = new Domain.UserCard.UserCard
-            {
-                UserId = userId,
-                CardId = card.Id,
-                Last4 = card.Last4,
-                ExpMonth = card.ExpMonth,
-                ExpYear = card.ExpYear,
-                Brand = card.Brand ?? "unknown",
-                Type = request.Purpose,
-            };
-
-            _dbContext.UserCards.Add(userCard);
-            await _dbContext.SaveChangesAsync();
-
-            return true;
+            _logger.LogWarning("Stripe integration is not configured for user {UserId}.", userId);
+            throw new InvalidOperationException("Stripe integration is not configured for this user.");
         }
 
         // TODO : Pagination
@@ -99,34 +66,13 @@ namespace Avancira.Infrastructure.Catalog
             StripeConfiguration.ApiKey = _stripeOptions.ApiKey;
 
             var user = await _dbContext.Users.AsTracking().FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null || string.IsNullOrEmpty(user.StripeCustomerId))
+            if (user == null)
             {
-                throw new KeyNotFoundException("User or Stripe customer not found.");
+                throw new KeyNotFoundException("User not found.");
             }
 
-            var card = await _dbContext.UserCards.FirstOrDefaultAsync(c => c.Id == cardId && c.UserId == userId);
-            if (card == null)
-            {
-                throw new KeyNotFoundException("Card not found.");
-            }
-
-            var cardService = new CardService();
-            await cardService.DeleteAsync(user.StripeCustomerId, card.CardId);
-
-            _dbContext.UserCards.Remove(card);
-            await _dbContext.SaveChangesAsync();
-
-            // Check if there are any remaining cards for the user
-            var remainingCards = _dbContext.UserCards.Any(c => c.UserId == userId);
-            if (!remainingCards)
-            {
-                // If no cards remain, clear the StripeCustomerId
-                user.StripeCustomerId = null;
-                _dbContext.Users.Update(user);
-                await _dbContext.SaveChangesAsync();
-            }
-
-            return true;
+            _logger.LogWarning("Stripe integration is not configured for user {UserId}.", userId);
+            throw new InvalidOperationException("Stripe integration is not configured for this user.");
         }
     }
 }
