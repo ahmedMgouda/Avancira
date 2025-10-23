@@ -1,3 +1,4 @@
+using System;
 using Avancira.Application.Identity.Users.Dtos;
 using FluentValidation;
 
@@ -46,10 +47,18 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .Equal(x => x.Password)
             .WithMessage("Password and confirmation password do not match.");
 
+        RuleFor(x => x.CountryCode)
+            .NotEmpty()
+            .Length(2, 3);
+
         RuleFor(x => x.PhoneNumber)
-            .Matches(@"^\+?[1-9]\d{1,14}$")
-            .WithMessage("Please enter a valid phone number.")
-            .When(x => !string.IsNullOrEmpty(x.PhoneNumber));
+            .NotEmpty()
+            .Must((dto, phone) => IsValidPhoneNumber(dto.CountryCode, phone))
+            .WithMessage(dto => GetPhoneValidationMessage(dto.CountryCode));
+
+        RuleFor(x => x.Gender)
+            .MaximumLength(20)
+            .When(x => !string.IsNullOrWhiteSpace(x.Gender));
 
         RuleFor(x => x.TimeZoneId)
             .MaximumLength(100)
@@ -61,8 +70,55 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .WithMessage("Referral token must not exceed 255 characters.")
             .When(x => !string.IsNullOrEmpty(x.ReferralToken));
 
+        RuleFor(x => x.DateOfBirth)
+            .Must(BeAtLeastThirteen)
+            .WithMessage("You must be at least 13 years old to register.")
+            .When(x => x.DateOfBirth.HasValue);
+
+        RuleFor(x => x)
+            .Must(dto => dto.RegisterAsStudent || dto.RegisterAsTutor)
+            .WithMessage("At least one account type (student or tutor) must be selected.");
+
         RuleFor(x => x.AcceptTerms)
             .Equal(true)
             .WithMessage("You must agree to the Privacy Policy & Terms.");
+    }
+
+    private static bool BeAtLeastThirteen(DateOnly? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+        {
+            return true;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var minimumBirthDate = today.AddYears(-13);
+        return dateOfBirth.Value <= minimumBirthDate;
+    }
+
+    private static bool IsValidPhoneNumber(string countryCode, string phoneNumber)
+    {
+        phoneNumber = phoneNumber.Replace(" ", string.Empty).Replace("-", string.Empty);
+
+        return countryCode.ToUpperInvariant() switch
+        {
+            "AU" => phoneNumber.Length == 9 && (phoneNumber.StartsWith("4") || phoneNumber.StartsWith("2") || phoneNumber.StartsWith("3") || phoneNumber.StartsWith("7") || phoneNumber.StartsWith("8")),
+            "EG" => phoneNumber.Length == 9 && (phoneNumber.StartsWith("1") || phoneNumber.StartsWith("2") || phoneNumber.StartsWith("3")),
+            "US" => phoneNumber.Length == 10,
+            "UK" or "GB" => phoneNumber.Length is >= 10 and <= 11,
+            _ => phoneNumber.Length is >= 6 and <= 15
+        };
+    }
+
+    private static string GetPhoneValidationMessage(string countryCode)
+    {
+        return countryCode.ToUpperInvariant() switch
+        {
+            "AU" => "Australian format: 4XX XXX XXX",
+            "EG" => "Egyptian format: 1X XXX XXXX",
+            "US" => "US format: 10 digits",
+            "UK" or "GB" => "UK format: 10-11 digits",
+            _ => "Please enter a valid phone number for the selected country."
+        };
     }
 }

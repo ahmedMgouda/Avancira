@@ -6,16 +6,21 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Avancira.Domain.Common.Contracts;
+using Avancira.Domain.Geography;
+using Avancira.Domain.Lessons;
 using Avancira.Domain.Messaging;
-using Avancira.Domain.PromoCodes;
-using Avancira.Domain.Transactions;
-using Avancira.Domain.Wallets;
-using Avancira.Domain.UserCard;
-using Avancira.Domain.Subscription;
-using Avancira.Infrastructure.Catalog;
 using Avancira.Domain.Notifications;
+using Avancira.Domain.PromoCodes;
+using Avancira.Domain.Reviews;
+using Avancira.Domain.Students;
 using Avancira.Domain.Subjects;
+using Avancira.Domain.Subscription;
+using Avancira.Domain.Transactions;
+using Avancira.Domain.Tutors;
+using Avancira.Domain.UserCard;
 using Avancira.Domain.UserSessions;
+using Avancira.Domain.Wallets;
+using Avancira.Infrastructure.Catalog;
 
 namespace Avancira.Infrastructure.Persistence;
 public class AvanciraDbContext : IdentityDbContext<
@@ -39,8 +44,14 @@ public class AvanciraDbContext : IdentityDbContext<
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<SubjectCategory> SubjectCategories { get; set; }
     public DbSet<Subject> Subjects { get; set; }
-
-    public DbSet<Address> Addresses { get; set; }
+    public DbSet<Country> Countries { get; set; }
+    public DbSet<TutorProfile> TutorProfiles { get; set; }
+    public DbSet<TutorSubject> TutorSubjects { get; set; }
+    public DbSet<TutorAvailability> TutorAvailabilities { get; set; }
+    public DbSet<StudentProfile> StudentProfiles { get; set; }
+    public DbSet<Lesson> Lessons { get; set; }
+    public DbSet<LessonMaterial> LessonMaterials { get; set; }
+    public DbSet<StudentReview> StudentReviews { get; set; }
 
     public DbSet<Referral> Referrals { get; set; }
 

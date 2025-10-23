@@ -1,4 +1,7 @@
-﻿using Avancira.Infrastructure.Identity.Users;
+using Avancira.Domain.Students;
+using Avancira.Domain.Tutors;
+using Avancira.Infrastructure.Identity.Users;
+using Avancira.Infrastructure.Persistence;
 using Avancira.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -8,15 +11,18 @@ namespace Avancira.Infrastructure.Persistence.Seeders;
 internal sealed class UserSeeder : ISeeder
 {
     private readonly UserManager<User> _userManager;
+    private readonly AvanciraDbContext _dbContext;
     private readonly ILogger<UserSeeder> _logger;
 
     public string Name => nameof(UserSeeder);
 
     public UserSeeder(
         UserManager<User> userManager,
+        AvanciraDbContext dbContext,
         ILogger<UserSeeder> logger)
     {
         _userManager = userManager;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -82,7 +88,11 @@ internal sealed class UserSeeder : ISeeder
             LastName = lastName,
             Bio = bio,
             IsActive = true,
-            ImageUrl = new Uri($"https://robohash.org/{username}?size=200x200&set=set1")
+            ImageUrl = new Uri($"https://robohash.org/{username}?size=200x200&set=set1"),
+            CountryCode = "AU",
+            PhoneNumber = "400000000",
+            PhoneNumberWithoutDialCode = "400000000",
+            TimeZoneId = "Australia/Sydney"
         };
 
         var createResult = await _userManager.CreateAsync(user, password);
@@ -108,5 +118,17 @@ internal sealed class UserSeeder : ISeeder
                 email,
                 string.Join(", ", roleResult.Errors.Select(e => e.Description)));
         }
+
+        if (role == SeedDefaults.Roles.Tutor)
+        {
+            _dbContext.TutorProfiles.Add(TutorProfile.Create(user.Id));
+        }
+
+        if (role == SeedDefaults.Roles.Student || role == SeedDefaults.Roles.Tutor)
+        {
+            _dbContext.StudentProfiles.Add(StudentProfile.Create(user.Id));
+        }
+
+        await _dbContext.SaveChangesAsync();
     }
 }
