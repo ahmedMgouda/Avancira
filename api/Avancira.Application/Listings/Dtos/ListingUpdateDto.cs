@@ -1,6 +1,6 @@
-namespace Avancira.Application.TutorSubjects.Dtos;
+namespace Avancira.Application.Listings.Dtos;
 
-public class TutorSubjectUpdateDto
+public class ListingUpdateDto
 {
     public int Id { get; set; }
     public decimal HourlyRate { get; set; }

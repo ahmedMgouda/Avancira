@@ -1,3 +1,4 @@
+using System;
 using Avancira.Domain.Lessons;
 
 namespace Avancira.Application.Lessons.Dtos;
@@ -7,7 +8,7 @@ public class LessonDto
     public int Id { get; set; }
     public string StudentId { get; set; } = default!;
     public string TutorId { get; set; } = default!;
-    public int TutorSubjectId { get; set; }
+    public int ListingId { get; set; }
     public DateTime ScheduledAtUtc { get; set; }
     public TimeSpan Duration { get; set; }
     public LessonStatus Status { get; set; }

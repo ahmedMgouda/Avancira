@@ -9,8 +9,8 @@ public class LessonByIdSpec : Specification<Lesson>, ISingleResultSpecification<
     {
         Query
             .Where(lesson => lesson.Id == id)
-            .Include(lesson => lesson.TutorSubject)
-                .ThenInclude(tutorSubject => tutorSubject.Subject)
+            .Include(lesson => lesson.Listing)
+                .ThenInclude(listing => listing.Subject)
             .Include(lesson => lesson.Tutor)
             .Include(lesson => lesson.Student)
             .Include(lesson => lesson.Review);

@@ -1,11 +1,11 @@
-using Avancira.Application.TutorSubjects.Dtos;
+using Avancira.Application.Listings.Dtos;
 using FluentValidation;
 
-namespace Avancira.Application.TutorSubjects.Validators;
+namespace Avancira.Application.Listings.Validators;
 
-public class TutorSubjectUpdateDtoValidator : AbstractValidator<TutorSubjectUpdateDto>
+public class ListingUpdateDtoValidator : AbstractValidator<ListingUpdateDto>
 {
-    public TutorSubjectUpdateDtoValidator()
+    public ListingUpdateDtoValidator()
     {
         RuleFor(x => x.Id)
             .GreaterThan(0);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Subjects;
@@ -43,7 +44,7 @@ public class TutorProfile : BaseEntity<string>, IAggregateRoot
     public bool IsRisingTalent { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
-    public ICollection<TutorSubject> Subjects { get; private set; } = new HashSet<TutorSubject>();
+    public ICollection<Listing> Listings { get; private set; } = new HashSet<Listing>();
     public ICollection<TutorAvailability> Availabilities { get; private set; } = new HashSet<TutorAvailability>();
 
     public static TutorProfile Create(string userId) => new(userId);

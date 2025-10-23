@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Reviews;
@@ -15,7 +17,7 @@ public class Lesson : BaseEntity<int>, IAggregateRoot
     private Lesson(
         string studentId,
         string tutorId,
-        int tutorSubjectId,
+        int listingId,
         DateTime scheduledAtUtc,
         TimeSpan duration,
         LessonStatus status,
@@ -24,7 +26,7 @@ public class Lesson : BaseEntity<int>, IAggregateRoot
     {
         StudentId = studentId;
         TutorId = tutorId;
-        TutorSubjectId = tutorSubjectId;
+        ListingId = listingId;
         ScheduledAtUtc = scheduledAtUtc;
         Duration = duration;
         Status = instantBooking ? LessonStatus.Scheduled : status;
@@ -36,8 +38,8 @@ public class Lesson : BaseEntity<int>, IAggregateRoot
     public StudentProfile Student { get; private set; } = default!;
     public string TutorId { get; private set; } = default!;
     public TutorProfile Tutor { get; private set; } = default!;
-    public int TutorSubjectId { get; private set; }
-    public TutorSubject TutorSubject { get; private set; } = default!;
+    public int ListingId { get; private set; }
+    public Listing Listing { get; private set; } = default!;
     public DateTime ScheduledAtUtc { get; private set; }
     public TimeSpan Duration { get; private set; }
     public LessonStatus Status { get; private set; }
@@ -65,13 +67,13 @@ public class Lesson : BaseEntity<int>, IAggregateRoot
     public static Lesson Create(
         string studentId,
         string tutorId,
-        int tutorSubjectId,
+        int listingId,
         DateTime scheduledAtUtc,
         TimeSpan duration,
         LessonStatus status,
         decimal finalPrice,
         bool instantBooking) =>
-        new(studentId, tutorId, tutorSubjectId, scheduledAtUtc, duration, status, finalPrice, instantBooking);
+        new(studentId, tutorId, listingId, scheduledAtUtc, duration, status, finalPrice, instantBooking);
 
     public void Confirm()
     {
