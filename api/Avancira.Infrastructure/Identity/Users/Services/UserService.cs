@@ -88,7 +88,6 @@ internal sealed partial class UserService(
     {
         var user = await userManager.Users
             .Include(u => u.Address)
-            .Include(u => u.Country)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 

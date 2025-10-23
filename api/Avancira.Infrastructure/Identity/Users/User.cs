@@ -26,9 +26,6 @@ public class User : IdentityUser<string>
     [MaxLength(500)]
     public string? Bio { get; set; }
     public Address? Address { get; set; }
-    public int? CountryId { get; set; }
-    [ForeignKey(nameof(User.CountryId))]
-    public virtual Country? Country { get; set; }
 
 
 

@@ -1,6 +1,7 @@
 ﻿using Avancira.Application.Catalog.Dtos;
 using Avancira.Application.Subscriptions;
 using Avancira.Application.Payments;
+using Avancira.Application.Paging;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Subscription;
 using Avancira.Domain.Transactions;
@@ -13,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Avancira.Application.Lessons.Dtos;
 
 namespace Avancira.Infrastructure.Catalog
 {

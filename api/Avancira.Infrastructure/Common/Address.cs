@@ -1,4 +1,3 @@
-﻿using Avancira.Domain.Catalog;
 using Avancira.Infrastructure.Identity.Users;
 using System;
 using System.Collections.Generic;

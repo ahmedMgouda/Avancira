@@ -1,4 +1,3 @@
-﻿using Avancira.Domain.Catalog;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Common.Exceptions;
@@ -14,7 +13,6 @@ namespace Avancira.Domain.Messaging
         public DateTimeOffset CreatedAt { get; private set; }
         public BlockStatus BlockStatus { get; private set; }
         public List<Message> Messages { get; private set; } = new List<Message>();
-        public Listing Listing { get; private set; } = default!;
 
         private Chat() { }
 

@@ -30,11 +30,6 @@ namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
             .HasForeignKey(message => message.ChatId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(chat => chat.Listing)
-            .WithMany()
-            .HasForeignKey(chat => chat.ListingId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasIndex(chat => chat.StudentId);
         builder.HasIndex(chat => chat.TutorId);
         builder.HasIndex(chat => chat.ListingId);

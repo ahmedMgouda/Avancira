@@ -21,9 +21,6 @@ public static class AvanciraResources
     // ────────────────────────────────
     // LEARNING & MARKETPLACE DOMAIN
     // ────────────────────────────────
-    public const string Listings = nameof(Listings);
-    public const string Categories = nameof(Categories);
-    public const string Lessons = nameof(Lessons);
     public const string Schedules = nameof(Schedules);
     public const string Bookings = nameof(Bookings);
     public const string Reviews = nameof(Reviews);

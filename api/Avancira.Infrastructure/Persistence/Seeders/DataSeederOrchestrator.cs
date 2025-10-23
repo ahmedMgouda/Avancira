@@ -50,12 +50,8 @@ internal sealed class DataSeederOrchestrator
         {
             (0, typeof(OpenIddictClientSeeder)),
             (1, typeof(RoleSeeder)),
-            (1, typeof(CountrySeeder)),
-            (1, typeof(CategorySeeder)),
             (1, typeof(PromoCodeSeeder)),
-            (2, typeof(UserSeeder)),
-            (3, typeof(ListingSeeder)),
-            (4, typeof(ListingCategorySeeder))
+            (2, typeof(UserSeeder))
         };
 
         var results = new List<(string Name, bool Success, long DurationMs)>();

@@ -1,5 +1,3 @@
-using Avancira.Application.Catalog;
-using Avancira.Application.Lessons;
 using Avancira.Application.Payments;
 using Avancira.Application.Subscriptions;
 
@@ -8,24 +6,20 @@ namespace Avancira.Application.Jobs;
 public interface IPaymentJobService
 {
     Task ProcessMonthlyPaymentsAsync();
-    Task ProcessHourlyLessonsAsync();
     Task ProcessDailySubscriptionRenewalsAsync();
 }
 
 public class PaymentJobService : IPaymentJobService
 {
-    private readonly ILessonService _lessonService;
     private readonly IPaymentService _paymentService;
     private readonly ISubscriptionService _subscriptionService;
     private readonly INotificationService _notificationService;
 
     public PaymentJobService(
-        ILessonService lessonService,
         IPaymentService paymentService,
         ISubscriptionService subscriptionService,
         INotificationService notificationService)
     {
-        _lessonService = lessonService;
         _paymentService = paymentService;
         _subscriptionService = subscriptionService;
         _notificationService = notificationService;
@@ -45,22 +39,6 @@ public class PaymentJobService : IPaymentJobService
         catch (Exception ex)
         {
             Console.WriteLine($"Error in monthly payment processing: {ex.Message}");
-            throw;
-        }
-    }
-
-    public async Task ProcessHourlyLessonsAsync()
-    {
-        Console.WriteLine($"Processing past booked lessons at {DateTime.UtcNow}");
-
-        try
-        {
-            await _lessonService.ProcessPastBookedLessons();
-            Console.WriteLine("Successfully processed past booked lessons.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing lessons: {ex.Message}");
             throw;
         }
     }

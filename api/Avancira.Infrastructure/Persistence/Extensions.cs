@@ -78,10 +78,6 @@ public static class Extensions
        
         services.AddScoped<RoleSeeder>();
         services.AddScoped<UserSeeder>();
-        services.AddScoped<CountrySeeder>();
-        services.AddScoped<CategorySeeder>();
-        services.AddScoped<ListingSeeder>();
-        services.AddScoped<ListingCategorySeeder>();
         services.AddScoped<PromoCodeSeeder>();
 
         return services;
