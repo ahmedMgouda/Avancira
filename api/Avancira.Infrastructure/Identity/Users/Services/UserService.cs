@@ -5,19 +5,22 @@ using Avancira.Application.Jobs;
 using Avancira.Application.Storage;
 using Avancira.Application.Storage.File;
 using Avancira.Application.Storage.File.Dtos;
+using System;
+using System.Security.Claims;
+using System.Text;
 using Avancira.Domain.Catalog.Enums;
+using Avancira.Domain.Common.Exceptions;
+using Avancira.Domain.Students;
+using Avancira.Domain.Tutors;
 using Avancira.Infrastructure.Constants;
 using Avancira.Infrastructure.Identity.Roles;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Shared.Authorization;
+using Avancira.Shared.Constants;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Text;
-using Avancira.Domain.Common.Exceptions;
-using Avancira.Shared.Constants;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(
@@ -81,13 +84,21 @@ internal sealed partial class UserService(
 
     public async Task<bool> ExistsWithPhoneNumberAsync(string phoneNumber, string? exceptId = null)
     {
-        return await userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber) is User user && user.Id != exceptId;
+        var sanitized = phoneNumber
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal);
+
+        return await userManager.Users
+            .FirstOrDefaultAsync(x => x.PhoneNumberWithoutDialCode == sanitized) is User user && user.Id != exceptId;
     }
 
     public async Task<UserDetailDto> GetAsync(string userId, CancellationToken cancellationToken)
     {
         var user = await userManager.Users
             .Include(u => u.Address)
+            .Include(u => u.Country)
+            .Include(u => u.TutorProfile)
+            .Include(u => u.StudentProfile)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -119,6 +130,13 @@ internal sealed partial class UserService(
         if (await ExistsWithNameAsync(request.UserName))
             throw new AvanciraException("Username already in use");
 
+        var normalizedCountryCode = request.CountryCode.ToUpperInvariant();
+        bool countryExists = await db.Countries.AnyAsync(c => c.Code == normalizedCountryCode, cancellationToken);
+        if (!countryExists)
+        {
+            throw new AvanciraNotFoundException($"Country '{request.CountryCode}' not found.");
+        }
+
         var strategy = db.Database.CreateExecutionStrategy();
 
         RegisterUserResponseDto response = null!;
@@ -129,14 +147,22 @@ internal sealed partial class UserService(
 
             try
             {
+                var sanitizedPhone = request.PhoneNumber
+                    .Replace(" ", string.Empty, StringComparison.Ordinal)
+                    .Replace("-", string.Empty, StringComparison.Ordinal);
+
                 var user = new User
                 {
                     Email = request.Email,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
                     UserName = request.UserName,
-                    PhoneNumber = request.PhoneNumber,
+                    PhoneNumber = sanitizedPhone,
+                    PhoneNumberWithoutDialCode = sanitizedPhone,
                     TimeZoneId = request.TimeZoneId,
+                    CountryCode = normalizedCountryCode,
+                    Gender = request.Gender,
+                    DateOfBirth = request.DateOfBirth,
                     IsActive = false,
                     EmailConfirmed = false,
                     PhoneNumberConfirmed = false,
@@ -146,10 +172,37 @@ internal sealed partial class UserService(
                 if (!result.Succeeded)
                     throw new AvanciraException("Error while registering user", result.Errors.Select(e => e.Description));
 
-                var roleResult = await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
-                if (!roleResult.Succeeded)
-                    throw new AvanciraException("Error while assigning user role", roleResult.Errors.Select(e => e.Description));
+                var rolesToAssign = new List<string>();
+                if (request.RegisterAsStudent)
+                {
+                    rolesToAssign.Add(SeedDefaults.Roles.Student);
+                }
 
+                if (request.RegisterAsTutor)
+                {
+                    rolesToAssign.Add(SeedDefaults.Roles.Tutor);
+                }
+
+                foreach (var role in rolesToAssign.Distinct())
+                {
+                    var roleResult = await userManager.AddToRoleAsync(user, role);
+                    if (!roleResult.Succeeded)
+                        throw new AvanciraException("Error while assigning user role", roleResult.Errors.Select(e => e.Description));
+                }
+
+                if (request.RegisterAsStudent)
+                {
+                    db.StudentProfiles.Add(StudentProfile.Create(user.Id));
+                }
+
+                if (request.RegisterAsTutor)
+                {
+                    var tutorProfile = TutorProfile.Create(user.Id);
+                    tutorProfile.UpdateOverview(string.Empty, string.Empty, 0, null, null, null);
+                    db.TutorProfiles.Add(tutorProfile);
+                }
+
+                await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
                 // send confirmation mail after commit
@@ -255,40 +308,41 @@ internal sealed partial class UserService(
         // Handle phone number update
         if (!string.IsNullOrEmpty(request.PhoneNumber))
         {
-            user.PhoneNumber = request.PhoneNumber;
-            string? phoneNumber = await userManager.GetPhoneNumberAsync(user);
-            if (request.PhoneNumber != phoneNumber)
+            var sanitizedPhone = request.PhoneNumber
+                .Replace(" ", string.Empty, StringComparison.Ordinal)
+                .Replace("-", string.Empty, StringComparison.Ordinal);
+
+            user.PhoneNumber = sanitizedPhone;
+            user.PhoneNumberWithoutDialCode = sanitizedPhone;
+
+            string? currentPhone = await userManager.GetPhoneNumberAsync(user);
+            if (!string.Equals(currentPhone, sanitizedPhone, StringComparison.Ordinal))
             {
-                await userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
+                await userManager.SetPhoneNumberAsync(user, sanitizedPhone);
             }
         }
 
-        // Handle address fields - Check if address exists to avoid unique constraint violation
-        var existingAddress = await db.Addresses.FirstOrDefaultAsync(a => a.UserId == userId);
-        
-        if (existingAddress == null)
+        user.Address ??= new Address();
+
+        if (!string.IsNullOrEmpty(request.AddressStreetAddress))
         {
-            // Create new address only if it doesn't exist
-            user.Address = new Avancira.Infrastructure.Catalog.Address
-            {
-                UserId = userId
-            };
-        }
-        else
-        {
-            // Use existing address
-            user.Address = existingAddress;
+            user.Address.Street = request.AddressStreetAddress;
         }
 
-        // Update address fields
-        if (!string.IsNullOrEmpty(request.AddressFormattedAddress)) user.Address.FormattedAddress = request.AddressFormattedAddress;
-        if (!string.IsNullOrEmpty(request.AddressStreetAddress)) user.Address.StreetAddress = request.AddressStreetAddress;
-        if (!string.IsNullOrEmpty(request.AddressCity)) user.Address.City = request.AddressCity;
-        if (!string.IsNullOrEmpty(request.AddressState)) user.Address.State = request.AddressState;
-        if (!string.IsNullOrEmpty(request.AddressCountry)) user.Address.Country = request.AddressCountry;
-        if (!string.IsNullOrEmpty(request.AddressPostalCode)) user.Address.PostalCode = request.AddressPostalCode;
-        if (request.AddressLatitude.HasValue) user.Address.Latitude = request.AddressLatitude.Value;
-        if (request.AddressLongitude.HasValue) user.Address.Longitude = request.AddressLongitude.Value;
+        if (!string.IsNullOrEmpty(request.AddressCity))
+        {
+            user.Address.City = request.AddressCity;
+        }
+
+        if (!string.IsNullOrEmpty(request.AddressState))
+        {
+            user.Address.State = request.AddressState;
+        }
+
+        if (!string.IsNullOrEmpty(request.AddressPostalCode))
+        {
+            user.Address.PostalCode = request.AddressPostalCode;
+        }
 
         // Note: The following fields don't exist on the User entity, so we'll skip them for now
         // If you need these fields, you'll need to add them to the User entity first:

@@ -76,6 +76,7 @@ public static class Extensions
         services.AddScoped<DataSeederOrchestrator>();
 
        
+        services.AddScoped<CountrySeeder>();
         services.AddScoped<RoleSeeder>();
         services.AddScoped<UserSeeder>();
         services.AddScoped<PromoCodeSeeder>();

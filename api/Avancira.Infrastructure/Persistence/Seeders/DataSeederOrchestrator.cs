@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Avancira.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Avancira.Infrastructure.Persistence.Seeders;
 
@@ -49,6 +50,7 @@ internal sealed class DataSeederOrchestrator
         var seeders = new (int Phase, Type SeederType)[]
         {
             (0, typeof(OpenIddictClientSeeder)),
+            (1, typeof(CountrySeeder)),
             (1, typeof(RoleSeeder)),
             (1, typeof(PromoCodeSeeder)),
             (2, typeof(UserSeeder))
