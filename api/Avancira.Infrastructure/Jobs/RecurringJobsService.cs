@@ -28,12 +28,6 @@ public class RecurringJobsService : IHostedService
                 service => service.ProcessMonthlyPaymentsAsync(),
                 Cron.Monthly(1)); // 1st day of every month at midnight
 
-            // Hourly lesson processing - every hour
-            RecurringJob.AddOrUpdate<IPaymentJobService>(
-                "hourly-lesson-processing",
-                service => service.ProcessHourlyLessonsAsync(),
-                Cron.Hourly()); // Every hour
-
             // Daily subscription renewal processing - every day at midnight UTC
             RecurringJob.AddOrUpdate<IPaymentJobService>(
                 "daily-subscription-renewals",

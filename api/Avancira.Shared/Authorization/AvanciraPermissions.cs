@@ -25,24 +25,9 @@ public static class AvanciraPermissions
         new("Update RoleClaims", AvanciraActions.Update, AvanciraResources.RoleClaims),
 
         // ──────────────────────────────
-        // LISTINGS & CATEGORIES
+        // SCHEDULING & COLLABORATION
         // ──────────────────────────────
-        // Student permissions (basic)
-        new("View Listings", AvanciraActions.View, AvanciraResources.Listings, IsStudent: true),
-        new("Search Listings", AvanciraActions.Search, AvanciraResources.Listings, IsStudent: true),
-        new("View Categories", AvanciraActions.View, AvanciraResources.Categories, IsStudent: true),
-        new("Search Categories", AvanciraActions.Search, AvanciraResources.Categories, IsStudent: true),
-        // Tutor permissions
-        new("Create Listings", AvanciraActions.Create, AvanciraResources.Listings, IsTutor: true),
-        new("Update Listings", AvanciraActions.Update, AvanciraResources.Listings, IsTutor: true),
-        new("Delete Listings", AvanciraActions.Delete, AvanciraResources.Listings, IsTutor: true),
-        new("View My Lessons", AvanciraActions.View, AvanciraResources.Lessons, IsTutor: true),
         new("Manage My Schedule", AvanciraActions.Update, AvanciraResources.Schedules, IsTutor: true),
-
-        // Admin (full)
-        new("Manage Listings", AvanciraActions.Update, AvanciraResources.Listings),
-        new("Delete Listings", AvanciraActions.Delete, AvanciraResources.Listings),
-        new("Export Listings", AvanciraActions.Export, AvanciraResources.Listings),
         // ──────────────────────────────
         // DASHBOARD & SYSTEM
         // ──────────────────────────────

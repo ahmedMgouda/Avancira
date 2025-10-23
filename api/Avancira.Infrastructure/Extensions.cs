@@ -91,7 +91,7 @@ public static class Extensions
         // ════════════════════════════════════════════════════════════
         // 5️⃣ Mapping, Validation, MediatR, and Domain Registrations
         // ════════════════════════════════════════════════════════════
-        TypeAdapterConfig.GlobalSettings.Scan(typeof(IListingService).Assembly);
+        TypeAdapterConfig.GlobalSettings.Scan(typeof(IChatService).Assembly);
 
         var assemblies = AppDomain.CurrentDomain
             .GetAssemblies()

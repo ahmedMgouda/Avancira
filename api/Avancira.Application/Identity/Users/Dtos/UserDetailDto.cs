@@ -37,8 +37,6 @@ public class UserDetailDto
     public string? StripeCustomerId { get; set; }
     public string? StripeConnectedAccountId { get; set; }
 
-    // Country
-    public int? CountryId { get; set; }
 }
 
 public class AddressDto

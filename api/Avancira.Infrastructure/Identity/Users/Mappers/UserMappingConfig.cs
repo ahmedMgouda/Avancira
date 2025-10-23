@@ -26,8 +26,7 @@ namespace Avancira.Infrastructure.Identity.Users.Mappers
                 .Map(dest => dest.Address, src => src.Address)
                 .Map(dest => dest.PayPalAccountId, src => src.PayPalAccountId)
                 .Map(dest => dest.StripeCustomerId, src => src.StripeCustomerId)
-                .Map(dest => dest.StripeConnectedAccountId, src => src.StripeConnectedAccountId)
-                .Map(dest => dest.CountryId, src => src.CountryId);
+                .Map(dest => dest.StripeConnectedAccountId, src => src.StripeConnectedAccountId);
         }
     }
 }
