@@ -2,6 +2,7 @@
 using Avancira.Application.Audit;
 using Avancira.Application.Identity.Roles;
 using Avancira.Application.Identity.Users.Abstractions;
+using Avancira.Application.Messaging;
 using Avancira.Infrastructure.Auth;
 using Avancira.Infrastructure.Caching;
 using Avancira.Infrastructure.Catalog;

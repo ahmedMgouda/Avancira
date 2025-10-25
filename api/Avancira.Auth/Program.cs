@@ -1,9 +1,12 @@
 ﻿using Avancira.Auth.Extensions;
 using Avancira.Auth.OpenIddict;
+using Avancira.Auth.Validators;
 using Avancira.Infrastructure.Composition;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Persistence.Seeders;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -12,6 +15,11 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
+
+
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+
         var builder = WebApplication.CreateBuilder(args);
 
         // ============================================================
@@ -61,8 +69,13 @@ public partial class Program
                     new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
 
+
         builder.Services.AddMemoryCache();
 
+        // Add FluentValidation
+        builder.Services.AddValidatorsFromAssemblyContaining<RegisterViewModelValidator>();
+        builder.Services.AddFluentValidationAutoValidation();
+        builder.Services.AddFluentValidationClientsideAdapters();
 
         var app = builder.Build();
 

@@ -1,4 +1,4 @@
-using Avancira.Domain.Auth;
+using Avancira.Domain.Catalog.Enums;
 
 namespace Avancira.Application.Messaging.Dtos;
 

@@ -9,6 +9,11 @@ public static class Extensions
 {
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
+        services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+
+        services.AddScoped(typeof(IReadRepository<>), typeof(EfReadRepository<>));
+
+
         services.AddScoped<IRepository<SubjectCategory>, SubjectRepository<SubjectCategory>>();
         services.AddScoped<IReadRepository<SubjectCategory>, SubjectRepository<SubjectCategory>>();
 

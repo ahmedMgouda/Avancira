@@ -1,10 +1,7 @@
-﻿using Avancira.Domain.Auditing;
-using Avancira.Infrastructure.Identity.Roles;
-using Avancira.Infrastructure.Identity.Users;
-using MediatR;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Avancira.Domain.Auditing;
 using Avancira.Domain.Common.Contracts;
 using Avancira.Domain.Geography;
 using Avancira.Domain.Lessons;
@@ -21,9 +18,16 @@ using Avancira.Domain.UserCard;
 using Avancira.Domain.UserSessions;
 using Avancira.Domain.Wallets;
 using Avancira.Infrastructure.Catalog;
+using Avancira.Infrastructure.Identity.Roles;
+using Avancira.Infrastructure.Identity.Users;
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Avancira.Infrastructure.Persistence;
-public class AvanciraDbContext : IdentityDbContext<
+
+public sealed class AvanciraDbContext : IdentityDbContext<
     User,
     Role,
     string,
@@ -35,55 +39,65 @@ public class AvanciraDbContext : IdentityDbContext<
 {
     private readonly IPublisher _publisher;
 
-    public AvanciraDbContext(DbContextOptions options, IPublisher publisher)
+    public AvanciraDbContext(
+        DbContextOptions<AvanciraDbContext> options,
+        IPublisher publisher)
         : base(options)
     {
         _publisher = publisher;
     }
 
-    public DbSet<AuditTrail> AuditTrails { get; set; }
-    public DbSet<SubjectCategory> SubjectCategories { get; set; }
-    public DbSet<Subject> Subjects { get; set; }
-    public DbSet<Country> Countries { get; set; }
-    public DbSet<TutorProfile> TutorProfiles { get; set; }
-    public DbSet<Listing> Listings { get; set; }
-    public DbSet<TutorAvailability> TutorAvailabilities { get; set; }
-    public DbSet<StudentProfile> StudentProfiles { get; set; }
-    public DbSet<Lesson> Lessons { get; set; }
-    public DbSet<LessonMaterial> LessonMaterials { get; set; }
-    public DbSet<StudentReview> StudentReviews { get; set; }
+    // ============================================================
+    // DbSets
+    // ============================================================
+    public DbSet<AuditTrail> AuditTrails => Set<AuditTrail>();
+    public DbSet<SubjectCategory> SubjectCategories => Set<SubjectCategory>();
+    public DbSet<Subject> Subjects => Set<Subject>();
+    public DbSet<Country> Countries => Set<Country>();
+    public DbSet<TutorProfile> TutorProfiles => Set<TutorProfile>();
+    public DbSet<Listing> Listings => Set<Listing>();
+    public DbSet<TutorAvailability> TutorAvailabilities => Set<TutorAvailability>();
+    public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
+    public DbSet<Lesson> Lessons => Set<Lesson>();
+    public DbSet<LessonMaterial> LessonMaterials => Set<LessonMaterial>();
+    public DbSet<StudentReview> StudentReviews => Set<StudentReview>();
+    public DbSet<Referral> Referrals => Set<Referral>();
+    public DbSet<Chat> Chats => Set<Chat>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<SubscriptionHistory> SubscriptionHistories => Set<SubscriptionHistory>();
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<UserCard> UserCards => Set<UserCard>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<WalletLog> WalletLogs => Set<WalletLog>();
+    public DbSet<UserSession> Sessions => Set<UserSession>();
 
-    public DbSet<Referral> Referrals { get; set; }
-
-    public DbSet<Chat> Chats { get; set; }
-    public DbSet<Message> Messages { get; set; }
-    public DbSet<Notification> Notifications { get; set; }
-
-    public DbSet<Subscription> Subscriptions { get; set; }
-    public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
-    public DbSet<PromoCode> PromoCodes { get; set; }
-    public DbSet<UserCard> UserCards { get; set; }
-    public DbSet<Transaction> Transactions { get; set; }
-    public DbSet<Wallet> Wallets { get; set; }
-    public DbSet<WalletLog> WalletLogs { get; set; }
-
-    public DbSet<UserSession> Sessions { get; set; }
-
+    // ============================================================
+    // Model configuration
+    // ============================================================
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Apply soft delete global filter
-        modelBuilder.AppendGlobalQueryFilter<ISoftDeletable>(s => s.Deleted == null);
-
+        // Always call base first for Identity setup
         base.OnModelCreating(modelBuilder);
 
+        // OpenIddict support
         modelBuilder.UseOpenIddict();
+
+        // Apply all IEntityTypeConfiguration<T> in this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AvanciraDbContext).Assembly);
+
+        // Soft-delete global query filter
+        modelBuilder.AppendGlobalQueryFilter<ISoftDeletable>(e => e.Deleted == null);
     }
 
-
+    // ============================================================
+    // SaveChanges + Domain Events
+    // ============================================================
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        int result = await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        var result = await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await PublishDomainEventsAsync().ConfigureAwait(false);
         return result;
     }
@@ -95,15 +109,13 @@ public class AvanciraDbContext : IdentityDbContext<
             .Where(e => e.DomainEvents.Count > 0)
             .SelectMany(e =>
             {
-                var domainEvents = e.DomainEvents.ToList();
+                var events = e.DomainEvents.ToList();
                 e.DomainEvents.Clear();
-                return domainEvents;
+                return events;
             })
             .ToList();
 
         foreach (var domainEvent in domainEvents)
-        {
             await _publisher.Publish(domainEvent).ConfigureAwait(false);
-        }
     }
 }

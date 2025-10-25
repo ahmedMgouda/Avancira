@@ -18,8 +18,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Avancira.Domain\Avancira.Domain.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-  </ItemGroup>
   
 </Project>

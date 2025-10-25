@@ -122,20 +122,29 @@ internal sealed partial class UserService(
         throw new NotImplementedException();
     }
 
+
     public async Task<RegisterUserResponseDto> RegisterAsync(RegisterUserDto request, string origin, CancellationToken cancellationToken)
     {
-        if (await ExistsWithEmailAsync(request.Email))
+        if (await userManager.FindByEmailAsync(request.Email) is not null)
             throw new AvanciraException("Email already in use");
 
-        if (await ExistsWithNameAsync(request.UserName))
-            throw new AvanciraException("Username already in use");
-
-        var normalizedCountryCode = request.CountryCode.ToUpperInvariant();
-        bool countryExists = await db.Countries.AnyAsync(c => c.Code == normalizedCountryCode, cancellationToken);
-        if (!countryExists)
-        {
+        var normalizedCountry = request.CountryCode.ToUpperInvariant();
+        if (!await db.Countries.AnyAsync(c => c.Code == normalizedCountry, cancellationToken))
             throw new AvanciraNotFoundException($"Country '{request.CountryCode}' not found.");
-        }
+
+        var user = new User
+        {
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            Gender = request.Gender,
+            DateOfBirth = request.DateOfBirth,
+            TimeZoneId = request.TimeZoneId,
+            CountryCode = normalizedCountry,
+            EmailConfirmed = false,
+            IsActive = false
+        };
 
         var strategy = db.Database.CreateExecutionStrategy();
 
@@ -144,86 +153,37 @@ internal sealed partial class UserService(
         await strategy.ExecuteAsync(async () =>
         {
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
-                var sanitizedPhone = request.PhoneNumber
-                    .Replace(" ", string.Empty, StringComparison.Ordinal)
-                    .Replace("-", string.Empty, StringComparison.Ordinal);
-
-                var user = new User
-                {
-                    Email = request.Email,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    UserName = request.UserName,
-                    PhoneNumber = sanitizedPhone,
-                    TimeZoneId = request.TimeZoneId,
-                    CountryCode = normalizedCountryCode,
-                    Gender = request.Gender,
-                    DateOfBirth = request.DateOfBirth,
-                    IsActive = false,
-                    EmailConfirmed = false,
-                    PhoneNumberConfirmed = false,
-                };
-
                 var result = await userManager.CreateAsync(user, request.Password);
                 if (!result.Succeeded)
-                    throw new AvanciraException("Error while registering user", result.Errors.Select(e => e.Description));
-
-                var rolesToAssign = new List<string>();
-                if (request.RegisterAsStudent)
-                {
-                    rolesToAssign.Add(SeedDefaults.Roles.Student);
-                }
+                    throw new AvanciraException("Registration failed", result.Errors.Select(e => e.Description));
 
                 if (request.RegisterAsTutor)
                 {
-                    rolesToAssign.Add(SeedDefaults.Roles.Tutor);
-                }
-
-                foreach (var role in rolesToAssign.Distinct())
-                {
-                    var roleResult = await userManager.AddToRoleAsync(user, role);
-                    if (!roleResult.Succeeded)
-                        throw new AvanciraException("Error while assigning user role", roleResult.Errors.Select(e => e.Description));
-                }
-
-                if (request.RegisterAsStudent)
-                {
-                    db.StudentProfiles.Add(StudentProfile.Create(user.Id));
-                }
-
-                if (request.RegisterAsTutor)
-                {
+                    await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Tutor);
                     var tutorProfile = TutorProfile.Create(user.Id);
                     tutorProfile.UpdateOverview(string.Empty, string.Empty, 0, null, null, null);
                     db.TutorProfiles.Add(tutorProfile);
                 }
+                else
+                {
+                    await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
+                    db.StudentProfiles.Add(StudentProfile.Create(user.Id));
+                }
 
                 await db.SaveChangesAsync(cancellationToken);
+
                 await transaction.CommitAsync(cancellationToken);
 
-                // send confirmation mail after commit
-                if (!string.IsNullOrEmpty(user.Email))
+                string link = await GetEmailVerificationUriAsync(user, origin);
+                var evt = new ConfirmEmailEvent
                 {
-                    try
-                    {
-                        string emailVerificationUri = await GetEmailVerificationUriAsync(user, origin);
-                        var confirmEmailEvent = new ConfirmEmailEvent
-                        {
-                            UserId = user.Id,
-                            Email = user.Email,
-                            ConfirmationLink = emailVerificationUri
-                        };
-
-                        await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, confirmEmailEvent);
-                    }
-                    catch
-                    {
-                        // swallow notification errors
-                    }
-                }
+                    UserId = user.Id,
+                    Email = user.Email!,
+                    ConfirmationLink = link
+                };
+                await notificationService.NotifyAsync(NotificationEvent.ConfirmEmail, evt);
 
                 response = new RegisterUserResponseDto(user.Id);
             }
@@ -236,7 +196,64 @@ internal sealed partial class UserService(
 
         return response;
     }
-  
+
+    public async Task<User> CompleteSocialSignInAsync(SocialRegisterDto dto, CancellationToken ct)
+    {
+        var existing = await userManager.FindByEmailAsync(dto.Email);
+        if (existing is not null)
+            throw new AvanciraException("Email already registered. Please sign in normally.");
+
+        var normalizedCountry = dto.CountryCode?.ToUpperInvariant() ?? "AU";
+
+        var user = new User
+        {
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            PhoneNumber = dto.PhoneNumber,
+            Gender = dto.Gender,
+            TimeZoneId = dto.TimeZoneId,
+            CountryCode = normalizedCountry,
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            try
+            {
+                var result = await userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                    throw new AvanciraException("Social registration failed", result.Errors.Select(e => e.Description));
+
+                if (dto.RegisterAsTutor)
+                {
+                    await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Tutor);
+                    db.TutorProfiles.Add(TutorProfile.Create(user.Id));
+                }
+                else
+                {
+                    await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
+                    db.StudentProfiles.Add(StudentProfile.Create(user.Id));
+                }
+
+                await db.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
+            }
+        });
+
+        return user;
+    }
+
+
     public async Task ToggleStatusAsync(ToggleUserStatusDto request, CancellationToken cancellationToken)
     {
         var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

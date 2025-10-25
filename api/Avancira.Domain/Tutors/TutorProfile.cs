@@ -1,47 +1,60 @@
-using System.Collections.Generic;
-using Avancira.Domain.Common;
+﻿using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
-using Avancira.Domain.Subjects;
 
 namespace Avancira.Domain.Tutors;
 
 public class TutorProfile : BaseEntity<string>, IAggregateRoot
 {
-    private TutorProfile()
-    {
-    }
+    private TutorProfile() { }
 
     private TutorProfile(string userId)
     {
         Id = userId;
         CreatedOnUtc = DateTime.UtcNow;
+
+        IsActive = false;
+        IsVerified = false;
+        IsComplete = false;
+        ShowTutorProfileReminder = true;
+        BookingAcceptanceRate = 100;
+        MinSessionDurationMinutes = 60;
+        MaxSessionDurationMinutes = 120;
     }
 
     public string UserId => Id;
+
     public string Headline { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
-    public bool IsVerified { get; private set; }
-    public DateTime? VerifiedOnUtc { get; private set; }
-    public double AverageRating { get; private set; }
-    public bool IsActive { get; private set; }
-    public bool IsFeatured { get; private set; }
-    public int SortOrder { get; private set; }
     public int YearsOfExperience { get; private set; }
     public string? TeachingPhilosophy { get; private set; }
     public string? Specializations { get; private set; }
-    public string? IntroVideoUrl { get; private set; }
-    public int? IntroVideoDurationSeconds { get; private set; }
     public string? Languages { get; private set; }
+
+    public bool IsVerified { get; private set; }
+    public DateTime? VerifiedOnUtc { get; private set; }
+    public bool IsActive { get; private set; }
+    public bool IsFeatured { get; private set; }
+    public int SortOrder { get; private set; }
+
+    public double AverageRating { get; private set; }
     public decimal AverageResponseTimeMinutes { get; private set; }
-    public decimal BookingAcceptanceRate { get; private set; } = 100;
-    public int MinSessionDurationMinutes { get; private set; } = 60;
-    public int MaxSessionDurationMinutes { get; private set; } = 120;
+    public decimal BookingAcceptanceRate { get; private set; }
+
+    public int MinSessionDurationMinutes { get; private set; }
+    public int MaxSessionDurationMinutes { get; private set; }
     public bool OffersTrialLesson { get; private set; }
     public decimal? TrialLessonRate { get; private set; }
     public int? TrialLessonDurationMinutes { get; private set; }
     public bool AllowsInstantBooking { get; private set; }
-    public DateTime? TopTutorSinceUtc { get; private set; }
+
+    public string? IntroVideoUrl { get; private set; }
+    public int? IntroVideoDurationSeconds { get; private set; }
+
+    public bool IsComplete { get; private set; }
+    public bool ShowTutorProfileReminder { get; private set; }
     public bool IsRisingTalent { get; private set; }
+    public DateTime? TopTutorSinceUtc { get; private set; }
+    public string? AdminComment { get; private set; }
     public DateTime CreatedOnUtc { get; private set; }
 
     public ICollection<Listing> Listings { get; private set; } = new HashSet<Listing>();
@@ -57,12 +70,14 @@ public class TutorProfile : BaseEntity<string>, IAggregateRoot
         string? languages,
         string? specializations)
     {
-        Headline = headline;
-        Description = description;
+        Headline = headline?.Trim() ?? string.Empty;
+        Description = description?.Trim() ?? string.Empty;
         YearsOfExperience = yearsOfExperience;
-        TeachingPhilosophy = teachingPhilosophy;
-        Languages = languages;
-        Specializations = specializations;
+        TeachingPhilosophy = teachingPhilosophy?.Trim();
+        Languages = languages?.Trim();
+        Specializations = specializations?.Trim();
+
+        EvaluateCompletion();
     }
 
     public void UpdateLessonSettings(
@@ -79,12 +94,15 @@ public class TutorProfile : BaseEntity<string>, IAggregateRoot
         TrialLessonRate = trialLessonRate;
         TrialLessonDurationMinutes = trialLessonDurationMinutes;
         AllowsInstantBooking = allowsInstantBooking;
+
+        EvaluateCompletion();
     }
 
     public void UpdateMedia(string? introVideoUrl, int? introVideoDurationSeconds)
     {
         IntroVideoUrl = introVideoUrl;
         IntroVideoDurationSeconds = introVideoDurationSeconds;
+        EvaluateCompletion();
     }
 
     public void Verify()
@@ -108,12 +126,31 @@ public class TutorProfile : BaseEntity<string>, IAggregateRoot
         SortOrder = sortOrder;
     }
 
-    public void UpdateMetrics(double averageRating, decimal averageResponseMinutes, decimal bookingAcceptanceRate)
+    public void UpdateMetrics(double avgRating, decimal avgResponse, decimal bookingRate)
     {
-        AverageRating = averageRating;
-        AverageResponseTimeMinutes = averageResponseMinutes;
-        BookingAcceptanceRate = bookingAcceptanceRate;
+        AverageRating = avgRating;
+        AverageResponseTimeMinutes = avgResponse;
+        BookingAcceptanceRate = bookingRate;
     }
 
-    public string? AdminComment { get; private set; }
+    public void HideReminder() => ShowTutorProfileReminder = false;
+
+    private void EvaluateCompletion()
+    {
+        var hasBasicInfo = !string.IsNullOrWhiteSpace(Headline)
+                        && !string.IsNullOrWhiteSpace(Description)
+                        && YearsOfExperience > 0;
+
+        var hasTeachingData = !string.IsNullOrWhiteSpace(TeachingPhilosophy)
+                           || !string.IsNullOrWhiteSpace(Specializations);
+
+        var hasLanguage = !string.IsNullOrWhiteSpace(Languages);
+
+        var hasMedia = !string.IsNullOrWhiteSpace(IntroVideoUrl);
+
+        IsComplete = hasBasicInfo && hasTeachingData && hasLanguage && hasMedia;
+
+        if (IsComplete)
+            ShowTutorProfileReminder = false;
+    }
 }

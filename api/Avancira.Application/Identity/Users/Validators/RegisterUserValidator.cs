@@ -28,16 +28,6 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .MaximumLength(256)
             .WithMessage("Email must not exceed 256 characters.");
 
-        RuleFor(x => x.UserName)
-            .NotEmpty()
-            .WithMessage("Username is required.")
-            .MinimumLength(3)
-            .WithMessage("Username must be at least 3 characters long.")
-            .MaximumLength(50)
-            .WithMessage("Username must not exceed 50 characters.")
-            .Matches("^[a-zA-Z0-9._-]+$")
-            .WithMessage("Username can only contain letters, numbers, dots, underscores, and hyphens.");
-
         RuleFor(x => x.Password)
             .ApplyPasswordRules();
 
@@ -65,19 +55,15 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .WithMessage("Time zone ID must not exceed 100 characters.")
             .When(x => !string.IsNullOrEmpty(x.TimeZoneId));
 
-        RuleFor(x => x.ReferralToken)
-            .MaximumLength(255)
-            .WithMessage("Referral token must not exceed 255 characters.")
-            .When(x => !string.IsNullOrEmpty(x.ReferralToken));
+        //RuleFor(x => x.ReferralToken)
+        //    .MaximumLength(255)
+        //    .WithMessage("Referral token must not exceed 255 characters.")
+        //    .When(x => !string.IsNullOrEmpty(x.ReferralToken));
 
         RuleFor(x => x.DateOfBirth)
             .Must(BeAtLeastThirteen)
             .WithMessage("You must be at least 13 years old to register.")
             .When(x => x.DateOfBirth.HasValue);
-
-        RuleFor(x => x)
-            .Must(dto => dto.RegisterAsStudent || dto.RegisterAsTutor)
-            .WithMessage("At least one account type (student or tutor) must be selected.");
 
         RuleFor(x => x.AcceptTerms)
             .Equal(true)

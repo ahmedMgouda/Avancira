@@ -1,18 +1,23 @@
-﻿using System.Security.Claims;
-using Avancira.Auth.Helpers;
-using Avancira.Auth.Models.Account;
+﻿using Avancira.Application.Countries;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
+using Avancira.Auth.Helpers;
+using Avancira.Auth.Models.Account;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Identity.Users;
+using Avancira.Shared.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
-using Avancira.Shared.Authorization;
+using PhoneNumbers;
+using System.Security.Claims;
+using TimeZoneConverter;
+using static Pipelines.Sockets.Unofficial.SocketConnection;
 using IdentityConstants = Microsoft.AspNetCore.Identity.IdentityConstants;
 
 namespace Avancira.Auth.Controllers;
@@ -27,6 +32,7 @@ public class AccountController : Controller
     private readonly IUserService _userService;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AccountController> _logger;
+    private readonly ICountryService _countryService;
 
     private static readonly TimeSpan ResetCooldown = TimeSpan.FromSeconds(30);
 
@@ -34,12 +40,14 @@ public class AccountController : Controller
         SignInManager<User> signInManager,
         IUserService userService,
         IMemoryCache cache,
-        ILogger<AccountController> logger)
+        ILogger<AccountController> logger,
+        ICountryService countryService)
     {
         _signInManager = signInManager;
         _userService = userService;
         _cache = cache;
         _logger = logger;
+        _countryService = countryService;
     }
 
     #region Login
@@ -147,32 +155,38 @@ public class AccountController : Controller
     #region Register
 
     [HttpGet("register")]
-    public IActionResult Register(string? returnUrl = null)
+    public async Task<IActionResult> Register(string? returnUrl = null)
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            return LocalRedirect(returnUrl ?? "/connect/authorize");
-        }
-
         var model = new RegisterViewModel
         {
-            ReturnUrl = returnUrl ?? "/connect/authorize"
+            ReturnUrl = returnUrl ?? "/connect/authorize",
+            Countries = await GetCountriesAsync(),
+            TimeZones = GetTimeZones()
         };
 
-        ViewData["Title"] = "Register";
         return View(model);
     }
-
 
     [HttpPost("register")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        var returnUrl = model.ReturnUrl ?? "/connect/authorize";
-
         if (!ModelState.IsValid)
         {
-            ViewData["Title"] = "Register";
+            await RebuildListsAsync(model);
+            return View(model);
+        }
+
+        try
+        {
+            var phoneUtil = PhoneNumberUtil.GetInstance();
+            var parsed = phoneUtil.Parse(model.PhoneNumber, null);
+            model.PhoneNumber = phoneUtil.Format(parsed, PhoneNumberFormat.E164);
+        }
+        catch (NumberParseException)
+        {
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Invalid phone number format.");
+            await RebuildListsAsync(model);
             return View(model);
         }
 
@@ -181,39 +195,87 @@ public class AccountController : Controller
             FirstName = model.FirstName,
             LastName = model.LastName,
             Email = model.Email,
-            UserName = model.UserName,
             Password = model.Password,
             ConfirmPassword = model.ConfirmPassword,
+            CountryCode = model.CountryCode,
+            PhoneNumber = model.PhoneNumber,
+            TimeZoneId = model.TimeZoneId,
+            RegisterAsTutor = model.RegisterAsTutor,
+            Gender = model.Gender,
+            DateOfBirth = model.DateOfBirth,
             AcceptTerms = model.AcceptTerms
         };
 
-        var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-
-        try
-        {
-            await _userService.RegisterAsync(dto, origin, HttpContext.RequestAborted);
-
-            _logger.LogInformation("✅ New user registered: {Email}", model.Email);
-            TempData["SuccessMessage"] = UiMessages.AccountCreated;
-
-            return RedirectToAction(nameof(Login), new { returnUrl });
-        }
-        catch (AvanciraException ex)
-        {
-            _logger.LogWarning(ex, "Registration failed for {Email}", model.Email);
-
-            var errors = ex.ErrorMessages.Any() ? ex.ErrorMessages : new[] { ex.Message };
-            foreach (var error in errors)
-            {
-                ModelState.AddModelError(string.Empty, error);
-            }
-
-            ViewData["Title"] = "Register";
-            return View(model);
-        }
+        await _userService.RegisterAsync(dto, $"{Request.Scheme}://{Request.Host}", HttpContext.RequestAborted);
+        TempData["SuccessMessage"] = "Your account has been created successfully.";
+        return RedirectToAction(nameof(Login));
     }
 
+    private async Task RebuildListsAsync(RegisterViewModel model)
+    {
+        model.Countries = await GetCountriesAsync();
+        model.TimeZones = GetTimeZones();
+    }
+
+    private async Task<IEnumerable<SelectListItem>> GetCountriesAsync()
+    {
+        var countries = await _countryService.GetAllAsync();
+        return countries
+            .OrderBy(c => c.Name)
+            .Select(c => new SelectListItem(c.Name, c.Code));
+    }
+
+    private static IEnumerable<SelectListItem> GetTimeZones()
+    {
+        // Load IANA time zones (portable across OS)
+        var ianaZones = TZConvert.KnownIanaTimeZoneNames
+            .Select(id =>
+            {
+                try
+                {
+                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(id);
+                    var offset = tzInfo.BaseUtcOffset;
+                    var sign = offset >= TimeSpan.Zero ? "+" : "-";
+                    var hours = Math.Abs(offset.Hours).ToString("00");
+                    var minutes = Math.Abs(offset.Minutes).ToString("00");
+
+                    // Extract region and city (e.g., "Africa/Cairo" → Region="Africa", City="Cairo")
+                    var parts = id.Split('/');
+                    string display;
+
+                    if (parts.Length == 2)
+                    {
+                        var region = parts[0].Replace('_', ' ');
+                        var city = parts[1].Replace('_', ' ');
+                        display = $"{city} ({region}) (UTC{sign}{hours}:{minutes})";
+                    }
+                    else
+                    {
+                        // fallback for single-part names
+                        display = $"{id.Replace('_', ' ')} (UTC{sign}{hours}:{minutes})";
+                    }
+
+                    return new SelectListItem(display, id);
+                }
+                catch
+                {
+                    // skip invalid or unmapped zones (e.g. Antarctica/Troll on Windows)
+                    return null;
+                }
+            })
+            .Where(x => x != null)
+            .OrderBy(x =>
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById(x!.Value!);
+                return tz.BaseUtcOffset;
+            })
+            .ThenBy(x => x!.Text)
+            .ToList()!;
+
+        return ianaZones!;
+    }
     #endregion
+
 
     #region Forgot Password
 

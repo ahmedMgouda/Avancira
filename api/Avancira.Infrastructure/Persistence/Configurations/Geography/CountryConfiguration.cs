@@ -4,33 +4,41 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Avancira.Infrastructure.Persistence.Configurations.Geography;
 
-public class CountryConfiguration : IEntityTypeConfiguration<Country>
+public sealed class CountryConfiguration : IEntityTypeConfiguration<Country>
 {
     public void Configure(EntityTypeBuilder<Country> builder)
     {
         builder.ToTable("Countries");
 
-        builder.HasKey(country => country.Id);
+        builder.HasKey(x => x.Id);
 
-        builder.Property(country => country.Id)
+        builder.Property(x => x.Id)
             .HasColumnName("Code")
             .HasMaxLength(3)
+            .IsUnicode(false)
             .IsRequired();
 
-        builder.Property(country => country.Name)
+        builder.Property(x => x.Name)
             .HasMaxLength(100)
+            .IsUnicode(true)
             .IsRequired();
 
-        builder.Property(country => country.CurrencyCode)
-            .HasMaxLength(3);
+        builder.Property(x => x.CurrencyCode)
+            .HasMaxLength(3)
+            .IsUnicode(false);
 
-        builder.Property(country => country.DialingCode)
-            .HasMaxLength(5);
+        builder.Property(x => x.DialingCode)
+            .HasMaxLength(10)
+            .IsUnicode(false);
 
-        builder.Property(country => country.IsActive)
-            .HasDefaultValue(true);
+        builder.Property(x => x.IsActive)
+            .HasDefaultValue(true)
+            .IsRequired();
 
-        builder.HasIndex(country => country.Name)
+        builder.HasIndex(x => x.Name)
+            .IsUnique();
+
+        builder.HasIndex(x => x.Id)
             .IsUnique();
     }
 }

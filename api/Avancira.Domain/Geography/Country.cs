@@ -49,3 +49,4 @@ public class Country : BaseEntity<string>, IAggregateRoot
         IsActive = isActive;
     }
 }
+

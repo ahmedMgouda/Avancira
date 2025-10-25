@@ -1,5 +1,6 @@
 using Avancira.Application.Messaging;
 using Avancira.Application.Messaging.Dtos;
+using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Messaging;
 using Avancira.Domain.Notifications;
 using Avancira.Infrastructure.Persistence;

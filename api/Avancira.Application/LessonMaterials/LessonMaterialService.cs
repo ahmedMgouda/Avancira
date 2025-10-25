@@ -1,7 +1,5 @@
-using System;
-using System.Linq;
-using System.Threading;
 using Avancira.Application.LessonMaterials.Dtos;
+using Avancira.Application.LessonMaterials.Specifications;
 using Avancira.Application.Lessons.Specifications;
 using Avancira.Application.Persistence;
 using Avancira.Domain.Common.Exceptions;
@@ -10,7 +8,7 @@ using Mapster;
 
 namespace Avancira.Application.LessonMaterials;
 
-public class LessonMaterialService : ILessonMaterialService
+public sealed class LessonMaterialService : ILessonMaterialService
 {
     private readonly IRepository<LessonMaterial> _lessonMaterialRepository;
     private readonly IRepository<Lesson> _lessonRepository;
@@ -25,12 +23,11 @@ public class LessonMaterialService : ILessonMaterialService
 
     public async Task<IReadOnlyCollection<LessonMaterialDto>> GetByLessonIdAsync(int lessonId, CancellationToken cancellationToken = default)
     {
-        var materials = await _lessonMaterialRepository.ListAsync(m => m.LessonId == lessonId, cancellationToken);
-        return materials
-            .OrderBy(material => material.UploadedAtUtc)
-            .Adapt<IReadOnlyCollection<LessonMaterialDto>>();
-    }
+        var spec = new LessonMaterialsByLessonIdSpec(lessonId);
+        var materials = await _lessonMaterialRepository.ListAsync(spec, cancellationToken);
 
+        return materials.Adapt<IReadOnlyCollection<LessonMaterialDto>>();
+    }
     public async Task<LessonMaterialDto> CreateAsync(LessonMaterialCreateDto request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);

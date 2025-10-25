@@ -65,9 +65,10 @@ public class ListingService : IListingService
 
         await _listingRepository.AddAsync(listing, cancellationToken);
 
-        listing.Subject = subject;
-
-        return listing.Adapt<ListingDto>();
+        var dto = listing.Adapt<ListingDto>();
+        dto.SubjectName = subject.Name;
+        dto.SubjectDescription = subject.Description;
+        return dto;
     }
 
     public async Task<ListingDto> UpdateAsync(ListingUpdateDto request, CancellationToken cancellationToken = default)

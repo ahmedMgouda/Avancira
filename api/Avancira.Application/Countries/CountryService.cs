@@ -1,4 +1,5 @@
 using Avancira.Application.Countries.Dtos;
+using Avancira.Application.Countries.Specifications;
 using Avancira.Application.Persistence;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Geography;
@@ -6,7 +7,7 @@ using Mapster;
 
 namespace Avancira.Application.Countries;
 
-public class CountryService : ICountryService
+public sealed class CountryService : ICountryService
 {
     private readonly IRepository<Country> _countryRepository;
 
@@ -19,7 +20,7 @@ public class CountryService : ICountryService
     {
         var countries = await _countryRepository.ListAsync(cancellationToken);
         return countries
-            .OrderBy(country => country.Name)
+            .OrderBy(c => c.Name)
             .Adapt<IReadOnlyCollection<CountryDto>>();
     }
 
@@ -27,7 +28,8 @@ public class CountryService : ICountryService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
-        var country = await _countryRepository.FirstOrDefaultAsync(c => c.Code == code.ToUpperInvariant(), cancellationToken)
+        var spec = new CountryByCodeSpec(code);
+        var country = await _countryRepository.FirstOrDefaultAsync(spec, cancellationToken)
             ?? throw new AvanciraNotFoundException($"Country '{code}' not found.");
 
         return country.Adapt<CountryDto>();
@@ -38,7 +40,9 @@ public class CountryService : ICountryService
         ArgumentNullException.ThrowIfNull(dto);
 
         var code = dto.Code.ToUpperInvariant();
-        var existing = await _countryRepository.FirstOrDefaultAsync(c => c.Code == code, cancellationToken);
+        var existingSpec = new CountryByCodeSpec(code);
+        var existing = await _countryRepository.FirstOrDefaultAsync(existingSpec, cancellationToken);
+
         if (existing is not null)
         {
             throw new AvanciraException($"Country with code '{code}' already exists.");
@@ -54,26 +58,26 @@ public class CountryService : ICountryService
         await _countryRepository.AddAsync(country, cancellationToken);
         return country.Adapt<CountryDto>();
     }
-
     public async Task<CountryDto> UpdateAsync(CountryUpdateDto dto, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
         var code = dto.Code.ToUpperInvariant();
-        var country = await _countryRepository.FirstOrDefaultAsync(c => c.Code == code, cancellationToken)
+        var spec = new CountryByCodeSpec(code);
+        var country = await _countryRepository.FirstOrDefaultAsync(spec, cancellationToken)
             ?? throw new AvanciraNotFoundException($"Country '{dto.Code}' not found.");
 
         country.Update(dto.Name, dto.CurrencyCode, dto.DialingCode, dto.IsActive);
-
         await _countryRepository.UpdateAsync(country, cancellationToken);
+
         return country.Adapt<CountryDto>();
     }
-
     public async Task DeleteAsync(string code, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
-        var country = await _countryRepository.FirstOrDefaultAsync(c => c.Code == code.ToUpperInvariant(), cancellationToken)
+        var spec = new CountryByCodeSpec(code);
+        var country = await _countryRepository.FirstOrDefaultAsync(spec, cancellationToken)
             ?? throw new AvanciraNotFoundException($"Country '{code}' not found.");
 
         await _countryRepository.DeleteAsync(country, cancellationToken);

@@ -1,50 +1,194 @@
-@model RegisterViewModel
+﻿@model RegisterViewModel
 @{
-    ViewData["Title"] = ViewData["Title"] ?? "Register";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Register";
 }
 
-<form asp-action="Register" method="post">
+<h2 class="text-center mb-4">Create Your Account</h2>
+
+<form asp-action="Register" method="post" novalidate class="needs-validation">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ReturnUrl" />
 
-    <div>
-        <label asp-for="FirstName"></label>
-        <input asp-for="FirstName" />
-        <span asp-validation-for="FirstName"></span>
+    <div class="mb-3">
+        <label asp-for="FirstName" class="form-label"></label>
+        <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
     </div>
-    <div>
-        <label asp-for="LastName"></label>
-        <input asp-for="LastName" />
-        <span asp-validation-for="LastName"></span>
+
+    <div class="mb-3">
+        <label asp-for="LastName" class="form-label"></label>
+        <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
     </div>
-    <div>
-        <label asp-for="UserName"></label>
-        <input asp-for="UserName" />
-        <span asp-validation-for="UserName"></span>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Gender" class="form-label"></label>
+            <select asp-for="Gender" class="form-select">
+                <option value="">Select Gender</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+            </select>
+            <span asp-validation-for="Gender" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="DateOfBirth" class="form-label"></label>
+            <input asp-for="DateOfBirth" type="date" class="form-control" />
+            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+        </div>
     </div>
-    <div>
-        <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" />
-        <span asp-validation-for="Email"></span>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" type="email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
     </div>
-    <div>
-        <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" />
-        <span asp-validation-for="Password"></span>
+
+    <div class="mb-3">
+        <label asp-for="CountryCode" class="form-label"></label>
+        <select asp-for="CountryCode" asp-items="Model.Countries" id="countrySelect" class="form-select">
+            <option value="">Select Country</option>
+        </select>
+        <span asp-validation-for="CountryCode" class="text-danger"></span>
     </div>
-    <div>
-        <label asp-for="ConfirmPassword"></label>
-        <input asp-for="ConfirmPassword" type="password" />
-        <span asp-validation-for="ConfirmPassword"></span>
+
+    <div class="mb-3">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" id="phone" type="tel" class="form-control" />
+        <div id="phone-error" class="text-danger small mt-1"></div>
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
     </div>
-    <div>
-        <input asp-for="AcceptTerms" type="checkbox" />
-        <label asp-for="AcceptTerms"></label>
-        <span asp-validation-for="AcceptTerms"></span>
+
+    <div class="mb-3">
+        <label asp-for="TimeZoneId" class="form-label"></label>
+        <select asp-for="TimeZoneId" asp-items="Model.TimeZones" id="timezoneSelect" class="form-select">
+            <option value="">Select Time Zone</option>
+        </select>
+        <small class="form-text text-muted">We'll detect your local time zone automatically.</small>
+        <span asp-validation-for="TimeZoneId" class="text-danger"></span>
     </div>
-    <button type="submit">Register</button>
+
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" type="password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ConfirmPassword" class="form-label"></label>
+        <input asp-for="ConfirmPassword" type="password" class="form-control" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-2">
+        <input asp-for="RegisterAsTutor" type="checkbox" class="form-check-input" id="RegisterAsTutor" />
+        <label class="form-check-label" for="RegisterAsTutor">Register as Tutor</label>
+    </div>
+
+    <div class="form-check mb-4">
+        <input asp-for="AcceptTerms" type="checkbox" class="form-check-input" id="acceptTerms" />
+        <label class="form-check-label" for="acceptTerms">
+            I agree to the <a href="/terms" target="_blank">Terms &amp; Conditions</a>
+        </label>
+        <span asp-validation-for="AcceptTerms" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Register</button>
 </form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- ✅ intl-tel-input -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/css/intlTelInput.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/js/intlTelInput.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const phoneInput = document.querySelector("#phone");
+            const countrySelect = document.querySelector("#countrySelect");
+            const timezoneSelect = document.querySelector("#timezoneSelect");
+
+            if (!phoneInput || !window.intlTelInput) {
+                console.error("intl-tel-input not found!");
+                return;
+            }
+
+            const iti = window.intlTelInput(phoneInput, {
+                initialCountry: "auto",
+                separateDialCode: true,
+                nationalMode: true, // allow users to type local numbers
+                preferredCountries: ["us", "gb", "au", "eg"],
+                geoIpLookup: (success, failure) => {
+                    fetch("https://ipapi.co/json/")
+                        .then(res => res.json())
+                        .then(data => success(data.country_code))
+                        .catch(() => failure());
+                },
+                loadUtils: () => import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/js/utils.js")
+            });
+
+            // Wait until utils + geo lookup load before running validation
+            iti.promise.then(() => {
+                console.log("✅ intl-tel-input fully initialized");
+
+                // Restore user number if available
+                const existingValue = phoneInput.value?.trim();
+                if (existingValue && existingValue.startsWith("+")) {
+                    iti.setNumber(existingValue);
+                } else {
+                    const country = iti.getSelectedCountryData();
+                    if (countrySelect)
+                        countrySelect.value = country.iso2.toUpperCase();
+                }
+
+                // Add submit handler for server-safe E.164 number
+                phoneInput.form.addEventListener("submit", e => {
+                    const fullNumber = iti.getNumber(); // normalized +E.164 format
+                    const isValid = iti.isValidNumber();
+
+                    if (!isValid) {
+                        e.preventDefault();
+                        const err = iti.getValidationError();
+                        const errors = {
+                            0: "Invalid number.",
+                            1: "Invalid country code.",
+                            2: "Number is too short.",
+                            3: "Number is too long.",
+                            4: "Invalid number."
+                        };
+                        alert(errors[err] || "Invalid phone number.");
+                        return false;
+                    }
+
+                    // Replace with normalized number before form submit
+                    phoneInput.value = fullNumber;
+                });
+            });
+
+            // Auto-detect time zone
+            try {
+                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (tz && timezoneSelect && !timezoneSelect.value)
+                    timezoneSelect.value = tz;
+            } catch { }
+        });
+    </script>
+
+    <style>
+        .iti {
+            width: 100%;
+        }
+
+        .iti__flag-container {
+            border-right: 1px solid #dee2e6;
+        }
+
+        small.form-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+    </style>
 }
