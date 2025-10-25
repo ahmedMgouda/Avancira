@@ -369,4 +369,65 @@ public class AccountController : Controller
         return View();
     }
     #endregion
+
+    #region Complete Profile
+
+    [HttpGet("complete-profile")]
+    public async Task<IActionResult> CompleteProfile(string? returnUrl = null)
+    {
+        var user = await _signInManager.UserManager.GetUserAsync(User);
+        if (user == null)
+            return RedirectToAction(nameof(Login));
+
+        var model = new RegisterViewModel
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email!,
+            Gender = user.Gender,
+            DateOfBirth = user.DateOfBirth,
+            CountryCode = user.CountryCode,
+            PhoneNumber = user.PhoneNumber,
+            TimeZoneId = user.TimeZoneId,
+            ReturnUrl = returnUrl ?? "/connect/authorize",
+            Countries = await GetCountriesAsync(),
+            TimeZones = GetTimeZones(),
+            AcceptTerms = true
+        };
+
+        ViewData["Title"] = "Complete Profile";
+        return View("Register", model);
+    }
+
+    [HttpPost("complete-profile")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CompleteProfile(RegisterViewModel model)
+    {
+        var user = await _signInManager.UserManager.GetUserAsync(User);
+        if (user == null)
+            return RedirectToAction(nameof(Login));
+
+        if (!ModelState.IsValid)
+        {
+            await RebuildListsAsync(model);
+            ViewData["Title"] = "Complete Profile";
+            return View("Register", model);
+        }
+
+        user.FirstName = model.FirstName;
+        user.LastName = model.LastName;
+        user.Gender = model.Gender;
+        user.DateOfBirth = model.DateOfBirth;
+        user.CountryCode = model.CountryCode;
+        user.PhoneNumber = model.PhoneNumber;
+        user.TimeZoneId = model.TimeZoneId;
+
+        await _signInManager.UserManager.UpdateAsync(user);
+
+        TempData["SuccessMessage"] = "Profile completed successfully.";
+        return LocalRedirect(model.ReturnUrl ?? "/connect/authorize");
+    }
+
+    #endregion
+
 }

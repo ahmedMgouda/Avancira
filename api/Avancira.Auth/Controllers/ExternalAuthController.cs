@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Facebook;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authentication.Facebook;
 using Avancira.Infrastructure.Identity.Users;
+using Avancira.Auth.Helpers;
+using Avancira.Shared.Authorization;
 using OpenIddict.Abstractions;
 
 namespace Avancira.Auth.Controllers;
@@ -22,9 +23,6 @@ public class ExternalAuthController : Controller
             FacebookDefaults.AuthenticationScheme
         };
 
-    private const string DefaultReturnUrl = "/";
-    private const string LoginPage = "Login";
-
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly ILogger<ExternalAuthController> _logger;
@@ -39,54 +37,83 @@ public class ExternalAuthController : Controller
         _logger = logger;
     }
 
-    /// <summary>
-    /// Initiates external authentication challenge (called from login page)
-    /// </summary>
     [HttpPost("external-login")]
     [ValidateAntiForgeryToken]
     public IActionResult ExternalLogin([FromForm] string provider, [FromForm] string? returnUrl = null)
     {
         if (string.IsNullOrWhiteSpace(provider) || !AllowedProviders.Contains(provider))
         {
-            _logger.LogWarning("Invalid provider requested: {Provider}", provider);
-            return RedirectToAction(LoginPage, new { error = "invalid_provider", returnUrl });
+            _logger.LogWarning("Invalid external provider: {Provider}", provider);
+            return RedirectToAction("Login", "Account", new { error = "invalid_provider", returnUrl });
         }
 
-        var targetUrl = NormalizeReturnUrl(returnUrl, DefaultReturnUrl);
+        // FIX 1: Ensure the callback URL matches exactly what's configured in AuthenticationExtensions
         var callbackUrl = Url.Action(
             nameof(ExternalCallback),
             "ExternalAuth",
-            new { returnUrl = targetUrl },
-            Request.Scheme)!;
+            new { returnUrl },
+            protocol: Request.Scheme,
+            host: Request.Host.Value)!;
+
+        _logger.LogInformation("External login initiated for {Provider}. Callback URL: {CallbackUrl}", provider, callbackUrl);
 
         var props = _signInManager.ConfigureExternalAuthenticationProperties(provider, callbackUrl);
 
-        _logger.LogInformation("Initiating external login - Provider: {Provider}", provider);
+        // FIX 2: Explicitly set the redirect URI to ensure consistency
+        props.RedirectUri = callbackUrl;
 
         return Challenge(props, provider);
     }
 
-    /// <summary>
-    /// Callback handler after external provider authentication
-    /// </summary>
     [HttpGet("external-callback")]
-    public async Task<IActionResult> ExternalCallback([FromQuery] string? returnUrl = null)
+    public async Task<IActionResult> ExternalCallback([FromQuery] string? returnUrl = null, [FromQuery] string? remoteError = null)
     {
-        var targetUrl = NormalizeReturnUrl(returnUrl, DefaultReturnUrl);
+        _logger.LogInformation(
+            "External callback received. Path: {Path}, Query: {Query}, HasError: {HasError}",
+            HttpContext.Request.Path,
+            HttpContext.Request.QueryString,
+            !string.IsNullOrEmpty(remoteError));
+
+        // FIX 3: Check for remote errors first
+        if (!string.IsNullOrEmpty(remoteError))
+        {
+            _logger.LogWarning("External authentication error: {Error}", remoteError);
+            TempData["ErrorMessage"] = $"Error from external provider: {remoteError}";
+            return RedirectToAction("Login", "Account", new { returnUrl });
+        }
 
         var info = await _signInManager.GetExternalLoginInfoAsync();
-        if (info is null)
+        if (info == null)
         {
-            _logger.LogWarning("External login info not found in callback");
-            return RedirectToAction(LoginPage, new { error = "external_auth_failed", returnUrl = targetUrl });
+            _logger.LogWarning("External login info missing - possible state mismatch or cookie issue");
+
+            // Try to get more details about why it failed
+            var authenticateResult = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
+            if (!authenticateResult.Succeeded)
+            {
+                _logger.LogError(authenticateResult.Failure,
+                    "External authentication failed: {ErrorMessage}",
+                    authenticateResult.Failure?.Message ?? "Unknown");
+            }
+
+            TempData["ErrorMessage"] = "External authentication failed. Please try again.";
+            return RedirectToAction("Login", "Account", new { returnUrl });
         }
 
         _logger.LogInformation(
-            "External callback received - Provider: {Provider}, ProviderKey: {ProviderKey}",
+            "External login callback received. Provider: {Provider}, ProviderKey: {ProviderKey}",
             info.LoginProvider,
             info.ProviderKey);
 
-        // Try to sign in with existing external login
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("Email claim missing from external provider");
+            TempData["ErrorMessage"] = "Email is required from the external provider.";
+            return RedirectToAction("Login", "Account", new { returnUrl });
+        }
+
+        // Try existing login
         var signInResult = await _signInManager.ExternalLoginSignInAsync(
             info.LoginProvider,
             info.ProviderKey,
@@ -95,191 +122,101 @@ public class ExternalAuthController : Controller
 
         if (signInResult.Succeeded)
         {
-            _logger.LogInformation("External login succeeded - Provider: {Provider}", info.LoginProvider);
-            return LocalRedirect(targetUrl);
-        }
+            _logger.LogInformation("External login succeeded for existing user: {Email}", email);
 
-        // Extract and validate email
-        var email = ExtractEmailFromClaims(info.Principal);
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            _logger.LogWarning("No email claim found in external login - Provider: {Provider}", info.LoginProvider);
-            return RedirectToAction(LoginPage, new { error = "email_required", returnUrl = targetUrl });
-        }
-
-        // Get or create user
-        var user = await _userManager.FindByEmailAsync(email);
-
-        if (user is null)
-        {
-            var (success, newUser, errorCode) = await CreateAndLinkExternalUserAsync(info, email);
-            if (!success)
+            var existingUser = await _userManager.FindByEmailAsync(email);
+            if (existingUser != null)
             {
-                _logger.LogError("User creation failed - Error: {Error}", errorCode);
-                return RedirectToAction(LoginPage, new { error = errorCode, returnUrl = targetUrl });
+                // FIX 4: Add session ID claim for existing users
+                await SignInUserWithSessionAsync(existingUser, false);
+
+                if (IsProfileIncomplete(existingUser))
+                {
+                    return RedirectToAction("CompleteProfile", "Account", new { returnUrl });
+                }
             }
 
-            user = newUser!;
-            _logger.LogInformation("Created new user from external login - UserId: {UserId}, Provider: {Provider}",
-                user.Id, info.LoginProvider);
+            return LocalRedirect(returnUrl ?? "/connect/authorize");
+        }
+
+        // Create user if missing
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            user = new User
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                FirstName = info.Principal.FindFirstValue(ClaimTypes.GivenName) ?? "",
+                LastName = info.Principal.FindFirstValue(ClaimTypes.Surname) ?? ""
+            };
+
+            var createResult = await _userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                _logger.LogError("User creation failed: {Errors}",
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                TempData["ErrorMessage"] = "Failed to create user account.";
+                return RedirectToAction("Login", "Account", new { returnUrl });
+            }
+
+            _logger.LogInformation("New user created via external login: {Email}", email);
+            await _userManager.AddLoginAsync(user, info);
         }
         else
         {
-            var (success, errorCode) = await LinkExternalProviderToExistingUserAsync(user, info);
-            if (!success)
-            {
-                _logger.LogError("Failed to link external provider - UserId: {UserId}, Error: {Error}",
-                    user.Id, errorCode);
-                return RedirectToAction(LoginPage, new { error = errorCode, returnUrl = targetUrl });
-            }
+            // User exists but doesn't have this external login
+            await _userManager.AddLoginAsync(user, info);
+            _logger.LogInformation("External login added to existing user: {Email}", email);
         }
 
-        // Sign in user
-        await SignInUserAsync(user);
-        _logger.LogInformation("User signed in successfully - UserId: {UserId}, Provider: {Provider}",
-            user.Id, info.LoginProvider);
+        // FIX 5: Sign in with session ID
+        await SignInUserWithSessionAsync(user, false);
 
-        return LocalRedirect(targetUrl);
+        if (IsProfileIncomplete(user))
+        {
+            return RedirectToAction("CompleteProfile", "Account", new { returnUrl });
+        }
+
+        TempData["SuccessMessage"] = $"Welcome, {user.FirstName ?? user.UserName}!";
+        return LocalRedirect(returnUrl ?? "/connect/authorize");
     }
 
-    /// <summary>
-    /// Creates a new user from external provider information
-    /// </summary>
-    private async Task<(bool Success, User? User, string? ErrorCode)> CreateAndLinkExternalUserAsync(ExternalLoginInfo info, string email)
+    // FIX 6: New method to sign in with session ID (matching AccountController pattern)
+    private async Task SignInUserWithSessionAsync(User user, bool isPersistent)
     {
-        var user = CreateUserFromExternalInfo(info, email);
+        // Generate session ID
+        var sessionId = ClaimsHelper.GenerateSessionId();
 
-        var createResult = await _userManager.CreateAsync(user);
-        if (!createResult.Succeeded)
-        {
-            _logger.LogError("Failed to create user - Errors: {Errors}",
-                string.Join(", ", createResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
-            return (false, null, "user_creation_failed");
-        }
-
-        var addLoginResult = await _userManager.AddLoginAsync(user, info);
-        if (!addLoginResult.Succeeded)
-        {
-            _logger.LogError("Failed to link external login - UserId: {UserId}, Errors: {Errors}",
-                user.Id,
-                string.Join(", ", addLoginResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
-
-            await _userManager.DeleteAsync(user);
-            return (false, null, "login_link_failed");
-        }
-
-        _logger.LogInformation("External login linked - UserId: {UserId}, Provider: {Provider}",
-            user.Id, info.LoginProvider);
-
-        return (true, user, null);
-    }
-
-    /// <summary>
-    /// Links an external provider to an existing user
-    /// </summary>
-    private async Task<(bool Success, string? ErrorCode)> LinkExternalProviderToExistingUserAsync(User user, ExternalLoginInfo info)
-    {
-        var addLoginResult = await _userManager.AddLoginAsync(user, info);
-
-        if (addLoginResult.Succeeded)
-        {
-            _logger.LogInformation("Linked external provider - UserId: {UserId}, Provider: {Provider}",
-                user.Id, info.LoginProvider);
-            return (true, null);
-        }
-
-        var isAlreadyLinked = addLoginResult.Errors
-            .Any(e => e.Code == "LoginAlreadyAssociated");
-
-        if (isAlreadyLinked)
-        {
-            _logger.LogDebug("External provider already linked - UserId: {UserId}, Provider: {Provider}",
-                user.Id, info.LoginProvider);
-            return (true, null);
-        }
-
-        _logger.LogError("Failed to link provider - UserId: {UserId}, Errors: {Errors}",
-            user.Id,
-            string.Join(", ", addLoginResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
-
-        return (false, "login_link_failed");
-    }
-
-    /// <summary>
-    /// Signs in a user with OpenIddict-compatible claims
-    /// </summary>
-    private async Task SignInUserAsync(User user)
-    {
+        // Create principal with all claims
         var principal = await _signInManager.CreateUserPrincipalAsync(user);
         var identity = (ClaimsIdentity)principal.Identity!;
 
+        // Add OpenIddict required claims
         AddOpenIddictClaims(identity, user);
 
-        await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
+        // Add session ID claim
+        identity.AddClaim(new Claim(OidcClaimTypes.SessionId, sessionId));
+
+        // Sign in with proper authentication properties
+        await HttpContext.SignInAsync(
+            IdentityConstants.ApplicationScheme,
+            principal,
+            new AuthenticationProperties
+            {
+                IsPersistent = isPersistent,
+                ExpiresUtc = isPersistent
+                    ? DateTimeOffset.UtcNow.AddDays(30)
+                    : DateTimeOffset.UtcNow.AddHours(8)
+            });
+
+        _logger.LogInformation(
+            "External user signed in - UserId: {UserId}, SessionId: {SessionId}",
+            user.Id,
+            sessionId);
     }
 
-    /// <summary>
-    /// Extracts email from external provider claims with fallbacks
-    /// </summary>
-    private static string? ExtractEmailFromClaims(ClaimsPrincipal principal)
-    {
-        return principal.FindFirstValue(ClaimTypes.Email)
-            ?? principal.FindFirstValue("email")
-            ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress");
-    }
-
-    /// <summary>
-    /// Creates a user from external provider information
-    /// </summary>
-    private static User CreateUserFromExternalInfo(ExternalLoginInfo info, string email)
-    {
-        var name = ExtractNameFromClaims(info.Principal) ?? email.Split('@')[0];
-        var givenName = ExtractGivenNameFromClaims(info.Principal) ?? name;
-        var familyName = ExtractFamilyNameFromClaims(info.Principal) ?? string.Empty;
-
-        return new User
-        {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true,
-            FirstName = givenName,
-            LastName = familyName
-        };
-    }
-
-    /// <summary>
-    /// Extracts full name from claims with fallbacks
-    /// </summary>
-    private static string? ExtractNameFromClaims(ClaimsPrincipal principal)
-    {
-        return principal.FindFirstValue(ClaimTypes.Name)
-            ?? principal.FindFirstValue("name")
-            ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
-    }
-
-    /// <summary>
-    /// Extracts given name from claims with fallbacks
-    /// </summary>
-    private static string? ExtractGivenNameFromClaims(ClaimsPrincipal principal)
-    {
-        return principal.FindFirstValue(ClaimTypes.GivenName)
-            ?? principal.FindFirstValue("given_name")
-            ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname");
-    }
-
-    /// <summary>
-    /// Extracts family name from claims with fallbacks
-    /// </summary>
-    private static string? ExtractFamilyNameFromClaims(ClaimsPrincipal principal)
-    {
-        return principal.FindFirstValue(ClaimTypes.Surname)
-            ?? principal.FindFirstValue("family_name")
-            ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname");
-    }
-
-    /// <summary>
-    /// Adds OpenIddict claims to user identity
-    /// </summary>
     private static void AddOpenIddictClaims(ClaimsIdentity identity, User user)
     {
         AddClaimIfMissing(identity, OpenIddictConstants.Claims.Subject, user.Id);
@@ -294,36 +231,27 @@ public class ExternalAuthController : Controller
             ClaimValueTypes.Boolean);
     }
 
-    /// <summary>
-    /// Adds a claim if it doesn't exist
-    /// </summary>
-    private static void AddClaimIfMissing(
-        ClaimsIdentity identity,
-        string type,
-        string? value,
-        string? valueType = null)
+    private static void AddClaimIfMissing(ClaimsIdentity identity, string type, string? value, string? valueType = null)
     {
         if (string.IsNullOrEmpty(value))
             return;
-
         if (!identity.HasClaim(c => c.Type == type))
         {
             var claim = valueType is null
                 ? new Claim(type, value)
                 : new Claim(type, value, valueType);
-
             identity.AddClaim(claim);
         }
     }
 
-    /// <summary>
-    /// Normalizes return URL to prevent open redirects
-    /// </summary>
-    private string NormalizeReturnUrl(string? returnUrl, string defaultUrl)
+    private static bool IsProfileIncomplete(User user)
     {
-        if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl))
-            return defaultUrl;
-
-        return returnUrl;
+        return string.IsNullOrWhiteSpace(user.FirstName)
+            || string.IsNullOrWhiteSpace(user.LastName)
+            || string.IsNullOrWhiteSpace(user.CountryCode)
+            || string.IsNullOrWhiteSpace(user.PhoneNumber)
+            || string.IsNullOrWhiteSpace(user.TimeZoneId)
+            || user.DateOfBirth is null
+            || string.IsNullOrWhiteSpace(user.Gender);
     }
 }

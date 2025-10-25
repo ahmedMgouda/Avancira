@@ -48,7 +48,7 @@ public partial class Program
         // ============================================================
         // 3️⃣ Authentication & Identity
         // ============================================================
-        builder.Services.AddAuthServerAuthentication();
+        builder.Services.AddAuthServerAuthentication(builder.Environment);
         builder.Services.AddInfrastructureIdentity(builder.Configuration);
         builder.Services.AddScoped<OpenIddictClientSeeder>();
 
@@ -57,7 +57,13 @@ public partial class Program
         // ============================================================
         using var authLoggerFactory = LoggerFactory.Create(cfg => cfg.AddConsole());
         var authLogger = authLoggerFactory.CreateLogger("ExternalAuth");
-        builder.Services.AddExternalAuthentication(builder.Configuration, authLogger);
+
+        // FIX: Pass the environment to configure OAuth cookie security properly
+        builder.Services.AddExternalAuthentication(
+            builder.Configuration,
+            authLogger,
+            builder.Environment);
+
 
         // ============================================================
         // 5️⃣ MVC / JSON

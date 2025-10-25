@@ -2,8 +2,28 @@
 @{
     ViewData["Title"] = "Login";
 }
-
 <h2 class="mb-3">Login</h2>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Context.Request.Query.ContainsKey("error"))
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>Authentication Error:</strong> @Context.Request.Query["error"]
+        @if (Context.Request.Query.ContainsKey("detail"))
+        {
+            <br />
+            <small>Details: @Context.Request.Query["detail"]</small>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 @if (!ViewData.ModelState.IsValid)
 {
@@ -15,40 +35,43 @@
 <form asp-action="Login" method="post" id="loginForm">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ReturnUrl" />
-
     <div class="mb-3">
         <label asp-for="Email" class="form-label"></label>
         <input asp-for="Email" class="form-control @(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "is-invalid" : "")" />
         <span asp-validation-for="Email" class="invalid-feedback"></span>
     </div>
-
     <div class="mb-3">
         <label asp-for="Password" class="form-label"></label>
         <input asp-for="Password" type="password" class="form-control @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "is-invalid" : "")" />
         <span asp-validation-for="Password" class="invalid-feedback"></span>
     </div>
-
     <div class="d-flex justify-content-between align-items-center mb-3">
         <a asp-action="ForgotPassword">Forgot password?</a>
         <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Register</a>
     </div>
-
     <button id="loginButton" type="submit" class="btn btn-primary w-100">
         Log in
     </button>
 </form>
-
 <hr class="my-4" />
-
 <div class="d-grid gap-2">
-    <a class="btn btn-outline-dark" href="/api/auth/external-login?provider=Google&returnUrl=@Model.ReturnUrl">
-        <i class="bi bi-google"></i> Sign in with Google
-    </a>
-    <a class="btn btn-outline-primary" href="/api/auth/external-login?provider=Facebook&returnUrl=@Model.ReturnUrl">
-        <i class="bi bi-facebook"></i> Sign in with Facebook
-    </a>
+    <form asp-controller="ExternalAuth" asp-action="ExternalLogin" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="provider" value="Google" />
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button type="submit" class="btn btn-outline-dark w-100">
+            <i class="bi bi-google"></i> Sign in with Google
+        </button>
+    </form>
+    <form asp-controller="ExternalAuth" asp-action="ExternalLogin" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="provider" value="Facebook" />
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button type="submit" class="btn btn-outline-primary w-100">
+            <i class="bi bi-facebook"></i> Sign in with Facebook
+        </button>
+    </form>
 </div>
-
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>

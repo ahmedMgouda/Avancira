@@ -19,18 +19,20 @@ public static class AuthenticationExtensions
     private static readonly TimeSpan ExternalCookieLifetime = TimeSpan.FromMinutes(15);
 
     /// <summary>
-    /// CHANGE 1: Renamed from AddAuthServerAuthentication to be more descriptive
     /// Configures Identity cookie authentication for the Auth server
     /// </summary>
-    public static IServiceCollection AddAuthServerAuthentication(this IServiceCollection services)
+    public static IServiceCollection AddAuthServerAuthentication(
+        this IServiceCollection services,
+        IWebHostEnvironment? environment = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // CHANGE 2: Removed redundant AddAuthentication call
-        // Identity.AddIdentity() already registers authentication services
-        // We only need to configure the cookies here
-
         services.AddAuthorization();
+
+        // Determine secure policy based on environment
+        var securePolicy = environment?.EnvironmentName == "Development" 
+            ? CookieSecurePolicy.SameAsRequest 
+            : CookieSecurePolicy.Always;
 
         // Configure the main application cookie (used after login)
         services.ConfigureApplicationCookie(options =>
@@ -39,16 +41,11 @@ public static class AuthenticationExtensions
             options.LoginPath = "/account/login";
             options.LogoutPath = "/account/logout";
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-
-            // CHANGE 3: SameSite.Lax is correct for auth server
-            // Allows the cookie to be sent with top-level navigations
+            options.Cookie.SecurePolicy = securePolicy;
             options.Cookie.SameSite = SameSiteMode.Lax;
 
             options.SlidingExpiration = true;
             options.ExpireTimeSpan = ApplicationCookieLifetime;
-
-            // CHANGE 4: Added access denied path
             options.AccessDeniedPath = "/account/access-denied";
         });
 
@@ -58,7 +55,7 @@ public static class AuthenticationExtensions
             options.Cookie.Name = ExternalCookieName;
             options.ExpireTimeSpan = ExternalCookieLifetime;
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SecurePolicy = securePolicy;
             options.Cookie.SameSite = SameSiteMode.Lax;
         });
 
@@ -66,20 +63,23 @@ public static class AuthenticationExtensions
     }
 
     /// <summary>
-    /// CHANGE 5: Fixed the AuthenticationBuilder initialization
-    /// Original code created a new AuthenticationBuilder which doesn't work properly
+    /// Configures external authentication providers (Google, Facebook)
     /// </summary>
     public static AuthenticationBuilder AddExternalAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
-        ILogger logger)
+        ILogger logger,
+        IWebHostEnvironment? environment = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // CHANGE 6: Get the existing AuthenticationBuilder instead of creating new one
-        // This ensures external providers are added to the same authentication system
         var builder = services.AddAuthentication();
+
+        // Determine secure policy based on environment
+        var securePolicy = environment?.EnvironmentName == "Development" 
+            ? CookieSecurePolicy.SameAsRequest 
+            : CookieSecurePolicy.Always;
 
         // ---- Google Configuration ----
         var googleSection = configuration.GetSection("Avancira:ExternalServices:Google");
@@ -93,12 +93,21 @@ public static class AuthenticationExtensions
                 // Bind all configuration from appsettings
                 googleSection.Bind(o);
 
-                // CHANGE 7: Explicitly set SignInScheme
-                // This tells Google where to store the external login info
+                // FIX 1: Ensure callback path is exactly as configured in Google Console
+                o.CallbackPath = "/account/external-callback";
+                
+                // FIX 2: Configure correlation cookie with environment-aware settings
+                o.CorrelationCookie.Name = ".Avancira.Correlation.Google";
+                o.CorrelationCookie.Path = "/";
+                o.CorrelationCookie.SameSite = SameSiteMode.None; // Changed to None for OAuth
+                o.CorrelationCookie.HttpOnly = true;
+                o.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                o.CorrelationCookie.IsEssential = true;
+
                 o.SignInScheme = IdentityConstants.ExternalScheme;
                 o.SaveTokens = true;
 
-                // CHANGE 8: Ensure required scopes are present
+                // Ensure required scopes are present
                 if (!o.Scope.Contains("email"))
                 {
                     o.Scope.Add("email");
@@ -109,11 +118,52 @@ public static class AuthenticationExtensions
                     o.Scope.Add("profile");
                 }
 
-                // CHANGE 9: Add claim mapping for better compatibility
+                // Add claim mapping for better compatibility
                 o.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                 o.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
                 o.ClaimActions.MapJsonKey(ClaimTypes.GivenName, "given_name");
                 o.ClaimActions.MapJsonKey(ClaimTypes.Surname, "family_name");
+
+                // FIX 3: Add event handlers for better debugging
+                o.Events.OnRemoteFailure = context =>
+                {
+                    var errorMessage = context.Failure?.Message ?? "Unknown error";
+                    var errorType = context.Failure?.GetType().Name ?? "Unknown";
+                    
+                    logger.LogError(context.Failure, 
+                        "Google authentication failed. Error Type: {ErrorType}, Message: {Message}, " +
+                        "Request Path: {Path}, Query: {Query}", 
+                        errorType, 
+                        errorMessage,
+                        context.Request.Path,
+                        context.Request.QueryString);
+                    
+                    // Log inner exception if exists
+                    if (context.Failure?.InnerException != null)
+                    {
+                        logger.LogError(context.Failure.InnerException, 
+                            "Inner exception: {InnerMessage}", 
+                            context.Failure.InnerException.Message);
+                    }
+                    
+                    context.Response.Redirect($"/account/login?error=google_failed&detail={Uri.EscapeDataString(errorMessage)}");
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                };
+
+                o.Events.OnTicketReceived = context =>
+                {
+                    logger.LogInformation("Google authentication ticket received for {Email}", 
+                        context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "unknown");
+                    return Task.CompletedTask;
+                };
+                
+                o.Events.OnCreatingTicket = context =>
+                {
+                    logger.LogInformation("Creating ticket for Google user. AccessToken exists: {HasToken}", 
+                        !string.IsNullOrEmpty(context.AccessToken));
+                    return Task.CompletedTask;
+                };
             });
 
             logger.LogInformation("Google authentication configured successfully");
@@ -136,26 +186,52 @@ public static class AuthenticationExtensions
             {
                 facebookSection.Bind(o);
 
+                o.CallbackPath = "/account/external-callback";
+                
+                // Configure correlation cookie
+                o.CorrelationCookie.Name = ".Avancira.Correlation.Facebook";
+                o.CorrelationCookie.Path = "/";
+                o.CorrelationCookie.SameSite = SameSiteMode.Lax;
+                o.CorrelationCookie.HttpOnly = true;
+                o.CorrelationCookie.SecurePolicy = securePolicy;
+                o.CorrelationCookie.IsEssential = true;
+
                 o.SignInScheme = IdentityConstants.ExternalScheme;
                 o.SaveTokens = true;
 
-                // CHANGE 10: Facebook requires explicit email scope and field
+                // Facebook requires explicit email scope and field
                 if (!o.Scope.Contains("email"))
                 {
                     o.Scope.Add("email");
                 }
 
-                // CHANGE 11: Request specific fields from Facebook Graph API
+                // Request specific fields from Facebook Graph API
                 o.Fields.Add("email");
                 o.Fields.Add("name");
                 o.Fields.Add("first_name");
                 o.Fields.Add("last_name");
 
-                // CHANGE 12: Map Facebook claims to standard claim types
+                // Map Facebook claims to standard claim types
                 o.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                 o.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
                 o.ClaimActions.MapJsonKey(ClaimTypes.GivenName, "first_name");
                 o.ClaimActions.MapJsonKey(ClaimTypes.Surname, "last_name");
+
+                // Add event handlers for debugging
+                o.Events.OnRemoteFailure = context =>
+                {
+                    logger.LogError(context.Failure, "Facebook authentication failed");
+                    context.Response.Redirect("/account/login?error=facebook_failed");
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                };
+
+                o.Events.OnTicketReceived = context =>
+                {
+                    logger.LogInformation("Facebook authentication ticket received for {Email}", 
+                        context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "unknown");
+                    return Task.CompletedTask;
+                };
             });
 
             logger.LogInformation("Facebook authentication configured successfully");
