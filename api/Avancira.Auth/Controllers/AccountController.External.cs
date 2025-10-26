@@ -1,5 +1,4 @@
-﻿using Avancira.Application.Identity.Users.Abstractions;
-using Avancira.Application.Identity.Users.Dtos;
+﻿using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Auth.Models.Account;
 using Avancira.Infrastructure.Identity.Users;
 using Microsoft.AspNetCore.Authentication;
@@ -8,14 +7,13 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using OpenIddict.Abstractions;
 using System.Security.Claims;
 
 namespace Avancira.Auth.Controllers;
 
 [AllowAnonymous]
-[Route("account")]
-public partial class ExternalAuthController : Controller
+[Route("account/external")]
+public partial class AccountController : Controller
 {
     private static readonly HashSet<string> AllowedProviders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -23,29 +21,18 @@ public partial class ExternalAuthController : Controller
         FacebookDefaults.AuthenticationScheme
     };
 
-    private readonly SignInManager<User> _signInManager;
-    private readonly IUserService _userService;
-    private readonly ILogger<ExternalAuthController> _logger;
-
-    public ExternalAuthController(SignInManager<User> signInManager, IUserService userService, ILogger<ExternalAuthController> logger)
-    {
-        _signInManager = signInManager;
-        _userService = userService;
-        _logger = logger;
-    }
-
     // =============================================================
     //  INITIATE EXTERNAL LOGIN
     // =============================================================
 
-    [HttpPost("external-login")]
+    [HttpPost("login")]
     [ValidateAntiForgeryToken]
     public IActionResult ExternalLogin([FromForm] string provider, [FromForm] string? returnUrl = null)
     {
         if (string.IsNullOrWhiteSpace(provider) || !AllowedProviders.Contains(provider))
         {
             _logger.LogWarning("Invalid external provider: {Provider}", provider);
-            return RedirectToAction("Login", "Account", new { error = "invalid_provider" });
+            return RedirectToAction(nameof(Login), new { error = "invalid_provider" });
         }
 
         var redirectUrl = Url.Action(nameof(ExternalCallback), new { returnUrl });
@@ -59,7 +46,7 @@ public partial class ExternalAuthController : Controller
     //  CALLBACK FROM PROVIDER
     // =============================================================
 
-    [HttpGet("external-callback")]
+    [HttpGet("callback")]
     public async Task<IActionResult> ExternalCallback([FromQuery] string? returnUrl = null)
     {
         returnUrl ??= "/connect/authorize";
@@ -71,7 +58,7 @@ public partial class ExternalAuthController : Controller
         {
             _logger.LogWarning("External login info was null.");
             TempData["ErrorMessage"] = "External authentication failed. Please try again.";
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction(nameof(Login));
         }
 
         var email = info.Principal.FindFirstValue(ClaimTypes.Email);
@@ -81,7 +68,7 @@ public partial class ExternalAuthController : Controller
         if (string.IsNullOrEmpty(email))
         {
             TempData["ErrorMessage"] = "Email permission is required.";
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction(nameof(Login));
         }
 
         // Step 1: Already linked
@@ -109,7 +96,7 @@ public partial class ExternalAuthController : Controller
         TempData["LastName"] = lastName ?? "";
         TempData["ReturnUrl"] = returnUrl;
 
-        return RedirectToAction("CompleteProfile", "ExternalAuth");
+        return RedirectToAction(nameof(CompleteProfile));
     }
 
     // =============================================================
