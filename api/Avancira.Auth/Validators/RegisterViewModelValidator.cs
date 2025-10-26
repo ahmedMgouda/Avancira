@@ -4,11 +4,11 @@ using PhoneNumbers;
 
 namespace Avancira.Auth.Validators;
 
-public class CompleteProfileViewModelValidator : AbstractValidator<CompleteProfileViewModel>
+public class RegisterViewModelValidator : AbstractValidator<RegisterViewModel>
 {
     private static readonly PhoneNumberUtil PhoneUtil = PhoneNumberUtil.GetInstance();
 
-    public CompleteProfileViewModelValidator()
+    public RegisterViewModelValidator()
     {
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("First name is required.")
@@ -22,6 +22,11 @@ public class CompleteProfileViewModelValidator : AbstractValidator<CompleteProfi
             .Matches("^(Male|Female|Other)?$")
             .When(x => !string.IsNullOrEmpty(x.Gender))
             .WithMessage("Invalid gender selection.");
+
+        RuleFor(x => x.DateOfBirth)
+            .NotNull().WithMessage("Date of birth is required.")
+            .LessThan(DateOnly.FromDateTime(DateTime.UtcNow))
+            .WithMessage("Date of birth must be in the past.");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email address is required.")
@@ -39,24 +44,24 @@ public class CompleteProfileViewModelValidator : AbstractValidator<CompleteProfi
         RuleFor(x => x.TimeZoneId)
             .NotEmpty().WithMessage("Time zone is required.");
 
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Password is required.")
+            .MinimumLength(6).WithMessage("Password must be at least 6 characters long.");
+
+        RuleFor(x => x.ConfirmPassword)
+            .Equal(x => x.Password).WithMessage("Passwords do not match.");
+
         RuleFor(x => x.AcceptTerms)
             .Equal(true).WithMessage("You must accept the terms and conditions.");
-
-        RuleFor(x => x.Provider)
-            .NotEmpty().WithMessage("External provider information is missing.");
-
-        RuleFor(x => x.ProviderKey)
-            .NotEmpty().WithMessage("External provider key is missing.");
     }
 
-    private static bool BeValidInternationalNumber(string? phone)
+    private bool BeValidInternationalNumber(string? phone)
     {
-        if (string.IsNullOrWhiteSpace(phone))
-            return false;
+        if (string.IsNullOrWhiteSpace(phone)) return false;
 
         try
         {
-            var parsed = PhoneUtil.Parse(phone, null);
+            var parsed = PhoneUtil.Parse(phone, null); // Accepts +E.164 input
             return PhoneUtil.IsValidNumber(parsed);
         }
         catch

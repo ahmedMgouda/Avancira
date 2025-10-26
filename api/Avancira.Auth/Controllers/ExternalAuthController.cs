@@ -153,11 +153,11 @@ public partial class ExternalAuthController : Controller
                 RegisterAsTutor = false
             };
 
-            var user = await _userService.RegisterExternalAsync(dto, HttpContext.RequestAborted);
+            var result = await _userService.RegisterExternalAsync(dto, HttpContext.RequestAborted);
 
-            await _userService.LinkExternalLoginAsync(user.Id, model.Provider!, model.ProviderKey!);
+            await _userService.LinkExternalLoginAsync(result.UserId, model.Provider!, model.ProviderKey!);
 
-            await SignInUserAsync(user.Id);
+            await SignInUserAsync(result.UserId);
 
             return LocalRedirect(model.ReturnUrl ?? "/connect/authorize");
         }
@@ -178,7 +178,7 @@ public partial class ExternalAuthController : Controller
         var user = await _userService.GetAsync(userId, HttpContext.RequestAborted);
         var principal = await _signInManager.CreateUserPrincipalAsync(new User
         {
-            Id = user.Id,
+            Id = user.Id.ToString(),
             Email = user.Email,
             UserName = user.Email
         });

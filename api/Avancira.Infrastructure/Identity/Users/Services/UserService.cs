@@ -85,7 +85,7 @@ internal sealed partial class UserService(
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
-                ProfileImageUrl = user.ProfileImageUrl,
+                ProfileImageUrl = user.ProfileImageUrl?.ToString(),
                 Roles = roles.ToArray(),
                 ActiveProfile = user.UserPreference?.ActiveProfile ?? "student",
                 HasAdminAccess = roles.Contains(SeedDefaults.Roles.Admin),
@@ -96,7 +96,7 @@ internal sealed partial class UserService(
                         IsActive = user.TutorProfile.IsActive,
                         IsVerified = user.TutorProfile.IsVerified,
                         IsComplete = user.TutorProfile.IsComplete,
-                        ShowReminder = user.TutorProfile.ShowReminder
+                        ShowReminder = user.TutorProfile.ShowTutorProfileReminder
                     }
                     : null,
 
@@ -104,10 +104,9 @@ internal sealed partial class UserService(
                     ? new StudentProfileSummaryDto
                     {
                         CanBook = user.StudentProfile.CanBook,
-                        SubscriptionStatus = user.StudentProfile.SubscriptionStatus ?? "Inactive",
-                        SubscriptionEndsOnUtc = user.StudentProfile.SubscriptionEndsOnUtc,
+                        SubscriptionStatus = user.StudentProfile.SubscriptionStatus.ToString(),
                         IsComplete = user.StudentProfile.IsComplete,
-                        ShowReminder = user.StudentProfile.ShowReminder
+                        ShowReminder = user.StudentProfile.ShowStudentProfileReminder
                     }
                     : null
             };

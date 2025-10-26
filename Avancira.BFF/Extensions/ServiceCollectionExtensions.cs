@@ -234,7 +234,7 @@ public static class ServiceCollectionExtensions
         .AddPolicyHandler(GetRetryPolicy())
         .AddPolicyHandler(GetCircuitBreakerPolicy());
 
-        services.AddScoped<AuthServerClient>();
+        services.AddScoped<ApiClient>();
 
         return services;
     }
