@@ -18,41 +18,32 @@ public class CompleteProfileViewModelValidator : AbstractValidator<CompleteProfi
             .NotEmpty().WithMessage("Last name is required.")
             .MaximumLength(100).WithMessage("Last name cannot exceed 100 characters.");
 
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email is required.")
+            .EmailAddress().WithMessage("Invalid email format.");
+
+        RuleFor(x => x.CountryCode)
+            .NotEmpty().WithMessage("Country selection is required.")
+            .Length(2).WithMessage("Invalid country code format.");
+
+        RuleFor(x => x.TimeZoneId)
+            .NotEmpty().WithMessage("Time zone selection is required.");
+
         RuleFor(x => x.Gender)
             .Matches("^(Male|Female|Other)?$")
             .When(x => !string.IsNullOrEmpty(x.Gender))
             .WithMessage("Invalid gender selection.");
 
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email address is required.")
-            .EmailAddress().WithMessage("Please enter a valid email address.");
-
-        RuleFor(x => x.CountryCode)
-            .NotEmpty().WithMessage("Country is required.")
-            .Length(2).WithMessage("Invalid country code format.");
-
         RuleFor(x => x.PhoneNumber)
-            .NotEmpty().WithMessage("Phone number is required.")
             .Must(BeValidInternationalNumber)
+            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
             .WithMessage("Please enter a valid international phone number (e.g. +14155552671).");
-
-        RuleFor(x => x.TimeZoneId)
-            .NotEmpty().WithMessage("Time zone is required.");
-
-        RuleFor(x => x.AcceptTerms)
-            .Equal(true).WithMessage("You must accept the terms and conditions.");
-
-        RuleFor(x => x.Provider)
-            .NotEmpty().WithMessage("External provider information is missing.");
-
-        RuleFor(x => x.ProviderKey)
-            .NotEmpty().WithMessage("External provider key is missing.");
     }
 
-    private static bool BeValidInternationalNumber(string? phone)
+    private bool BeValidInternationalNumber(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone))
-            return false;
+            return true;
 
         try
         {

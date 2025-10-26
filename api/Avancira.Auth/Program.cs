@@ -15,20 +15,17 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
-
-
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 
         var builder = WebApplication.CreateBuilder(args);
 
         // ============================================================
-        // 1️⃣ Add Infrastructure (no Hangfire started yet)
+        // 1️⃣ Add Infrastructure
         // ============================================================
         builder.AddAvanciraInfrastructure();
 
         // ============================================================
-        // 2️⃣ Configure Database (local or Aspire mode)
+        // 2️⃣ Configure Database
         // ============================================================
         var isAspire = builder.Configuration.GetConnectionString("avancira") is not null ||
                        builder.Environment.IsDevelopment();
@@ -53,17 +50,15 @@ public partial class Program
         builder.Services.AddScoped<OpenIddictClientSeeder>();
 
         // ============================================================
-        // 4️⃣ External Providers (Google, Facebook, etc.)
+        // 4️⃣ External Providers (Google, Facebook)
         // ============================================================
         using var authLoggerFactory = LoggerFactory.Create(cfg => cfg.AddConsole());
         var authLogger = authLoggerFactory.CreateLogger("ExternalAuth");
 
-        // FIX: Pass the environment to configure OAuth cookie security properly
         builder.Services.AddExternalAuthentication(
             builder.Configuration,
             authLogger,
             builder.Environment);
-
 
         // ============================================================
         // 5️⃣ MVC / JSON
@@ -75,10 +70,9 @@ public partial class Program
                     new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
 
-
         builder.Services.AddMemoryCache();
 
-        // Add FluentValidation
+        // FluentValidation
         builder.Services.AddValidatorsFromAssemblyContaining<RegisterViewModelValidator>();
         builder.Services.AddFluentValidationAutoValidation();
         builder.Services.AddFluentValidationClientsideAdapters();
@@ -86,7 +80,7 @@ public partial class Program
         var app = builder.Build();
 
         // ============================================================
-        // 6️⃣ Run Database Initialization FIRST (migrations + seeding)
+        // 6️⃣ Run Database Initialization
         // ============================================================
         using (var scope = app.Services.CreateScope())
         {
@@ -95,21 +89,36 @@ public partial class Program
         }
 
         // ============================================================
-        // 8️⃣ Middleware Pipeline
+        // 7️⃣ Middleware Pipeline - ✅ CORRECT ORDER
         // ============================================================
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+        else
+        {
+            app.UseExceptionHandler("/Home/Error");
+            app.UseHsts();
+        }
+
         app.UseHttpsRedirection();
+        app.UseStaticFiles();
+
+        // ✅ CRITICAL: UseRouting MUST come before Authentication
         app.UseRouting();
-        app.UseCorsPolicy();
+
+        // ✅ Authentication middleware order is critical
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // ✅ Map controllers AFTER authentication
         app.MapControllers();
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
 
         // ============================================================
-        // 9️⃣ Logging Info
+        // 8️⃣ Logging Info
         // ============================================================
         app.Logger.LogInformation("✅ Avancira Auth Server Started");
         app.Logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);

@@ -3,7 +3,6 @@ using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Auth.Helpers;
 using Avancira.Auth.Models.Account;
-using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Shared.Authorization;
 using Microsoft.AspNetCore.Authentication;
@@ -12,12 +11,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
-using PhoneNumbers;
 using System.Security.Claims;
 using TimeZoneConverter;
-using static Pipelines.Sockets.Unofficial.SocketConnection;
 using IdentityConstants = Microsoft.AspNetCore.Identity.IdentityConstants;
 
 namespace Avancira.Auth.Controllers;
@@ -26,7 +22,7 @@ namespace Avancira.Auth.Controllers;
 [AutoValidateAntiforgeryToken]
 [Route("account")]
 [Produces("text/html")]
-public class AccountController : Controller
+public partial class AccountController : Controller
 {
     private readonly SignInManager<User> _signInManager;
     private readonly IUserService _userService;
@@ -35,6 +31,8 @@ public class AccountController : Controller
     private readonly ICountryService _countryService;
 
     private static readonly TimeSpan ResetCooldown = TimeSpan.FromSeconds(30);
+    private static readonly string CountryCacheKey = "cached_countries";
+    private static readonly string TimeZoneCacheKey = "cached_timezones";
 
     public AccountController(
         SignInManager<User> signInManager,
@@ -50,85 +48,49 @@ public class AccountController : Controller
         _countryService = countryService;
     }
 
-    #region Login
+    // =============================================================
+    //  LOGIN
+    // =============================================================
 
     [HttpGet("login")]
     public IActionResult Login(string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
-        {
             return LocalRedirect(returnUrl ?? "/connect/authorize");
-        }
 
-        var model = new LoginViewModel
-        {
-            ReturnUrl = returnUrl ?? "/connect/authorize"
-        };
-
-        ViewData["Title"] = "Login";
-        return View(model);
+        return View(new LoginViewModel { ReturnUrl = returnUrl ?? "/connect/authorize" });
     }
-
 
     [HttpPost("login")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        var returnUrl = model.ReturnUrl ?? "/connect/authorize";
-
         if (!ModelState.IsValid)
-        {
-            ViewData["Title"] = "Login";
             return View(model);
-        }
 
-        // Find user by email
-        var user = await _signInManager.UserManager.FindByEmailAsync(model.Email);
-        if (user == null || !await _signInManager.UserManager.CheckPasswordAsync(user, model.Password))
+        var returnUrl = SanitizeReturnUrl(model.ReturnUrl);
+        var userDto = await _userService.GetByEmailAsync(model.Email, HttpContext.RequestAborted);
+
+        if (userDto == null)
         {
-            _logger.LogWarning("Failed login attempt for {Email}", model.Email);
             ModelState.AddModelError(string.Empty, UiMessages.InvalidCredentials);
-            ViewData["Title"] = "Login";
             return View(model);
         }
 
-        // Check if account is locked
-        if (await _signInManager.UserManager.IsLockedOutAsync(user))
+        // Use ASP.NET Identity for password verification
+        var user = new User { Id = userDto.Id, Email = userDto.Email, UserName = userDto.Email };
+        var isValid = await _signInManager.UserManager.CheckPasswordAsync(user, model.Password);
+
+        if (!isValid)
         {
-            _logger.LogWarning("Login attempt for locked account: {UserId}", user.Id);
-            ModelState.AddModelError(string.Empty, UiMessages.LockedAccount);
-            ViewData["Title"] = "Login";
+            ModelState.AddModelError(string.Empty, UiMessages.InvalidCredentials);
             return View(model);
         }
 
-
-        // Check if user can sign in
-        if (!await _signInManager.CanSignInAsync(user))
-        {
-            _logger.LogWarning("User {UserId} cannot sign in", user.Id);
-            ModelState.AddModelError(string.Empty, "Sign-in not allowed for this account.");
-            ViewData["Title"] = "Login";
-            return View(model);
-        }
-
-        // Create session ID
         var sessionId = ClaimsHelper.GenerateSessionId();
-
-        // Create principal
         var principal = await _signInManager.CreateUserPrincipalAsync(user);
+        ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim(OidcClaimTypes.SessionId, sessionId));
 
-        var identity = (ClaimsIdentity)principal.Identity!;
-
-        // Add session ID claim to the principal
-        // OpenIddict will read this claim and include it in tokens
-
-        identity.AddClaim(new Claim(
-            OidcClaimTypes.SessionId,
-            sessionId
-        ));
-
-        // Sign in to ASP.NET Core Identity
-        // This creates the auth server's own cookie
         await HttpContext.SignInAsync(
             IdentityConstants.ApplicationScheme,
             principal,
@@ -140,19 +102,15 @@ public class AccountController : Controller
                     : DateTimeOffset.UtcNow.AddHours(8)
             });
 
-        _logger.LogInformation(
-                   "User logged in - UserId: {UserId}, SessionId: {SessionId}, RememberMe: {RememberMe}",
-                   user.Id,
-                   sessionId,
-                   model.RememberMe);
+        _logger.LogInformation("User logged in: {UserId}", user.Id);
+        TempData["SuccessMessage"] = $"Welcome back, {userDto.FirstName ?? userDto.Email}!";
 
-        TempData["SuccessMessage"] = $"Welcome back, {user.FirstName ?? user.UserName}!";
         return LocalRedirect(returnUrl);
     }
 
-    #endregion
-
-    #region Register
+    // =============================================================
+    //  REGISTER
+    // =============================================================
 
     [HttpGet("register")]
     public async Task<IActionResult> Register(string? returnUrl = null)
@@ -160,10 +118,9 @@ public class AccountController : Controller
         var model = new RegisterViewModel
         {
             ReturnUrl = returnUrl ?? "/connect/authorize",
-            Countries = await GetCountriesAsync(),
-            TimeZones = GetTimeZones()
+            Countries = await GetCachedCountriesAsync(),
+            TimeZones = GetCachedTimeZones()
         };
-
         return View(model);
     }
 
@@ -173,19 +130,6 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid)
         {
-            await RebuildListsAsync(model);
-            return View(model);
-        }
-
-        try
-        {
-            var phoneUtil = PhoneNumberUtil.GetInstance();
-            var parsed = phoneUtil.Parse(model.PhoneNumber, null);
-            model.PhoneNumber = phoneUtil.Format(parsed, PhoneNumberFormat.E164);
-        }
-        catch (NumberParseException)
-        {
-            ModelState.AddModelError(nameof(model.PhoneNumber), "Invalid phone number format.");
             await RebuildListsAsync(model);
             return View(model);
         }
@@ -207,227 +151,83 @@ public class AccountController : Controller
         };
 
         await _userService.RegisterAsync(dto, $"{Request.Scheme}://{Request.Host}", HttpContext.RequestAborted);
+
         TempData["SuccessMessage"] = "Your account has been created successfully.";
         return RedirectToAction(nameof(Login));
     }
 
-    private async Task RebuildListsAsync(RegisterViewModel model)
-    {
-        model.Countries = await GetCountriesAsync();
-        model.TimeZones = GetTimeZones();
-    }
-
-    private async Task<IEnumerable<SelectListItem>> GetCountriesAsync()
-    {
-        var countries = await _countryService.GetAllAsync();
-        return countries
-            .OrderBy(c => c.Name)
-            .Select(c => new SelectListItem(c.Name, c.Code));
-    }
-
-    private static IEnumerable<SelectListItem> GetTimeZones()
-    {
-        // Load IANA time zones (portable across OS)
-        var ianaZones = TZConvert.KnownIanaTimeZoneNames
-            .Select(id =>
-            {
-                try
-                {
-                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(id);
-                    var offset = tzInfo.BaseUtcOffset;
-                    var sign = offset >= TimeSpan.Zero ? "+" : "-";
-                    var hours = Math.Abs(offset.Hours).ToString("00");
-                    var minutes = Math.Abs(offset.Minutes).ToString("00");
-
-                    // Extract region and city (e.g., "Africa/Cairo" → Region="Africa", City="Cairo")
-                    var parts = id.Split('/');
-                    string display;
-
-                    if (parts.Length == 2)
-                    {
-                        var region = parts[0].Replace('_', ' ');
-                        var city = parts[1].Replace('_', ' ');
-                        display = $"{city} ({region}) (UTC{sign}{hours}:{minutes})";
-                    }
-                    else
-                    {
-                        // fallback for single-part names
-                        display = $"{id.Replace('_', ' ')} (UTC{sign}{hours}:{minutes})";
-                    }
-
-                    return new SelectListItem(display, id);
-                }
-                catch
-                {
-                    // skip invalid or unmapped zones (e.g. Antarctica/Troll on Windows)
-                    return null;
-                }
-            })
-            .Where(x => x != null)
-            .OrderBy(x =>
-            {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById(x!.Value!);
-                return tz.BaseUtcOffset;
-            })
-            .ThenBy(x => x!.Text)
-            .ToList()!;
-
-        return ianaZones!;
-    }
-    #endregion
-
-
-    #region Forgot Password
-
-    [HttpGet("forgot-password")]
-    public IActionResult ForgotPassword()
-    {
-        ViewData["Title"] = "Forgot Password";
-        return View(new ForgotPasswordViewModel());
-    }
-
-    [HttpPost("forgot-password")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            ViewData["Title"] = "Forgot Password";
-            return View(model);
-        }
-
-        // Rate limiting to prevent abuse
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var cacheKey = $"pwreset:{model.Email}:{ip}";
-        var now = DateTimeOffset.UtcNow;
-
-        if (_cache.TryGetValue(cacheKey, out DateTimeOffset lastAttempt))
-        {
-            var elapsed = now - lastAttempt;
-            if (elapsed < ResetCooldown)
-            {
-                var waitSeconds = (int)(ResetCooldown - elapsed).TotalSeconds;
-                ModelState.AddModelError(
-                    string.Empty,
-                    $"Please wait {waitSeconds} seconds before retrying.");
-
-                ViewData["Title"] = "Forgot Password";
-                return View(model);
-            }
-        }
-
-        try
-        {
-            await _userService.ForgotPasswordAsync(
-                new ForgotPasswordDto { Email = model.Email },
-                HttpContext.RequestAborted);
-
-            _cache.Set(cacheKey, now, ResetCooldown);
-            _logger.LogInformation("Password reset requested for {Email}", model.Email);
-
-            TempData["SuccessMessage"] = UiMessages.PasswordResetSent;
-        }
-        catch (Exception ex)
-        {
-            // Don't reveal if email exists (security best practice)
-            _logger.LogWarning(ex, "Password reset attempt for {Email}", model.Email);
-            TempData["SuccessMessage"] = UiMessages.PasswordResetSent;
-        }
-
-        return RedirectToAction(nameof(Login));
-    }
-
-    #endregion
-
-    #region Logout
+    // =============================================================
+    //  LOGOUT
+    // =============================================================
 
     [HttpPost("logout")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var sessionId = User.FindFirstValue(OidcClaimTypes.SessionId);
 
         await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
 
-        _logger.LogInformation(
-            "User logged out - UserId: {UserId}, SessionId: {SessionId}",
-            userId,
-            sessionId);
-
+        _logger.LogInformation("User logged out - UserId: {UserId}", userId);
         TempData["SuccessMessage"] = "You have been logged out successfully.";
+
         return RedirectToAction(nameof(Login));
     }
-    #endregion
 
-    #region Access Denied
+    // =============================================================
+    //  HELPERS
+    // =============================================================
 
-    [HttpGet("access-denied")]
-    public IActionResult AccessDenied()
+    private static string SanitizeReturnUrl(string? returnUrl)
+        => string.IsNullOrWhiteSpace(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
+            ? "/connect/authorize"
+            : returnUrl;
+
+    private async Task<IEnumerable<SelectListItem>> GetCachedCountriesAsync()
     {
-        ViewData["Title"] = "Access Denied";
-        return View();
-    }
-    #endregion
-
-    #region Complete Profile
-
-    [HttpGet("complete-profile")]
-    public async Task<IActionResult> CompleteProfile(string? returnUrl = null)
-    {
-        var user = await _signInManager.UserManager.GetUserAsync(User);
-        if (user == null)
-            return RedirectToAction(nameof(Login));
-
-        var model = new RegisterViewModel
+        if (!_cache.TryGetValue(CountryCacheKey, out IEnumerable<SelectListItem>? countries))
         {
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email!,
-            Gender = user.Gender,
-            DateOfBirth = user.DateOfBirth,
-            CountryCode = user.CountryCode,
-            PhoneNumber = user.PhoneNumber,
-            TimeZoneId = user.TimeZoneId,
-            ReturnUrl = returnUrl ?? "/connect/authorize",
-            Countries = await GetCountriesAsync(),
-            TimeZones = GetTimeZones(),
-            AcceptTerms = true
-        };
-
-        ViewData["Title"] = "Complete Profile";
-        return View("Register", model);
-    }
-
-    [HttpPost("complete-profile")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CompleteProfile(RegisterViewModel model)
-    {
-        var user = await _signInManager.UserManager.GetUserAsync(User);
-        if (user == null)
-            return RedirectToAction(nameof(Login));
-
-        if (!ModelState.IsValid)
-        {
-            await RebuildListsAsync(model);
-            ViewData["Title"] = "Complete Profile";
-            return View("Register", model);
+            var list = await _countryService.GetAllAsync();
+            countries = list.OrderBy(c => c.Name).Select(c => new SelectListItem(c.Name, c.Code)).ToList();
+            _cache.Set(CountryCacheKey, countries, TimeSpan.FromHours(12));
         }
-
-        user.FirstName = model.FirstName;
-        user.LastName = model.LastName;
-        user.Gender = model.Gender;
-        user.DateOfBirth = model.DateOfBirth;
-        user.CountryCode = model.CountryCode;
-        user.PhoneNumber = model.PhoneNumber;
-        user.TimeZoneId = model.TimeZoneId;
-
-        await _signInManager.UserManager.UpdateAsync(user);
-
-        TempData["SuccessMessage"] = "Profile completed successfully.";
-        return LocalRedirect(model.ReturnUrl ?? "/connect/authorize");
+        return countries!;
     }
 
-    #endregion
+    private IEnumerable<SelectListItem> GetCachedTimeZones()
+    {
+        if (!_cache.TryGetValue(TimeZoneCacheKey, out IEnumerable<SelectListItem>? timeZones))
+        {
+            timeZones = TZConvert.KnownIanaTimeZoneNames
+                .Select(id =>
+                {
+                    try
+                    {
+                        var tz = TimeZoneInfo.FindSystemTimeZoneById(id);
+                        var offset = tz.BaseUtcOffset;
+                        var sign = offset >= TimeSpan.Zero ? "+" : "-";
+                        var hours = Math.Abs(offset.Hours).ToString("00");
+                        var minutes = Math.Abs(offset.Minutes).ToString("00");
+                        var parts = id.Split('/');
+                        var display = parts.Length == 2
+                            ? $"{parts[1].Replace('_', ' ')} ({parts[0].Replace('_', ' ')}) (UTC{sign}{hours}:{minutes})"
+                            : $"{id.Replace('_', ' ')} (UTC{sign}{hours}:{minutes})";
+                        return new SelectListItem(display, id);
+                    }
+                    catch { return null; }
+                })
+                .Where(x => x != null)!
+                .OrderBy(x => TimeZoneInfo.FindSystemTimeZoneById(x!.Value!).BaseUtcOffset)
+                .ThenBy(x => x!.Text)
+                .ToList()!;
+            _cache.Set(TimeZoneCacheKey, timeZones, TimeSpan.FromHours(12));
+        }
+        return timeZones!;
+    }
 
+    private async Task RebuildListsAsync(RegisterViewModel model)
+    {
+        model.Countries = await GetCachedCountriesAsync();
+        model.TimeZones = GetCachedTimeZones();
+    }
 }

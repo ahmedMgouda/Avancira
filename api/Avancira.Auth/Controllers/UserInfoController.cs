@@ -33,6 +33,7 @@ public sealed class UserInfoController : ControllerBase
     public async Task<IActionResult> GetUserInfo(CancellationToken cancellationToken)
     {
         var subject = User.GetClaim(Claims.Subject);
+
         if (string.IsNullOrEmpty(subject))
         {
             _logger.LogWarning("No subject claim found in userinfo request.");
@@ -40,6 +41,7 @@ public sealed class UserInfoController : ControllerBase
         }
 
         var user = await _userManager.FindByIdAsync(subject);
+
         if (user is null)
         {
             _logger.LogWarning("User {Subject} not found for userinfo request.", subject);

@@ -14,14 +14,14 @@ namespace Avancira.Auth.Controllers;
 
 [AllowAnonymous]
 [Route("connect")]
-public sealed class OpenIddictController : Controller
+public sealed class AuthorizationController : Controller
 {
     private readonly SignInManager<User> _signInManager;
     private readonly IOpenIddictTokenManager _tokenManager;
     private readonly IOpenIddictScopeManager _scopeManager;
     private readonly ILogger<OpenIddictController> _logger;
 
-    public OpenIddictController(
+    public AuthorizationController(
         SignInManager<User> signInManager,
         IOpenIddictTokenManager tokenManager,
         IOpenIddictScopeManager scopeManager,
