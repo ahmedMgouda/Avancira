@@ -50,7 +50,7 @@ public class User : IdentityUser<string>
 
     public StudentProfile? StudentProfile { get; set; }
 
-    public UserPreference? Preference { get; set; }
+    public UserPreference? UserPreference { get; set; }
 
     public DateTime CreatedOnUtc { get; set; }
 

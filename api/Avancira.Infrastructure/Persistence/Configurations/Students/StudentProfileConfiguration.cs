@@ -57,5 +57,13 @@ public sealed class StudentProfileConfiguration : IEntityTypeConfiguration<Stude
 
         builder.Property(profile => profile.HasUsedTrialLesson)
             .IsRequired();
+
+        builder.Property(profile => profile.IsComplete)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(profile => profile.ShowStudentProfileReminder)
+            .IsRequired()
+            .HasDefaultValue(true);
     }
 }

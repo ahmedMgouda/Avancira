@@ -34,7 +34,7 @@ public sealed class UserPreferenceConfiguration : IEntityTypeConfiguration<UserP
             .IsUnique();
 
         builder.HasOne<User>()
-            .WithOne(user => user.Preference)
+            .WithOne(user => user.UserPreference)
             .HasForeignKey<UserPreference>(preference => preference.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
