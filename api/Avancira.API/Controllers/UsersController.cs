@@ -42,6 +42,29 @@ public class UsersController : BaseApiController
         return Ok(user);
     }
 
+    [Authorize]
+    [HttpGet("me/profile")]
+    [ProducesResponseType(typeof(EnrichedUserProfileDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetEnrichedProfile(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(new { error = "Invalid token - missing user identifier" });
+        }
+
+        var profile = await _userService.GetEnrichedProfileAsync(userId, cancellationToken);
+
+        if (profile == null)
+        {
+            return NotFound(new { error = "User profile not found" });
+        }
+
+        return Ok(profile);
+    }
+
+
     [HttpGet("profile")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetUserProfile")]

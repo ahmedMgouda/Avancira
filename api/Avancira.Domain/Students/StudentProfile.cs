@@ -17,6 +17,9 @@ public class StudentProfile : BaseEntity<string>, IAggregateRoot
 
         CanBook = false;
         SubscriptionStatus = StudentSubscriptionStatus.None;
+
+        IsComplete = false;
+        ShowStudentProfileReminder = true;
     }
 
     public string UserId => Id;
@@ -38,6 +41,9 @@ public class StudentProfile : BaseEntity<string>, IAggregateRoot
     /// </summary>
     public SubscriptionPeriod? SubscriptionPeriod { get; private set; }
 
+    public bool IsComplete { get; private set; }
+    public bool ShowStudentProfileReminder { get; private set; }
+
     public DateTime CreatedOnUtc { get; private set; }
 
     public ICollection<Lesson> Lessons { get; private set; } = new HashSet<Lesson>();
@@ -57,6 +63,8 @@ public class StudentProfile : BaseEntity<string>, IAggregateRoot
         School = school;
         Major = major;
         PreferredLearningStyle = preferredLearningStyle;
+
+        EvaluateCompletion();
     }
 
     public void MarkTrialLessonUsed()
@@ -112,5 +120,21 @@ public class StudentProfile : BaseEntity<string>, IAggregateRoot
         SubscriptionStatus = StudentSubscriptionStatus.None;
         SubscriptionPeriod = null;
         CanBook = false;
+    }
+
+    public void HideReminder() => ShowStudentProfileReminder = false;
+
+    private void EvaluateCompletion()
+    {
+        var hasLearningGoal = !string.IsNullOrWhiteSpace(LearningGoal);
+        var hasEducationInfo = !string.IsNullOrWhiteSpace(CurrentEducationLevel)
+                            || !string.IsNullOrWhiteSpace(School)
+                            || !string.IsNullOrWhiteSpace(Major);
+        var hasLearningStyle = PreferredLearningStyle is not null;
+
+        IsComplete = hasLearningGoal && hasEducationInfo && hasLearningStyle;
+
+        // show reminder if not complete
+        ShowStudentProfileReminder = !IsComplete;
     }
 }

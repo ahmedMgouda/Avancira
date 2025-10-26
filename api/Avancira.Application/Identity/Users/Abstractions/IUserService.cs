@@ -26,7 +26,7 @@ public interface IUserService
 
     // === Registration ===
     Task<RegisterUserResponseDto> RegisterAsync(RegisterUserDto request, string origin, CancellationToken cancellationToken);
-    Task<User> RegisterExternalAsync(SocialRegisterDto request, CancellationToken cancellationToken);
+    Task<RegisterUserResponseDto> RegisterExternalAsync(SocialRegisterDto request, CancellationToken cancellationToken);
 
     // === Profile & Roles ===
     Task UpdateAsync(UpdateUserDto request, string userId);
@@ -44,4 +44,5 @@ public interface IUserService
     Task ForgotPasswordAsync(ForgotPasswordDto request, CancellationToken cancellationToken);
     Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken);
     Task ChangePasswordAsync(ChangePasswordDto request, string userId);
+    Task<EnrichedUserProfileDto?> GetEnrichedProfileAsync(string userId, CancellationToken ct);
 }

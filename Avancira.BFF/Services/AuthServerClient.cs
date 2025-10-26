@@ -1,107 +1,71 @@
-﻿using System.Net;
+﻿
 using System.Net.Http.Json;
-using System.Text.Json;
 using Avancira.BFF.Models;
 
 namespace Avancira.BFF.Services;
 
 /// <summary>
-/// Client for fetching user information from the OpenIddict Auth server.
-/// Works with Duende's AccessTokenManagement to automatically attach access tokens.
+/// HTTP client for calling the Avancira API with automatic access token management.
+/// Duende token management automatically attaches JWT tokens to requests.
 /// </summary>
-public sealed class AuthServerClient
+public sealed class ApiClient
 {
-    private const string UserInfoEndpoint = "/connect/userinfo";
     private readonly IHttpClientFactory _factory;
-    private readonly ILogger<AuthServerClient> _logger;
+    private readonly ILogger<ApiClient> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
-    public AuthServerClient(
-        IHttpClientFactory factory,
-        ILogger<AuthServerClient> logger)
+    public ApiClient(IHttpClientFactory factory, ILogger<ApiClient> logger)
     {
         _factory = factory;
         _logger = logger;
     }
 
-    public async Task<UserProfile?> GetUserInfoAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Fetches enriched user profile from API
+    /// </summary>
+    public async Task<EnrichedUserProfile?> GetUserProfileAsync(CancellationToken ct = default)
     {
         try
         {
+            // Create client with automatic token attachment
+            var client = _factory.CreateClient("api-client");
 
-            var client = _factory.CreateClient("auth-client");
+            _logger.LogDebug("Fetching user profile from API");
 
-            using var response = await client.GetAsync(UserInfoEndpoint, ct);
-
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                _logger.LogWarning("Access token invalid or expired when calling {Endpoint}", UserInfoEndpoint);
-                return null;
-            }
+            var response = await client.GetAsync("api/users/me/profile", ct);
 
             if (!response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogWarning("UserInfo request failed: {StatusCode} - {Reason} - {Body}",
-                    response.StatusCode, response.ReasonPhrase, content);
+                var error = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning(
+                    "Failed to fetch profile from API: {StatusCode} - {Error}",
+                    response.StatusCode,
+                    error);
                 return null;
             }
 
-            var data = await response.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>(JsonOptions, ct);
-            if (data is null || data.Count == 0)
+            var profile = await response.Content.ReadFromJsonAsync<EnrichedUserProfile>(ct);
+
+            if (profile != null)
             {
-                _logger.LogWarning("UserInfo returned empty or invalid JSON");
-                return null;
+                _logger.LogDebug("Successfully fetched profile for user {UserId}", profile.UserId);
             }
-
-            var profile = MapToUserProfile(data);
-            _logger.LogInformation("Fetched user info for {UserId}", profile.Id);
 
             return profile;
         }
-        catch (OperationCanceledException)
+        catch (HttpRequestException ex)
         {
-            _logger.LogWarning("UserInfo request was cancelled or timed out");
-            throw;
+            _logger.LogError(ex, "HTTP error fetching user profile from API");
+            return null;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request timeout fetching user profile");
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching user info from Auth server");
+            _logger.LogError(ex, "Unexpected error fetching user profile");
             return null;
         }
     }
-
-    private static UserProfile MapToUserProfile(Dictionary<string, JsonElement> claims)
-    {
-        static string GetString(Dictionary<string, JsonElement> dict, string key) =>
-            dict.TryGetValue(key, out var val) ? val.GetString() ?? string.Empty : string.Empty;
-
-        return new UserProfile
-        {
-            Id = GetString(claims, "sub"),
-            Email = GetString(claims, "email"),
-            FirstName = GetString(claims, "given_name"),
-            LastName = GetString(claims, "family_name"),
-            ProfileImageUrl = GetString(claims, "picture"),
-            Roles = ExtractRoles(claims)
-        };
-    }
-
-    private static string[] ExtractRoles(Dictionary<string, JsonElement> claims)
-    {
-        if (!claims.TryGetValue("role", out var value) ||
-            value.ValueKind != JsonValueKind.Array)
-            return Array.Empty<string>();
-
-        return value.EnumerateArray()
-            .Select(e => e.GetString()?.Trim())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s!)
-            .ToArray();
-    }
-
 }

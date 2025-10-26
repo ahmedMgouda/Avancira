@@ -154,10 +154,10 @@ public partial class ExternalAuthController : Controller
             };
 
             var user = await _userService.RegisterExternalAsync(dto, HttpContext.RequestAborted);
+
             await _userService.LinkExternalLoginAsync(user.Id, model.Provider!, model.ProviderKey!);
 
             await SignInUserAsync(user.Id);
-            TempData["SuccessMessage"] = $"Welcome, {user.FirstName}!";
 
             return LocalRedirect(model.ReturnUrl ?? "/connect/authorize");
         }

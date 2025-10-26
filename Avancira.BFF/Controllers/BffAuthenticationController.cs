@@ -1,6 +1,4 @@
-﻿namespace Avancira.BFF.Controllers;
-
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Avancira.BFF.Configuration;
 using Avancira.BFF.Services;
 using Duende.AccessTokenManagement.OpenIdConnect;
@@ -10,33 +8,32 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+namespace Avancira.BFF.Controllers;
+
 [ApiController]
 [Route("bff/auth")]
 public class BffAuthenticationController : ControllerBase
 {
     private readonly ILogger<BffAuthenticationController> _logger;
     private readonly IUserTokenManager _tokenManager;
-    private readonly AuthServerClient _authClient;
+    private readonly ApiClient _apiClient;
     private readonly BffSettings _settings;
-    private readonly IHttpClientFactory _factory;
+
     public BffAuthenticationController(
         ILogger<BffAuthenticationController> logger,
         IUserTokenManager tokenManager,
-        AuthServerClient authClient,
-        IHttpClientFactory factory,
+        ApiClient apiClient,
         BffSettings settings)
     {
         _logger = logger;
         _tokenManager = tokenManager;
-        _authClient = authClient;
-        _factory = factory;
+        _apiClient = apiClient;
         _settings = settings;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GET /bff/auth/login
-    // Initiates login flow
-    // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════
+    // GET /bff/auth/login - Initiates login flow
+    // ═══════════════════════════════════════════════════════════════════
     [HttpGet("login")]
     [AllowAnonymous]
     public IActionResult Login([FromQuery] string? returnUrl = null)
@@ -58,7 +55,10 @@ public class BffAuthenticationController : ControllerBase
         return Challenge(props, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
-
+    // ═══════════════════════════════════════════════════════════════════
+    // GET /bff/auth/user - Returns user authentication status and profile
+    // 👇 THIS IS THE KEY ENDPOINT CALLED BY YOUR SPA
+    // ═══════════════════════════════════════════════════════════════════
     [HttpGet("user")]
     [Produces("application/json")]
     [AllowAnonymous]
@@ -68,61 +68,46 @@ public class BffAuthenticationController : ControllerBase
 
         if (!isAuthenticated)
         {
-            _logger.LogDebug("User not authenticated.");
+            _logger.LogDebug("User not authenticated");
             return Ok(new { isAuthenticated = false });
         }
 
-        var sub = User.FindFirstValue("sub");
-        var user = await _authClient.GetUserInfoAsync(ct);
+        var userId = User.FindFirstValue("sub");
+        _logger.LogDebug("Fetching profile for authenticated user {UserId}", userId);
 
-        if (user is null)
+        // 👇 Call API to get enriched profile
+        var profile = await _apiClient.GetUserProfileAsync(ct);
+
+        if (profile == null)
         {
-            _logger.LogWarning("Failed to fetch user info for {Sub}", sub);
-            return Ok(new { isAuthenticated = true, user = (object?)null });
+            _logger.LogWarning("Failed to fetch profile for user {UserId}", userId);
+            return Ok(new
+            {
+                isAuthenticated = true,
+                error = "Failed to load user profile"
+            });
         }
 
+        // 👇 Return the exact format your SPA expects
         return Ok(new
         {
             isAuthenticated = true,
-            user
+            userId = profile.UserId,
+            firstName = profile.FirstName,
+            lastName = profile.LastName,
+            fullName = profile.FullName,
+            profileImageUrl = profile.ProfileImageUrl,
+            roles = profile.Roles,
+            activeProfile = profile.ActiveProfile,
+            hasAdminAccess = profile.HasAdminAccess,
+            tutorProfile = profile.TutorProfile,
+            studentProfile = profile.StudentProfile
         });
     }
 
-    // Add this to test endpoint connectivity
-    [HttpGet("test-auth")]
-    [AllowAnonymous]
-    public async Task<IActionResult> TestAuthConnection()
-    {
-        try
-        {
-            var client = _factory.CreateClient("auth-client");
-            var response = await client.GetAsync(".well-known/openid-configuration",
-                HttpCompletionOption.ResponseHeadersRead);
-            return Ok(new
-            {
-                status = response.StatusCode,
-                baseAddress = client.BaseAddress,
-                reachable = response.IsSuccessStatusCode
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // POST /bff/auth/logout
-    // FIXED: Initiates logout flow (doesn't complete it)
-    //
-    // CORRECT FLOW:
-    // 1. SPA calls this endpoint (POST /bff/auth/logout)
-    // 2. This endpoint revokes tokens and initiates OIDC sign-out
-    // 3. Browser is redirected to Auth server logout endpoint
-    // 4. Auth server clears its identity cookie
-    // 5. Auth server redirects back to BFF callback (/bff/signout-callback-oidc)
-    // 6. BFF clears its cookie and redirects to SPA
-    // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════
+    // POST /bff/auth/logout - Initiates logout flow
+    // ═══════════════════════════════════════════════════════════════════
     [HttpPost("logout"), HttpGet("logout")]
     [Authorize]
     public IActionResult Logout()
@@ -130,9 +115,10 @@ public class BffAuthenticationController : ControllerBase
         var userId = User.FindFirstValue("sub");
         var sessionId = User.FindFirstValue("sid");
 
-        _logger.LogInformation("Logout initiated - UserId: {UserId}, SessionId: {SessionId}", userId, sessionId);
+        _logger.LogInformation("Logout initiated - UserId: {UserId}, SessionId: {SessionId}",
+            userId, sessionId);
 
-        // Optional: revoke refresh token (safe to skip)
+        // Optional: revoke refresh token
         try
         {
             _tokenManager.RevokeRefreshTokenAsync(User).Wait();
@@ -143,10 +129,9 @@ public class BffAuthenticationController : ControllerBase
             _logger.LogWarning(ex, "Failed to revoke refresh token for {UserId}", userId);
         }
 
-        // 👇 Return a SignOutResult instead of calling SignOutAsync
         var props = new AuthenticationProperties
         {
-            RedirectUri = "https://localhost:4200/" // final SPA page after full logout
+            RedirectUri = _settings.Auth.DefaultRedirectUrl
         };
 
         return SignOut(
@@ -154,11 +139,10 @@ public class BffAuthenticationController : ControllerBase
             CookieAuthenticationDefaults.AuthenticationScheme,
             OpenIdConnectDefaults.AuthenticationScheme);
     }
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // Validates and sanitizes return URLs
-    // Prevents open redirect vulnerabilities
-    // ═══════════════════════════════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PRIVATE HELPER: Validates return URLs
+    // ═══════════════════════════════════════════════════════════════════
     private string GetSafeReturnUrl(string? returnUrl)
     {
         if (string.IsNullOrWhiteSpace(returnUrl))
