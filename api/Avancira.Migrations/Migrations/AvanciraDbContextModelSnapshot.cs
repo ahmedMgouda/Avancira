@@ -631,6 +631,11 @@ namespace Avancira.Migrations.Migrations
                     b.Property<bool>("HasUsedTrialLesson")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsComplete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("LearningGoal")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -645,6 +650,11 @@ namespace Avancira.Migrations.Migrations
                     b.Property<string>("School")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ShowStudentProfileReminder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("SubscriptionStatus")
                         .IsRequired()
@@ -1923,7 +1933,7 @@ namespace Avancira.Migrations.Migrations
             modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
                 {
                     b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
-                        .WithOne("Preference")
+                        .WithOne("UserPreference")
                         .HasForeignKey("Avancira.Domain.Users.UserPreference", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
