@@ -21,6 +21,7 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Avancira.Domain.Users;
 
 namespace Avancira.Infrastructure.Identity.Users.Services;
 internal sealed partial class UserService(
@@ -159,6 +160,8 @@ internal sealed partial class UserService(
                 if (!result.Succeeded)
                     throw new AvanciraException("Registration failed", result.Errors.Select(e => e.Description));
 
+                var defaultProfile = request.RegisterAsTutor ? "tutor" : "student";
+
                 if (request.RegisterAsTutor)
                 {
                     await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Tutor);
@@ -171,6 +174,8 @@ internal sealed partial class UserService(
                     await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
                     db.StudentProfiles.Add(StudentProfile.Create(user.Id));
                 }
+
+                db.UserPreferences.Add(UserPreference.Create(user.Id, defaultProfile));
 
                 await db.SaveChangesAsync(cancellationToken);
 
@@ -229,6 +234,8 @@ internal sealed partial class UserService(
                 if (!result.Succeeded)
                     throw new AvanciraException("Social registration failed", result.Errors.Select(e => e.Description));
 
+                var defaultProfile = dto.RegisterAsTutor ? "tutor" : "student";
+
                 if (dto.RegisterAsTutor)
                 {
                     await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Tutor);
@@ -239,6 +246,8 @@ internal sealed partial class UserService(
                     await userManager.AddToRoleAsync(user, SeedDefaults.Roles.Student);
                     db.StudentProfiles.Add(StudentProfile.Create(user.Id));
                 }
+
+                db.UserPreferences.Add(UserPreference.Create(user.Id, defaultProfile));
 
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);

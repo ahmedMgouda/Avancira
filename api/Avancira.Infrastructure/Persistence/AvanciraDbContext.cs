@@ -16,6 +16,7 @@ using Avancira.Domain.Transactions;
 using Avancira.Domain.Tutors;
 using Avancira.Domain.UserCard;
 using Avancira.Domain.UserSessions;
+using Avancira.Domain.Users;
 using Avancira.Domain.Wallets;
 using Avancira.Infrastructure.Catalog;
 using Avancira.Infrastructure.Identity.Roles;
@@ -73,6 +74,7 @@ public sealed class AvanciraDbContext : IdentityDbContext<
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<WalletLog> WalletLogs => Set<WalletLog>();
     public DbSet<UserSession> Sessions => Set<UserSession>();
+    public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
 
     // ============================================================
     // Model configuration

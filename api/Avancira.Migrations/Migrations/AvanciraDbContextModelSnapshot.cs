@@ -1223,6 +1223,34 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("Sessions", "identity");
                 });
 
+            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ActiveProfile")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("student");
+
+                    b.Property<DateTime>("UpdatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserPreferences", "identity");
+                });
+
             modelBuilder.Entity("Avancira.Domain.Wallets.Wallet", b =>
                 {
                     b.Property<int>("Id")
@@ -1892,6 +1920,15 @@ namespace Avancira.Migrations.Migrations
                     b.Navigation("SubscriptionPeriod");
                 });
 
+            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
+                        .WithOne("Preference")
+                        .HasForeignKey("Avancira.Domain.Users.UserPreference", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Avancira.Domain.Subjects.Subject", b =>
                 {
                     b.HasOne("Avancira.Domain.Subjects.SubjectCategory", "Category")
@@ -2158,6 +2195,8 @@ namespace Avancira.Migrations.Migrations
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
                 {
+                    b.Navigation("Preference");
+
                     b.Navigation("StudentProfile");
 
                     b.Navigation("TutorProfile");

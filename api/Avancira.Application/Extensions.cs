@@ -7,6 +7,7 @@ using Avancira.Application.SubjectCategories;
 using Avancira.Application.Subjects;
 using Avancira.Application.TutorProfiles;
 using Avancira.Application.Listings;
+using Avancira.Application.UserPreferences;
 using Avancira.Application.UserSessions;
 using Avancira.Application.UserSessions.Services;
 using FluentValidation;
@@ -28,6 +29,7 @@ public static class Extensions
         services.AddScoped<ITutorProfileService, TutorProfileService>();
         services.AddScoped<IStudentReviewService, StudentReviewService>();
         services.AddScoped<ILessonMaterialService, LessonMaterialService>();
+        services.AddScoped<IUserPreferenceService, UserPreferenceService>();
         services.AddScoped<IUserSessionService, UserSessionService>();
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

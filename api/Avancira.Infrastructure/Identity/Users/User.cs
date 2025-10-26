@@ -1,6 +1,7 @@
 using Avancira.Domain.Geography;
 using Avancira.Domain.Students;
 using Avancira.Domain.Tutors;
+using Avancira.Domain.Users;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -48,6 +49,8 @@ public class User : IdentityUser<string>
     public TutorProfile? TutorProfile { get; set; }
 
     public StudentProfile? StudentProfile { get; set; }
+
+    public UserPreference? Preference { get; set; }
 
     public DateTime CreatedOnUtc { get; set; }
 
