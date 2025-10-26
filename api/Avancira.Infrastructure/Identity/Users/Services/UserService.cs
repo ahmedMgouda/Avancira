@@ -1,4 +1,4 @@
-﻿using Avancira.Application.Caching;
+using Avancira.Application.Caching;
 using Avancira.Application.Events;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
