@@ -35,17 +35,6 @@ import { tutorChildGuard,tutorGuard } from './guards/tutor.guard';
 
 export const routes: Routes = [
   // ============================================
-  // BLANK LAYOUT (No Header/Footer)
-  // ============================================
-  {
-    path: '',
-    component: BlankShellComponent,
-    children: [
-      { path: 'video-call-window', component: VideoCallWindowComponent },
-    ]
-  },
-
-  // ============================================
   // PUBLIC SITE LAYOUT (Marketing/Landing)
   // ============================================
   {
@@ -73,6 +62,17 @@ export const routes: Routes = [
       { path: 'recommendation/:tokenId', loadComponent: () => import('./pages/recommendation-submission/recommendation-submission.component').then(m => m.RecommendationSubmissionComponent), canActivate: [authGuard] },
       { path: 'premium', loadComponent: () => import('./pages/premium/premium.component').then(m => m.PremiumComponent), canActivate: [authGuard] },
       { path: 'subscribe-premium', loadComponent: () => import('./pages/premium-subscription/premium-subscription.component').then(m => m.PremiumSubscriptionComponent), canActivate: [authGuard] },
+    ]
+  },
+
+  // ============================================
+  // BLANK LAYOUT (No Header/Footer)
+  // ============================================
+  {
+    path: 'video-call-window',
+    component: BlankShellComponent,
+    children: [
+      { path: '', component: VideoCallWindowComponent },
     ]
   },
 

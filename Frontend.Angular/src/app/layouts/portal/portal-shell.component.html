@@ -1,7 +1,10 @@
 <div class="portal-shell">
   <app-site-header class="portal-shell__header"></app-site-header>
 
-  <app-portal-navigation class="portal-shell__sidebar"></app-portal-navigation>
+  <app-portal-navigation
+    class="portal-shell__sidebar"
+    [role]="role()"
+  ></app-portal-navigation>
 
   <main class="portal-shell__content">
     <router-outlet></router-outlet>
