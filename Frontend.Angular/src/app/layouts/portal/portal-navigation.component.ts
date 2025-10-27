@@ -4,7 +4,9 @@ import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/ro
 import { filter, Subscription } from 'rxjs';
 
 import { ProfileImageComponent } from '../../components/profile-image/profile-image.component';
+
 import { UserService } from '../../services/user.service';
+
 import { User } from '../../models/user';
 
 @Component({
@@ -16,7 +18,7 @@ import { User } from '../../models/user';
 })
 export class PortalNavigationComponent implements OnInit, OnDestroy {
   currentPage = 'Home';
-  user?: User;
+  user!: User;
   private userSub?: Subscription;
 
   constructor(

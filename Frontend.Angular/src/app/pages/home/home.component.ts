@@ -6,9 +6,9 @@ import * as AOS from 'aos';
 import { OwlOptions } from 'ngx-owl-carousel-o';
 import { CarouselModule } from 'ngx-owl-carousel-o';
 
+import { AuthService } from '../../services/auth.service';
 import { GoogleMapsService } from '../../services/google-maps.service';
 import { LandingService } from '../../services/landing.service';
-import { AuthService } from '../../services/auth.service';
 
 import { LessonCategory } from '../../models/lesson-category';
 @Component({

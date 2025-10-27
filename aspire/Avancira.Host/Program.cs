@@ -25,8 +25,8 @@ var grafana = builder.AddContainer("grafana", "grafana/grafana:latest")
 #region ===== DATABASE =====
 
 var postgresPassword = builder.AddParameter("postgres-password", "Avancira@2025", secret: true);
-var dropDatabase = builder.AddParameter("drop-database", "false");
-var runSeeding = builder.AddParameter("run-seeding", "false");
+var dropDatabase = builder.AddParameter("drop-database", "true");
+var runSeeding = builder.AddParameter("run-seeding", "true");
 
 var postgresql = builder.AddPostgres("postgresql", password: postgresPassword)
     .WithBindMount("pgdata", "/var/lib/postgresql/data")

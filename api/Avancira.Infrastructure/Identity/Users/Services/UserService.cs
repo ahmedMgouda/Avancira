@@ -140,7 +140,9 @@ internal sealed partial class UserService(
 
     public async Task<UserDetailDto?> GetByEmailAsync(string email, CancellationToken ct)
     {
-        var user = await userManager.Users.AsNoTracking()
+        var user = await userManager.Users
+            .AsNoTracking()
+            .Include(u => u.Country)
             .FirstOrDefaultAsync(u => u.Email == email, ct);
         return user?.Adapt<UserDetailDto>();
     }
@@ -188,9 +190,7 @@ internal sealed partial class UserService(
         if (await userManager.FindByEmailAsync(request.Email) is not null)
             throw new AvanciraException("Email already in use.");
 
-        var normalizedCountry = request.CountryCode.ToUpperInvariant();
-        if (!await db.Countries.AnyAsync(c => c.Code == normalizedCountry, ct))
-            throw new AvanciraNotFoundException($"Country '{request.CountryCode}' not found.");
+        var normalizedCountry = await NormalizeAndValidateCountryAsync(request.CountryCode, ct);
 
         var user = new User
         {
@@ -260,7 +260,7 @@ internal sealed partial class UserService(
         if (existing is not null)
             throw new AvanciraException("Email already registered. Please sign in normally.");
 
-        var normalizedCountry = dto.CountryCode?.ToUpperInvariant() ?? "US";
+        var normalizedCountry = await NormalizeAndValidateCountryAsync(dto.CountryCode, ct);
 
         var user = new User
         {
@@ -580,4 +580,18 @@ internal sealed partial class UserService(
         verificationUri = QueryHelpers.AddQueryString(verificationUri, "code", code);
         return verificationUri;
     }
+
+    private async Task<string> NormalizeAndValidateCountryAsync(string? countryCode, CancellationToken ct)
+    {
+        var normalized = string.IsNullOrWhiteSpace(countryCode)
+            ? "AU"
+            : countryCode.Trim().ToUpperInvariant();
+
+        var exists = await db.Countries.AnyAsync(c => c.Id == normalized, ct);
+        if (!exists)
+            throw new AvanciraNotFoundException($"Country '{countryCode}' not found.");
+
+        return normalized;
+    }
+
 }

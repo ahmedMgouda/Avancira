@@ -34,6 +34,10 @@ public partial class AccountController : Controller
     private static readonly string CountryCacheKey = "cached_countries";
     private static readonly string TimeZoneCacheKey = "cached_timezones";
 
+    // Cooldown configuration
+    private const int PasswordResetCooldownSeconds = 60; // 1 minute
+    private const string PasswordResetCooldownPrefix = "pwd_reset_cooldown_";
+
     public AccountController(
         SignInManager<User> signInManager,
         IUserService userService,
@@ -189,10 +193,17 @@ public partial class AccountController : Controller
     #region Forgot Password
 
     [HttpGet("forgot-password")]
-    public IActionResult ForgotPassword()
+    public IActionResult ForgotPassword(string? email = null)
     {
         ViewData["Title"] = "Forgot Password";
-        return View(new ForgotPasswordViewModel());
+
+        var model = new ForgotPasswordViewModel
+        {
+            Email = email,
+            RemainingCooldown = GetRemainingCooldown(email)
+        };
+
+        return View(model);
     }
 
     [HttpPost("forgot-password")]
@@ -202,30 +213,73 @@ public partial class AccountController : Controller
         ViewData["Title"] = "Forgot Password";
 
         if (!ModelState.IsValid)
+        {
+            model.RemainingCooldown = GetRemainingCooldown(model.Email);
             return View(model);
+        }
+
+        // Normalize email for consistent cooldown tracking
+        var normalizedEmail = model.Email?.Trim().ToLowerInvariant();
+        var cooldownKey = GetCooldownKey(normalizedEmail);
+        var remainingCooldown = GetRemainingCooldown(normalizedEmail);
+
+        // Check cooldown to prevent spam/abuse
+        if (remainingCooldown > 0)
+        {
+            ModelState.AddModelError(string.Empty,
+                $"Please wait {remainingCooldown} seconds before requesting another reset.");
+            model.RemainingCooldown = remainingCooldown;
+            return View(model);
+        }
 
         try
         {
+            // Attempt to send reset email
             await _userService.ForgotPasswordAsync(
                 new ForgotPasswordDto { Email = model.Email },
                 HttpContext.RequestAborted);
 
-            _logger.LogInformation("Password reset email sent to {Email}", model.Email);
+            // Set cooldown period after successful request
+            _cache.Set(cooldownKey, DateTimeOffset.UtcNow,
+                TimeSpan.FromSeconds(PasswordResetCooldownSeconds));
+
+            _logger.LogInformation(
+                "Password reset email sent successfully for {Email}",
+                normalizedEmail);
         }
         catch (Exception ex)
         {
-            // Do not reveal user existence
-            _logger.LogWarning(ex, "Password reset request failed for {Email}", model.Email);
+            // SECURITY: Do not reveal whether user exists
+            // Still show success message and set cooldown to prevent enumeration
+            _logger.LogWarning(ex,
+                "Password reset request failed for {Email} - Reason: {Reason}",
+                normalizedEmail, ex.Message);
+
+            // Set cooldown even for failed attempts to prevent email enumeration attacks
+            _cache.Set(cooldownKey, DateTimeOffset.UtcNow,
+                TimeSpan.FromSeconds(PasswordResetCooldownSeconds));
         }
+
+        // Store email in TempData for confirmation page
+        TempData["ResetEmail"] = model.Email;
 
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 
+
     [HttpGet("forgot-password-confirmation")]
     public IActionResult ForgotPasswordConfirmation()
     {
-        ViewData["Title"] = "Password Reset Email Sent";
-        return View();
+        ViewData["Title"] = "Check Your Email";
+
+        var email = TempData.Peek("ResetEmail") as string; // Peek to keep for resend
+        var model = new ForgotPasswordConfirmationViewModel
+        {
+            Email = email,
+            RemainingCooldown = GetRemainingCooldown(email)
+        };
+
+        return View(model);
     }
 
     #endregion
@@ -236,8 +290,10 @@ public partial class AccountController : Controller
     [HttpGet("reset-password")]
     public IActionResult ResetPassword(string? userId, string? token)
     {
+        // Validate required parameters
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
         {
+            _logger.LogWarning("Reset password accessed with missing parameters");
             TempData["ErrorMessage"] = "Invalid or expired password reset link.";
             return RedirectToAction(nameof(Login));
         }
@@ -245,7 +301,7 @@ public partial class AccountController : Controller
         var model = new ResetPasswordViewModel
         {
             UserId = userId,
-            Token = System.Net.WebUtility.HtmlEncode(token)
+            Token = token // Keep token as-is, don't encode
         };
 
         ViewData["Title"] = "Reset Password";
@@ -273,25 +329,40 @@ public partial class AccountController : Controller
 
             await _userService.ResetPasswordAsync(dto, HttpContext.RequestAborted);
 
-            _logger.LogInformation("Password reset completed for UserId: {UserId}", model.UserId);
-            TempData["SuccessMessage"] = "Your password has been reset successfully.";
+            _logger.LogInformation(
+                "Password reset completed successfully for UserId: {UserId}",
+                model.UserId);
+
+            TempData["SuccessMessage"] = "Your password has been reset successfully. Please login with your new password.";
+
             return RedirectToAction(nameof(Login));
         }
         catch (AvanciraException ex)
         {
+            // Handle known business exceptions
             var errors = ex.ErrorMessages.Any()
                 ? ex.ErrorMessages
-                : new[] { "Password reset failed. Please try again." };
+                : new[] { "Password reset failed. The link may be invalid or expired." };
 
             foreach (var msg in errors)
                 ModelState.AddModelError(string.Empty, msg);
+
+            _logger.LogWarning(ex,
+                "Password reset failed for UserId: {UserId} - ValidationErrors: {Errors}",
+                model.UserId, string.Join(", ", errors));
 
             return View(model);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error resetting password for UserId: {UserId}", model.UserId);
-            ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+            // Handle unexpected exceptions
+            _logger.LogError(ex,
+                "Unexpected error resetting password for UserId: {UserId}",
+                model.UserId);
+
+            ModelState.AddModelError(string.Empty,
+                "An unexpected error occurred. The reset link may be invalid or expired. Please request a new one.");
+
             return View(model);
         }
     }
@@ -360,6 +431,37 @@ public partial class AccountController : Controller
     {
         model.Countries = await GetCachedCountriesAsync();
         model.TimeZones = GetCachedTimeZones();
+    }
+
+    /// <summary>
+    /// Generate cache key for cooldown tracking
+    /// Uses email address to track per-user cooldowns
+    /// </summary>
+    private string GetCooldownKey(string? email)
+    {
+        var normalizedEmail = email?.Trim().ToLowerInvariant() ?? "unknown";
+        return $"{PasswordResetCooldownPrefix}{normalizedEmail}";
+    }
+
+    /// <summary>
+    /// Calculate remaining cooldown time in seconds
+    /// Returns 0 if no cooldown is active
+    /// </summary>
+    private int GetRemainingCooldown(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return 0;
+
+        var cooldownKey = GetCooldownKey(email);
+
+        if (_cache.TryGetValue<DateTimeOffset>(cooldownKey, out var cooldownStart))
+        {
+            var elapsed = (DateTimeOffset.UtcNow - cooldownStart).TotalSeconds;
+            var remaining = PasswordResetCooldownSeconds - (int)elapsed;
+            return Math.Max(0, remaining);
+        }
+
+        return 0;
     }
 
     #endregion

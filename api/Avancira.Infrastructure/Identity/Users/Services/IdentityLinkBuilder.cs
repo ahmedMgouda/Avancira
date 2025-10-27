@@ -39,7 +39,7 @@ internal sealed class IdentityLinkBuilder
     {
         var baseUri = _config["App:IdpUrl"]?.TrimEnd('/')
             ?? throw new AvanciraException("IdP URL missing");
-        var endpoint = $"{baseUri}/Account/ResetPassword";
+        var endpoint = $"{baseUri}/account/reset-password";
         var withUserId = QueryHelpers.AddQueryString(endpoint, "userId", userId);
         var withToken = QueryHelpers.AddQueryString(withUserId, "token", encodedToken);
         return withToken;
