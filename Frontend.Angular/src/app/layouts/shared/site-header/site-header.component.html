@@ -25,24 +25,25 @@
         </div>
 
         <!-- ✅ Logged-in Navigation -->
-        <ul class="main-nav" *ngIf="authService.isAuthenticated()">
-          <li><a [routerLink]="'/dashboard'">Dashboard</a></li>
-          <li><a [routerLink]="'/messages'">Messages</a></li>
-          <li><a [routerLink]="'/dashboard/listings'">Listings</a></li>
-          <li><a [routerLink]="'/dashboard/profile'">Profile</a></li>
+        <ul class="main-nav" *ngIf="authService.isAuthenticated(); else loggedOutNav">
+          <li *ngFor="let navItem of portalNavItems()">
+            <a [routerLink]="navItem.link">{{ navItem.label }}</a>
+          </li>
           <li class="login-link">
             <a href="javascript:void(0);" (click)="logout()">Logout</a>
           </li>
         </ul>
 
         <!-- ✅ Logged-out Navigation -->
-        <ul class="main-nav" *ngIf="!authService.isAuthenticated()">
-          <li class="login-link">
-            <a href="javascript:void(0);" (click)="startLogin($event)">
-              Login / Signup
-            </a>
-          </li>
-        </ul>
+        <ng-template #loggedOutNav>
+          <ul class="main-nav">
+            <li class="login-link">
+              <a href="javascript:void(0);" (click)="startLogin($event)">
+                Login / Signup
+              </a>
+            </li>
+          </ul>
+        </ng-template>
       </div>
 
       <ul class="nav header-navbar-rht">
@@ -83,8 +84,19 @@
                 </h6>
               </div>
             </div>
-            <a class="dropdown-item" [routerLink]="'/dashboard'">Dashboard</a>
-            <a class="dropdown-item" [routerLink]="'/dashboard/profile'">Profile Settings</a>
+            <a class="dropdown-item" [routerLink]="dashboardLink()">Dashboard</a>
+            <ng-container *ngIf="availableRoles().length > 0">
+              <div class="dropdown-divider"></div>
+              <a
+                class="dropdown-item"
+                *ngFor="let role of availableRoles()"
+                [routerLink]="role.link"
+              >
+                {{ role.label }}
+              </a>
+            </ng-container>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" [routerLink]="profileLink()">Profile Settings</a>
             <a class="dropdown-item" (click)="logout()" role="button">Logout</a>
           </div>
         </li>
