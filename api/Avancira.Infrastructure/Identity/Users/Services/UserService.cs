@@ -86,7 +86,7 @@ internal sealed partial class UserService(
                 LastName = user.LastName ?? string.Empty,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
                 ProfileImageUrl = user.ProfileImageUrl?.ToString(),
-                Roles = roles.ToArray(),
+                Roles = roles.Select(r => r.ToLowerInvariant()).ToArray(),
                 ActiveProfile = user.UserPreference?.ActiveProfile ?? "student",
                 HasAdminAccess = roles.Contains(SeedDefaults.Roles.Admin),
 

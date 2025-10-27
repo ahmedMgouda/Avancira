@@ -75,18 +75,17 @@ public partial class AccountController : Controller
             return View(model);
 
         var returnUrl = SanitizeReturnUrl(model.ReturnUrl);
-        var userDto = await _userService.GetByEmailAsync(model.Email, HttpContext.RequestAborted);
 
-        if (userDto == null)
+        var user = await _signInManager.UserManager.FindByEmailAsync(model.Email);
+
+        if (user == null)
         {
             ModelState.AddModelError(string.Empty, UiMessages.InvalidCredentials);
             return View(model);
         }
 
-        // Validate password
-        var user = new User { Id = userDto.Id, Email = userDto.Email, UserName = userDto.Email };
         var isValid = await _signInManager.UserManager.CheckPasswordAsync(user, model.Password);
-
+       
         if (!isValid)
         {
             ModelState.AddModelError(string.Empty, UiMessages.InvalidCredentials);
@@ -109,7 +108,7 @@ public partial class AccountController : Controller
             });
 
         _logger.LogInformation("User logged in: {UserId}", user.Id);
-        TempData["SuccessMessage"] = $"Welcome back, {userDto.FirstName ?? userDto.Email}!";
+        TempData["SuccessMessage"] = $"Welcome back, {user.FirstName ?? user.Email}!";
 
         return LocalRedirect(returnUrl);
     }
