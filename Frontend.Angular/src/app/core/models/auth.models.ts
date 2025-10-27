@@ -1,49 +1,74 @@
 /**
- * Strongly typed user roles.
+ * ===========================================================
+ * User Roles and Profiles
+ * ===========================================================
  */
+
 export enum UserRole {
   Admin = 'admin',
-  User = 'user',
+  Tutor = 'tutor',
+  Student = 'student',
 }
 
 export type UserRoleType = `${UserRole}`;
 
 /**
- * User identity and authorization information.
- * Returned directly from /bff/auth/user.
+ * Tutor sub-profile
  */
-export interface UserProfile {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  imageUrl: string;
-  roles: UserRoleType[];
-  permissions: string[];
+export interface TutorProfile {
+  isActive: boolean;
+  isVerified: boolean;
+  isComplete: boolean;
+  showReminder: boolean;
 }
 
 /**
- * Reactive authentication state for the current session.
+ * Student sub-profile
  */
+export interface StudentProfile {
+  canBook: boolean;
+  subscriptionStatus: string;
+  subscriptionEndsOnUtc: string | null;
+  isComplete: boolean;
+  showReminder: boolean;
+}
+
+/**
+ * ===========================================================
+ * Updated User Profile (matches /bff/auth/user)
+ * ===========================================================
+ */
+export interface UserProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  profileImageUrl?: string | null;
+  roles: UserRoleType[];
+  activeProfile: 'tutor' | 'student';
+  hasAdminAccess: boolean;
+  tutorProfile?: TutorProfile | null;
+  studentProfile?: StudentProfile | null;
+}
+
+/**
+ * ===========================================================
+ * Auth State & Errors
+ * ===========================================================
+ */
+
 export interface AuthState {
   isAuthenticated: boolean;
   user: UserProfile | null;
   error: AuthError | null;
 }
 
-/**
- * Lightweight auth error type.
- */
 export enum AuthErrorType {
   NETWORK = 'NETWORK',
   SERVER = 'SERVER',
   UNAUTHORIZED = 'UNAUTHORIZED',
 }
 
-/**
- * Error structure for authentication issues.
- */
 export interface AuthError {
   type: AuthErrorType;
   message: string;

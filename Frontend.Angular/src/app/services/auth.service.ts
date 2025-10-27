@@ -8,8 +8,9 @@ import { environment } from '../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  /** Base BFF endpoint (from environment) */
+  /** Base BFF endpoint */
   private readonly bffUrl = environment.bffBaseUrl;
+
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
@@ -23,24 +24,27 @@ export class AuthService {
   private initialized = false;
   private initPromise?: Promise<void>;
 
-  // ----------------------------------------------------------
-  // Reactive selectors (computed signals)
-  // ----------------------------------------------------------
+  // ───────────────────────────────────────────────
+  // Computed selectors
+  // ───────────────────────────────────────────────
   readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
   readonly currentUser = computed(() => this.authState().user);
   readonly roles = computed(() => this.authState().user?.roles ?? []);
-  readonly permissions = computed(() => this.authState().user?.permissions ?? []);
   readonly authError = computed(() => this.authState().error);
   readonly ready = computed(() => this.initialized);
 
-  // ----------------------------------------------------------
-  // Initialization
-  // ----------------------------------------------------------
+  // Newly added selectors (strict, no defaults)
+  readonly activeProfile = computed(() => this.authState().user?.activeProfile);
+  readonly hasAdminAccess = computed(() => this.authState().user?.hasAdminAccess);
+  readonly tutorProfile = computed(() => this.authState().user?.tutorProfile);
+  readonly studentProfile = computed(() => this.authState().user?.studentProfile);
 
+  // ───────────────────────────────────────────────
+  // Initialization
+  // ───────────────────────────────────────────────
   async init(): Promise<void> {
     if (this.initialized) return;
     if (this.initPromise) return this.initPromise;
-
     this.initPromise = this.performInit();
     return this.initPromise;
   }
@@ -49,7 +53,7 @@ export class AuthService {
     try {
       const response = await firstValueFrom(
         this.http
-          .get<{ isAuthenticated: boolean; user: UserProfile | null }>(
+          .get<{ isAuthenticated: boolean; error?: string } & UserProfile>(
             `${this.bffUrl}/auth/user`,
             { withCredentials: true }
           )
@@ -57,15 +61,28 @@ export class AuthService {
             timeout(15000),
             catchError((err) => {
               console.warn('[Auth] Failed to load user session:', err);
-              return of({ isAuthenticated: false, user: null });
+              return of({ isAuthenticated: false } as any);
             })
           )
       );
 
-      if (response.isAuthenticated && response.user) {
+      if (response.isAuthenticated) {
+        const user: UserProfile = {
+          userId: response.userId,
+          firstName: response.firstName,
+          lastName: response.lastName,
+          fullName: response.fullName,
+          profileImageUrl: response.profileImageUrl,
+          roles: response.roles,
+          activeProfile: response.activeProfile,
+          hasAdminAccess: response.hasAdminAccess,
+          tutorProfile: response.tutorProfile,
+          studentProfile: response.studentProfile,
+        };
+
         this.setState({
           isAuthenticated: true,
-          user: response.user,
+          user,
           error: null,
         });
       } else {
@@ -79,14 +96,13 @@ export class AuthService {
     }
   }
 
-  // ----------------------------------------------------------
+  // ───────────────────────────────────────────────
   // Login / Logout
-  // ----------------------------------------------------------
+  // ───────────────────────────────────────────────
 
   /**
    * Starts login via BFF (redirects to MVC login page)
    */
-
   startLogin(returnUrl: string = this.router.url): void {
     const sanitized = this.sanitizeReturnUrl(returnUrl);
     sessionStorage.setItem('auth:return_url', sanitized);
@@ -98,19 +114,14 @@ export class AuthService {
     )}`;
   }
 
-
   /**
    * Logs out via BFF (revokes session and redirects)
    */
   logout(): void {
-    // Step 1: local cleanup + optional API logout
     this.clearState();
     sessionStorage.removeItem('auth:return_url');
-
-    // Step 2: full navigation logout
     window.location.assign(`${this.bffUrl}/auth/logout`);
   }
-
 
   /**
    * Called by interceptor when unauthorized
@@ -124,9 +135,10 @@ export class AuthService {
       fullReturnUrl
     )}`;
   }
-  // ----------------------------------------------------------
+
+  // ───────────────────────────────────────────────
   // Helpers / State Management
-  // ----------------------------------------------------------
+  // ───────────────────────────────────────────────
 
   private setState(patch: Partial<AuthState>): void {
     this.authState.update((s) => ({ ...s, ...patch }));

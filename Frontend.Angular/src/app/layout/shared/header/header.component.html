@@ -58,7 +58,7 @@
           <a href="#" class="dropdown-toggle nav-link" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="user-img">
               <img
-                [src]="authService.currentUser()?.imageUrl"
+                [src]="authService.currentUser()?.profileImageUrl"
                 alt=""
                 class="avatar-img rounded-circle"
                 [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName"
@@ -70,7 +70,7 @@
             <div class="user-header">
               <div class="avatar avatar-sm">
                 <img
-                  [src]="authService.currentUser()?.imageUrl"
+                  [src]="authService.currentUser()?.profileImageUrl"
                   alt=""
                   class="avatar-img rounded-circle"
                   [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName"

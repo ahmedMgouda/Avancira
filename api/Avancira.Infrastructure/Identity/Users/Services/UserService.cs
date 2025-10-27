@@ -275,6 +275,8 @@ internal sealed partial class UserService(
             IsActive = true
         };
 
+        user.UserName = dto.Email;
+
         var strategy = db.Database.CreateExecutionStrategy();
 
         RegisterUserResponseDto response = null!;

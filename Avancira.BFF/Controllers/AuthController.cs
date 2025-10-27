@@ -12,15 +12,15 @@ namespace Avancira.BFF.Controllers;
 
 [ApiController]
 [Route("bff/auth")]
-public class BffAuthenticationController : ControllerBase
+public class AuthController : ControllerBase
 {
-    private readonly ILogger<BffAuthenticationController> _logger;
+    private readonly ILogger<AuthController> _logger;
     private readonly IUserTokenManager _tokenManager;
     private readonly ApiClient _apiClient;
     private readonly BffSettings _settings;
 
-    public BffAuthenticationController(
-        ILogger<BffAuthenticationController> logger,
+    public AuthController(
+        ILogger<AuthController> logger,
         IUserTokenManager tokenManager,
         ApiClient apiClient,
         BffSettings settings)

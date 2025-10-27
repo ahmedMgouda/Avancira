@@ -1,8 +1,10 @@
-﻿using Avancira.Application.Countries;
+﻿using System.Security.Claims;
+using Avancira.Application.Countries;
 using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Auth.Helpers;
 using Avancira.Auth.Models.Account;
+using Avancira.Domain.Common.Exceptions;
 using Avancira.Infrastructure.Identity.Users;
 using Avancira.Shared.Authorization;
 using Microsoft.AspNetCore.Authentication;
@@ -12,7 +14,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
 using OpenIddict.Abstractions;
-using System.Security.Claims;
 using TimeZoneConverter;
 using IdentityConstants = Microsoft.AspNetCore.Identity.IdentityConstants;
 
@@ -30,7 +31,6 @@ public partial class AccountController : Controller
     private readonly ILogger<AccountController> _logger;
     private readonly ICountryService _countryService;
 
-    private static readonly TimeSpan ResetCooldown = TimeSpan.FromSeconds(30);
     private static readonly string CountryCacheKey = "cached_countries";
     private static readonly string TimeZoneCacheKey = "cached_timezones";
 
@@ -48,9 +48,8 @@ public partial class AccountController : Controller
         _countryService = countryService;
     }
 
-    // =============================================================
-    //  LOGIN
-    // =============================================================
+
+    #region Login
 
     [HttpGet("login")]
     public IActionResult Login(string? returnUrl = null)
@@ -58,6 +57,7 @@ public partial class AccountController : Controller
         if (User.Identity?.IsAuthenticated == true)
             return LocalRedirect(returnUrl ?? "/connect/authorize");
 
+        ViewData["Title"] = "Login";
         return View(new LoginViewModel { ReturnUrl = returnUrl ?? "/connect/authorize" });
     }
 
@@ -65,6 +65,8 @@ public partial class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
+        ViewData["Title"] = "Login";
+
         if (!ModelState.IsValid)
             return View(model);
 
@@ -77,7 +79,7 @@ public partial class AccountController : Controller
             return View(model);
         }
 
-        // Use ASP.NET Identity for password verification
+        // Validate password
         var user = new User { Id = userDto.Id, Email = userDto.Email, UserName = userDto.Email };
         var isValid = await _signInManager.UserManager.CheckPasswordAsync(user, model.Password);
 
@@ -108,19 +110,23 @@ public partial class AccountController : Controller
         return LocalRedirect(returnUrl);
     }
 
-    // =============================================================
-    //  REGISTER
-    // =============================================================
+    #endregion
+
+
+    #region Register
 
     [HttpGet("register")]
     public async Task<IActionResult> Register(string? returnUrl = null)
     {
+        ViewData["Title"] = "Register";
+
         var model = new RegisterViewModel
         {
             ReturnUrl = returnUrl ?? "/connect/authorize",
             Countries = await GetCachedCountriesAsync(),
             TimeZones = GetCachedTimeZones()
         };
+
         return View(model);
     }
 
@@ -128,6 +134,8 @@ public partial class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        ViewData["Title"] = "Register";
+
         if (!ModelState.IsValid)
         {
             await RebuildListsAsync(model);
@@ -156,9 +164,10 @@ public partial class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    // =============================================================
-    //  LOGOUT
-    // =============================================================
+    #endregion
+
+
+    #region Logout
 
     [HttpPost("logout")]
     [ValidateAntiForgeryToken]
@@ -174,9 +183,123 @@ public partial class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    // =============================================================
-    //  HELPERS
-    // =============================================================
+    #endregion
+
+
+    #region Forgot Password
+
+    [HttpGet("forgot-password")]
+    public IActionResult ForgotPassword()
+    {
+        ViewData["Title"] = "Forgot Password";
+        return View(new ForgotPasswordViewModel());
+    }
+
+    [HttpPost("forgot-password")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+    {
+        ViewData["Title"] = "Forgot Password";
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        try
+        {
+            await _userService.ForgotPasswordAsync(
+                new ForgotPasswordDto { Email = model.Email },
+                HttpContext.RequestAborted);
+
+            _logger.LogInformation("Password reset email sent to {Email}", model.Email);
+        }
+        catch (Exception ex)
+        {
+            // Do not reveal user existence
+            _logger.LogWarning(ex, "Password reset request failed for {Email}", model.Email);
+        }
+
+        return RedirectToAction(nameof(ForgotPasswordConfirmation));
+    }
+
+    [HttpGet("forgot-password-confirmation")]
+    public IActionResult ForgotPasswordConfirmation()
+    {
+        ViewData["Title"] = "Password Reset Email Sent";
+        return View();
+    }
+
+    #endregion
+
+
+    #region Reset Password
+
+    [HttpGet("reset-password")]
+    public IActionResult ResetPassword(string? userId, string? token)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+        {
+            TempData["ErrorMessage"] = "Invalid or expired password reset link.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        var model = new ResetPasswordViewModel
+        {
+            UserId = userId,
+            Token = System.Net.WebUtility.HtmlEncode(token)
+        };
+
+        ViewData["Title"] = "Reset Password";
+        return View(model);
+    }
+
+    [HttpPost("reset-password")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+    {
+        ViewData["Title"] = "Reset Password";
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        try
+        {
+            var dto = new ResetPasswordDto
+            {
+                UserId = model.UserId,
+                Password = model.Password,
+                ConfirmPassword = model.ConfirmPassword,
+                Token = model.Token
+            };
+
+            await _userService.ResetPasswordAsync(dto, HttpContext.RequestAborted);
+
+            _logger.LogInformation("Password reset completed for UserId: {UserId}", model.UserId);
+            TempData["SuccessMessage"] = "Your password has been reset successfully.";
+            return RedirectToAction(nameof(Login));
+        }
+        catch (AvanciraException ex)
+        {
+            var errors = ex.ErrorMessages.Any()
+                ? ex.ErrorMessages
+                : new[] { "Password reset failed. Please try again." };
+
+            foreach (var msg in errors)
+                ModelState.AddModelError(string.Empty, msg);
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error resetting password for UserId: {UserId}", model.UserId);
+            ModelState.AddModelError(string.Empty, "An unexpected error occurred. Please try again later.");
+            return View(model);
+        }
+    }
+
+    #endregion
+
+
+    #region Helpers
 
     private static string SanitizeReturnUrl(string? returnUrl)
         => string.IsNullOrWhiteSpace(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
@@ -188,7 +311,11 @@ public partial class AccountController : Controller
         if (!_cache.TryGetValue(CountryCacheKey, out IEnumerable<SelectListItem>? countries))
         {
             var list = await _countryService.GetAllAsync();
-            countries = list.OrderBy(c => c.Name).Select(c => new SelectListItem(c.Name, c.Code)).ToList();
+            countries = list
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem(c.Name, c.Code))
+                .ToList();
+
             _cache.Set(CountryCacheKey, countries, TimeSpan.FromHours(12));
         }
         return countries!;
@@ -214,12 +341,16 @@ public partial class AccountController : Controller
                             : $"{id.Replace('_', ' ')} (UTC{sign}{hours}:{minutes})";
                         return new SelectListItem(display, id);
                     }
-                    catch { return null; }
+                    catch
+                    {
+                        return null;
+                    }
                 })
                 .Where(x => x != null)!
                 .OrderBy(x => TimeZoneInfo.FindSystemTimeZoneById(x!.Value!).BaseUtcOffset)
                 .ThenBy(x => x!.Text)
                 .ToList()!;
+
             _cache.Set(TimeZoneCacheKey, timeZones, TimeSpan.FromHours(12));
         }
         return timeZones!;
@@ -230,4 +361,6 @@ public partial class AccountController : Controller
         model.Countries = await GetCachedCountriesAsync();
         model.TimeZones = GetCachedTimeZones();
     }
+
+    #endregion
 }

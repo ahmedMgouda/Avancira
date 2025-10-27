@@ -11,8 +11,6 @@ using System.Security.Claims;
 
 namespace Avancira.Auth.Controllers;
 
-[AllowAnonymous]
-[Route("account/external")]
 public partial class AccountController : Controller
 {
     private static readonly HashSet<string> AllowedProviders = new(StringComparer.OrdinalIgnoreCase)
@@ -25,7 +23,7 @@ public partial class AccountController : Controller
     //  INITIATE EXTERNAL LOGIN
     // =============================================================
 
-    [HttpPost("login")]
+    [HttpPost("external/login")]
     [ValidateAntiForgeryToken]
     public IActionResult ExternalLogin([FromForm] string provider, [FromForm] string? returnUrl = null)
     {
@@ -46,7 +44,7 @@ public partial class AccountController : Controller
     //  CALLBACK FROM PROVIDER
     // =============================================================
 
-    [HttpGet("callback")]
+    [HttpGet("external/callback")]
     public async Task<IActionResult> ExternalCallback([FromQuery] string? returnUrl = null)
     {
         returnUrl ??= "/connect/authorize";
@@ -103,8 +101,8 @@ public partial class AccountController : Controller
     //  COMPLETE PROFILE
     // =============================================================
 
-    [HttpGet("complete-profile")]
-    public IActionResult CompleteProfile()
+    [HttpGet("external/complete-profile")]
+    public async Task<IActionResult> CompleteProfileAsync()
     {
         var model = new CompleteProfileViewModel
         {
@@ -113,18 +111,25 @@ public partial class AccountController : Controller
             Email = TempData["Email"]?.ToString(),
             FirstName = TempData["FirstName"]?.ToString(),
             LastName = TempData["LastName"]?.ToString(),
-            ReturnUrl = TempData["ReturnUrl"]?.ToString() ?? "/connect/authorize"
+            ReturnUrl = TempData["ReturnUrl"]?.ToString() ?? "/connect/authorize",
+            Countries = await GetCachedCountriesAsync(),
+            TimeZones = GetCachedTimeZones()
         };
         TempData.Keep();
         return View(model);
     }
 
-    [HttpPost("complete-profile")]
+    [HttpPost("external/complete-profile")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteProfile(CompleteProfileViewModel model)
     {
         if (!ModelState.IsValid)
+        {
+            model.Countries = await GetCachedCountriesAsync();
+            model.TimeZones = GetCachedTimeZones();
+
             return View(model);
+        }
 
         try
         {
