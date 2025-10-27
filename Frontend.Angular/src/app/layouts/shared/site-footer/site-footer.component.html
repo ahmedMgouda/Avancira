@@ -1,0 +1,64 @@
+<footer class="footer-container">
+  <div class="footer-content">
+    <!-- About Section -->
+    <div class="footer-column">
+      <h3>About</h3>
+      <ul>
+        <li *ngFor="let link of footerLinks.about">
+          <a [routerLink]="link.route">{{ link.label }}</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Subjects Section -->
+    <div class="footer-column">
+      <h3>All Subjects</h3>
+      <ul>
+        <li *ngFor="let link of footerLinks.subjects">
+          <a [routerLink]="link.route">{{ link.label }}</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Join the Adventure -->
+    <!-- <div class="footer-column">
+      <h3>Join the Adventure</h3>
+      <ul>
+        <li *ngFor="let link of footerLinks.adventure">
+          <a [routerLink]="link.route">{{ link.label }}</a>
+        </li>
+      </ul>
+    </div> -->
+
+    <!-- Help Section -->
+    <div class="footer-column">
+      <h3>Help</h3>
+      <ul>
+        <li>
+          <span>Email: <a href="mailto:admin@avancira.com">admin@avancira.com</a></span>
+        </li>
+        <li>
+          <span>Phone: <a href="tel:+61468890677">+61 468 890 677</a></span>
+        </li>
+        <li *ngFor="let link of footerLinks.help">
+          <a [routerLink]="link.route">{{ link.label }}</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Social Links -->
+    <div class="footer-column">
+      <h3>Follow Us</h3>
+      <div class="social-icons">
+        <a *ngFor="let social of footerLinks.social" [href]="social.url" target="_blank" rel="noopener">
+          <i [class]="'fab fa-' + social.icon"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Bottom -->
+  <div class="footer-bottom">
+    <p>© {{ currentYear }} {{ platformName }}. Advance your skills!</p>
+  </div>
+</footer>
