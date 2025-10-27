@@ -3,6 +3,7 @@ import { Component, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
+
 import { ImageFallbackDirective } from '../../../directives/image-fallback.directive';
 
 interface PortalNavItem {

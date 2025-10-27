@@ -17,7 +17,6 @@ import { ConfigService } from './services/config.service';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
-import { dateInterceptorFn } from './interceptors/dateInterceptorFn';
 
 function initConfig() {
   return firstValueFrom(
@@ -36,7 +35,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, dateInterceptorFn])),
+    provideHttpClient(withInterceptors([authInterceptor])),
     provideToastr({
       timeOut: 5000,
       positionClass: 'toast-top-right',

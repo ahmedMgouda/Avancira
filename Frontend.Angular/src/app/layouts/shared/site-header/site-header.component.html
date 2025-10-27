@@ -58,24 +58,16 @@
         <li class="nav-item dropdown has-arrow logged-item" *ngIf="authService.isAuthenticated()">
           <a href="#" class="dropdown-toggle nav-link" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="user-img">
-              <img
-                [src]="authService.currentUser()?.profileImageUrl"
-                alt=""
-                class="avatar-img rounded-circle"
-                [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName"
-              />
+              <img [src]="authService.currentUser()?.profileImageUrl" alt="" class="avatar-img rounded-circle"
+                [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName" />
             </span>
           </a>
 
           <div class="dropdown-menu dropdown-menu-end">
             <div class="user-header">
               <div class="avatar avatar-sm">
-                <img
-                  [src]="authService.currentUser()?.profileImageUrl"
-                  alt=""
-                  class="avatar-img rounded-circle"
-                  [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName"
-                />
+                <img [src]="authService.currentUser()?.profileImageUrl" alt="" class="avatar-img rounded-circle"
+                  [imageFallback]="authService.currentUser()?.firstName + ' ' + authService.currentUser()?.lastName" />
               </div>
               <div class="user-text">
                 <h6>
@@ -84,18 +76,17 @@
                 </h6>
               </div>
             </div>
-            <a class="dropdown-item" [routerLink]="dashboardLink()">Dashboard</a>
-            <ng-container *ngIf="availableRoles().length > 0">
-              <div class="dropdown-divider"></div>
-              <a
-                class="dropdown-item"
-                *ngFor="let role of availableRoles()"
-                [routerLink]="role.link"
-              >
+
+            <a class="dropdown-item" *ngIf="availableRoles().length === 1" [routerLink]="availableRoles()[0].link">
+              Dashboard
+            </a>
+
+            <ng-container *ngIf="availableRoles().length > 1">
+              <a class="dropdown-item" *ngFor="let role of availableRoles()" [routerLink]="role.link">
                 {{ role.label }}
               </a>
             </ng-container>
-            <div class="dropdown-divider"></div>
+
             <a class="dropdown-item" [routerLink]="profileLink()">Profile Settings</a>
             <a class="dropdown-item" (click)="logout()" role="button">Logout</a>
           </div>
