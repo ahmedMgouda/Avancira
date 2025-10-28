@@ -37,14 +37,8 @@ namespace Avancira.Infrastructure.Catalog
             if (user == null)
                 throw new KeyNotFoundException("User not found.");
 
-            var accountId = await CreateStripeAccountAsync(user.Email ?? string.Empty);
-
-            // Save the Account ID (account.Id) in your database
-            user.StripeConnectedAccountId = accountId;
-            _dbContext.Users.Update(user);
-            await _dbContext.SaveChangesAsync();
-
-            return await CreateOnboardingLinkAsync(accountId);
+            _logger.LogWarning("Stripe connected accounts are no longer stored on the user profile for {UserId}.", userId);
+            throw new InvalidOperationException("Stripe connected accounts are not configured for users.");
         }
 
         private async Task<string> CreateOnboardingLinkAsync(string accountId)

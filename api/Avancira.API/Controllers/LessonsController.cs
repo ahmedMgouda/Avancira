@@ -1,6 +1,6 @@
-using Avancira.Application.Lessons.Dtos;
 using Avancira.Application.Lessons;
-using Microsoft.AspNetCore.Authorization;
+using Avancira.Application.Lessons.Dtos;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avancira.API.Controllers;
@@ -9,111 +9,73 @@ namespace Avancira.API.Controllers;
 public class LessonsController : BaseApiController
 {
     private readonly ILessonService _lessonService;
-    private readonly ILogger<LessonsController> _logger;
 
-    public LessonsController(
-        ILessonService lessonService,
-        ILogger<LessonsController> logger
-    )
+    public LessonsController(ILessonService lessonService)
     {
         _lessonService = lessonService;
-        _logger = logger;
     }
 
-    // Create
-    [Authorize]
-    [HttpPost("proposeLesson")]
-    public async Task<IActionResult> ProposeLessonAsync([FromBody] LessonDto lessonDto)
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLesson(int id, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
-        var result = await _lessonService.ProposeLessonAsync(lessonDto, userId);
-        return Ok(new { Message = "Lesson proposed successfully.", Lesson = result });
+        var lesson = await _lessonService.GetByIdAsync(id, cancellationToken);
+        return Ok(lesson);
     }
 
-    // Read
-    [Authorize]
-    [HttpGet("{contactId}/{listingId}")]
-    public async Task<IActionResult> GetLessonsAsync(string contactId, Guid listingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    [HttpPost]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateLesson([FromBody] LessonCreateDto request, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
-        var lessons = await _lessonService.GetLessonsAsync(contactId, userId, listingId, page, pageSize);
-        return Ok(new { Lessons = lessons });
+        var lesson = await _lessonService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetLesson), new { id = lesson.Id }, lesson);
     }
 
-    [Authorize]
-    [HttpGet]
-    public async Task<IActionResult> GetAllLessonsAsync([FromQuery] LessonFilter filters)
+    [HttpPost("{id:int}/confirm")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmLesson(int id, CancellationToken cancellationToken)
     {
-        if (filters.Page <= 0 || filters.PageSize <= 0)
-        {
-            return BadRequest("Invalid page or pageSize parameters.");
-        }
-
-        var userId = GetUserId();
-        var lessons = await _lessonService.GetAllLessonsAsync(userId, filters);
-        return Ok(new { Lessons = lessons });
-    }
-    
-    // Update
-    [Authorize]
-    [HttpPut("respondToProposition/{lessonId}")]
-    public async Task<IActionResult> RespondToPropositionAsync(Guid lessonId, [FromBody] bool accept)
-    {
-        var userId = GetUserId();
-        LessonDto updatedLesson;
-        try
-        {
-            updatedLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, accept, userId);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound(new { Message = "Lesson not found." });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Message = "An error occurred while responding to the proposition.", Details = ex.Message });
-        }
-
-        return Ok(new
-        {
-            Message = accept ? "Proposition accepted." : "Proposition refused.",
-            Lesson = updatedLesson
-        });
+        var lesson = await _lessonService.ConfirmAsync(id, cancellationToken);
+        return Ok(lesson);
     }
 
-    // Delete
-    [Authorize]
-    [HttpDelete("{lessonId}/cancel")]
-    public async Task<IActionResult> CancelLessonAsync(Guid lessonId)
+    [HttpPost("decline")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeclineLesson([FromBody] LessonDeclineDto request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var userId = GetUserId();
-            var canceledLesson = await _lessonService.UpdateLessonStatusAsync(lessonId, false, userId);
+        var lesson = await _lessonService.DeclineAsync(request, cancellationToken);
+        return Ok(lesson);
+    }
 
-            return Ok(new
-            {
-                Message = "Lesson canceled successfully.",
-                Lesson = new
-                {
-                    canceledLesson.Id,
-                    canceledLesson.Status,
-                    canceledLesson.Date,
-                    canceledLesson.Duration
-                }
-            });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { Message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Message = "An error occurred while canceling the lesson.", Details = ex.Message });
-        }
+    [HttpPost("{id:int}/start")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> StartLesson(int id, CancellationToken cancellationToken)
+    {
+        var lesson = await _lessonService.StartAsync(id, cancellationToken);
+        return Ok(lesson);
+    }
+
+    [HttpPost("complete")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteLesson([FromBody] LessonCompleteDto request, CancellationToken cancellationToken)
+    {
+        var lesson = await _lessonService.CompleteAsync(request, cancellationToken);
+        return Ok(lesson);
+    }
+
+    [HttpPost("cancel")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelLesson([FromBody] LessonCancelDto request, CancellationToken cancellationToken)
+    {
+        var lesson = await _lessonService.CancelAsync(request, cancellationToken);
+        return Ok(lesson);
+    }
+
+    [HttpPost("reschedule")]
+    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RescheduleLesson([FromBody] LessonRescheduleDto request, CancellationToken cancellationToken)
+    {
+        var lesson = await _lessonService.RescheduleAsync(request, cancellationToken);
+        return Ok(lesson);
     }
 }

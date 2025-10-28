@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Avancira.Application.Persistence;
 using MediatR;
+using Avancira.Infrastructure.Auth;
 using Moq;
 
 namespace Avancira.Migrations

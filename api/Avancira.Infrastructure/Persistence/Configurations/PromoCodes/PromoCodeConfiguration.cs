@@ -42,11 +42,6 @@ namespace Avancira.Infrastructure.Persistence.Configurations.PromoCodes
             builder.Property(p => p.Type)
                 .IsRequired();
 
-            builder.HasMany(p => p.ListingPromoCodes)
-                .WithOne(lp => lp.PromoCode)
-                .HasForeignKey(lp => lp.PromoCodeId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             builder.HasIndex(p => p.Code);
         }
     }

@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
 using Avancira.Domain.Messaging;
 
 namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
 
- public class ChatConfiguration : IEntityTypeConfiguration<Chat>
+public class ChatConfiguration : IEntityTypeConfiguration<Chat>
 {
     public void Configure(EntityTypeBuilder<Chat> builder)
     {
@@ -14,9 +14,6 @@ namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
             .IsRequired();
 
         builder.Property(chat => chat.TutorId)
-            .IsRequired();
-
-        builder.Property(chat => chat.ListingId)
             .IsRequired();
 
         builder.Property(chat => chat.CreatedAt)
@@ -30,13 +27,7 @@ namespace Avancira.Infrastructure.Persistence.Configurations.Messaging;
             .HasForeignKey(message => message.ChatId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(chat => chat.Listing)
-            .WithMany()
-            .HasForeignKey(chat => chat.ListingId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasIndex(chat => chat.StudentId);
         builder.HasIndex(chat => chat.TutorId);
-        builder.HasIndex(chat => chat.ListingId);
     }
 }

@@ -9,7 +9,7 @@ import { Review } from '../models/review';
   providedIn: 'root'
 })
 export class EvaluationService {
-  private apiUrl = `${environment.apiUrl}/evaluations`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/evaluations`;
 
   constructor(private http: HttpClient) { }
 

@@ -1,5 +1,6 @@
 ﻿using Avancira.Application.Events;
 using Avancira.Application.Identity.Users.Dtos;
+using Avancira.Application.Identity.Users.Constants;
 using Avancira.Domain.Catalog.Enums;
 using Avancira.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.WebUtilities;
@@ -9,13 +10,8 @@ namespace Avancira.Infrastructure.Identity.Users.Services;
 
 internal sealed partial class UserService
 {
-    public async Task ForgotPasswordAsync(ForgotPasswordDto request, string origin, CancellationToken cancellationToken)
+    public async Task ForgotPasswordAsync(ForgotPasswordDto request, CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Email))
-        {
-            throw new AvanciraException("Invalid password reset request.");
-        }
-
         var user = await userManager.FindByEmailAsync(request.Email);
 
         if (user == null || string.IsNullOrWhiteSpace(user.Email) || !(await userManager.IsEmailConfirmedAsync(user)))
@@ -24,13 +20,10 @@ internal sealed partial class UserService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(origin))
-            throw new AvanciraException("Password reset is temporarily unavailable.");
-
         var rawToken = await userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var resetPasswordUri = BuildResetPasswordLink(origin, request.Email, encodedToken);
+        var resetPasswordUri = linkBuilder.BuildResetPasswordLink(user.Id, encodedToken);
 
         var resetPasswordEvent = new ResetPasswordEvent
         {
@@ -44,15 +37,9 @@ internal sealed partial class UserService
 
     public async Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token))
-            throw new AvanciraException("Invalid password reset request.");
-
-        const string invalidRequestMessage = "Invalid password reset request.";
-        const string invalidTokenMessage = "Invalid password reset token.";
-
-        var user = await userManager.FindByEmailAsync(request.Email);
+        var user = await userManager.FindByIdAsync(request.UserId);
         if (user == null)
-            throw new AvanciraException(invalidRequestMessage);
+            throw new AvanciraException(UserErrorMessages.InvalidPasswordResetRequest);
 
         string decodedToken;
         try
@@ -62,14 +49,14 @@ internal sealed partial class UserService
         }
         catch
         {
-            throw new AvanciraException(invalidTokenMessage);
+            throw new AvanciraException(UserErrorMessages.InvalidPasswordResetToken);
         }
 
         var result = await userManager.ResetPasswordAsync(user, decodedToken, request.Password);
         if (!result.Succeeded)
         {
             var errors = result.Errors.Select(e => e.Description).ToList();
-            throw new AvanciraException("Error resetting password.", errors);
+            throw new AvanciraException(UserErrorMessages.ErrorResettingPassword, errors);
         }
 
         await userManager.UpdateSecurityStampAsync(user);
@@ -84,7 +71,7 @@ internal sealed partial class UserService
             throw new AvanciraException("Current and new passwords are required.");
 
         var user = await userManager.FindByIdAsync(userId);
-        _ = user ?? throw new NotFoundException("user not found");
+        _ = user ?? throw new AvanciraNotFoundException("user not found");
 
         var result = await userManager.ChangePasswordAsync(user, request.Password, request.NewPassword);
         if (!result.Succeeded)
@@ -96,12 +83,4 @@ internal sealed partial class UserService
         await userManager.UpdateSecurityStampAsync(user);
     }
 
-    private static string BuildResetPasswordLink(string origin, string email, string encodedToken)
-    {
-        var baseUri = origin.TrimEnd('/');
-        var endpoint = $"{baseUri}/reset-password";
-        var withEmail = QueryHelpers.AddQueryString(endpoint, "email", email);
-        var withToken = QueryHelpers.AddQueryString(withEmail, "token", encodedToken);
-        return withToken;
-    }
 }

@@ -7,32 +7,45 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Identity\Tokens\**" />
+    <Compile Remove="UserSessions\**" />
+    <EmbeddedResource Remove="Identity\Tokens\**" />
+    <EmbeddedResource Remove="UserSessions\**" />
+    <None Remove="Identity\Tokens\**" />
+    <None Remove="UserSessions\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Ardalis.Specification.EntityFrameworkCore" Version="9.1.0" />
     <PackageReference Include="Asp.Versioning.Abstractions" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+    <PackageReference Include="Facebook" Version="7.0.6" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <PackageReference Include="Hangfire" Version="1.8.18" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.1" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
     <PackageReference Include="MailKit" Version="4.11.0" />
     <PackageReference Include="Mapster" Version="7.4.0" />
-    <PackageReference Include="Microsoft.Graph" Version="5.56.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.8" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.65.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenIddict.Abstractions" Version="7.0.0" />
+    <PackageReference Include="OpenIddict.Server" Version="7.0.0" />
+    <PackageReference Include="OpenIddict.AspNetCore" Version="7.0.0" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.0.0" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore.Models" Version="7.0.0" />
     <PackageReference Include="SendGrid" Version="9.29.3" />
     <PackageReference Include="MediatR" Version="12.5.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="9.0.3" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.7.0" />
     <PackageReference Include="MimeKit" Version="4.11.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Serilog" Version="4.2.0" />
@@ -60,6 +73,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="8.1.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
     <PackageReference Include="TimeZoneConverter" Version="7.0.0" />
+    <PackageReference Include="UAParser" Version="3.1.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
   </ItemGroup>
 
   <ItemGroup>

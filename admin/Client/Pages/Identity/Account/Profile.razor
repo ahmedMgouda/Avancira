@@ -3,10 +3,10 @@
         <MudCard Outlined>
             <MudCardContent Style="padding:0px!important">
                 <div class="d-flex justify-center mb-4">
-                    @if (!string.IsNullOrEmpty(_imageUrl))
+                    @if (!string.IsNullOrEmpty(_profileImageUrl))
                     {
                         <MudAvatar Style=" width:100%;height:auto;border-radius:0px!important;">
-                            <MudImage Src="@_imageUrl.ToString()"></MudImage>
+                            <MudImage Src="@_profileImageUrl.ToString()"></MudImage>
                         </MudAvatar>
                     }
                     else
@@ -24,10 +24,10 @@
                                StartIcon="@Icons.Material.Filled.CloudUpload" for="fileInput">
                     Upload Profile Picture
                 </MudButton>
-                @if(!string.IsNullOrEmpty(_imageUrl))
+                @if(!string.IsNullOrEmpty(_profileImageUrl))
                 {
                     <MudButton HtmlTag="label" DropShadow="false" Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" Target="_blank"
-                        StartIcon="@Icons.Material.Filled.RemoveRedEye" Href="@_imageUrl" Style="margin-left: 5px;" >
+                        StartIcon="@Icons.Material.Filled.RemoveRedEye" Href="@_profileImageUrl" Style="margin-left: 5px;" >
                         View
                     </MudButton>
 

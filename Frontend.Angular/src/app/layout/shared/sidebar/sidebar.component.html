@@ -57,6 +57,10 @@
                     <i class="fas fa-chalkboard-teacher"></i>Lessons <span><i class="fas fa-chevron-right"></i></span></a>
             </li>
             <li>
+                <a [routerLink]="'sessions'" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+                    <i class="fas fa-sign-out-alt"></i>Sessions <span><i class="fas fa-chevron-right"></i></span></a>
+            </li>
+            <li>
                 <a [routerLink]="'listings'" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
                     <i class="fas fa-clipboard-list"></i>Listings <span><i class="fas fa-chevron-right"></i></span></a>
             </li>

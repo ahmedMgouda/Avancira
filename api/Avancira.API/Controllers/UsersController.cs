@@ -1,5 +1,4 @@
 ﻿using Avancira.Application.Audit;
-using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Infrastructure.Auth.Policy;
 using Avancira.Shared.Authorization;
@@ -10,6 +9,8 @@ using Swashbuckle.AspNetCore.Annotations;
 using Avancira.Domain.Auditing;
 using Avancira.Application.Paging;
 using Avancira.Domain.Common.Exceptions;
+using Avancira.Application.Identity.Users.Abstractions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Avancira.API.Controllers;
 
@@ -17,9 +18,11 @@ namespace Avancira.API.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IAuditService _auditService;
-    private readonly Avancira.Application.Identity.Users.Abstractions.IUserService _userService;
+    private readonly IUserService _userService;
 
-    public UsersController(IAuditService auditService, Avancira.Application.Identity.Users.Abstractions.IUserService userService)
+    public UsersController(
+        IAuditService auditService,
+        IUserService userService)
     {
         _auditService = auditService;
         _userService = userService;
@@ -39,13 +42,39 @@ public class UsersController : BaseApiController
         return Ok(user);
     }
 
+    [Authorize]
+    [HttpGet("me/profile")]
+    [ProducesResponseType(typeof(EnrichedUserProfileDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetEnrichedProfile(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized(new { error = "Invalid token - missing user identifier" });
+        }
+
+        var profile = await _userService.GetEnrichedProfileAsync(userId, cancellationToken);
+
+        if (profile == null)
+        {
+            return NotFound(new { error = "User profile not found" });
+        }
+
+        return Ok(profile);
+    }
+
+
     [HttpGet("profile")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetUserProfile")]
     public async Task<IActionResult> GetUserProfile(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         var userProfile = await _userService.GetAsync(userId, cancellationToken);
         return Ok(userProfile);
     }
@@ -56,12 +85,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetUserPermissionsAsync(CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         if (string.IsNullOrWhiteSpace(userId))
         {
-            throw new UnauthorizedException();
+            return Unauthorized();
         }
-
         var permissions = await _userService.GetPermissionsAsync(userId, cancellationToken);
         return Ok(permissions);
     }
@@ -111,30 +138,26 @@ public class UsersController : BaseApiController
 
     [HttpPost("register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(OperationId = "RegisterUser")]
     public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
     {
         var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-        var result = await _userService.RegisterAsync(request, origin, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _userService.RegisterAsync(request, origin, cancellationToken);
+            return CreatedAtAction(nameof(GetUserById), new { id = result.UserId }, result);
+        }
+        catch (AvanciraException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
-
-    [HttpPost("self-register")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(RegisterUserResponseDto), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "SelfRegisterUser")]
-    public async Task<IActionResult> SelfRegisterUser([FromBody] RegisterUserDto request, CancellationToken cancellationToken)
-    {
-        var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-        var result = await _userService.RegisterAsync(request, origin, cancellationToken);
-        return Ok(result);
-    }
-
-
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("PasswordResetPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ResetPassword")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto command, CancellationToken cancellationToken)
@@ -145,12 +168,12 @@ public class UsersController : BaseApiController
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("PasswordResetPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto command, CancellationToken cancellationToken)
     {
-        var origin = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase.Value}";
-        await _userService.ForgotPasswordAsync(command, origin, cancellationToken);
+        await _userService.ForgotPasswordAsync(command, cancellationToken);
         return Ok("If an account with that email exists, a password reset link has been sent.");
     }
 
@@ -160,7 +183,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto command, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _userService.ChangePasswordAsync(command, userId);
         return Ok("Password changed successfully.");
     }
@@ -195,7 +221,10 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> UpdateUserProfile([FromForm] UpdateUserDto request)
     {
         var userId = User.GetUserId();
-
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
         await _userService.UpdateAsync(request, userId);
         return Ok("User profile updated successfully.");
     }
@@ -231,16 +260,7 @@ public class UsersController : BaseApiController
         return Ok(result);
     }
 
-    [HttpPost("login")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
-    [SwaggerOperation(OperationId = "Login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _userService.LoginAsync(request, cancellationToken);
-        return Ok(new { token = result.Token, roles = result.Roles });
-    }
-
+    [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [SwaggerOperation(OperationId = "GetCurrentUser")]
@@ -249,24 +269,35 @@ public class UsersController : BaseApiController
         var userId = User.GetUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
-            throw new UnauthorizedException();
-
+        {
+            return Unauthorized();
+        }
         var user = await _userService.GetAsync(userId, cancellationToken);
         return Ok(user);
     }
 
-    //// Read
-    //[Authorize]
-    //[HttpGet("me")]
-    //public async Task<IActionResult> GetAsync()
-    //{
-    //    var userId = GetUserId();
-    //    var user = await _userService.GetUserAsync(userId);
-    //    if (user == null)
-    //    {
-    //        throw new UnauthorizedAccessException("User not found.");
-    //    }
-    //    return JsonOk(user);
-    //}
+    // todo: review later
+    [Authorize]
+    [HttpGet("profile-image")]
+    public async Task<IActionResult> GetProfileImage(CancellationToken cancellationToken)
+    {
+        var currentUserId = User.GetUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return Unauthorized();
+        }
+        var user = await _userService.GetAsync(currentUserId, cancellationToken);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
 
+        var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "UserImages", $"{currentUserId}.jpg");
+
+        if (!System.IO.File.Exists(imagePath))
+            return NotFound("Profile image not found.");
+
+        var imageBytes = await System.IO.File.ReadAllBytesAsync(imagePath, cancellationToken);
+        return File(imageBytes, "image/jpeg");
+    }
 }

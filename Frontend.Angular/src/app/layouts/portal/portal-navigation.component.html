@@ -1,0 +1,49 @@
+<!-- Sidebar -->
+<div class="profile-sidebar">
+  <div class="user-widget">
+    <app-profile-image
+      [imageUrl]="user?.imageUrl"
+      [firstName]="user?.firstName"
+      [lastName]="user?.lastName"
+    ></app-profile-image>
+    <div class="rating">
+      <i class="fas fa-star filled"></i>
+      <i class="fas fa-star filled"></i>
+      <i class="fas fa-star filled"></i>
+      <i class="fas fa-star filled"></i>
+      <i class="fas fa-star"></i>
+    </div>
+    <div class="user-info-cont">
+      <h4 class="usr-name">{{ user?.firstName }} {{ user?.lastName }}</h4>
+      <p>{{ user?.address?.formattedAddress }}</p>
+      <div class="profile-status">
+        <p>
+          <strong>Profile Verified:</strong>
+        </p>
+        <p><strong>Lessons Completed:</strong> {{ user?.lessonsCompleted ?? 0 }}</p>
+        <p><strong>Evaluations:</strong> {{ user?.evaluations ?? 0 }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-bar-custom">
+    <h6>Complete your profiles ></h6>
+    <div class="pro-progress">
+      <div class="tooltip-toggle" tabindex="0"></div>
+      <div class="tooltip">{{ user?.profileCompletion ?? 0 }}</div>
+    </div>
+  </div>
+  <div class="custom-sidebar-nav">
+    <ul>
+      <li *ngFor="let item of navItems">
+        <a
+          [routerLink]="buildLink(item.path)"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="linkActiveOptions(item)"
+        >
+          <i [class]="item.icon"></i>{{ item.label }}<span><i class="fas fa-chevron-right"></i></span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+<!-- /Sidebar -->

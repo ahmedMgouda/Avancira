@@ -1,0 +1,154 @@
+﻿@model Avancira.Auth.Models.Account.CompleteProfileViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Complete Your Profile";
+}
+
+<h2 class="text-center mb-4">Complete Your Profile</h2>
+
+<form asp-action="CompleteProfile" method="post" novalidate class="needs-validation">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Provider" />
+    <input type="hidden" asp-for="ProviderKey" />
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div class="mb-3">
+        <label asp-for="FirstName" class="form-label"></label>
+        <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="LastName" class="form-label"></label>
+        <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Gender" class="form-label"></label>
+        <select asp-for="Gender" class="form-select">
+            <option value="">Select Gender</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+        </select>
+        <span asp-validation-for="Gender" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" readonly />
+        <small class="form-text text-muted">Email provided by your external login.</small>
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CountryCode" class="form-label"></label>
+        <select asp-for="CountryCode" asp-items="Model.Countries" id="countrySelect" class="form-select">
+            <option value="">Select Country</option>
+        </select>
+        <span asp-validation-for="CountryCode" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" id="phone" type="tel" class="form-control" />
+        <div id="phone-error" class="text-danger small mt-1"></div>
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="TimeZoneId" class="form-label"></label>
+        <select asp-for="TimeZoneId" asp-items="Model.TimeZones" id="timezoneSelect" class="form-select">
+            <option value="">Select Time Zone</option>
+        </select>
+        <small class="form-text text-muted">We'll detect your local time zone automatically.</small>
+        <span asp-validation-for="TimeZoneId" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-4">
+        <input type="checkbox" id="acceptTerms" class="form-check-input" required />
+        <label class="form-check-label" for="acceptTerms">
+            I agree to the <a href="/terms" target="_blank">Terms &amp; Conditions</a>
+        </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Continue</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- ✅ intl-tel-input -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/css/intlTelInput.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/js/intlTelInput.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const phoneInput = document.querySelector("#phone");
+            const countrySelect = document.querySelector("#countrySelect");
+            const timezoneSelect = document.querySelector("#timezoneSelect");
+
+            if (!phoneInput || !window.intlTelInput) {
+                console.error("intl-tel-input not found!");
+                return;
+            }
+
+            const iti = window.intlTelInput(phoneInput, {
+                initialCountry: "auto",
+                separateDialCode: true,
+                nationalMode: true,
+                preferredCountries: ["us", "gb", "au", "eg"],
+                geoIpLookup: (success, failure) => {
+                    fetch("https://ipapi.co/json/")
+                        .then(res => res.json())
+                        .then(data => success(data.country_code))
+                        .catch(() => failure());
+                },
+                loadUtils: () => import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/js/utils.js")
+            });
+
+            iti.promise.then(() => {
+                const existingValue = phoneInput.value?.trim();
+                if (existingValue && existingValue.startsWith("+")) {
+                    iti.setNumber(existingValue);
+                } else {
+                    const country = iti.getSelectedCountryData();
+                    if (countrySelect)
+                        countrySelect.value = country.iso2.toUpperCase();
+                }
+
+                phoneInput.form.addEventListener("submit", e => {
+                    const fullNumber = iti.getNumber();
+                    if (!iti.isValidNumber()) {
+                        e.preventDefault();
+                        alert("Invalid phone number.");
+                        return false;
+                    }
+                    phoneInput.value = fullNumber;
+                });
+            });
+
+            // Auto-detect timezone
+            try {
+                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (tz && timezoneSelect && !timezoneSelect.value)
+                    timezoneSelect.value = tz;
+            } catch { }
+        });
+    </script>
+
+    <style>
+        .iti {
+            width: 100%;
+        }
+
+        .iti__flag-container {
+            border-right: 1px solid #dee2e6;
+        }
+
+        small.form-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+    </style>
+}

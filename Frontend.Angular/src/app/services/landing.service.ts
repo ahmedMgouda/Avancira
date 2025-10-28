@@ -8,7 +8,7 @@ import { environment } from '../environments/environment';
   providedIn: 'root'
 })
 export class LandingService {
-  private apiUrl = `${environment.apiUrl}/landing`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/landing`;
 
   constructor(private http: HttpClient) {}
 

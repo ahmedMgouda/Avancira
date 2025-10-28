@@ -17,7 +17,7 @@ namespace Avancira.Migrations.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.3")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -57,254 +57,197 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("AuditTrails", "identity");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.Category", b =>
+            modelBuilder.Entity("Avancira.Domain.Geography.Country", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                    b.Property<string>("Id")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("Code");
 
-                    b.Property<bool>("DisplayInLandingPage")
-                        .HasColumnType("boolean");
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("Avancira.Domain.Catalog.Listing", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AdminReviewerId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ApprovalStatus")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("Deleted")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("DisplayOnLandingPage")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<string>("DialingCode")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("LocationType")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("ReviewDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ReviewFeedback")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Listings");
-                });
+                    b.HasIndex("Name")
+                        .IsUnique();
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.ListingCategory", b =>
-                {
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("ListingId", "CategoryId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("ListingCategories");
-                });
-
-            modelBuilder.Entity("Avancira.Domain.Catalog.ListingReview", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("Deleted")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("RatingDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("RatingValue")
-                        .HasPrecision(3, 2)
-                        .HasColumnType("numeric(3,2)");
-
-                    b.Property<string>("StudentId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId");
-
-                    b.ToTable("Reviews");
+                    b.ToTable("Countries", (string)null);
                 });
 
             modelBuilder.Entity("Avancira.Domain.Lessons.Lesson", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
+                    b.Property<TimeSpan?>("ActualDuration")
+                        .HasColumnType("interval");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("BookedAtUtc")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<DateTimeOffset?>("Deleted")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("CanceledAtUtc")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
+                    b.Property<string>("CanceledBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("ConfirmedAtUtc")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<TimeSpan>("Duration")
                         .HasColumnType("interval");
 
-                    b.Property<decimal>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<decimal>("FinalPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
-                    b.Property<bool>("IsStudentInitiated")
-                        .HasColumnType("boolean");
+                    b.Property<int>("ListingId")
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("MeetingId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("MeetingRoomName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("MeetingToken")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                    b.Property<string>("MeetingPassword")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<decimal?>("OfferedPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<int>("RescheduleCount")
+                        .HasColumnType("integer");
 
-                    b.Property<Guid?>("PromoCodeId")
-                        .HasColumnType("uuid");
+                    b.Property<int?>("RescheduledFromLessonId")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("PromoCodeValue")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<DateTime>("ScheduledAtUtc")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<decimal?>("PromoDiscount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<string>("SessionSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                        .HasColumnType("integer");
 
                     b.Property<string>("StudentId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
 
-                    b.Property<Guid>("TransactionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("TutorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("TutorNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ListingId");
 
-                    b.HasIndex("PromoCodeId");
+                    b.HasIndex("RescheduledFromLessonId");
 
                     b.HasIndex("StudentId");
 
-                    b.HasIndex("TransactionId");
+                    b.HasIndex("TutorId");
 
-                    b.ToTable("Lessons");
+                    b.ToTable("Lessons", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Lessons.LessonMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsSharedWithStudent")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaterialType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScanResult")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ScanStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UploadedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UploadedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.ToTable("LessonMaterials", (string)null);
                 });
 
             modelBuilder.Entity("Avancira.Domain.Messaging.Chat", b =>
@@ -319,9 +262,6 @@ namespace Avancira.Migrations.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("StudentId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -331,8 +271,6 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ListingId");
 
                     b.HasIndex("StudentId");
 
@@ -461,7 +399,7 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("MessageReport");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Messaging.Notification", b =>
+            modelBuilder.Entity("Avancira.Domain.Notifications.Notification", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -482,10 +420,9 @@ namespace Avancira.Migrations.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("EventName")
-                        .IsRequired()
+                    b.Property<int>("EventName")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsRead")
                         .ValueGeneratedOnAdd()
@@ -522,21 +459,6 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("Avancira.Domain.PromoCodes.ListingPromoCode", b =>
-                {
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PromoCodeId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("ListingId", "PromoCodeId");
-
-                    b.HasIndex("PromoCodeId");
-
-                    b.ToTable("ListingPromoCode");
                 });
 
             modelBuilder.Entity("Avancira.Domain.PromoCodes.PromoCode", b =>
@@ -603,6 +525,247 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("Code");
 
                     b.ToTable("PromoCodes");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Reviews.StudentReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("CommunicationRating")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EditedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("FlagReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("HelpfulVotes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFlagged")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("KnowledgeRating")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ModeratedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModeratedByAdminId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("NotHelpfulVotes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProfessionalismRating")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("TutorRespondedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("TutorResponse")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("ValueRating")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("StudentReviews", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Students.StudentProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("UserId");
+
+                    b.Property<bool>("CanBook")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrentEducationLevel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("HasUsedTrialLesson")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsComplete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LearningGoal")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Major")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PreferredLearningStyle")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("School")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ShowStudentProfileReminder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("SubscriptionStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("TrialLessonUsedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StudentProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subjects.Subject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsFeatured")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("UpdatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "SortOrder");
+
+                    b.ToTable("Subjects", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subjects.SubjectCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsFeatured")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubjectCategories", (string)null);
                 });
 
             modelBuilder.Entity("Avancira.Domain.Subscription.Subscription", b =>
@@ -762,6 +925,201 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("Transactions");
                 });
 
+            modelBuilder.Entity("Avancira.Domain.Tutors.Listing", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<double>("AverageRating")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeactivatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("HourlyRate")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalReviews")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TutorId")
+                        .IsRequired()
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("TutorId", "SubjectId")
+                        .IsUnique();
+
+                    b.ToTable("Listings", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Tutors.TutorAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<string>("TutorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TutorId", "DayOfWeek", "StartTime")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TutorAvailability_Unique");
+
+                    b.ToTable("TutorAvailabilities", (string)null);
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Tutors.TutorProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("UserId");
+
+                    b.Property<string>("AdminComment")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("AllowsInstantBooking")
+                        .HasColumnType("boolean");
+
+                    b.Property<double>("AverageRating")
+                        .HasColumnType("double precision");
+
+                    b.Property<decimal>("AverageResponseTimeMinutes")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("BookingAcceptanceRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Headline")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("IntroVideoDurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IntroVideoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsComplete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRisingTalent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Languages")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("MaxSessionDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinSessionDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("OffersTrialLesson")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowTutorProfileReminder")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Specializations")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TeachingPhilosophy")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("TopTutorSinceUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("TrialLessonDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TrialLessonRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("VerifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("YearsOfExperience")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TutorProfiles", (string)null);
+                });
+
             modelBuilder.Entity("Avancira.Domain.UserCard.UserCard", b =>
                 {
                     b.Property<int>("Id")
@@ -800,6 +1158,107 @@ namespace Avancira.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("UserCards");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.UserSessions.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("LastActivityAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RefreshTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RefreshTokenReferenceId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<bool>("RequiresUserNotification")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("LastActivityAt");
+
+                    b.HasIndex("RefreshTokenExpiresAt");
+
+                    b.HasIndex("RefreshTokenReferenceId");
+
+                    b.HasIndex("RevokedAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Sessions", "identity");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ActiveProfile")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("student");
+
+                    b.Property<DateTime>("UpdatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserPreferences", "identity");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Wallets.Wallet", b =>
@@ -854,85 +1313,6 @@ namespace Avancira.Migrations.Migrations
                     b.HasIndex("WalletId");
 
                     b.ToTable("WalletLogs");
-                });
-
-            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Address", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("FormattedAddress")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("PostalCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("StreetAddress")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Addresses");
-                });
-
-            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Country", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Countries");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Catalog.Referral", b =>
@@ -1031,16 +1411,17 @@ namespace Avancira.Migrations.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Bio")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
-                    b.Property<int?>("CountryId")
-                        .HasColumnType("integer");
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
@@ -1054,21 +1435,23 @@ namespace Avancira.Migrations.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<string>("HangoutId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("text");
+                    b.Property<string>("Gender")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastModifiedOnUtc")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -1084,46 +1467,26 @@ namespace Avancira.Migrations.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("ObjectId")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
-                    b.Property<string>("PayPalAccountId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("RefreshToken")
+                    b.Property<string>("ProfileImageUrl")
                         .HasColumnType("text");
-
-                    b.Property<DateTime>("RefreshTokenExpiryTime")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
-                    b.Property<string>("SkypeId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("StripeConnectedAccountId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("StripeCustomerId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("TimeZoneId")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
@@ -1134,7 +1497,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CountryId");
+                    b.HasIndex("CountryCode");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1227,71 +1590,256 @@ namespace Avancira.Migrations.Migrations
                     b.ToTable("UserTokens", "identity");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.ListingCategory", b =>
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
                 {
-                    b.HasOne("Avancira.Domain.Catalog.Category", "Category")
-                        .WithMany("ListingCategories")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text");
 
-                    b.HasOne("Avancira.Domain.Catalog.Listing", "Listing")
-                        .WithMany("ListingCategories")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<string>("ApplicationType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
-                    b.Navigation("Category");
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-                    b.Navigation("Listing");
+                    b.Property<string>("ClientSecret")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClientType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ConsentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayNames")
+                        .HasColumnType("text");
+
+                    b.Property<string>("JsonWebKeySet")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Permissions")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PostLogoutRedirectUris")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RedirectUris")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Requirements")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Settings")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId")
+                        .IsUnique();
+
+                    b.ToTable("OpenIddictApplications", (string)null);
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.ListingReview", b =>
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
                 {
-                    b.HasOne("Avancira.Domain.Catalog.Listing", "Listing")
-                        .WithMany("ListingReviews")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text");
 
-                    b.Navigation("Listing");
+                    b.Property<string>("ApplicationId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("CreationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Scopes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "Status", "Subject", "Type");
+
+                    b.ToTable("OpenIddictAuthorizations", (string)null);
+                });
+
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreScope", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Descriptions")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayNames")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Resources")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("OpenIddictScopes", (string)null);
+                });
+
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AuthorizationId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("CreationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RedemptionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReferenceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorizationId");
+
+                    b.HasIndex("ReferenceId")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "Status", "Subject", "Type");
+
+                    b.ToTable("OpenIddictTokens", (string)null);
                 });
 
             modelBuilder.Entity("Avancira.Domain.Lessons.Lesson", b =>
                 {
-                    b.HasOne("Avancira.Domain.Catalog.Listing", "Listing")
+                    b.HasOne("Avancira.Domain.Tutors.Listing", "Listing")
                         .WithMany()
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Avancira.Domain.PromoCodes.PromoCode", "PromoCode")
+                    b.HasOne("Avancira.Domain.Lessons.Lesson", "RescheduledFromLesson")
                         .WithMany()
-                        .HasForeignKey("PromoCodeId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("RescheduledFromLessonId");
 
-                    b.HasOne("Avancira.Domain.Transactions.Transaction", "Transaction")
+                    b.HasOne("Avancira.Domain.Students.StudentProfile", "Student")
+                        .WithMany("Lessons")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Avancira.Domain.Tutors.TutorProfile", "Tutor")
                         .WithMany()
-                        .HasForeignKey("TransactionId")
+                        .HasForeignKey("TutorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Listing");
 
-                    b.Navigation("PromoCode");
+                    b.Navigation("RescheduledFromLesson");
 
-                    b.Navigation("Transaction");
+                    b.Navigation("Student");
+
+                    b.Navigation("Tutor");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Messaging.Chat", b =>
+            modelBuilder.Entity("Avancira.Domain.Lessons.LessonMaterial", b =>
                 {
-                    b.HasOne("Avancira.Domain.Catalog.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.HasOne("Avancira.Domain.Lessons.Lesson", "Lesson")
+                        .WithMany("Materials")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Listing");
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Messaging.Message", b =>
@@ -1331,23 +1879,75 @@ namespace Avancira.Migrations.Migrations
                     b.Navigation("Message");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.PromoCodes.ListingPromoCode", b =>
+            modelBuilder.Entity("Avancira.Domain.Reviews.StudentReview", b =>
                 {
-                    b.HasOne("Avancira.Domain.Catalog.Listing", "Listing")
-                        .WithMany("ListingPromoCodes")
-                        .HasForeignKey("ListingId")
+                    b.HasOne("Avancira.Domain.Lessons.Lesson", "Lesson")
+                        .WithOne("Review")
+                        .HasForeignKey("Avancira.Domain.Reviews.StudentReview", "LessonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Avancira.Domain.PromoCodes.PromoCode", "PromoCode")
-                        .WithMany("ListingPromoCodes")
-                        .HasForeignKey("PromoCodeId")
+                    b.HasOne("Avancira.Domain.Students.StudentProfile", "Student")
+                        .WithMany("Reviews")
+                        .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Listing");
+                    b.Navigation("Lesson");
 
-                    b.Navigation("PromoCode");
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Students.StudentProfile", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
+                        .WithOne("StudentProfile")
+                        .HasForeignKey("Avancira.Domain.Students.StudentProfile", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Avancira.Application.StudentProfiles.SubscriptionPeriod", "SubscriptionPeriod", b1 =>
+                        {
+                            b1.Property<string>("StudentProfileId")
+                                .HasColumnType("character varying(450)");
+
+                            b1.Property<DateTime>("EndUtc")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("SubscriptionEndUtc");
+
+                            b1.Property<DateTime>("StartUtc")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("SubscriptionStartUtc");
+
+                            b1.HasKey("StudentProfileId");
+
+                            b1.ToTable("StudentProfiles");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StudentProfileId");
+                        });
+
+                    b.Navigation("SubscriptionPeriod");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
+                        .WithOne("UserPreference")
+                        .HasForeignKey("Avancira.Domain.Users.UserPreference", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subjects.Subject", b =>
+                {
+                    b.HasOne("Avancira.Domain.Subjects.SubjectCategory", "Category")
+                        .WithMany("Subjects")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Subscription.SubscriptionHistory", b =>
@@ -1375,6 +1975,45 @@ namespace Avancira.Migrations.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Avancira.Domain.Tutors.Listing", b =>
+                {
+                    b.HasOne("Avancira.Domain.Subjects.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Avancira.Domain.Tutors.TutorProfile", "Tutor")
+                        .WithMany("Listings")
+                        .HasForeignKey("TutorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("Tutor");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Tutors.TutorAvailability", b =>
+                {
+                    b.HasOne("Avancira.Domain.Tutors.TutorProfile", "Tutor")
+                        .WithMany("Availabilities")
+                        .HasForeignKey("TutorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tutor");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Tutors.TutorProfile", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
+                        .WithOne("TutorProfile")
+                        .HasForeignKey("Avancira.Domain.Tutors.TutorProfile", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Avancira.Domain.Wallets.WalletLog", b =>
                 {
                     b.HasOne("Avancira.Domain.Wallets.Wallet", "Wallet")
@@ -1384,17 +2023,6 @@ namespace Avancira.Migrations.Migrations
                         .IsRequired();
 
                     b.Navigation("Wallet");
-                });
-
-            modelBuilder.Entity("Avancira.Infrastructure.Catalog.Address", b =>
-                {
-                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", "User")
-                        .WithOne("Address")
-                        .HasForeignKey("Avancira.Infrastructure.Catalog.Address", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Catalog.Referral", b =>
@@ -1427,9 +2055,46 @@ namespace Avancira.Migrations.Migrations
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
                 {
-                    b.HasOne("Avancira.Infrastructure.Catalog.Country", "Country")
+                    b.HasOne("Avancira.Domain.Geography.Country", "Country")
                         .WithMany()
-                        .HasForeignKey("CountryId");
+                        .HasForeignKey("CountryCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("Avancira.Infrastructure.Identity.Users.Address", "Address", b1 =>
+                        {
+                            b1.Property<string>("UserId")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.Property<string>("PostalCode")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<string>("State")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.Property<string>("Street")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)");
+
+                            b1.HasKey("UserId");
+
+                            b1.ToTable("UserAddresses", "identity");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("Address");
 
                     b.Navigation("Country");
                 });
@@ -1476,18 +2141,35 @@ namespace Avancira.Migrations.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.Category", b =>
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
                 {
-                    b.Navigation("ListingCategories");
+                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", "Application")
+                        .WithMany("Authorizations")
+                        .HasForeignKey("ApplicationId");
+
+                    b.Navigation("Application");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.Catalog.Listing", b =>
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreToken", b =>
                 {
-                    b.Navigation("ListingCategories");
+                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", "Application")
+                        .WithMany("Tokens")
+                        .HasForeignKey("ApplicationId");
 
-                    b.Navigation("ListingPromoCodes");
+                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", "Authorization")
+                        .WithMany("Tokens")
+                        .HasForeignKey("AuthorizationId");
 
-                    b.Navigation("ListingReviews");
+                    b.Navigation("Application");
+
+                    b.Navigation("Authorization");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Lessons.Lesson", b =>
+                {
+                    b.Navigation("Materials");
+
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("Avancira.Domain.Messaging.Chat", b =>
@@ -1502,14 +2184,44 @@ namespace Avancira.Migrations.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("Avancira.Domain.PromoCodes.PromoCode", b =>
+            modelBuilder.Entity("Avancira.Domain.Students.StudentProfile", b =>
                 {
-                    b.Navigation("ListingPromoCodes");
+                    b.Navigation("Lessons");
+
+                    b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Subjects.SubjectCategory", b =>
+                {
+                    b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Tutors.TutorProfile", b =>
+                {
+                    b.Navigation("Availabilities");
+
+                    b.Navigation("Listings");
                 });
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
                 {
-                    b.Navigation("Address");
+                    b.Navigation("Preference");
+
+                    b.Navigation("StudentProfile");
+
+                    b.Navigation("TutorProfile");
+                });
+
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
+                {
+                    b.Navigation("Authorizations");
+
+                    b.Navigation("Tokens");
+                });
+
+            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
+                {
+                    b.Navigation("Tokens");
                 });
 #pragma warning restore 612, 618
         }

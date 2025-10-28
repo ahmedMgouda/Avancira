@@ -15,6 +15,10 @@
                 <form (ngSubmit)="saveProfile()" #profileForm="ngForm" novalidate enctype="multipart/form-data">
 
                     <div class="row form-row">
+                        <div class="col-12 mb-3">
+                            <p><strong>Device:</strong> {{ currentSession?.deviceId || 'N/A' }}</p>
+                            <p><strong>Location:</strong> {{ currentSession?.city || 'Unknown' }}, {{ currentSession?.country || 'Unknown' }}</p>
+                        </div>
                         <div class="col-12 col-md-12">
                             <div class="form-group">
                                 <div class="change-avatar">
@@ -192,21 +196,51 @@
 
             <div class="tab-pane" id="bottom-tab3" role="tabpanel">
                 <!-- Change Password Form -->
-                <form (ngSubmit)="changeOldPassword()" #passwordForm="ngForm" novalidate>
+                <form [formGroup]="changePasswordForm" (ngSubmit)="changeOldPassword()" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
-                        <input type="password" class="form-control" placeholder="Enter current password"
-                            [(ngModel)]="changePasswordData.oldPassword" name="oldPassword" required>
+                        <input type="password" class="form-control" placeholder="Enter current password" formControlName="oldPassword">
+                        <div *ngIf="oldPasswordControl?.touched">
+                            <span *ngIf="oldPasswordControl?.errors?.['required']">
+                                Current password is required.
+                            </span>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">New Password</label>
-                        <input type="password" class="form-control" placeholder="Enter new password"
-                            [(ngModel)]="changePasswordData.newPassword" name="newPassword" required>
+                        <input type="password" class="form-control" placeholder="Enter new password" formControlName="newPassword">
+                        <div *ngIf="newPasswordControl?.touched">
+                            <span *ngIf="newPasswordControl?.errors?.['required']">
+                                Password is required.
+                            </span>
+                            <span *ngIf="newPasswordControl?.errors?.['minlength']">
+                                Password must be at least 8 characters.
+                            </span>
+                            <span *ngIf="newPasswordControl?.errors?.['noUppercase']">
+                                Password must contain at least one uppercase letter.
+                            </span>
+                            <span *ngIf="newPasswordControl?.errors?.['noLowercase']">
+                                Password must contain at least one lowercase letter.
+                            </span>
+                            <span *ngIf="newPasswordControl?.errors?.['noDigit']">
+                                Password must contain at least one digit.
+                            </span>
+                            <span *ngIf="newPasswordControl?.errors?.['noNonAlphanumeric']">
+                                Password must contain at least one non-alphanumeric character.
+                            </span>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" placeholder="Confirm new password"
-                            [(ngModel)]="changePasswordData.confirmNewPassword" name="confirmNewPassword" required>
+                        <input type="password" class="form-control" placeholder="Confirm new password" formControlName="confirmPassword">
+                        <div *ngIf="confirmPasswordControl?.touched">
+                            <span *ngIf="confirmPasswordControl?.errors?.['required']">
+                                Confirmation is required.
+                            </span>
+                            <span *ngIf="changePasswordForm.errors?.['passwordsMismatch']">
+                                Passwords do not match.
+                            </span>
+                        </div>
                     </div>
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary">Change Password</button>

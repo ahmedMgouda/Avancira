@@ -1,0 +1,92 @@
+@model LoginViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Login";
+}
+
+<h2 class="text-center mb-4">Welcome Back</h2>
+<p class="text-center text-muted mb-4">Sign in to continue to your Avancira account.</p>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Context.Request.Query.ContainsKey("error"))
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>Authentication Error:</strong> @Context.Request.Query["error"]
+        @if (Context.Request.Query.ContainsKey("detail"))
+        {
+            <br />
+            <small>Details: @Context.Request.Query["detail"]</small>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        Please correct the highlighted errors below.
+    </div>
+}
+
+<form asp-action="Login" method="post" id="loginForm" novalidate class="needs-validation">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control @(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "is-invalid" : "")" autocomplete="email" />
+        <span asp-validation-for="Email" class="invalid-feedback"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" type="password" class="form-control @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "is-invalid" : "")" autocomplete="current-password" />
+        <span asp-validation-for="Password" class="invalid-feedback"></span>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a asp-action="ForgotPassword" class="link-secondary">Forgot password?</a>
+        <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Create an account</a>
+    </div>
+    <button id="loginButton" type="submit" class="btn btn-primary w-100">
+        Log in
+    </button>
+</form>
+<hr class="my-4" />
+<div class="d-grid gap-2">
+    <form asp-controller="Account" asp-action="ExternalLogin" method="post" class="d-grid">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="provider" value="Google" />
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button type="submit" class="btn btn-outline-dark w-100">
+            <i class="bi bi-google me-2"></i> Sign in with Google
+        </button>
+    </form>
+    <form asp-controller="Account" asp-action="ExternalLogin" method="post" class="d-grid">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="provider" value="Facebook" />
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button type="submit" class="btn btn-outline-primary w-100">
+            <i class="bi bi-facebook me-2"></i> Sign in with Facebook
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('loginForm')?.addEventListener('submit', function () {
+            const btn = document.getElementById('loginButton');
+            if (!btn) {
+                return;
+            }
+            btn.disabled = true;
+            btn.innerHTML = 'Logging in... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        });
+    </script>
+}

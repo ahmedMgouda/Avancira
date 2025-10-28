@@ -1,106 +1,100 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { catchError, Observable, of, tap, throwError } from 'rxjs';
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { Injectable, isDevMode } from '@angular/core';
+import { catchError, map,Observable, of, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
+import { ConfigKey } from '../models/config-key';
+import { SocialProvider } from '../models/social-provider';
 
+export type Config = Record<ConfigKey, string>;
 
-export interface Config {
-  stripePublishableKey: string;
-  payPalClientId: string;
-  googleMapsApiKey: string;
-  googleClientId: string;
-  googleClientSecret: string;
-  facebookAppId: string;
-  [key: string]: string;
+export interface ConfigResponse {
+  config: Config;
+  enabledSocialProviders: SocialProvider[];
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ConfigService {
-  private config: any = null;
+  private readonly apiBase = `${environment.bffBaseUrl}/api`;
+  private config: Config | null = null;
+  private enabledSocialProviders: SocialProvider[] = [];
 
   constructor(private http: HttpClient) { }
 
-  // Check if configuration is valid (all required keys are present and not all empty)
+  private isConfigKeyValid(config: Config, key: ConfigKey): boolean {
+    const value = config[key];
+    return typeof value === 'string' ? value.trim() !== '' : value !== undefined && value !== null;
+  }
+
   private isConfigValid(config: Config): boolean {
-    if (!config) {
-      return false;
-    }
-
-    // Define the required configuration keys that should be loaded from API
-    const requiredKeys = [
-      'stripePublishableKey',
-      'payPalClientId',
-      'googleMapsApiKey',
-      'googleClientId',
-      'googleClientSecret',
-      'facebookAppId'
-    ];
-
-    // Check if all required keys exist in the config object
-    const allKeysExist = requiredKeys.every(key => key in config);
-    
-    // Check if all values are empty strings (this should trigger a reload)
-    const allValuesEmpty = requiredKeys.every(key => config[key] === '');
-    
-    // Config is valid if all keys exist AND not all values are empty
-    return allKeysExist && !allValuesEmpty;
+    const keys = Object.values(ConfigKey);
+    return keys.every(key => this.isConfigKeyValid(config, key));
   }
 
   // Load configuration from backend API
   loadConfig(): Observable<Config> {
-    // Check if we have a valid config with all required keys
+    // Return cached config if it's valid
     if (this.config && this.isConfigValid(this.config)) {
       return of(this.config);
     }
 
-    const storedConfig = localStorage.getItem('config');
-    if (storedConfig) {
-      const parsedConfig = JSON.parse(storedConfig) as Config;
-      if (this.isConfigValid(parsedConfig)) {
-        this.config = parsedConfig;
-        return of(this.config);
-      }
-      // If stored config is invalid, remove it and fetch fresh
-      localStorage.removeItem('config');
-    }
+    const fetch$ = this.http.get<ConfigResponse>(`${this.apiBase}/configs`, {
+      context: new HttpContext()
+    });
 
-    return this.http.get<Config>(`${environment.apiUrl}/configs`)
-      .pipe(
-        tap((config) => {
-          this.config = config;
-          localStorage.setItem('config', JSON.stringify(config));
+    return fetch$.pipe(
+      switchMap(resp => this.isConfigValid(resp.config) ? of(resp) : fetch$),
+      tap(resp => {
+        this.config = resp.config;
+        this.enabledSocialProviders = resp.enabledSocialProviders ?? [];
+        if (isDevMode()) {
           console.log('Config loaded:', this.config);
-        }),
-        catchError((error) => {
-          console.error('Failed to load configuration:', error);
-          return throwError(() => new Error('Failed to load configuration.'));
-        })
-      );
+        }
+      }),
+      map(resp => resp.config),
+      catchError(error => {
+        console.error('Failed to load configuration:', error);
+        return throwError(() => new Error('Failed to load configuration.'));
+      })
+    );
+  }
+
+  // Force reload of configuration from backend
+  reload(): Observable<Config> {
+    this.config = null;
+    this.enabledSocialProviders = [];
+    return this.loadConfig();
   }
 
   // Retrieve a specific key from the config
-  get(key: string): string {
+  get(key: ConfigKey): string {
     return this.getConfig()[key];
+  }
+
+  getEnabledSocialProviders(): SocialProvider[] {
+    return this.enabledSocialProviders;
+  }
+
+  isSocialProviderEnabled(provider: SocialProvider): boolean {
+    return this.getEnabledSocialProviders().includes(provider);
+  }
+
+  get googleEnabled(): boolean {
+    return this.isSocialProviderEnabled(SocialProvider.Google);
+  }
+
+  get facebookEnabled(): boolean {
+    return this.isSocialProviderEnabled(SocialProvider.Facebook);
   }
 
   // Optional: Retrieve the entire configuration object
   getConfig(): Config {
-    // If config is already loaded in memory, return it
-    if (this.config) {
+    if (this.config && this.isConfigValid(this.config)) {
       return this.config;
     }
-  
-    // Try loading from localStorage if not in memory
-    const storedConfig = localStorage.getItem('config');
-    if (storedConfig) {
-      this.config = JSON.parse(storedConfig) as Config;
-      return this.config;
-    }
-  
-    // If still not found, throw an error
+
     throw new Error('Configuration not loaded. Please call loadConfig() first.');
   }
 }

@@ -12,7 +12,7 @@ import { Proposition } from '../models/proposition';
   providedIn: 'root',
 })
 export class LessonService {
-  private apiUrl = `${environment.apiUrl}/lessons`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/lessons`;
 
   constructor(private http: HttpClient) { }
 

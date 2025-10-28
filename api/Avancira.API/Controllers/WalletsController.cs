@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +12,15 @@ namespace Avancira.API.Controllers;
 public class WalletsController : BaseApiController
 {
     private readonly IWalletService _walletService;
+    private readonly ICurrentUser _currentUser;
 
     public WalletsController(
-        IWalletService walletService
+        IWalletService walletService,
+        ICurrentUser currentUser
     )
     {
         _walletService = walletService;
+        _currentUser = currentUser;
     }
 
     // Create
@@ -44,7 +48,7 @@ public class WalletsController : BaseApiController
     {
         try
         {
-            var userId = GetUserId();
+            var userId = _currentUser.GetUserId().ToString();
             var result = await _walletService.GetWalletBalanceAsync(userId);
             return Ok(new { Balance = result.Balance, LastUpdated = result.LastUpdated });
         }

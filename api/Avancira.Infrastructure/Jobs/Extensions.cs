@@ -1,17 +1,13 @@
-﻿using Avancira.Application.Jobs;
+using Avancira.Application.Jobs;
 using Avancira.Application.Persistence;
 using Avancira.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
-using Hangfire.SqlServer;
-using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Avancira.Infrastructure.Common.Extensions;
 using Avancira.Domain.Common.Exceptions;
-using Microsoft.Extensions.Logging;
-using Avancira.Infrastructure.Jobs;
 
 namespace Avancira.Infrastructure.Jobs;
 
@@ -21,7 +17,7 @@ internal static class Extensions
     {
         // Check if we're running with Aspire (development) or traditional mode (production)
         var isUsingAspire = configuration.GetConnectionString("avancira") != null;
-        
+
         services.AddHangfireServer(o =>
         {
             o.HeartbeatInterval = TimeSpan.FromSeconds(30);
@@ -48,7 +44,7 @@ internal static class Extensions
 
                 // Configure the job activator to handle dependency injection
                 config.UseActivator(new AvanciraJobActivator(provider.GetRequiredService<IServiceScopeFactory>()));
-                
+
                 config.UseFilter(new AvanciraJobFilter(provider));
                 config.UseFilter(new LogJobFilter());
             });
@@ -80,7 +76,7 @@ internal static class Extensions
 
                 // Configure the job activator to handle dependency injection
                 config.UseActivator(new AvanciraJobActivator(provider.GetRequiredService<IServiceScopeFactory>()));
-                
+
                 config.UseFilter(new AvanciraJobFilter(provider));
                 config.UseFilter(new LogJobFilter());
             });
@@ -95,7 +91,7 @@ internal static class Extensions
     internal static IApplicationBuilder UseJobDashboard(this IApplicationBuilder app, IConfiguration config)
     {
         var hangfireOptions = config.GetSection(nameof(HangfireOptions)).Get<HangfireOptions>() ?? new HangfireOptions();
-        
+
         var dashboardOptions = new DashboardOptions
         {
             AppPath = "/",

@@ -1,39 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Avancira.API.Controllers;
 
 [ApiController]
 public abstract class BaseApiController : ControllerBase
 {
-    /// <summary>
-    /// Gets the current user's ID from JWT claims
-    /// </summary>
-    /// <returns>User ID if authenticated, otherwise throws UnauthorizedAccessException</returns>
-    protected string GetUserId()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                    ?? User.FindFirst("sub")?.Value 
-                    ?? User.FindFirst("userId")?.Value;
-        
-        if (string.IsNullOrEmpty(userId))
-        {
-            throw new UnauthorizedAccessException("User ID not found in token claims");
-        }
-        
-        return userId;
-    }
-
-    /// <summary>
-    /// Gets the current user's email from JWT claims
-    /// </summary>
-    /// <returns>User email if available, otherwise null</returns>
-    protected string? GetUserEmail()
-    {
-        return User.FindFirst(ClaimTypes.Email)?.Value 
-               ?? User.FindFirst("email")?.Value;
-    }
-
     /// <summary>
     /// Gets the current user's roles from JWT claims
     /// </summary>
@@ -52,4 +26,5 @@ public abstract class BaseApiController : ControllerBase
     {
         return User.IsInRole(role);
     }
+
 }

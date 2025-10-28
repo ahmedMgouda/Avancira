@@ -1,3 +1,4 @@
+using System;
 using Avancira.Application.Identity.Users.Dtos;
 using FluentValidation;
 
@@ -27,21 +28,8 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .MaximumLength(256)
             .WithMessage("Email must not exceed 256 characters.");
 
-        RuleFor(x => x.UserName)
-            .NotEmpty()
-            .WithMessage("Username is required.")
-            .MinimumLength(3)
-            .WithMessage("Username must be at least 3 characters long.")
-            .MaximumLength(50)
-            .WithMessage("Username must not exceed 50 characters.")
-            .Matches("^[a-zA-Z0-9._-]+$")
-            .WithMessage("Username can only contain letters, numbers, dots, underscores, and hyphens.");
-
         RuleFor(x => x.Password)
-            .NotEmpty()
-            .WithMessage("Password is required.")
-            .MinimumLength(6)
-            .WithMessage("Password must be at least 6 characters long.");
+            .ApplyPasswordRules();
 
         RuleFor(x => x.ConfirmPassword)
             .NotEmpty()
@@ -49,19 +37,74 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .Equal(x => x.Password)
             .WithMessage("Password and confirmation password do not match.");
 
+        RuleFor(x => x.CountryCode)
+            .NotEmpty()
+            .Length(2, 3);
+
         RuleFor(x => x.PhoneNumber)
-            .Matches(@"^\+?[1-9]\d{1,14}$")
-            .WithMessage("Please enter a valid phone number.")
-            .When(x => !string.IsNullOrEmpty(x.PhoneNumber));
+            .NotEmpty()
+            .Must((dto, phone) => IsValidPhoneNumber(dto.CountryCode, phone))
+            .WithMessage(dto => GetPhoneValidationMessage(dto.CountryCode));
+
+        RuleFor(x => x.Gender)
+            .MaximumLength(20)
+            .When(x => !string.IsNullOrWhiteSpace(x.Gender));
 
         RuleFor(x => x.TimeZoneId)
             .MaximumLength(100)
             .WithMessage("Time zone ID must not exceed 100 characters.")
             .When(x => !string.IsNullOrEmpty(x.TimeZoneId));
 
-        RuleFor(x => x.ReferralToken)
-            .MaximumLength(255)
-            .WithMessage("Referral token must not exceed 255 characters.")
-            .When(x => !string.IsNullOrEmpty(x.ReferralToken));
+        //RuleFor(x => x.ReferralToken)
+        //    .MaximumLength(255)
+        //    .WithMessage("Referral token must not exceed 255 characters.")
+        //    .When(x => !string.IsNullOrEmpty(x.ReferralToken));
+
+        RuleFor(x => x.DateOfBirth)
+            .Must(BeAtLeastThirteen)
+            .WithMessage("You must be at least 13 years old to register.")
+            .When(x => x.DateOfBirth.HasValue);
+
+        RuleFor(x => x.AcceptTerms)
+            .Equal(true)
+            .WithMessage("You must agree to the Privacy Policy & Terms.");
+    }
+
+    private static bool BeAtLeastThirteen(DateOnly? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+        {
+            return true;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var minimumBirthDate = today.AddYears(-13);
+        return dateOfBirth.Value <= minimumBirthDate;
+    }
+
+    private static bool IsValidPhoneNumber(string countryCode, string phoneNumber)
+    {
+        phoneNumber = phoneNumber.Replace(" ", string.Empty).Replace("-", string.Empty);
+
+        return countryCode.ToUpperInvariant() switch
+        {
+            "AU" => phoneNumber.Length == 9 && (phoneNumber.StartsWith("4") || phoneNumber.StartsWith("2") || phoneNumber.StartsWith("3") || phoneNumber.StartsWith("7") || phoneNumber.StartsWith("8")),
+            "EG" => phoneNumber.Length == 9 && (phoneNumber.StartsWith("1") || phoneNumber.StartsWith("2") || phoneNumber.StartsWith("3")),
+            "US" => phoneNumber.Length == 10,
+            "UK" or "GB" => phoneNumber.Length is >= 10 and <= 11,
+            _ => phoneNumber.Length is >= 6 and <= 15
+        };
+    }
+
+    private static string GetPhoneValidationMessage(string countryCode)
+    {
+        return countryCode.ToUpperInvariant() switch
+        {
+            "AU" => "Australian format: 4XX XXX XXX",
+            "EG" => "Egyptian format: 1X XXX XXXX",
+            "US" => "US format: 10 digits",
+            "UK" or "GB" => "UK format: 10-11 digits",
+            _ => "Please enter a valid phone number for the selected country."
+        };
     }
 }

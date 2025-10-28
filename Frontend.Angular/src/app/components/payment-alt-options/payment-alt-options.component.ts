@@ -6,6 +6,8 @@ import { ConfigService } from '../../services/config.service';
 import { ListingService } from '../../services/listing.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
+import { ConfigKey } from '../../models/config-key';
 
 
 
@@ -17,7 +19,6 @@ import { SubscriptionService } from '../../services/subscription.service';
 })
 export class PaymentAltOptionsComponent implements OnInit {
   listingId!: string;
-  isLoggedIn = false; // Check if the user is logged in
   paymentMethod: 'card' | 'paypal' = 'paypal';
   subscription = {
     title: 'Student Pass',
@@ -36,13 +37,14 @@ export class PaymentAltOptionsComponent implements OnInit {
     private listingService: ListingService,
     private paymentService: PaymentService,
     private subscriptionService: SubscriptionService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private authService: AuthService,
   ) { }
 
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token'); // Check if token exists
-    this.stripePromise = loadStripe(this.configService.get('stripePublishableKey'));
+    this.authService.isAuthenticated();
+    this.stripePromise = loadStripe(this.configService.get(ConfigKey.StripePublishableKey));
 
     this.paymentService.loadPayPalScript().then(() => {
       this.renderPayPalButton();

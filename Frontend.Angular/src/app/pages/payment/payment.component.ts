@@ -7,6 +7,7 @@ import { PaymentMethodComponent } from '../../components/payment-method/payment-
 
 import { AlertService } from '../../services/alert.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
 
 import { Card } from '../../models/card';
 import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
@@ -25,21 +26,19 @@ export class PaymentComponent implements OnInit {
   CardType: UserCardType = UserCardType.Paying;
   referrer: string | null = null;
   loading = true;
-  isLoggedIn = false;
   selectedCard: Card | null = null;
 
   constructor(
     private alertService: AlertService,
     private route: ActivatedRoute,
     private router: Router,
-    private subscriptionService: SubscriptionService
+    private subscriptionService: SubscriptionService,
+    public authService: AuthService,
   ) {
     this.handlePayment = this.handlePayment.bind(this);
   }
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token');
-
     this.route.queryParams.subscribe((params) => {
       this.referrer = params['referrer'] || '/';
     });
@@ -130,10 +129,7 @@ export class PaymentComponent implements OnInit {
   }
 
   goToLogin(): void {
-    const currentUrl = this.router.url;
-    this.router.navigate(['/signin'], {
-      queryParams: { returnUrl: currentUrl },
-    });
+    this.authService.startLogin(this.router.url);
   }
 
 

@@ -1,30 +1,31 @@
-﻿using Avancira.Domain.Catalog.Enums;
-using Avancira.Domain.Transactions;
+using System;
 using Avancira.Domain.Lessons;
 
-namespace Avancira.Application.Lessons.Dtos
+namespace Avancira.Application.Lessons.Dtos;
+
+public class LessonDto
 {
-    public class LessonDto
-    {
-        public string Id { get; set; }
-        public string? Topic { get; set; }
-        public DateTime Date { get; set; }
-        public TimeSpan Duration { get; set; }
-        public decimal Price { get; set; }
-        public string? StudentId { get; set; }
-        public Guid ListingId { get; set; }
-        public TransactionPaymentMethod PaymentMethod { get; set; }
-        public LessonStatus? Status { get; set; }
-        public string? MeetingToken { get; set; }
-        public string? MeetingDomain { get; set; }
-        public string? MeetingUrl { get; set; }
-        public string? MeetingRoomUrl { get; set; }
-        public string? MeetingRoomName { get; set; }
-        public string? StudentName { get; set; }
-        public string? TutorName { get; set; }
-        public string? RecipientName { get; set; }
-        public UserRole RecipientRole { get; set; }
-        public LessonType Type { get; set; }
-        public string? PayPalPaymentId { get; set; }
-    }
+    public int Id { get; set; }
+    public string StudentId { get; set; } = default!;
+    public string TutorId { get; set; } = default!;
+    public int ListingId { get; set; }
+    public DateTime ScheduledAtUtc { get; set; }
+    public TimeSpan Duration { get; set; }
+    public LessonStatus Status { get; set; }
+    public decimal FinalPrice { get; set; }
+    public DateTime BookedAtUtc { get; set; }
+    public DateTime? ConfirmedAtUtc { get; set; }
+    public DateTime? StartedAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
+    public DateTime? CanceledAtUtc { get; set; }
+    public string? CanceledBy { get; set; }
+    public string? CancellationReason { get; set; }
+    public string? MeetingUrl { get; set; }
+    public string? MeetingId { get; set; }
+    public string? MeetingPassword { get; set; }
+    public string? TutorNotes { get; set; }
+    public string? SessionSummary { get; set; }
+    public TimeSpan? ActualDuration { get; set; }
+    public int? RescheduledFromLessonId { get; set; }
+    public int RescheduleCount { get; set; }
 }

@@ -1,5 +1,3 @@
-using Avancira.Admin.Infrastructure.Api;
-
 namespace Avancira.Admin.Infrastructure.Auth;
 
 public interface IAuthenticationService
@@ -7,7 +5,7 @@ public interface IAuthenticationService
 
     void NavigateToExternalLogin(string returnUrl);
 
-    Task<bool> LoginAsync(TokenGenerationDto request);
+    Task<bool> CompleteLoginAsync(string code, string state);
 
     Task LogoutAsync();
 

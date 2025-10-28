@@ -16,7 +16,7 @@
       </ul>
     </div>
 
-    <div *ngIf="isLoggedIn; else notLoggedIn">
+    <div *ngIf="authService.isAuthenticated(); else notLoggedIn">
       <app-manage-cards *ngIf="!savedCardsAvailable" [cardPurpose]="CardType" (cardSelected)="onCardSelected($event)">
       </app-manage-cards>
       <button class="pay-button" [disabled]="!selectedCard" (click)="payWithSelectedCard()">

@@ -4,10 +4,6 @@ using Avancira.Domain.PromoCodes.Events;
 namespace Avancira.Domain.PromoCodes;
 public class PromoCode : AuditableEntity
 {
-    public PromoCode()
-    {
-        ListingPromoCodes = new List<ListingPromoCode>();
-    }
     public string Code { get; set; } = string.Empty;
     public decimal? DiscountAmount { get; set; }
     public double? DiscountPercentage { get; set; }
@@ -17,8 +13,6 @@ public class PromoCode : AuditableEntity
     public DateTime EndDate { get; set; }
     public bool IsActive { get; set; } = true;
     public PromoCodeType Type { get; set; }  // Tutor or System promo code type
-
-    public virtual ICollection<ListingPromoCode> ListingPromoCodes { get; set; }
 
     public bool IsValid()
     {

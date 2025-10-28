@@ -1,20 +1,44 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, map, Observable, of, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { UserDiplomaStatus } from '../models/enums/user-diploma-status';
 import { UserPaymentSchedule } from '../models/enums/user-payment-schedule';
+import { ResetPasswordRequest } from '../models/reset-password-request';
 import { User } from '../models/user';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
-  private apiUrl = `${environment.apiUrl}/users`;
+  private readonly apiUrl = `${environment.bffBaseUrl}/api/users`;
   private cachedUser: User | null = null;
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();
+
+  private cooldownMs = 30000;
+  private lastRequestPasswordReset = 0;
+  private lastResetPassword = 0;
+
+  private checkCooldown(lastTime: number): number {
+    return this.cooldownMs - (Date.now() - lastTime);
+  }
+
+  private buildCooldownError(remaining: number, action: string): Error {
+    const seconds = Math.ceil(remaining / 1000);
+    return new Error(`Please wait ${seconds}s before ${action}.`);
+  }
+
+  getRequestPasswordResetCooldown(): number {
+    const remaining = this.checkCooldown(this.lastRequestPasswordReset);
+    return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+  }
+
+  getResetPasswordCooldown(): number {
+    const remaining = this.checkCooldown(this.lastResetPassword);
+    return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+  }
 
   constructor(private http: HttpClient) { }
 
@@ -208,11 +232,34 @@ export class UserService {
   }
 
   requestPasswordReset(email: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/request-reset-password`, { email: email });
+    const remaining = this.checkCooldown(this.lastRequestPasswordReset);
+    if (remaining > 0) {
+      return throwError(() => this.buildCooldownError(remaining, 'requesting again'));
+    }
+    this.lastRequestPasswordReset = Date.now();
+    return this.http.post<void>(
+      `${this.apiUrl}/forgot-password`,
+      { email },
+      { context: new HttpContext() }
+    );
   }
 
-  resetPassword(data: { token: string; newPassword: string }): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/reset-password`, data);
+  resetPassword(data: ResetPasswordRequest): Observable<void> {
+    const remaining = this.checkCooldown(this.lastResetPassword);
+    if (remaining > 0) {
+      return throwError(() => this.buildCooldownError(remaining, 'trying again'));
+    }
+    this.lastResetPassword = Date.now();
+    return this.http.post<void>(
+      `${this.apiUrl}/reset-password`,
+      {
+        userId: data.userId,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        token: data.token,
+      },
+      { context: new HttpContext()}
+    );
   }
 
   submitDiploma(diplomaFile: File): Observable<void> {

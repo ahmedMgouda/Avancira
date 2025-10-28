@@ -1,10 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 
 namespace Avancira.Infrastructure.Common.Extensions;
 
 public static class HttpContextExtensions
 {
-    // Extension method for HttpContext to retrieve IP address
     public static string GetIpAddress(this HttpContext context)
     {
         string ip = "N/A";
@@ -18,4 +17,9 @@ public static class HttpContextExtensions
         }
         return ip;
     }
+
+    public static string GetUserAgent(this HttpContext context) =>
+        context.Request.Headers["User-Agent"].FirstOrDefault() ?? "N/A";
+  
 }
+

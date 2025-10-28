@@ -10,6 +10,8 @@ import { AlertService } from '../../services/alert.service';
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { AuthService } from '../../services/auth.service';
+import { ConfigKey } from '../../models/config-key';
 
 import { Card } from '../../models/card';
 import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';
@@ -39,7 +41,6 @@ export class PremiumSubscriptionComponent implements OnInit {
   };
 
   CardType: UserCardType = UserCardType.Paying;
-  isLoggedIn = false;
   paymentMethod: 'card' | 'paypal' = 'paypal';
   stripePromise: Promise<any> | null = null; 
   savedCards: Card[] = []; // Add saved cards property
@@ -51,17 +52,17 @@ export class PremiumSubscriptionComponent implements OnInit {
     private router: Router,
     private paymentService: PaymentService,
     private subscriptionService: SubscriptionService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    public authService: AuthService,
   ) {}
 
   ngOnInit(): void {
-    this.isLoggedIn = !!localStorage.getItem('token');
-    this.stripePromise = loadStripe(this.configService.get('stripePublishableKey'));
+    this.authService.isAuthenticated();
+    this.stripePromise = loadStripe(this.configService.get(ConfigKey.StripePublishableKey));
   }
 
   goToLogin(): void {
-    const currentUrl = this.router.url;
-    this.router.navigate(['/signin'], { queryParams: { returnUrl: currentUrl } });
+    this.authService.startLogin(this.router.url);
   }
 
   async handlePayment(): Promise<void> {

@@ -1,11 +1,12 @@
-﻿namespace Avancira.Domain.Lessons
+namespace Avancira.Domain.Lessons;
+
+public enum LessonStatus
 {
-    public enum LessonStatus
-    {
-        Proposed = 1,
-        Booked = 2,
-        Completed = 3,
-        Canceled = 4,
-        Paid = 5
-    }
+    Pending = 0,
+    Scheduled = 1,
+    InProgress = 2,
+    Completed = 3,
+    Canceled = 4,
+    NoShow = 5,
+    Rescheduled = 6
 }

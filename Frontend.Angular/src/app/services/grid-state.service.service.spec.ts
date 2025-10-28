@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { GridStateServiceService } from './grid-state.service.service';
+import { GridStateService } from './grid-state.service.service';
 
-describe('GridStateServiceService', () => {
-  let service: GridStateServiceService;
+describe('GridStateService', () => {
+  let service: GridStateService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(GridStateServiceService);
+    service = TestBed.inject(GridStateService);
   });
 
   it('should be created', () => {

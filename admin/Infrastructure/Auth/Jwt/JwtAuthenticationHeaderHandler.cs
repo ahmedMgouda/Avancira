@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication.Internal;
 using System.Net.Http.Headers;
 
 namespace Avancira.Admin.Infrastructure.Auth.Jwt;
+
 public class JwtAuthenticationHeaderHandler : DelegatingHandler
 {
     private readonly IAccessTokenProviderAccessor _tokenProviderAccessor;
     private readonly NavigationManager _navigation;
 
-    public JwtAuthenticationHeaderHandler(IAccessTokenProviderAccessor tokenProviderAccessor, NavigationManager navigation)
+    public JwtAuthenticationHeaderHandler(
+        IAccessTokenProviderAccessor tokenProviderAccessor,
+        NavigationManager navigation)
     {
         _tokenProviderAccessor = tokenProviderAccessor;
         _navigation = navigation;
@@ -16,7 +19,6 @@ public class JwtAuthenticationHeaderHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // skip token endpoints
         if (request.RequestUri?.AbsolutePath.Contains("/auth") != true)
         {
             if (await _tokenProviderAccessor.TokenProvider.GetAccessTokenAsync() is string token)
@@ -28,7 +30,7 @@ public class JwtAuthenticationHeaderHandler : DelegatingHandler
                 _navigation.NavigateTo("/login");
             }
         }
-
         return await base.SendAsync(request, cancellationToken);
     }
 }
+

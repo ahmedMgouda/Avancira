@@ -9,7 +9,7 @@ public static class Extensions
 {
     private const string CorsPolicyName = nameof(CorsPolicyName);
 
-    internal static IServiceCollection AddCorsPolicy(
+    public static IServiceCollection AddCorsPolicy(
         this IServiceCollection services,
         IConfiguration config,
         IWebHostEnvironment env)
@@ -53,7 +53,7 @@ public static class Extensions
         return services;
     }
 
-    internal static IApplicationBuilder UseCorsPolicy(this IApplicationBuilder app)
+    public static IApplicationBuilder UseCorsPolicy(this IApplicationBuilder app)
     {
         return app.UseCors(CorsPolicyName);
     }

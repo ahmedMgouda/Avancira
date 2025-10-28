@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avancira.Application.Catalog;
 using Avancira.Application.Catalog.Dtos;
+using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Subscriptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,15 @@ namespace Avancira.API.Controllers;
 public class SubscriptionsController : BaseApiController
 {
     private readonly ISubscriptionService _subscriptionService;
+    private readonly ICurrentUser _currentUser;
 
     public SubscriptionsController(
-        ISubscriptionService subscriptionService
+        ISubscriptionService subscriptionService,
+        ICurrentUser currentUser
     )
     {
         _subscriptionService = subscriptionService;
+        _currentUser = currentUser;
     }
 
     // Create
@@ -27,7 +31,7 @@ public class SubscriptionsController : BaseApiController
     {
         try
         {
-            var userId = GetUserId();
+            var userId = _currentUser.GetUserId().ToString();
             var (subscriptionId, transactionId) = await _subscriptionService.CreateSubscriptionAsync(request, userId);
             return Ok(new { SubscriptionId = subscriptionId, TransactionId = transactionId });
         }
@@ -46,7 +50,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("check-active")]
     public async Task<IActionResult> CheckActiveSubscription()
     {
-        var userId = GetUserId();
+        var userId = _currentUser.GetUserId().ToString();
         var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
         return Ok(new { IsActive = hasActiveSubscription });
     }
@@ -55,7 +59,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("")]
     public async Task<IActionResult> GetUserSubscriptions([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var userId = GetUserId();
+        var userId = _currentUser.GetUserId().ToString();
         var subscriptions = await _subscriptionService.ListUserSubscriptionsAsync(userId, page, pageSize);
 
         if (subscriptions == null || subscriptions.TotalResults == 0)
@@ -87,7 +91,7 @@ public class SubscriptionsController : BaseApiController
     [HttpGet("details")]
     public async Task<IActionResult> GetSubscriptionDetails()
     {
-        var userId = GetUserId();
+        var userId = _currentUser.GetUserId().ToString();
         var details = await _subscriptionService.FetchSubscriptionDetailsAsync(userId);
         if (details == null) return NotFound(new { Message = "No active subscription found." });
 
@@ -99,7 +103,7 @@ public class SubscriptionsController : BaseApiController
     [HttpPut("change-frequency")]
     public async Task<IActionResult> ChangeBillingFrequency([FromBody] ChangeFrequencyRequestDto request)
     {
-        var userId = GetUserId();
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _subscriptionService.ChangeBillingFrequencyAsync(userId, request.NewFrequency);
 
         if (!success)
@@ -113,7 +117,7 @@ public class SubscriptionsController : BaseApiController
     [HttpDelete("cancel")]
     public async Task<IActionResult> CancelSubscription()
     {
-        var userId = GetUserId();
+        var userId = _currentUser.GetUserId().ToString();
         var success = await _subscriptionService.CancelSubscriptionAsync(userId);
 
         if (!success)

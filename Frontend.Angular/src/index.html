@@ -32,22 +32,22 @@
   <!-- Canonical URL -->
   <link rel="canonical" href="https://www.avancira.com/">
 
-  <!-- Favicon and Theme -->
+  <!-- Favicons and Theme -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <!-- <link rel="manifest" href="/site.webmanifest"> -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <meta name="theme-color" content="#ffffff">
 
-  <!-- Robots Meta -->
+  <!-- Robots -->
   <meta name="robots" content="index, follow">
 
-  <!-- Content Security Policy -->
-   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://connect.facebook.net https://meet.jit.si https://client.crisp.chat https://js.stripe.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat; font-src 'self' https://fonts.gstatic.com https://client.crisp.chat data:; img-src 'self' data: https:; connect-src 'self' https: wss://client.relay.crisp.chat wss://localhost:9000 wss://www.avancira.com; frame-src 'self' https://meet.jit.si https://js.stripe.com;">
-  <!-- Structured Data for SEO -->
-  <script src="https://connect.facebook.net/en_US/sdk.js" async defer crossorigin="anonymous"></script>
+
+
+  <!-- Structured Data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -57,7 +57,7 @@
     "logo": "https://www.avancira.com/path-to-logo.jpg",
     "description": "Avancira connects students with expert tutors for personalized online lessons.",
     "address": {
-      "@type": "2135",
+      "@type": "PostalAddress",
       "addressLocality": "Strathfield",
       "addressCountry": "Australia"
     },
@@ -74,12 +74,31 @@
     }
   }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Jitsi Meet API -->
-    <script src="https://meet.jit.si/external_api.js"></script>
-  <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2f822b6b-0a78-4235-9dbf-3750852c48f6";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
+
+  <!-- Facebook SDK -->
+  <script src="https://connect.facebook.net/en_US/sdk.js" async defer crossorigin="anonymous"></script>
+
+  <!-- Crisp Chat -->
+  <script type="text/javascript">
+    window.$crisp = [];
+    window.CRISP_WEBSITE_ID = "2f822b6b-0a78-4235-9dbf-3750852c48f6";
+    (function () {
+      var d = document;
+      var s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    })();
+  </script>
+
+  <!-- Jitsi Meet -->
+  <script src="https://meet.jit.si/external_api.js"></script>
+
+  <!-- Google Identity Services SDK (recommended) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 </head>
+
 
 <body class="mat-typography">
   <app-root></app-root>
@@ -87,4 +106,5 @@
     <p>Your browser does not support JavaScript or it is disabled. Please enable JavaScript for the best experience.</p>
   </noscript>
 </body>
+
 </html>

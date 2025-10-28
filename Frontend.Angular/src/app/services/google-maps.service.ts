@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of, switchMap } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { ConfigKey } from '../models/config-key';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +22,7 @@ export class GoogleMapsService {
     return this.configService.loadConfig().pipe(
       switchMap(() => new Observable<void>((observer) => {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.configService.get('googleMapsApiKey')}&libraries=places&loading=async`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.configService.get(ConfigKey.GoogleMapsApiKey)}&libraries=places&loading=async`;
         script.async = true;
         script.defer = true;
 
