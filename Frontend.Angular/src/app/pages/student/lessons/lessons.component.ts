@@ -18,21 +18,23 @@ import {
 } from '@syncfusion/ej2-angular-grids';
 import { NumericTextBoxModule, TextBoxModule } from '@syncfusion/ej2-angular-inputs';
 
-import { ConfirmationDialogService } from '../../services/confirmation-dialog.service';
-import { GridState, GridStateService } from '../../services/grid-state.service.service';
-import { JitsiService } from '../../services/jitsi.service';
-import { LessonService } from '../../services/lesson.service';
-import { SpinnerService } from '../../services/spinner.service';
-import { ToastService } from '../../services/toast.service';
-import { UserService } from '../../services/user.service';
+import { ConfirmationDialogService } from '../../../services/confirmation-dialog.service';
+import { GridState, GridStateService } from '../../../services/grid-state.service.service';
+import { JitsiService } from '../../../services/jitsi.service';
+import { LessonService } from '../../../services/lesson.service';
+import { SpinnerService } from '../../../services/spinner.service';
+import { ToastService } from '../../../services/toast.service';
+import { UserService } from '../../../services/user.service';
 
-import { DurationPipe } from '../../pipes/duration.pipe';
+import { DurationPipe } from '../../../pipes/duration.pipe';
 
-import { LessonStatus } from '../../models/enums/lesson-status';
-import { LessonType } from '../../models/enums/lesson-type';
-import { UserRole } from '../../models/enums/user-role';
-import { Lesson } from '../../models/lesson';
-import { LessonFilter } from '../../models/lesson-filter';
+import { LessonStatus } from '../../../models/enums/lesson-status';
+import { LessonType } from '../../../models/enums/lesson-type';
+import { UserRole } from '../../../models/enums/user-role';
+import { Lesson } from '../../../models/lesson';
+import { LessonFilter } from '../../../models/lesson-filter';
+import { PagedResult } from '../../../models/paged-result';
+import { User } from '../../../models/user';
 
 @Component({
     selector: 'app-lessons',
@@ -121,17 +123,17 @@ export class LessonsComponent implements OnInit {
          this.loadLessons();
     }
 
-    loadLessons(event?: any): void {
+    loadLessons(event?: { isInteracted?: boolean }): void {
         if (event && event.isInteracted === false) return;
 
         this.spinnerService.show();
         this.lessonService.getAllLessons(this.currentPage, this.pageSettings.pageSize, this.lessonFilter)
             .pipe(finalize(() => this.spinnerService.hide()))
             .subscribe({
-                next: (response) => {
+                next: (response: { lessons: PagedResult<Lesson> }) => {
                     this.gridData = { result: response.lessons.results, count: response.lessons.totalResults };
                 },
-                error: (err) => {
+                error: (err: unknown) => {
                     console.error('Failed to fetch lessons:', err);
                     this.toastService.showError('Failed to load lessons. Please try again.');
                 }
@@ -157,7 +159,7 @@ export class LessonsComponent implements OnInit {
                     this.grid.refresh();
                     this.toastService.showSuccess('Lesson canceled successfully.');
                 },
-                error: (err) => {
+                error: (err: unknown) => {
                     console.error('Failed to cancel lesson:', err);
                     this.toastService.showError('Failed to cancel lesson. Please try again.');
                 },
@@ -185,7 +187,7 @@ export class LessonsComponent implements OnInit {
                     const message = accept ? 'Lesson accepted successfully.' : 'Lesson canceled successfully.';
                     this.toastService.showSuccess(message);
                 },
-                error: (err) => {
+                error: (err: unknown) => {
                     console.error('Failed to respond to proposition:', err);
                     this.toastService.showError('Failed to respond to proposition. Please try again.');
                 }
@@ -194,10 +196,10 @@ export class LessonsComponent implements OnInit {
 
     startCall(lesson: Lesson) {
         this.userService.getUser().subscribe({
-            next: (user) => {
+            next: (user: User) => {
                 this.jitsiService.startVideoCall(lesson, user);
             },
-            error: (err) => console.error('Failed to fetch user:', err)
+            error: (err: unknown) => console.error('Failed to fetch user:', err)
         });
     }
 

@@ -4,23 +4,25 @@ import { FormsModule } from '@angular/forms';
 
 // Services
 // Models
-import { LeaveReviewComponent } from '../../components/leave-review/leave-review.component';
-import { ModalComponent } from '../../components/modal/modal.component';
-import { ProfileImageComponent } from '../../components/profile-image/profile-image.component';
+import { LeaveReviewComponent } from '../../../components/leave-review/leave-review.component';
+import { ModalComponent } from '../../../components/modal/modal.component';
+import { ProfileImageComponent } from '../../../components/profile-image/profile-image.component';
 
-import { ChatService } from '../../services/chat.service';
-import { EvaluationService } from '../../services/evaluation.service';
-import { ListingService } from '../../services/listing.service';
-import { PaymentService } from '../../services/payment.service';
+import { ChatService } from '../../../services/chat.service';
+import { EvaluationService } from '../../../services/evaluation.service';
+import { ListingService } from '../../../services/listing.service';
+import { PaymentService } from '../../../services/payment.service';
 
 // Components
 // Pipes
-import { TimeAgoPipe } from "../../pipes/time-ago.pipe";
+import { TimeAgoPipe } from '../../../pipes/time-ago.pipe';
 
-import { Message } from '../../models/chat';
-import { Listing } from '../../models/listing';
-import { Review } from '../../models/review';
-import { Transaction } from '../../models/transaction';
+import { Message } from '../../../models/chat';
+import { Listing } from '../../../models/listing';
+import { PaymentHistory } from '../../../models/payment-history';
+import { PagedResult } from '../../../models/paged-result';
+import { Review } from '../../../models/review';
+import { Transaction } from '../../../models/transaction';
 
 @Component({
   selector: 'app-dashboard',
@@ -48,20 +50,20 @@ export class DashboardComponent implements OnInit {
 
   loadDashboardData(): void {
     this.chatService.getChatsLastMessage().subscribe({
-      next: (data) => (this.messages = data),
-      error: (err) => console.error('Failed to load chat messages:', err),
+      next: (data: Message[]) => (this.messages = data),
+      error: (err: unknown) => console.error('Failed to load chat messages:', err),
     });
     this.evaluationService.getAllReviews().subscribe({
-      next: (data) => (this.reviewsPending = data.pendingReviews),
-      error: (err) => console.error('Failed to load reviews:', err),
+      next: (data: { pendingReviews: Review[] }) => (this.reviewsPending = data.pendingReviews),
+      error: (err: unknown) => console.error('Failed to load reviews:', err),
     });
     this.paymentService.getPaymentHistory().subscribe({
-      next: (response) => (this.transactions = response.transactions),
-      error: (err) => console.error('Failed to load payment history:', err),
+      next: (response: PaymentHistory) => (this.transactions = response.transactions),
+      error: (err: unknown) => console.error('Failed to load payment history:', err),
     });
     this.listingService.getListings().subscribe({
-      next: (data) => (this.listings = data.results),
-      error: (err) => console.error('Failed to fetch listings:', err),
+      next: (data: PagedResult<Listing>) => (this.listings = data.results),
+      error: (err: unknown) => console.error('Failed to fetch listings:', err),
     });
   }
 
