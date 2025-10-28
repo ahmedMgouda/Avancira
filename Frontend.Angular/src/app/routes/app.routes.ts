@@ -11,20 +11,20 @@ export const routes: Routes = [
   ...studentRoutes,
   ...tutorRoutes,
   ...adminRoutes,
-  {
-    // path: '404',
-    // component: BlankShellComponent,
-    // children: [
-    //   {
-    //     path: '',
-    //     loadComponent: () =>
-    //       import('../pages/errors/not-found/not-found.component').then(m => m.NotFoundComponent),
-    //     data: { title: 'Page Not Found' }
-    //   }
-    // ]
-  },
-  {
-    path: '**',
-    redirectTo: '404'
-  }
+  // {
+  //   // path: '404',
+  //   // component: BlankShellComponent,
+  //   // children: [
+  //   //   {
+  //   //     path: '',
+  //   //     loadComponent: () =>
+  //   //       import('../pages/errors/not-found/not-found.component').then(m => m.NotFoundComponent),
+  //   //     data: { title: 'Page Not Found' }
+  //   //   }
+  //   // ]
+  // },
+  // {
+  //   path: '**',
+  //   redirectTo: ''
+  // }
 ];
