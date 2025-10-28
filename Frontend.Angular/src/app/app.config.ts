@@ -15,7 +15,7 @@ import { provideToastr } from 'ngx-toastr';
 import { AuthService } from './services/auth.service';
 import { ConfigService } from './services/config.service';
 
-import { routes } from './app.routes';
+import { routes } from './routes/app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 
 function initConfig() {

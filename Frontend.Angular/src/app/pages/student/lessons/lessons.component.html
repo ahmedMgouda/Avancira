@@ -1,0 +1,127 @@
+<!-- <div *ngIf="gridData && gridData.result.length > 0; else noDataTemplate"></div> -->
+<ejs-grid #grid height="auto" width="auto" [dataSource]="gridData" allowResizing='true' [pageSettings]="pageSettings"
+    [allowPaging]="true" [allowFiltering]="true" [allowSorting]="true" [filterSettings]="{ type: 'FilterBar' }"
+    autoFit='true' (dataStateChange)="onDataStateChange($event)" (created)="onGridCreated()">
+    <e-columns>
+        <e-column field="recipientName" headerText="With" textAlign="left" minWidth="100" width="100">
+            <ng-template #filterTemplate let-data>
+                <ejs-textbox 
+                [(value)]="lessonFilter.recipientName"  
+                (change)="loadLessons($event)" 
+                [showClearButton]="true">
+                </ejs-textbox>
+            </ng-template>
+        </e-column>
+        <e-column field="topic" headerText="Topic" textAlign="left" minWidth="100">
+            <ng-template #filterTemplate let-data>
+                <ejs-textbox [(value)]="lessonFilter.topic" (change)="loadLessons($event)" [showClearButton]="true">
+                </ejs-textbox>
+            </ng-template>
+        </e-column>
+        <e-column field="date" headerText="Date" textAlign="left" format="dd/MM/yyyy" minWidth="100">
+            <ng-template #template let-data>
+                {{ data.date | date: 'dd/MM/yyyy' }}
+            </ng-template>
+            <ng-template #filterTemplate let-data>
+                <div>
+                    <ejs-daterangepicker [(value)]="lessonFilter.dateRange" (change)="loadLessons($event)">
+                    </ejs-daterangepicker>
+                </div>
+            </ng-template>
+        </e-column>
+        <e-column field="duration" headerText="Duration" textAlign="left" minWidth="100">
+            <ng-template #template let-data>
+                {{ data.duration | duration }}
+            </ng-template>
+            <ng-template #filterTemplate let-data>
+                <div class="filter-container">
+                    <ejs-numerictextbox [(value)]="lessonFilter.minDuration" placeholder="Min" format="N0" [min]="1"
+                        (change)="loadLessons($event)"></ejs-numerictextbox>
+                    <ejs-numerictextbox [(value)]="lessonFilter.maxDuration" placeholder="Max" format="N0"
+                        (change)="loadLessons($event)"></ejs-numerictextbox>
+                </div>
+            </ng-template>
+        </e-column>
+        <e-column field="price" headerText="Price" textAlign="left" format="C2" minWidth="100">
+            <ng-template #filterTemplate let-data>
+                <div class="filter-container">
+                    <ejs-numerictextbox [(value)]="lessonFilter.minPrice" placeholder="Min" format="C2" [min]="1"
+                        (change)="loadLessons($event)"></ejs-numerictextbox>
+                    <ejs-numerictextbox [(value)]="lessonFilter.maxPrice" placeholder="Max" format="C2"
+                        (change)="loadLessons($event)"></ejs-numerictextbox>
+                </div>
+            </ng-template>
+        </e-column>
+        <e-column field="status" headerText="Status" textAlign="left" minWidth="120">
+            <ng-template #filterTemplate let-data>
+                <ejs-dropdownlist [(value)]="lessonFilter.status" [dataSource]="statusList"
+                    [fields]="{ text: 'text', value: 'value' }" (change)="loadLessons($event)">
+                </ejs-dropdownlist>
+            </ng-template>
+            <ng-template #template let-data>
+                <span class="e-badge" [ngClass]="getBadgeClass(data.status)">
+                    {{ LessonStatus[data.status] }}
+                </span>
+            </ng-template>
+        </e-column>
+
+        <!-- Command Column: Filtering disabled -->
+        <e-column headerText="Actions" textAlign="center" [allowFiltering]="false" minWidth="300">
+            <ng-template #template let-data>
+                <div class="action-buttons">
+                    <!-- Cancel Button -->
+                    <button *ngIf="data.type === LessonType.Lesson && data.status === LessonStatus.Booked" ejs-button
+                        cssClass="e-flat e-danger" iconCss="e-icons e-close" (click)="cancelLesson(data)">
+                        Cancel
+                    </button>
+
+                    <!-- Start Call -->
+                    <button ejs-button *ngIf="data.type === LessonType.Lesson && data.status === LessonStatus.Booked"
+                        cssClass="e-flat e-primary" iconCss="fa fa-video" (click)="startCall(data)">
+                        Start Call
+                    </button>
+
+                    <!-- Accept Proposition -->
+                    <button *ngIf="data.type === LessonType.Proposition && data.recipientRole === UserRole.Student"
+                        ejs-button cssClass="e-flat e-success" iconCss="fa fa-check"
+                        (click)="respondToProposition(data, true)">
+                        Accept
+                    </button>
+
+                    <!-- Refuse Proposition -->
+                    <button *ngIf="data.type === LessonType.Proposition && data.recipientRole === UserRole.Student"
+                        ejs-button cssClass="e-flat e-danger" iconCss="fa fa-times"
+                        (click)="respondToProposition(data, false)">
+                        Refuse
+                    </button>
+
+                    <!-- Cancel Proposition (for Tutor) -->
+                    <button *ngIf="data.type === LessonType.Proposition && data.recipientRole === UserRole.Tutor"
+                        ejs-button cssClass="e-flat e-danger" iconCss="fa fa-ban">
+                        Cancel
+                    </button>
+                </div>
+            </ng-template>
+            <ng-template #filterTemplate></ng-template>
+        </e-column>
+
+    </e-columns>
+</ejs-grid>
+<!-- Show this if gridData is empty -->
+<!-- <ng-template #noDataTemplate>
+    <div class="no-data-container">
+        <div class="e-card">
+            <div class="e-card-header">
+                <div class="e-card-header-title">
+                    <span class="e-icons e-warning"></span> No Lessons Found
+                </div>
+            </div>
+            <div class="e-card-content">
+                <p>There are no lessons available. Try reloading?</p>
+            </div>
+            <div class="e-card-actions">
+                <button ejs-button cssClass="e-outline e-primary" (click)="reloadData()">🔄 Reload</button>
+            </div>
+        </div>
+    </div>
+</ng-template> -->

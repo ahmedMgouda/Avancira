@@ -1,50 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProfileImageComponent } from '../../components/profile-image/profile-image.component';
 
 import { UserService } from '../../services/user.service';
+import { LayoutContextService } from '../shared/services/layout-context.service';
 
 import { User } from '../../models/user';
-import { PortalRole } from './portal.types';
+import { ADMIN_NAV_ITEMS } from '../admin/config/admin-nav.config';
+import { buildRoleLink, LINK_ACTIVE_OPTIONS } from '../shared/utils/layout.utils';
+import { STUDENT_NAV_ITEMS } from './config/student-nav.config';
+import { TUTOR_NAV_ITEMS } from './config/tutor-nav.config';
+import { NavigationConfig, PortalNavItem } from './portal.types';
 
-type PortalNavPath = readonly string[];
-
-interface PortalNavItem {
-  label: string;
-  icon: string;
-  path: PortalNavPath;
-  exact?: boolean;
-}
-
-const EXACT_MATCH_OPTIONS = { exact: true } as const;
-const PARTIAL_MATCH_OPTIONS = { exact: false } as const;
-
-const NAVIGATION_ITEMS: Record<PortalRole, readonly PortalNavItem[]> = {
-  student: [
-    { label: 'Dashboard', icon: 'fas fa-home', path: ['dashboard'], exact: true },
-    { label: 'Messages', icon: 'fas fa-comments', path: ['messages'], exact: true },
-    { label: 'Lessons', icon: 'fas fa-chalkboard-teacher', path: ['lessons'], exact: true },
-    { label: 'Reviews', icon: 'fas fa-star', path: ['evaluations'], exact: true },
-    { label: 'Payments', icon: 'fas fa-credit-card', path: ['payments'], exact: true },
-    { label: 'Invoices', icon: 'fas fa-file-invoice', path: ['invoices'], exact: true },
-    { label: 'Profile', icon: 'fas fa-user-cog', path: ['profile'], exact: true },
-  ],
-  tutor: [
-    { label: 'Dashboard', icon: 'fas fa-home', path: ['dashboard'], exact: true },
-    { label: 'Messages', icon: 'fas fa-comments', path: ['messages'], exact: true },
-    { label: 'Listings', icon: 'fas fa-clipboard-list', path: ['listings'], exact: true },
-    { label: 'Lessons', icon: 'fas fa-chalkboard-teacher', path: ['lessons'], exact: true },
-    { label: 'Reviews', icon: 'fas fa-star', path: ['evaluations'], exact: true },
-    { label: 'Payments', icon: 'fas fa-credit-card', path: ['payments'], exact: true },
-    { label: 'Invoices', icon: 'fas fa-file-invoice', path: ['invoices'], exact: true },
-    { label: 'Sessions', icon: 'fas fa-sign-out-alt', path: ['sessions'], exact: true },
-    { label: 'Profile', icon: 'fas fa-user-cog', path: ['profile'], exact: true },
-    { label: 'Table Test', icon: 'fas fa-table', path: ['tabletest'], exact: true },
-  ],
+const NAVIGATION_CONFIG: NavigationConfig = {
+  student: STUDENT_NAV_ITEMS,
+  tutor: TUTOR_NAV_ITEMS,
+  admin: ADMIN_NAV_ITEMS
 };
 
 @Component({
@@ -55,45 +30,36 @@ const NAVIGATION_ITEMS: Record<PortalRole, readonly PortalNavItem[]> = {
   styleUrls: ['./portal-navigation.component.scss']
 })
 export class PortalNavigationComponent implements OnInit {
-  @Input()
-  set role(value: PortalRole | null) {
-    if (value && this.roleInternal !== value) {
-      this.roleInternal = value;
-      this.navItems = [...NAVIGATION_ITEMS[value]];
-    }
-  }
-
-  get role(): PortalRole | null {
-    return this.roleInternal;
-  }
-
   currentPage = 'Dashboard';
   user: User | null = null;
-  navItems: readonly PortalNavItem[] = NAVIGATION_ITEMS.student;
+  navItems: readonly PortalNavItem[] = [];
 
-  private roleInternal: PortalRole = 'student';
+  private readonly layoutContext = inject(LayoutContextService);
+  private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  constructor(
-    private readonly userService: UserService,
-    private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute
-  ) {}
-
   ngOnInit(): void {
+    // Subscribe to role changes and update navigation
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe(() => this.updateCurrentPage());
+      .subscribe(() => {
+        this.updateNavigation();
+        this.updateCurrentPage();
+      });
 
+    // Subscribe to user data
     this.userService.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((userData) => {
         this.user = userData;
       });
 
+    // Load user data
     this.userService
       .getUser()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -101,15 +67,23 @@ export class PortalNavigationComponent implements OnInit {
         error: (err) => console.error('Failed to load user data:', err)
       });
 
+    this.updateNavigation();
     this.updateCurrentPage();
   }
 
-  protected buildLink(path: PortalNavPath): any[] {
-    return ['/', this.roleInternal, ...path];
+  protected buildLink(path: readonly string[]): any[] {
+    return buildRoleLink(this.layoutContext.currentRole(), path);
   }
 
   protected linkActiveOptions(item: PortalNavItem) {
-    return item.exact ? EXACT_MATCH_OPTIONS : PARTIAL_MATCH_OPTIONS;
+    return item.exact ? LINK_ACTIVE_OPTIONS.exact : LINK_ACTIVE_OPTIONS.partial;
+  }
+
+  private updateNavigation(): void {
+    const role = this.layoutContext.currentRole();
+    if (role) {
+      this.navItems = [...NAVIGATION_CONFIG[role]];
+    }
   }
 
   private updateCurrentPage(): void {

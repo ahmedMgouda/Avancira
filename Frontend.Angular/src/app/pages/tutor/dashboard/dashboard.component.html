@@ -1,0 +1,155 @@
+<app-modal *ngIf="isModalOpen" [isOpen]="isModalOpen" (onClose)="closeModal()">
+  <app-leave-review [revieweeId]="selectedRevieweeId" (onClose)="closeModal()"></app-leave-review>
+</app-modal>
+
+<!-- Page Content -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="dashboard-container">
+
+        <!-- Stats Section -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card text-white bg-primary">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="card-title">Messages</h5>
+                    <p class="card-text">{{ messages.length }}</p>
+                  </div>
+                  <i class="fas fa-envelope fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-warning">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="card-title">Pending Reviews</h5>
+                    <p class="card-text">{{ reviewsPending.length }}</p>
+                  </div>
+                  <i class="fas fa-star fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-success">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="card-title">Listings</h5>
+                    <p class="card-text">{{ listings.length }}</p>
+                  </div>
+                  <i class="fas fa-list fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-white bg-danger">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="card-title">Payments</h5>
+                    <p class="card-text">{{ transactions.length }}</p>
+                  </div>
+                  <i class="fas fa-dollar-sign fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3><i class="fas fa-envelope"></i> My Messages</h3>
+              </div>
+              <div class="card-body">
+                <ul class="list-group">
+                  <li class="list-group-item" *ngFor="let message of messages | slice:0:5">
+                    <p><strong>{{ message.senderName }}</strong> - {{ message.content }}</p>
+                    <span class="text-muted">{{ message.timestamp | timeAgo }}</span>
+                  </li>
+                </ul>
+                <a href="/messages" class="btn btn-link mt-2">See all messages</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reviews Pending Section -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3><i class="fas fa-star"></i> Reviews Pending</h3>
+              </div>
+              <div class="card-body">
+                <ul class="list-group">
+                  <li class="list-group-item" *ngFor="let review of reviewsPending | slice:0:5">
+                    <p><strong>{{ review.name }}</strong> - {{ review.feedback }}</p>
+                    <button class="btn btn-warning" (click)="openModal(review.revieweeId)">Leave a Review</button>
+                  </li>
+                </ul>
+                <a href="/dashboard/evaluations" class="btn btn-link mt-2">See all pending reviews</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listings Section -->
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3><i class="fas fa-list"></i> My Listings</h3>
+              </div>
+              <div class="card-body">
+                <ul class="list-group">
+                  <li class="list-group-item" *ngFor="let listing of listings | slice:0:5">
+                    <div class="d-flex align-items-center">
+                      <app-profile-image [imageUrl]="listing.listingImagePath" [firstName]="listing.tutorName" [lastName]=""></app-profile-image>
+                      <div class="ml-3">
+                        <h4>{{ listing.title }}</h4>
+                        <p>{{ listing.lessonCategory }}</p>
+                        <p>{{ listing.rates.hourly | currency:'AUD' }}</p>
+                        <button class="btn btn-secondary">Edit</button>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+                <a href="/dashboard/listings" class="btn btn-link mt-2">See all listings</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payments Section -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3><i class="fas fa-dollar-sign"></i> My Payments</h3>
+              </div>
+              <div class="card-body">
+                <ul class="list-group">
+                  <li class="list-group-item" *ngFor="let transaction of transactions | slice:0:5">
+                    <p>{{ transaction.date | timeAgo }} - {{ transaction.description }}</p>
+                    <span [ngClass]="{ 'text-success': transaction.amount > 0, 'text-danger': transaction.amount < 0 }">
+                      {{ transaction.amount | currency:'AUD' }}
+                    </span>
+                  </li>
+                </ul>
+                <a href="/dashboard/payments" class="btn btn-link mt-2">See all payments</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

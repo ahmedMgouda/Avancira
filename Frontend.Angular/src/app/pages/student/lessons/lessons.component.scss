@@ -1,0 +1,34 @@
+.badge-Proposed {
+    background-color: #f0ad4e; /* Orange-yellow */
+    color: #fff;
+  }
+  
+  .badge-Booked {
+    background-color: #5cb85c; /* Green */
+    color: #fff;
+  }
+  
+  .badge-Canceled {
+    background-color: #d9534f; /* Red */
+    color: #fff;
+  }
+  
+  .badge-Completed {
+    background-color: #0275d8; /* Blue */
+    color: #fff;
+  }
+
+  .filter-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.e-grid .e-spinner-pane{    //hide the Grid spinner 
+  display:none; 
+} 
+
+  
+
+
+  
