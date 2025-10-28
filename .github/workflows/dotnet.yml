@@ -81,11 +81,23 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Build and push backend Docker image
-    - name: Build and push backend Docker image
+    # Build and push backend API Docker image
+    - name: Build and push backend API Docker image
       run: |
-        docker build -t "mirotivo/avancira-backend:latest" .
+        docker build -f Dockerfile -t "mirotivo/avancira-backend:latest" .
         docker push "mirotivo/avancira-backend:latest"
+
+    # Build and push Auth server Docker image
+    - name: Build and push Auth server Docker image
+      run: |
+        docker build -f Dockerfile.Auth -t "mirotivo/avancira-auth:latest" .
+        docker push "mirotivo/avancira-auth:latest"
+
+    # Build and push BFF Docker image
+    - name: Build and push BFF Docker image
+      run: |
+        docker build -f Dockerfile.BFF -t "mirotivo/avancira-bff:latest" .
+        docker push "mirotivo/avancira-bff:latest"
   
   deploy:
     runs-on: ubuntu-latest
@@ -113,8 +125,8 @@ jobs:
         target: ~/
         overwrite: true
     
-    # SSH into the server and deploy the backend container
-    - name: Deploy backend to server
+    # SSH into the server and deploy the backend API container
+    - name: Deploy backend API to server
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.SERVER_HOST }}
@@ -127,3 +139,33 @@ jobs:
           docker rm avancira-backend-container || true
           docker run -d --restart always -p 9000:8080 -v ${PWD}/Database:/avancira-backend/Database -v ${PWD}/wwwroot:/avancira-backend/wwwroot --env-file ~/config.env \
             --name avancira-backend-container --network avancira-network mirotivo/avancira-backend:latest
+    
+    # SSH into the server and deploy the Auth server container
+    - name: Deploy Auth server to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        port: 22
+        script: |
+          docker pull mirotivo/avancira-auth:latest
+          docker stop avancira-auth-container || true
+          docker rm avancira-auth-container || true
+          docker run -d --restart always -p 9001:8080 -v ${PWD}/Database:/avancira-auth/Database --env-file ~/config.env \
+            --name avancira-auth-container --network avancira-network mirotivo/avancira-auth:latest
+    
+    # SSH into the server and deploy the BFF container
+    - name: Deploy BFF to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        port: 22
+        script: |
+          docker pull mirotivo/avancira-bff:latest
+          docker stop avancira-bff-container || true
+          docker rm avancira-bff-container || true
+          docker run -d --restart always -p 9002:8080 --env-file ~/config.env \
+            --name avancira-bff-container --network avancira-network mirotivo/avancira-bff:latest
