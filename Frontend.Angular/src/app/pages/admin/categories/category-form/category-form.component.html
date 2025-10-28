@@ -1,0 +1,123 @@
+<div class="container">
+  <div class="header">
+    <h1>{{ isEditMode() ? 'Edit' : 'Create' }} Category</h1>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-error">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading category...</p>
+    </div>
+  }
+
+  @if (!loading()) {
+    <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="form">
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label for="name" class="required">Name</label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="form-control"
+            [class.invalid]="isFieldInvalid('name')"
+            placeholder="Enter category name"
+          />
+          @if (getFieldError('name')) {
+            <span class="error-message">{{ getFieldError('name') }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label for="description">Description</label>
+          <textarea
+            id="description"
+            formControlName="description"
+            class="form-control"
+            rows="3"
+            [class.invalid]="isFieldInvalid('description')"
+            placeholder="Enter category description (optional)"
+          ></textarea>
+          @if (getFieldError('description')) {
+            <span class="error-message">{{ getFieldError('description') }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="sortOrder" class="required">Sort Order</label>
+          <input
+            id="sortOrder"
+            type="number"
+            formControlName="sortOrder"
+            class="form-control"
+            [class.invalid]="isFieldInvalid('sortOrder')"
+            min="0"
+            placeholder="0"
+          />
+          @if (getFieldError('sortOrder')) {
+            <span class="error-message">{{ getFieldError('sortOrder') }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive" class="checkbox" />
+            <span>Active</span>
+          </label>
+          <small class="help-text">Enable this category for use in the system</small>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isVisible" class="checkbox" />
+            <span>Visible</span>
+          </label>
+          <small class="help-text">Show this category to users</small>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isFeatured" class="checkbox" />
+            <span>Featured</span>
+          </label>
+          <small class="help-text">Highlight this category as featured</small>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="onCancel()"
+          [disabled]="submitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="submitting() || categoryForm.invalid"
+        >
+          @if (submitting()) {
+            <span class="spinner-small"></span>
+            <span>{{ isEditMode() ? 'Updating...' : 'Creating...' }}</span>
+          } @else {
+            <span>{{ isEditMode() ? 'Update' : 'Create' }} Category</span>
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>

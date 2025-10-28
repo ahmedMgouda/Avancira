@@ -17,6 +17,14 @@ export const adminRoutes: Routes = [
           import('../pages/admin/dashboard/dashboard.component').then(m => m.DashboardComponent),
         data: { title: 'Admin Dashboard' }
       },
+      {
+        path: 'categories',
+        loadChildren: () =>
+          import('../pages/admin/categories/category.routes').then(
+            m => m.CATEGORY_ROUTES
+          ),
+        data: { title: 'Manage Categories' }
+      },
     //   {
     //     path: 'users',
     //     loadComponent: () =>
