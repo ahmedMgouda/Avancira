@@ -1,0 +1,168 @@
+<div class="container">
+  <div class="header">
+    <h1>Categories</h1>
+    <button class="btn btn-primary" (click)="onCreate()">
+      <span class="icon">+</span>
+      Create Category
+    </button>
+  </div>
+
+  <div class="filters-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Search categories..."
+        [value]="searchTerm()"
+        (input)="onSearchChange($any($event.target).value)"
+        class="search-input"
+      />
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label>Status:</label>
+        <select
+          [value]="filterActive() === undefined ? '' : filterActive() ? 'true' : 'false'"
+          (change)="onFilterChange('active', $any($event.target).value)"
+          class="filter-select"
+        >
+          <option value="">All</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Visibility:</label>
+        <select
+          [value]="filterVisible() === undefined ? '' : filterVisible() ? 'true' : 'false'"
+          (change)="onFilterChange('visible', $any($event.target).value)"
+          class="filter-select"
+        >
+          <option value="">All</option>
+          <option value="true">Visible</option>
+          <option value="false">Hidden</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Featured:</label>
+        <select
+          [value]="filterFeatured() === undefined ? '' : filterFeatured() ? 'true' : 'false'"
+          (change)="onFilterChange('featured', $any($event.target).value)"
+          class="filter-select"
+        >
+          <option value="">All</option>
+          <option value="true">Featured</option>
+          <option value="false">Not Featured</option>
+        </select>
+      </div>
+
+      <button class="btn btn-secondary" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-error">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading categories...</p>
+    </div>
+  }
+
+  @if (!loading()) {
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th class="text-center">Sort Order</th>
+            <th class="text-center">Active</th>
+            <th class="text-center">Visible</th>
+            <th class="text-center">Featured</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (filteredCategories().length === 0) {
+            <tr>
+              <td colspan="7" class="text-center empty-state">
+                No categories found.
+                @if (
+                  searchTerm() ||
+                  filterActive() !== undefined ||
+                  filterVisible() !== undefined ||
+                  filterFeatured() !== undefined
+                ) {
+                  <span>Try adjusting your filters.</span>
+                } @else {
+                  <span>Create your first category to get started.</span>
+                }
+              </td>
+            </tr>
+          } @else {
+            @for (category of filteredCategories(); track trackByCategory($index, category)) {
+              <tr>
+                <td class="category-name">{{ category.name }}</td>
+                <td class="description">{{ category.description || '—' }}</td>
+                <td class="text-center">{{ category.sortOrder }}</td>
+                <td class="text-center">
+                  <span
+                    [class]="'badge ' + (category.isActive ? 'badge-success' : 'badge-danger')"
+                  >
+                    {{ category.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span
+                    [class]="'badge ' + (category.isVisible ? 'badge-success' : 'badge-secondary')"
+                  >
+                    {{ category.isVisible ? 'Visible' : 'Hidden' }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  @if (category.isFeatured) {
+                    <span class="badge badge-warning">★ Featured</span>
+                  } @else {
+                    <span class="badge badge-secondary">—</span>
+                  }
+                </td>
+                <td class="actions">
+                  <button
+                    class="btn btn-sm btn-info"
+                    title="View"
+                    (click)="onView(category.id)"
+                  >
+                    👁
+                  </button>
+                  <button
+                    class="btn btn-sm btn-primary"
+                    title="Edit"
+                    (click)="onEdit(category.id)"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    class="btn btn-sm btn-danger"
+                    title="Delete"
+                    (click)="onDelete(category)"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
