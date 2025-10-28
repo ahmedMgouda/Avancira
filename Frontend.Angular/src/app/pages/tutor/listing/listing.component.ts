@@ -3,12 +3,13 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { ChatService } from '../../services/chat.service';
-import { LessonService } from '../../services/lesson.service';
-import { ListingService } from '../../services/listing.service';
-import { SubscriptionService } from '../../services/subscription.service';
+import { ChatService } from '../../../services/chat.service';
+import { LessonService } from '../../../services/lesson.service';
+import { ListingService } from '../../../services/listing.service';
+import { SubscriptionService } from '../../../services/subscription.service';
 
-import { Listing } from '../../models/listing';
+import { Listing } from '../../../models/listing';
+import { SendMessage } from '../../../models/send-message';
 
 @Component({
   selector: 'app-listing',
@@ -54,11 +55,11 @@ export class ListingComponent implements OnInit {
 
   loadListing(listingId: string): void {
     this.listingService.getListing(listingId).subscribe({
-      next: (listing) => {
+      next: (listing: Listing) => {
         this.listing = listing;
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Failed to fetch listing:', err);
       },
     });
@@ -66,11 +67,13 @@ export class ListingComponent implements OnInit {
 
   sendMessage(): void {
     if (this.newMessage.trim()) {
-      this.chatService.sendMessage({
+      const payload: SendMessage = {
         listingId: this.listing?.id!,
         recipientId: "",
         content: this.newMessage,
-      }).subscribe({
+      };
+
+      this.chatService.sendMessage(payload).subscribe({
         next: () => {
           this.messageSuccess = true;
           this.showMessageSection = false; // Hide the message section
@@ -79,7 +82,7 @@ export class ListingComponent implements OnInit {
             this.messageSuccess = false;
           }, 3000); // Keep the message success indicator for 3 seconds
         },
-        error: (err) => {
+        error: (err: unknown) => {
           console.error('Failed to send message:', err);
         },
       });
@@ -105,7 +108,7 @@ export class ListingComponent implements OnInit {
             });
           }
         },
-        error: (err) => {
+        error: (err: unknown) => {
           console.error('Error checking subscription status:', err);
         },
       });
