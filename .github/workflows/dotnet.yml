@@ -1,4 +1,4 @@
-name: .NET Core CI/CD
+name: Backend - .NET Core API
 
 on:
   push:
@@ -27,6 +27,8 @@ jobs:
         echo "Avancira__App__FrontEndUrl=${{ secrets.Avancira__App__FrontEndUrl }}" >> config.env
         echo "Avancira__App__SupportEmail=${{ secrets.Avancira__App__SupportEmail }}" >> config.env
         echo "Avancira__App__SupportPhone=${{ secrets.Avancira__App__SupportPhone }}" >> config.env
+        echo "Avancira__Auth__Issuer=${{ secrets.Avancira__Auth__Issuer }}" >> config.env
+        echo "Auth__Issuer=${{ secrets.Avancira__Auth__Issuer }}" >> config.env
         echo "Avancira__Jwt__Key=${{ secrets.Avancira__Jwt__Key }}" >> config.env
         echo "Avancira__Jwt__Issuer=${{ secrets.Avancira__Jwt__Issuer }}" >> config.env
         echo "Avancira__Jwt__Audience=${{ secrets.Avancira__Jwt__Audience }}" >> config.env
@@ -152,7 +154,7 @@ jobs:
           docker pull mirotivo/avancira-auth:latest
           docker stop avancira-auth-container || true
           docker rm avancira-auth-container || true
-          docker run -d --restart always -p 9001:8080 -v ${PWD}/Database:/avancira-auth/Database --env-file ~/config.env \
+          docker run -d --restart always -p 9100:8080 -v ${PWD}/Database:/avancira-auth/Database --env-file ~/config.env \
             --name avancira-auth-container --network avancira-network mirotivo/avancira-auth:latest
     
     # SSH into the server and deploy the BFF container
@@ -167,5 +169,5 @@ jobs:
           docker pull mirotivo/avancira-bff:latest
           docker stop avancira-bff-container || true
           docker rm avancira-bff-container || true
-          docker run -d --restart always -p 9002:8080 --env-file ~/config.env \
+          docker run -d --restart always -p 9200:8080 --env-file ~/config.env \
             --name avancira-bff-container --network avancira-network mirotivo/avancira-bff:latest

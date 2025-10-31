@@ -1,6 +1,6 @@
 export const environment = {
-  frontendUrl: 'https://avaicira.com',
-  bffBaseUrl: 'https://avaicira.com/bff',
+  frontendUrl: 'https://www.avancira.com',
+  bffBaseUrl: 'https://www.avancira.com/bff',
   production: true,
   useSignalR: true,
 };

@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Avancira.Migrations.Migrations
+namespace Avancira.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -54,10 +54,10 @@ namespace Avancira.Migrations.Migrations
                 name: "Countries",
                 columns: table => new
                 {
-                    Code = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
+                    Code = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    CurrencyCode = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: true),
-                    DialingCode = table.Column<string>(type: "character varying(5)", maxLength: 5, nullable: true),
+                    CurrencyCode = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: true),
+                    DialingCode = table.Column<string>(type: "character varying(10)", unicode: false, maxLength: 10, nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -75,7 +75,7 @@ namespace Avancira.Migrations.Migrations
                     Message = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     Data = table.Column<string>(type: "text", nullable: true),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReadAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     LastModified = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -143,8 +143,8 @@ namespace Avancira.Migrations.Migrations
                     DiscountPercentage = table.Column<double>(type: "double precision", precision: 5, scale: 2, nullable: true),
                     MaxUsageCount = table.Column<int>(type: "integer", nullable: false),
                     UsageCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -225,9 +225,9 @@ namespace Avancira.Migrations.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<string>(type: "text", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    NextBillingDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CancellationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    NextBillingDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CancellationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     BillingFrequency = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -263,7 +263,7 @@ namespace Avancira.Migrations.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<string>(type: "text", nullable: false),
                     Balance = table.Column<decimal>(type: "numeric", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -348,7 +348,7 @@ namespace Avancira.Migrations.Migrations
                     Id = table.Column<string>(type: "text", nullable: false),
                     ApplicationId = table.Column<string>(type: "text", nullable: true),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Properties = table.Column<string>(type: "text", nullable: true),
                     Scopes = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
@@ -426,11 +426,11 @@ namespace Avancira.Migrations.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SubscriptionId = table.Column<int>(type: "integer", nullable: false),
                     BillingFrequency = table.Column<int>(type: "integer", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CancellationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    NextBillingDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CancellationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    NextBillingDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    ChangeDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    ChangeDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -453,7 +453,7 @@ namespace Avancira.Migrations.Migrations
                     AmountChanged = table.Column<decimal>(type: "numeric", nullable: false),
                     NewBalance = table.Column<decimal>(type: "numeric", nullable: false),
                     Reason = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -522,7 +522,7 @@ namespace Avancira.Migrations.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ReferrerId = table.Column<string>(type: "text", nullable: false),
                     ReferredId = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -554,12 +554,14 @@ namespace Avancira.Migrations.Migrations
                     Major = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     PreferredLearningStyle = table.Column<int>(type: "integer", nullable: true),
                     HasUsedTrialLesson = table.Column<bool>(type: "boolean", nullable: false),
-                    TrialLessonUsedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TrialLessonUsedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     CanBook = table.Column<bool>(type: "boolean", nullable: false),
                     SubscriptionStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    SubscriptionStartUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    SubscriptionEndUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    SubscriptionStartUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    SubscriptionEndUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    IsComplete = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ShowStudentProfileReminder = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedOnUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -582,12 +584,12 @@ namespace Avancira.Migrations.Migrations
                     RecipientId = table.Column<string>(type: "text", nullable: true),
                     Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     PlatformFee = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    TransactionDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TransactionDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     PaymentMethod = table.Column<int>(type: "integer", nullable: false),
                     PaymentType = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
                     IsRefunded = table.Column<bool>(type: "boolean", nullable: false),
-                    RefundedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RefundedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     RefundAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     PayPalPaymentId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
@@ -631,7 +633,7 @@ namespace Avancira.Migrations.Migrations
                     Specializations = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     Languages = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     IsVerified = table.Column<bool>(type: "boolean", nullable: false),
-                    VerifiedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    VerifiedOnUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     IsFeatured = table.Column<bool>(type: "boolean", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
@@ -649,9 +651,9 @@ namespace Avancira.Migrations.Migrations
                     IsComplete = table.Column<bool>(type: "boolean", nullable: false),
                     ShowTutorProfileReminder = table.Column<bool>(type: "boolean", nullable: false),
                     IsRisingTalent = table.Column<bool>(type: "boolean", nullable: false),
-                    TopTutorSinceUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TopTutorSinceUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     AdminComment = table.Column<string>(type: "text", nullable: true),
-                    CreatedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedOnUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -734,6 +736,28 @@ namespace Avancira.Migrations.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserPreferences",
+                schema: "identity",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
+                    UserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    ActiveProfile = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, defaultValue: "student"),
+                    UpdatedOnUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserPreferences", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserPreferences_Users_UserId",
+                        column: x => x.UserId,
+                        principalSchema: "identity",
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserRoles",
                 schema: "identity",
                 columns: table => new
@@ -790,11 +814,11 @@ namespace Avancira.Migrations.Migrations
                     ApplicationId = table.Column<string>(type: "text", nullable: true),
                     AuthorizationId = table.Column<string>(type: "text", nullable: true),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ExpirationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ExpirationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Payload = table.Column<string>(type: "text", nullable: true),
                     Properties = table.Column<string>(type: "text", nullable: true),
-                    RedemptionDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RedemptionDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ReferenceId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Subject = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
@@ -825,7 +849,7 @@ namespace Avancira.Migrations.Migrations
                     SubjectId = table.Column<int>(type: "integer", nullable: false),
                     HourlyRate = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    DeactivatedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeactivatedOnUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
                     AverageRating = table.Column<double>(type: "double precision", nullable: false),
                     TotalReviews = table.Column<int>(type: "integer", nullable: false),
@@ -1014,6 +1038,12 @@ namespace Avancira.Migrations.Migrations
                 name: "IX_Chats_TutorId",
                 table: "Chats",
                 column: "TutorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Countries_Code",
+                table: "Countries",
+                column: "Code",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Countries_Name",
@@ -1258,6 +1288,13 @@ namespace Avancira.Migrations.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserPreferences_UserId",
+                schema: "identity",
+                table: "UserPreferences",
+                column: "UserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
                 schema: "identity",
                 table: "UserRoles",
@@ -1352,6 +1389,10 @@ namespace Avancira.Migrations.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserLogins",
+                schema: "identity");
+
+            migrationBuilder.DropTable(
+                name: "UserPreferences",
                 schema: "identity");
 
             migrationBuilder.DropTable(

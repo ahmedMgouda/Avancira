@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Avancira.Migrations.Migrations
+namespace Avancira.Infrastructure.Migrations
 {
     [DbContext(typeof(AvanciraDbContext))]
     partial class AvanciraDbContextModelSnapshot : ModelSnapshot
@@ -61,16 +61,19 @@ namespace Avancira.Migrations.Migrations
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(3)
+                        .IsUnicode(false)
                         .HasColumnType("character varying(3)")
                         .HasColumnName("Code");
 
                     b.Property<string>("CurrencyCode")
                         .HasMaxLength(3)
+                        .IsUnicode(false)
                         .HasColumnType("character varying(3)");
 
                     b.Property<string>("DialingCode")
-                        .HasMaxLength(5)
-                        .HasColumnType("character varying(5)");
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -80,9 +83,13 @@ namespace Avancira.Migrations.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .IsUnicode(true)
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -441,7 +448,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -493,7 +500,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -510,7 +517,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -622,7 +629,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CurrentEducationLevel")
                         .HasMaxLength(100)
@@ -662,7 +669,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("TrialLessonUsedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -783,13 +790,13 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("CancellationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("NextBillingDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -815,16 +822,16 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("CancellationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("ChangeDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("NextBillingDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("SubscriptionId")
                         .HasColumnType("integer");
@@ -894,7 +901,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SenderId")
                         .IsRequired()
@@ -914,7 +921,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -944,7 +951,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeactivatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<decimal>("HourlyRate")
                         .HasPrecision(10, 2)
@@ -1039,7 +1046,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1101,7 +1108,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("TopTutorSinceUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("TrialLessonDurationMinutes")
                         .HasColumnType("integer");
@@ -1110,7 +1117,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<DateTime?>("VerifiedOnUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("YearsOfExperience")
                         .HasColumnType("integer");
@@ -1241,6 +1248,7 @@ namespace Avancira.Migrations.Migrations
 
                     b.Property<string>("ActiveProfile")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasDefaultValue("student");
@@ -1273,7 +1281,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -1296,7 +1304,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<decimal>("NewBalance")
                         .HasColumnType("numeric");
@@ -1324,7 +1332,7 @@ namespace Avancira.Migrations.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ReferredId")
                         .IsRequired()
@@ -1670,7 +1678,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("CreationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Properties")
                         .HasColumnType("text");
@@ -1756,10 +1764,10 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("CreationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("ExpirationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Payload")
                         .HasColumnType("text");
@@ -1768,7 +1776,7 @@ namespace Avancira.Migrations.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("RedemptionDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ReferenceId")
                         .HasMaxLength(100)
@@ -1912,11 +1920,11 @@ namespace Avancira.Migrations.Migrations
                                 .HasColumnType("character varying(450)");
 
                             b1.Property<DateTime>("EndUtc")
-                                .HasColumnType("timestamp with time zone")
+                                .HasColumnType("timestamp without time zone")
                                 .HasColumnName("SubscriptionEndUtc");
 
                             b1.Property<DateTime>("StartUtc")
-                                .HasColumnType("timestamp with time zone")
+                                .HasColumnType("timestamp without time zone")
                                 .HasColumnName("SubscriptionStartUtc");
 
                             b1.HasKey("StudentProfileId");
@@ -1928,15 +1936,6 @@ namespace Avancira.Migrations.Migrations
                         });
 
                     b.Navigation("SubscriptionPeriod");
-                });
-
-            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
-                {
-                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
-                        .WithOne("UserPreference")
-                        .HasForeignKey("Avancira.Domain.Users.UserPreference", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Avancira.Domain.Subjects.Subject", b =>
@@ -2010,6 +2009,15 @@ namespace Avancira.Migrations.Migrations
                     b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
                         .WithOne("TutorProfile")
                         .HasForeignKey("Avancira.Domain.Tutors.TutorProfile", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Avancira.Domain.Users.UserPreference", b =>
+                {
+                    b.HasOne("Avancira.Infrastructure.Identity.Users.User", null)
+                        .WithOne("UserPreference")
+                        .HasForeignKey("Avancira.Domain.Users.UserPreference", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -2205,11 +2213,11 @@ namespace Avancira.Migrations.Migrations
 
             modelBuilder.Entity("Avancira.Infrastructure.Identity.Users.User", b =>
                 {
-                    b.Navigation("Preference");
-
                     b.Navigation("StudentProfile");
 
                     b.Navigation("TutorProfile");
+
+                    b.Navigation("UserPreference");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

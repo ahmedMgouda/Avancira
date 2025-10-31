@@ -1,6 +1,7 @@
 ﻿namespace Avancira.BFF.Extensions;
 
 using Avancira.BFF.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 public static class ApplicationBuilderExtensions
 {
@@ -11,6 +12,20 @@ public static class ApplicationBuilderExtensions
         this WebApplication app,
         IWebHostEnvironment environment)
     {
+        // CRITICAL: Configure forwarded headers FIRST
+        // This allows BFF to detect HTTPS when behind nginx reverse proxy
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+            ForwardLimit = null  // Accept headers from any number of proxies
+        };
+        
+        // Clear default restrictions to trust nginx proxy in Docker network
+        forwardedHeadersOptions.KnownNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+        
+        app.UseForwardedHeaders(forwardedHeadersOptions);
+
         // Security headers
         app.UseSecurityHeaders(environment);
 

@@ -67,12 +67,19 @@ public sealed class OpenIddictClientSeeder : ISeeder
 
                 RedirectUris =
                 {
-                    new Uri("https://localhost:9200/bff/signin-oidc")
+                    // Development
+                    new Uri("https://localhost:9200/bff/signin-oidc"),
+                    // Production
+                    new Uri("https://www.avancira.com/bff/signin-oidc")
                 },
                 PostLogoutRedirectUris =
                 {
+                    // Development
                     new Uri("https://localhost:9200/bff/signout-callback-oidc"),
-                    new Uri("https://localhost:4200/")
+                    new Uri("https://localhost:4200/"),
+                    // Production
+                    new Uri("https://www.avancira.com/bff/signout-callback-oidc"),
+                    new Uri("https://www.avancira.com")
                 },
                 Permissions =
                 {

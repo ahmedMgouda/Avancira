@@ -26,6 +26,8 @@ public class BffSettings
 public class AuthSettings
 {
     public string Authority { get; set; } = "https://localhost:9100";
+    public string? MetadataAddress { get; set; }
+    public string? ExternalIssuer { get; set; }
     public string ClientId { get; set; } = "bff-client";
     public string ClientSecret { get; set; } = string.Empty;
     public bool RequireHttpsMetadata { get; set; } = true;

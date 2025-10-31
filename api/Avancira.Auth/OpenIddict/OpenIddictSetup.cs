@@ -99,10 +99,14 @@ public static class OpenIddictSetup
                        .AddDevelopmentSigningCertificate();
 
                 // ===== ASP.NET CORE INTEGRATION =====
-                options.UseAspNetCore()
+                var aspNetCoreOptions = options.UseAspNetCore()
                        .EnableAuthorizationEndpointPassthrough()  // Allows custom logic
                        .EnableTokenEndpointPassthrough()          // Allows custom logic
                        .EnableEndSessionEndpointPassthrough();     // Allows custom logic
+                
+                // IMPORTANT: Disable HTTPS requirement when behind reverse proxy (nginx)
+                // Nginx handles HTTPS termination, internal Docker communication uses HTTP
+                aspNetCoreOptions.DisableTransportSecurityRequirement();
             })
 
             // ===== VALIDATION: Token Validation Configuration =====

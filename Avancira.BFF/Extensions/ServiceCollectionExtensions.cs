@@ -146,6 +146,17 @@ public static class ServiceCollectionExtensions
             options.ClientSecret = settings.Auth.ClientSecret;
             options.RequireHttpsMetadata = settings.Auth.RequireHttpsMetadata;
 
+            // Override issuer validation if ExternalIssuer is configured
+            // This allows internal communication (Authority) while accepting external issuer in tokens
+            if (!string.IsNullOrEmpty(settings.Auth.ExternalIssuer))
+            {
+                options.TokenValidationParameters.ValidIssuers = new[]
+                {
+                    settings.Auth.ExternalIssuer,  // Accept external issuer (https://auth.avancira.com)
+                    settings.Auth.Authority         // Also accept internal (http://avancira-auth-container:8080)
+                };
+            }
+
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.UsePkce = true;
 
@@ -175,20 +186,41 @@ public static class ServiceCollectionExtensions
             options.TokenValidationParameters.ValidateAudience = true;
             options.TokenValidationParameters.ValidateIssuer = true;
 
-            options.Events = new OpenIdConnectEvents
-            {
-                OnRedirectToIdentityProviderForSignOut = context =>
-                {
-                    var idToken = context.Properties.GetTokenValue("id_token");
-                    if (!string.IsNullOrEmpty(idToken))
-                    {
-                        context.ProtocolMessage.IdTokenHint = idToken;
-                    }
-                    return Task.CompletedTask;
-                }
-            };
             // Event handlers from separate service
             options.Events = OidcEventHandlers.CreateEvents();
+            
+            // CRITICAL: Override redirect URL to use external issuer for browser redirects
+            if (!string.IsNullOrEmpty(settings.Auth.ExternalIssuer))
+            {
+                var originalOnRedirect = options.Events.OnRedirectToIdentityProvider;
+                options.Events.OnRedirectToIdentityProvider = async context =>
+                {
+                    // Call original event handler first
+                    if (originalOnRedirect != null)
+                    {
+                        await originalOnRedirect(context);
+                    }
+                    
+                    // Replace internal Authority with external issuer in redirect URL
+                    context.ProtocolMessage.IssuerAddress = context.ProtocolMessage.IssuerAddress
+                        .Replace(settings.Auth.Authority, settings.Auth.ExternalIssuer);
+                };
+                
+                // CRITICAL: Override logout redirect URL to use external issuer
+                var originalOnSignOut = options.Events.OnRedirectToIdentityProviderForSignOut;
+                options.Events.OnRedirectToIdentityProviderForSignOut = async context =>
+                {
+                    // Call original event handler first
+                    if (originalOnSignOut != null)
+                    {
+                        await originalOnSignOut(context);
+                    }
+                    
+                    // Replace internal Authority with external issuer in logout URL
+                    context.ProtocolMessage.IssuerAddress = context.ProtocolMessage.IssuerAddress
+                        .Replace(settings.Auth.Authority, settings.Auth.ExternalIssuer);
+                };
+            }
         });
 
         return services;
