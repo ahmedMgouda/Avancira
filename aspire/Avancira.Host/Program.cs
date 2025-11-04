@@ -11,14 +11,14 @@ var loki = builder.AddContainer("loki", "grafana/loki:latest")
 
 var prometheus = builder.AddContainer("prometheus", "prom/prometheus:latest")
     .WithBindMount("prometheus.yml", "/etc/prometheus/prometheus.yml")
-    .WithHttpEndpoint(port: 7070, targetPort: 9090);
+    .WithHttpEndpoint(port: 3200, targetPort: 3200);
 
 var grafana = builder.AddContainer("grafana", "grafana/grafana:latest")
     .WithEnvironment("GF_SECURITY_ADMIN_PASSWORD", "admin")
     .WithBindMount("grafana/provisioning/datasources", "/etc/grafana/provisioning/datasources")
     .WithBindMount("grafana/provisioning/dashboards", "/etc/grafana/provisioning/dashboards")
     .WithBindMount("grafana/dashboards", "/etc/grafana/dashboards")
-    .WithHttpEndpoint(port: 3000, targetPort: 3000, name: "http");
+    .WithHttpEndpoint(port: 3000, targetPort: 3000);
 
 #endregion
 
@@ -125,7 +125,7 @@ var backend = builder.AddProject<Projects.Avancira_API>("avancira-api")
 
 
 #region ===== BFF =====
-builder.AddProject<Projects.Avancira_BFF>("avancira-bff")
+var bff = builder.AddProject<Projects.Avancira_BFF>("avancira-bff")
     .WithReference(postgresDb)
     .WithReference(authServer)
     .WithReference(backend)
@@ -140,8 +140,8 @@ builder.AddProject<Projects.Avancira_BFF>("avancira-bff")
 
 #region ===== FRONTEND =====
 
-builder.AddNpmApp("avancira-frontend", "../../Frontend.Angular")
-    .WithHttpEndpoint(env: "PORT", port: 4300, name: "frontend")
+builder.AddNpmApp("avancira-frontend", "../../Frontend.Angular", "start:ssl")
+    .WithHttpsEndpoint(port: 4200, targetPort: 4200, name: "frontend-https", isProxied: false)
     .WithExternalHttpEndpoints();
 
 #endregion

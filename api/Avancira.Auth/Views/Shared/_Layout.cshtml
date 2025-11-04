@@ -1,5 +1,8 @@
-﻿@{
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+@{
     var appTitle = ViewData["Title"] ?? "Avancira Auth";
+    var frontendUrl = Configuration["App:FrontendUrl"] ?? "https://localhost:4200";
 }
 
 <!DOCTYPE html>
@@ -57,7 +60,7 @@
     <!-- ✅ Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/">
+            <a class="navbar-brand fw-bold" href="@frontendUrl">
                 <i class="bi bi-shield-lock-fill me-1"></i> Avancira
             </a>
         </div>

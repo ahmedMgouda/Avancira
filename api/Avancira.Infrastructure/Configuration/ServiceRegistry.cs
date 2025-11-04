@@ -14,7 +14,7 @@ public static class ServiceRegistry
         new("bff", 9200, 5200, ServiceType.BackendService, "Backend for Frontend"),
 
         // Frontend
-        new("frontend", 4300, 4300, ServiceType.Frontend, "Angular Frontend"),
+        new("frontend", 4200, 4200, ServiceType.Frontend, "Angular Frontend"),
 
         // Infrastructure
         new("postgres", 5432, 5432, ServiceType.Infrastructure, "PostgreSQL Database"),
