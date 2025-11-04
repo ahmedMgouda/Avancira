@@ -1,19 +1,19 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { loadStripe } from '@stripe/stripe-js';
 
+import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../services/config.service';
-import { ListingService } from '../../services/listing.service';
 import { PaymentService } from '../../services/payment.service';
-import { SubscriptionService } from '../../services/subscription.service';
-import { AuthService } from '../../services/auth.service';
+
 import { ConfigKey } from '../../models/config-key';
 
 
 
 @Component({
   selector: 'app-payment-alt-options',
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './payment-alt-options.component.html',
   styleUrl: './payment-alt-options.component.scss'
 })
@@ -32,11 +32,8 @@ export class PaymentAltOptionsComponent implements OnInit {
   stripePromise: Promise<any> | null = null; 
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
-    private listingService: ListingService,
     private paymentService: PaymentService,
-    private subscriptionService: SubscriptionService,
     private configService: ConfigService,
     private authService: AuthService,
   ) { }

@@ -1,3 +1,5 @@
+import { BaseFilter } from "../core/models/base.model";
+
 export interface Category {
   id: number;
   name: string;
@@ -10,6 +12,7 @@ export interface Category {
   updatedAt?: string | Date | null;
 }
 
+/** DTO for creating a category */
 export interface CategoryCreateDto {
   name: string;
   description?: string | null;
@@ -19,21 +22,14 @@ export interface CategoryCreateDto {
   sortOrder: number;
 }
 
+/** DTO for updating a category */
 export interface CategoryUpdateDto extends CategoryCreateDto {
   id: number;
 }
 
-export interface CategoryFilter {
-  searchTerm?: string;
+/** Optional filter for category listing */
+export interface CategoryFilter extends BaseFilter {
   isActive?: boolean;
   isVisible?: boolean;
   isFeatured?: boolean;
-}
-
-export interface PaginatedResult<T> {
-  items: readonly T[];
-  totalCount: number;
-  pageIndex: number;
-  pageSize: number;
-  totalPages: number;
 }

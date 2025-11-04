@@ -195,6 +195,7 @@ internal sealed partial class UserService(
         var user = new User
         {
             Email = request.Email,
+            UserName= request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
             PhoneNumber = request.PhoneNumber,

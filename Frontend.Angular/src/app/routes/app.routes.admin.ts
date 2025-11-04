@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { AdminShellComponent } from '../layouts/admin/admin-shell.component';
 
-import { roleGuard } from '../guards/role.guard';
+import { roleGuard } from '../core/guards/role.guard';
 
 export const adminRoutes: Routes = [
   {

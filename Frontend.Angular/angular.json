@@ -27,6 +27,7 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
+              "src/assets",
               {
                 "glob": "**/*",
                 "input": "public"
@@ -39,6 +40,9 @@
             ],
             "stylePreprocessorOptions": {
               "includePaths": [
+                "src/app/core",
+                "src/app/shared",
+                "src/app",
                 "src/styles"
               ]
             },

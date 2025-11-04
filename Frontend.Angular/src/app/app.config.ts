@@ -1,50 +1,77 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
-  importProvidersFrom,
+  ErrorHandler,
   inject,
   provideAppInitializer,
-  provideZoneChangeDetection,
+  provideExperimentalZonelessChangeDetection // ← Changed for zoneless
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
-import { catchError, firstValueFrom, from, of } from 'rxjs';
-import { OAuthModule } from 'angular-oauth2-oidc';
-import { provideToastr } from 'ngx-toastr';
 
-import { AuthService } from './services/auth.service';
-import { ConfigService } from './services/config.service';
+import { AppInitializerService } from './core/services/app-initializer.service';
 
+import { GlobalErrorHandler } from './core/handlers/global-error.handler';
+// Import interceptors
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { correlationIdInterceptor } from './core/interceptors/correlation-id.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { loggingInterceptor } from './core/interceptors/logging.interceptor';
+import { retryInterceptor } from './core/interceptors/retry.interceptor';
+// Import loading system (encapsulated)
+import { loadingInterceptor, provideLoading } from './core/loading';
+import { networkInterceptor } from './core/network/network.interceptor';
 import { routes } from './routes/app.routes';
-import { authInterceptor } from './interceptors/auth.interceptor';
 
-function initConfig() {
-  return firstValueFrom(
-    inject(ConfigService).loadConfig().pipe(catchError(() => of(null)))
-  );
-}
-
-function initAuth() {
-  const auth = inject(AuthService);
-  return firstValueFrom(
-    from(auth.init()).pipe(catchError(() => of(null)))
-  );
+function initApp() {
+  const initializer = inject(AppInitializerService);
+  return initializer.initialize();
 }
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    // ═══════════════════════════════════════════════════════════
+    // Change Detection (Zoneless)
+    // ═══════════════════════════════════════════════════════════
+    provideExperimentalZonelessChangeDetection(),
+    
+    // ═══════════════════════════════════════════════════════════
+    // Router & Animations
+    // ═══════════════════════════════════════════════════════════
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
-    provideToastr({
-      timeOut: 5000,
-      positionClass: 'toast-top-right',
-      preventDuplicates: true,
-    }),
     provideAnimationsAsync(),
-    importProvidersFrom(OAuthModule.forRoot()),
-
-    provideAppInitializer(initConfig),
-    provideAppInitializer(initAuth),
+    
+    // ═══════════════════════════════════════════════════════════
+    // HTTP Client with Interceptor Pipeline
+    // ═══════════════════════════════════════════════════════════
+    provideHttpClient(
+      withInterceptors([
+        correlationIdInterceptor, // 1. Add correlation ID first
+        loggingInterceptor,       // 2. Log requests
+        authInterceptor,          // 3. Add auth token
+        loadingInterceptor,       // 4. Track loading state
+        networkInterceptor,      // ← Optional: Network status interceptor
+        retryInterceptor,         // 5. Retry failed requests
+        errorInterceptor          // 6. Handle errors last
+      ])
+    ),
+    
+    // ═══════════════════════════════════════════════════════════
+    // Loading System (Route tracking + Config)
+    // ═══════════════════════════════════════════════════════════
+    provideLoading(), // ← One line! Handles route loading + config
+    
+    // Optional: Custom loading configuration
+    // provideLoading({
+    //   debounceDelay: 100,
+    //   requestTimeout: 60000,
+    //   maxRequests: 200
+    // }),
+    
+    // ═══════════════════════════════════════════════════════════
+    // Error Handling & Initialization
+    // ═══════════════════════════════════════════════════════════
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    provideAppInitializer(initApp),
   ]
 };

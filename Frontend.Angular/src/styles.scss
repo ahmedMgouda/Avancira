@@ -1,73 +1,117 @@
-// datagrid 
+@use './app/core/loading/loading' as *;
+
+
+/* Dialog Overlay - FIXED: Use background-color instead of opacity */
 .e-dlg-overlay {
-    background-color: rgba(0, 0, 0, 1) !important;
-    opacity: 0.07;
+  background-color: rgba(0, 0, 0, 0.07) !important;
 }
 
 .custom-toolbar {
-    padding: 10px;
+  padding: 10px;
 }
 
 .e-headertext {
-    font-weight: 600;
-    ;
+  font-weight: 600;
 }
 
 .action-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    flex-wrap: wrap; 
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
-
+/* No Data Container */
 .no-data-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  text-align: center;
+
+  .e-card {
+    width: 400px;
+    padding: 20px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .e-card-header {
+    width: 100%;
     display: flex;
     justify-content: center;
+  }
+
+  .e-card-header-title {
+    display: flex;
     align-items: center;
-    height: 200px;
-    text-align: center;
+    font-weight: 500;
+    font-size: 18px;
 
-    .e-card {
-        width: 400px;
-        padding: 20px;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        background: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+    .e-icons {
+      font-size: 28px;
+      margin-right: 8px;
+      color: #ff9800;
     }
-    
-    .e-card-header {
-        width: 100%;
-        display: flex;
-        justify-items: center;
-        justify-content: center;
-    }
-    
-    .e-card-header-title {
-        display: flex;
-        font-weight: 500;
-        font-size: 18px;
+  }
 
-        .e-icons {
-            font-size: 28px; 
-            margin-right: 8px; 
-            color: #ff9800; 
-        }
-    }
-    .e-card-content {
-        margin-top: 10px;
-        font-size: 14px;
-        color: #666;
-    }
-    
-    .e-card-actions {
-        margin-top: 15px;
-    }
+  .e-card-content {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .e-card-actions {
+    margin-top: 15px;
+  }
 }
 
+/* Dark mode support for no-data card */
+@media (prefers-color-scheme: dark) {
+  .no-data-container .e-card {
+    background: #1f2937;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+  }
 
+  .no-data-container .e-card-content {
+    color: #9ca3af;
+  }
+}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   PERFORMANCE OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Force GPU acceleration for smooth animations */
+.inline-spinner,
+.skeleton,
+.loading-wrapper {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize rendering for fixed elements */
+.progress-container,
+.overlay {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PRINT STYLES (Hide loading indicators)
+   ═══════════════════════════════════════════════════════════════════════ */
+@media print {
+  .inline-spinner,
+  .skeleton,
+  .overlay,
+  .progress-container,
+  .is-loading {
+    display: none !important;
+  }
+}

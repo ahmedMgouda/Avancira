@@ -2,12 +2,21 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ConfirmationDialogComponent } from "./components/confirmation-dialog/confirmation-dialog.component";
+import { GlobalLoaderComponent } from "./core/loading/global-loader.component";
+import { TopProgressBarComponent } from "./core/loading/top-progress-bar.component";
+import { NetworkStatusComponent } from "./core/network/network-status.component";
 
-import { AuthService } from './services/auth.service';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ConfirmationDialogComponent],
+  imports: [
+    RouterOutlet,
+    ConfirmationDialogComponent,
+    GlobalLoaderComponent,
+    TopProgressBarComponent,
+    NetworkStatusComponent
+],
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit {

@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 
 import { MapAddressComponent } from '../../components/map-address/map-address.component';
 
+import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../services/alert.service';
-import { AuthService } from '../../services/auth.service';
 import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
 

@@ -1,45 +1,52 @@
-using System;
-using System.Linq;
+using Avancira.Application.Common.Models;
 using Avancira.Application.Persistence;
 using Avancira.Application.SubjectCategories.Dtos;
+using Avancira.Application.SubjectCategories.Specifications;
 using Avancira.Domain.Common.Exceptions;
 using Avancira.Domain.Subjects;
 using Mapster;
 
 namespace Avancira.Application.SubjectCategories;
 
-public class SubjectCategoryService : ISubjectCategoryService
+public sealed class SubjectCategoryService : ISubjectCategoryService
 {
-    private readonly IRepository<SubjectCategory> _subjectCategoryRepository;
+    private readonly IRepository<SubjectCategory> _repository;
 
-    public SubjectCategoryService(IRepository<SubjectCategory> subjectCategoryRepository)
+    public SubjectCategoryService(IRepository<SubjectCategory> repository)
     {
-        _subjectCategoryRepository = subjectCategoryRepository;
+        _repository = repository;
+    }
+
+    public async Task<PaginatedResult<SubjectCategoryDto>> GetAllAsync(SubjectCategoryFilter filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        var spec = new SubjectCategoryFilterSpec(filter);
+
+        var totalCount = await _repository.CountAsync(spec);
+        var items = await _repository.ListAsync(spec);
+
+        return new PaginatedResult<SubjectCategoryDto>
+        {
+            Items = items.Adapt<IReadOnlyList<SubjectCategoryDto>>(),
+            TotalCount = totalCount,
+            PageIndex = filter.PageIndex,
+            PageSize = filter.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize)
+        };
     }
 
     public async Task<SubjectCategoryDto> GetByIdAsync(int id)
     {
-        var subjectCategory = await _subjectCategoryRepository.GetByIdAsync(id)
-            ?? throw new AvanciraNotFoundException($"Subject category with ID '{id}' not found.");
+        var category = await _repository.GetByIdAsync(id)
+            ?? throw new AvanciraNotFoundException($"Subject category '{id}' not found.");
 
-        return subjectCategory.Adapt<SubjectCategoryDto>();
-    }
-
-    public async Task<IEnumerable<SubjectCategoryDto>> GetAllAsync()
-    {
-        var subjectCategories = await _subjectCategoryRepository.ListAsync();
-
-        return subjectCategories
-            .OrderBy(category => category.SortOrder)
-            .ThenBy(category => category.Name)
-            .Adapt<IEnumerable<SubjectCategoryDto>>();
+        return category.Adapt<SubjectCategoryDto>();
     }
 
     public async Task<SubjectCategoryDto> CreateAsync(SubjectCategoryCreateDto request)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var subjectCategory = SubjectCategory.Create(
+        var entity = SubjectCategory.Create(
             request.Name,
             request.Description,
             request.IsActive,
@@ -47,19 +54,16 @@ public class SubjectCategoryService : ISubjectCategoryService
             request.IsFeatured,
             request.SortOrder);
 
-        await _subjectCategoryRepository.AddAsync(subjectCategory);
-
-        return subjectCategory.Adapt<SubjectCategoryDto>();
+        await _repository.AddAsync(entity);
+        return entity.Adapt<SubjectCategoryDto>();
     }
 
     public async Task<SubjectCategoryDto> UpdateAsync(SubjectCategoryUpdateDto request)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        var entity = await _repository.GetByIdAsync(request.Id)
+            ?? throw new AvanciraNotFoundException($"Subject category '{request.Id}' not found.");
 
-        var subjectCategory = await _subjectCategoryRepository.GetByIdAsync(request.Id)
-            ?? throw new AvanciraNotFoundException($"Subject category with ID '{request.Id}' not found. Update operation aborted.");
-
-        subjectCategory.Update(
+        entity.Update(
             request.Name,
             request.Description,
             request.IsActive,
@@ -67,16 +71,15 @@ public class SubjectCategoryService : ISubjectCategoryService
             request.IsFeatured,
             request.SortOrder);
 
-        await _subjectCategoryRepository.UpdateAsync(subjectCategory);
-
-        return subjectCategory.Adapt<SubjectCategoryDto>();
+        await _repository.UpdateAsync(entity);
+        return entity.Adapt<SubjectCategoryDto>();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var subjectCategory = await _subjectCategoryRepository.GetByIdAsync(id)
-            ?? throw new AvanciraNotFoundException($"Subject category with ID '{id}' not found. Deletion operation aborted.");
+        var entity = await _repository.GetByIdAsync(id)
+            ?? throw new AvanciraNotFoundException($"Subject category '{id}' not found.");
 
-        await _subjectCategoryRepository.DeleteAsync(subjectCategory);
+        await _repository.DeleteAsync(entity);
     }
 }

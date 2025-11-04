@@ -6,7 +6,7 @@ import { LeaveReviewComponent } from '../../components/leave-review/leave-review
 import { ModalComponent } from '../../components/modal/modal.component';
 
 import { AlertService } from '../../services/alert.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { EvaluationService } from '../../services/evaluation.service';
 import { UserService } from '../../services/user.service';
 

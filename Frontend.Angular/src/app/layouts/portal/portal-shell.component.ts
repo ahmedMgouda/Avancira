@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 
 import { SiteHeaderComponent } from '../shared/components/site-header/site-header.component';
 import { PortalNavigationComponent } from './portal-navigation.component';
+
 import { LayoutContextService } from '../shared/services/layout-context.service';
 
 @Component({

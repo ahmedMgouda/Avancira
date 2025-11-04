@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using Avancira.Application.Common.Models;
 using Avancira.Application.SubjectCategories;
 using Avancira.Application.SubjectCategories.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Avancira.API.Controllers;
 
 [Route("api/subject-categories")]
-public class SubjectCategoriesController : BaseApiController
+[ApiController]
+public sealed class SubjectCategoriesController : ControllerBase
 {
     private readonly ISubjectCategoryService _subjectCategoryService;
 
@@ -16,15 +17,13 @@ public class SubjectCategoriesController : BaseApiController
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<SubjectCategoryDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSubjectCategories()
+    public async Task<IActionResult> GetSubjectCategories([FromQuery] SubjectCategoryFilter filter)
     {
-        var categories = await _subjectCategoryService.GetAllAsync();
-        return Ok(categories);
+        var result = await _subjectCategoryService.GetAllAsync(filter);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(SubjectCategoryDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSubjectCategoryById(int id)
     {
         var category = await _subjectCategoryService.GetByIdAsync(id);
@@ -32,7 +31,6 @@ public class SubjectCategoriesController : BaseApiController
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(SubjectCategoryDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateSubjectCategory([FromBody] SubjectCategoryCreateDto request)
     {
         var category = await _subjectCategoryService.CreateAsync(request);
@@ -40,20 +38,16 @@ public class SubjectCategoriesController : BaseApiController
     }
 
     [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(SubjectCategoryDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateSubjectCategory(int id, [FromBody] SubjectCategoryUpdateDto request)
     {
         if (id != request.Id)
-        {
             return BadRequest("Subject category ID mismatch.");
-        }
 
         var category = await _subjectCategoryService.UpdateAsync(request);
         return Ok(category);
     }
 
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteSubjectCategory(int id)
     {
         await _subjectCategoryService.DeleteAsync(id);

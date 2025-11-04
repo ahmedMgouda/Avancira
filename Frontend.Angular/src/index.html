@@ -1,110 +1,64 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Avancira – Expert Tutors for Personalized Online Lessons</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Avancira connects students with expert tutors for personalized online lessons — anytime, anywhere." />
+    <meta name="msapplication-TileColor" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-<head>
-  <meta charset="utf-8">
-  <title>Avancira - Connecting Students with Expert Tutors for Online Lessons</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Favicons -->
+    <link rel="icon" href="assets/icons/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" href="assets/icons/favicon-16x16.png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 
-  <!-- SEO Meta Tags -->
-  <meta name="description"
-    content="Avancira connects students with expert tutors for personalized online lessons. Learn anytime, anywhere with flexible scheduling and affordable pricing.">
-  <meta name="keywords"
-    content="online tutoring, personalized lessons, expert tutors, student learning, affordable education">
-  <meta name="author" content="Avancira">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
 
-  <!-- Open Graph Meta Tags -->
-  <meta property="og:title" content="Avancira - Online Tutoring Made Easy">
-  <meta property="og:description"
-    content="Discover personalized online lessons with expert tutors. Learn anytime, anywhere, and achieve your academic goals with Avancira.">
-  <meta property="og:image" content="https://www.avancira.com/path-to-image.jpg">
-  <meta property="og:url" content="https://www.avancira.com">
-  <meta property="og:type" content="website">
+    <!-- Splash Screen -->
+    <link rel="stylesheet" href="assets/splash/splash.css" />
 
-  <!-- Twitter Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Avancira - Online Tutoring Platform">
-  <meta name="twitter:description"
-    content="Connect with expert tutors for personalized lessons tailored to your learning needs.">
-  <meta name="twitter:image" content="https://www.avancira.com/path-to-image.jpg">
+    <!-- SDKs -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://connect.facebook.net/en_US/sdk.js" async defer crossorigin="anonymous"></script>
+    <script src="https://meet.jit.si/external_api.js"></script>
 
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://www.avancira.com/">
+    <!-- Crisp Chat -->
+    <script>
+      window.$crisp = [];
+      window.CRISP_WEBSITE_ID = "2f822b6b-0a78-4235-9dbf-3750852c48f6";
+      (function () {
+        const s = document.createElement("script");
+        s.src = "https://client.crisp.chat/l.js";
+        s.async = 1;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </head>
 
-  <!-- Favicons and Theme -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <meta name="theme-color" content="#ffffff">
+  <body class="mat-typography">
+    <div id="app-init-loader" role="dialog" aria-label="Loading Avancira" aria-live="polite">
+      <img
+        src="assets/logo.svg"
+        alt="Avancira logo"
+        class="loader-logo"
+        width="80"
+        height="80"
+      />
+      <div class="loader-spinner" role="status" aria-label="Loading"></div>
+      <p class="loader-text" id="init-status">Loading...</p>
+    </div>
 
-  <!-- Robots -->
-  <meta name="robots" content="index, follow">
+    <!-- Angular Root -->
+    <app-root></app-root>
 
+    <noscript>
+      <p>Please enable JavaScript to use Avancira.</p>
+    </noscript>
 
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "EducationalOrganization",
-    "name": "Avancira",
-    "url": "https://www.avancira.com",
-    "logo": "https://www.avancira.com/path-to-logo.jpg",
-    "description": "Avancira connects students with expert tutors for personalized online lessons.",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Strathfield",
-      "addressCountry": "Australia"
-    },
-    "sameAs": [
-      "https://www.facebook.com/Avancira",
-      "https://www.linkedin.com/company/Avancira"
-    ],
-    "offers": {
-      "@type": "Offer",
-      "name": "Personalized Online Tutoring",
-      "description": "Learn from expert tutors in subjects like math, science, and languages with flexible scheduling.",
-      "priceCurrency": "AUD",
-      "price": "Varies"
-    }
-  }
-  </script>
-
-  <!-- Facebook SDK -->
-  <script src="https://connect.facebook.net/en_US/sdk.js" async defer crossorigin="anonymous"></script>
-
-  <!-- Crisp Chat -->
-  <script type="text/javascript">
-    window.$crisp = [];
-    window.CRISP_WEBSITE_ID = "2f822b6b-0a78-4235-9dbf-3750852c48f6";
-    (function () {
-      var d = document;
-      var s = d.createElement("script");
-      s.src = "https://client.crisp.chat/l.js";
-      s.async = 1;
-      d.getElementsByTagName("head")[0].appendChild(s);
-    })();
-  </script>
-
-  <!-- Jitsi Meet -->
-  <script src="https://meet.jit.si/external_api.js"></script>
-
-  <!-- Google Identity Services SDK (recommended) -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-</head>
-
-
-<body class="mat-typography">
-  <app-root></app-root>
-  <noscript>
-    <p>Your browser does not support JavaScript or it is disabled. Please enable JavaScript for the best experience.</p>
-  </noscript>
-</body>
-
+    <!-- Fallback Loader Timeout -->
+    <script src="assets/splash/splash.js"></script>
+  </body>
 </html>
