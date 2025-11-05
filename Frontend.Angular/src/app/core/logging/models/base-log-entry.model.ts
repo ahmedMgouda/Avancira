@@ -1,0 +1,81 @@
+export interface BaseLogEntry {
+  '@timestamp': string;
+  '@version': string;
+  
+  log: {
+    id?: string;
+    level?: string;
+    source?: string;
+    type?: string;
+    message?: string;
+  };
+  
+  service: {
+    name: string;
+    version: string;
+    environment: string;
+  };
+  
+  trace: {
+    id: string;
+    span?: {
+      id: string;
+      name: string;
+      duration_ms?: number;
+    };
+  };
+  
+  client: {
+    url: string;
+    route: string;
+    user_agent: string;
+  };
+  
+  session?: {
+    id: string;
+    user: {
+      id: string;
+    };
+  };
+  
+  http?: {
+    method: string;
+    url: string;
+    status_code?: number;
+    duration_ms?: number;
+    problem_details?: {
+      type: string;
+      title: string;
+      status: number;
+      detail: string;
+      instance?: string;
+    };
+    error_message?: string;
+  };
+  
+  error?: {
+    id: string;
+    kind: 'application' | 'system';
+    handled: boolean;
+    code: string;
+    type: string;
+    message: {
+      user: string;
+      technical: string;
+    };
+    severity: 'info' | 'warning' | 'error' | 'critical';
+    stack?: string;
+    source?: {
+      component?: string;
+      file?: string;
+      line?: number;
+      method?: string;
+    };
+  };
+  
+  navigation?: {
+    from: string;
+    to: string;
+    trigger: 'user' | 'code' | 'browser';
+  };
+}

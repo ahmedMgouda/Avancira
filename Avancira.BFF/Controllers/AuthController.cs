@@ -73,6 +73,8 @@ public class AuthController : ControllerBase
         }
 
         var userId = User.FindFirstValue("sub");
+        var sessionId = User.FindFirstValue("sid");
+
         _logger.LogDebug("Fetching profile for authenticated user {UserId}", userId);
 
         // 👇 Call API to get enriched profile
@@ -93,6 +95,7 @@ public class AuthController : ControllerBase
         {
             isAuthenticated = true,
             userId = profile.UserId,
+            sessionId = sessionId ?? string.Empty,
             firstName = profile.FirstName,
             lastName = profile.LastName,
             fullName = profile.FullName,

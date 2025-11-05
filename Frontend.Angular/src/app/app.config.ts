@@ -1,7 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
-  ErrorHandler,
+  //ErrorHandler,
   inject,
   provideAppInitializer,
   provideExperimentalZonelessChangeDetection // ← Changed for zoneless
@@ -11,16 +11,17 @@ import { provideRouter } from '@angular/router';
 
 import { AppInitializerService } from './core/services/app-initializer.service';
 
-import { GlobalErrorHandler } from './core/handlers/global-error.handler';
+//import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 // Import interceptors
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { correlationIdInterceptor } from './core/interceptors/correlation-id.interceptor';
-import { errorInterceptor } from './core/interceptors/error.interceptor';
-import { loggingInterceptor } from './core/interceptors/logging.interceptor';
+// import { correlationIdInterceptor } from './core/interceptors/correlation-id.interceptor';
+// import { errorInterceptor } from './core/interceptors/error.interceptor';
+// import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
 // Import loading system (encapsulated)
 import { loadingInterceptor, provideLoading } from './core/loading';
-import { networkInterceptor } from './core/network/network.interceptor';
+import { provideLogging } from './core/logging/providers/logging.providers';
+//import { networkInterceptor } from './core/network/network.interceptor';
 import { routes } from './routes/app.routes';
 
 function initApp() {
@@ -46,13 +47,13 @@ export const appConfig: ApplicationConfig = {
     // ═══════════════════════════════════════════════════════════
     provideHttpClient(
       withInterceptors([
-        correlationIdInterceptor, // 1. Add correlation ID first
-        loggingInterceptor,       // 2. Log requests
+        //correlationIdInterceptor, // 1. Add correlation ID first
+        //loggingInterceptor,       // 2. Log requests
         authInterceptor,          // 3. Add auth token
         loadingInterceptor,       // 4. Track loading state
-        networkInterceptor,      // ← Optional: Network status interceptor
+       // networkInterceptor,      // ← Optional: Network status interceptor
         retryInterceptor,         // 5. Retry failed requests
-        errorInterceptor          // 6. Handle errors last
+        //errorInterceptor          // 6. Handle errors last
       ])
     ),
     
@@ -68,10 +69,12 @@ export const appConfig: ApplicationConfig = {
     //   maxRequests: 200
     // }),
     
+    ...provideLogging(),
+
     // ═══════════════════════════════════════════════════════════
     // Error Handling & Initialization
     // ═══════════════════════════════════════════════════════════
-    { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    //{ provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideAppInitializer(initApp),
   ]
 };

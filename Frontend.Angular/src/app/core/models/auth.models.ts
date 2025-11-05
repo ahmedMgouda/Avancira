@@ -40,6 +40,7 @@ export interface StudentProfile {
  */
 export interface UserProfile {
   userId: string;
+  sessionId: string;
   firstName: string;
   lastName: string;
   fullName: string;
