@@ -15,11 +15,11 @@ import { AppInitializerService } from './core/services/app-initializer.service';
 // Import interceptors
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 // import { correlationIdInterceptor } from './core/interceptors/correlation-id.interceptor';
-// import { errorInterceptor } from './core/interceptors/error.interceptor';
-// import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
 // Import loading system (encapsulated)
 import { loadingInterceptor, provideLoading } from './core/loading';
+import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
+import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
 import { provideLogging } from './core/logging/providers/logging.providers';
 //import { networkInterceptor } from './core/network/network.interceptor';
 import { routes } from './routes/app.routes';
@@ -48,12 +48,12 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([
         //correlationIdInterceptor, // 1. Add correlation ID first
-        //loggingInterceptor,       // 2. Log requests
-        authInterceptor,          // 3. Add auth token
-        loadingInterceptor,       // 4. Track loading state
+        httpLoggingInterceptor,    // 2. Log requests
+        authInterceptor,           // 3. Add auth token
+        loadingInterceptor,        // 4. Track loading state
        // networkInterceptor,      // ← Optional: Network status interceptor
-        retryInterceptor,         // 5. Retry failed requests
-        //errorInterceptor          // 6. Handle errors last
+        retryInterceptor,          // 5. Retry failed requests
+        httpErrorInterceptor       // 6. Handle errors last
       ])
     ),
     
