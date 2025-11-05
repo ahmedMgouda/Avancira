@@ -15,6 +15,13 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
+        // Load environment variables from .env file (development only)
+        var envLocalPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env.local");
+        if (File.Exists(envLocalPath))
+        {
+            DotNetEnv.Env.Load(envLocalPath);
+        }
+
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
         var builder = WebApplication.CreateBuilder(args);

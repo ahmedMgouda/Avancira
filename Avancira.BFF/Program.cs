@@ -2,6 +2,13 @@
 using Avancira.BFF.Extensions;
 using SendGrid.Helpers.Mail;
 
+// Load environment variables from .env file (development only)
+var envLocalPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env.local");
+if (File.Exists(envLocalPath))
+{
+    DotNetEnv.Env.Load(envLocalPath);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure services

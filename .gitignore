@@ -363,6 +363,13 @@ MigrationBackup/
 FodyWeavers.xsd
 Web/*
 
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.secret
+*.secrets
+
 # .NET Aspire
 **/aspire-manifest.json
 **/manifest.json
