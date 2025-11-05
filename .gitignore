@@ -366,6 +366,7 @@ Web/*
 # Environment variables and secrets
 .env
 .env.local
+.env.production
 .env.*.local
 *.secret
 *.secrets

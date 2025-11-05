@@ -9,62 +9,6 @@ on:
       - master
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-
-    steps:
-    # Create .env file with environment variables
-    - name: Create .env file
-      run: |
-        echo "Avancira__Database__Sqlite__Path=${{ secrets.Avancira__Database__Sqlite__Path }}" >> config.env
-        echo "Avancira__Database__Host=${{ secrets.Avancira__Database__Host }}" >> config.env
-        echo "Avancira__Database__Port=${{ secrets.Avancira__Database__Port }}" >> config.env
-        echo "Avancira__Database__Name=${{ secrets.Avancira__Database__Name }}" >> config.env
-        echo "Avancira__Database__User=${{ secrets.Avancira__Database__User }}" >> config.env
-        echo "Avancira__Database__Password=${{ secrets.Avancira__Database__Password }}" >> config.env
-        echo "Avancira__App__Name='${{ secrets.Avancira__App__Name }}'" >> config.env
-        echo "Avancira__App__BaseUrl=${{ secrets.Avancira__App__BaseUrl }}" >> config.env
-        echo "Avancira__App__FrontEndUrl=${{ secrets.Avancira__App__FrontEndUrl }}" >> config.env
-        echo "Avancira__App__SupportEmail=${{ secrets.Avancira__App__SupportEmail }}" >> config.env
-        echo "Avancira__App__SupportPhone=${{ secrets.Avancira__App__SupportPhone }}" >> config.env
-        echo "Avancira__Auth__Issuer=${{ secrets.Avancira__Auth__Issuer }}" >> config.env
-        echo "Auth__Issuer=${{ secrets.Avancira__Auth__Issuer }}" >> config.env
-        echo "Avancira__Jwt__Key=${{ secrets.Avancira__Jwt__Key }}" >> config.env
-        echo "Avancira__Jwt__Issuer=${{ secrets.Avancira__Jwt__Issuer }}" >> config.env
-        echo "Avancira__Jwt__Audience=${{ secrets.Avancira__Jwt__Audience }}" >> config.env
-        echo "Avancira__Payments__Stripe__ApiKey=${{ secrets.Avancira__Payments__Stripe__ApiKey }}" >> config.env
-        echo "Avancira__Payments__Stripe__SecretKey=${{ secrets.Avancira__Payments__Stripe__SecretKey }}" >> config.env
-        echo "Avancira__Payments__Stripe__PublishableKey=${{ secrets.Avancira__Payments__Stripe__PublishableKey }}" >> config.env
-        echo "Avancira__Payments__Paypal__Environment=${{ secrets.Avancira__Payments__Paypal__Environment }}" >> config.env
-        echo "Avancira__Payments__Paypal__ClientId=${{ secrets.Avancira__Payments__Paypal__ClientId }}" >> config.env
-        echo "Avancira__Payments__Paypal__ClientSecret=${{ secrets.Avancira__Payments__Paypal__ClientSecret }}" >> config.env
-        echo "Avancira__Notifications__Email__FromEmail=${{ secrets.Avancira__Notifications__Email__FromEmail }}" >> config.env
-        echo "Avancira__Notifications__Email__FromName='${{ secrets.Avancira__Notifications__Email__FromName }}'" >> config.env
-        echo "Avancira__Notifications__Smtp__SmtpHost=${{ secrets.Avancira__Notifications__Smtp__SmtpHost }}" >> config.env
-        echo "Avancira__Notifications__Smtp__SmtpPort=${{ secrets.Avancira__Notifications__Smtp__SmtpPort }}" >> config.env
-        echo "Avancira__Notifications__GraphApi__TenantId=${{ secrets.Avancira__Notifications__GraphApi__TenantId }}" >> config.env
-        echo "Avancira__Notifications__GraphApi__ClientId=${{ secrets.Avancira__Notifications__GraphApi__ClientId }}" >> config.env
-        echo "Avancira__Notifications__GraphApi__ClientSecret=${{ secrets.Avancira__Notifications__GraphApi__ClientSecret }}" >> config.env
-        echo "Avancira__Notifications__Sendgrid__ApiKey=${{ secrets.Avancira__Notifications__Sendgrid__ApiKey }}" >> config.env
-        echo "Avancira__Notifications__Twilio__AccountSid=${{ secrets.Avancira__Notifications__Twilio__AccountSid }}" >> config.env
-        echo "Avancira__Notifications__Twilio__AuthToken=${{ secrets.Avancira__Notifications__Twilio__AuthToken }}" >> config.env
-        echo "Avancira__Notifications__Twilio__FromPhoneNumber=${{ secrets.Avancira__Notifications__Twilio__FromPhoneNumber }}" >> config.env
-        echo "Avancira__Jitsi__Domain=${{ secrets.Avancira__Jitsi__Domain }}" >> config.env
-        echo "Avancira__Jitsi__AppId=${{ secrets.Avancira__Jitsi__AppId }}" >> config.env
-        echo "Avancira__Jitsi__AppSecret=${{ secrets.Avancira__Jitsi__AppSecret }}" >> config.env
-        echo "Avancira__ExternalServices__Google__ApiKey=${{ secrets.Avancira__ExternalServices__Google__ApiKey }}" >> config.env
-        echo "Avancira__ExternalServices__Google__ClientId=${{ secrets.Avancira__ExternalServices__Google__ClientId }}" >> config.env
-        echo "Avancira__ExternalServices__Google__ClientSecret=${{ secrets.Avancira__ExternalServices__Google__ClientSecret }}" >> config.env
-        echo "Avancira__ExternalServices__Facebook__AppId=${{ secrets.Avancira__ExternalServices__Facebook__AppId }}" >> config.env
-        echo "Avancira__ExternalServices__Facebook__AppSecret=${{ secrets.Avancira__ExternalServices__Facebook__AppSecret }}" >> config.env
-
-    # Upload the .env file
-    - name: Upload .env file
-      uses: actions/upload-artifact@v4
-      with:
-        name: env-file
-        path: config.env
-
   build-docker:
     runs-on: ubuntu-latest
     needs: setup
@@ -105,28 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker
 
-    steps:
-    - name: Download .env file
-      uses: actions/download-artifact@v4
-      with:
-        name: env-file
-        path: /tmp/config
-
-    - name: cp .env file
-      run: |
-        cp /tmp/config/config.env config.env
-  
-    - name: Upload .env file to the remote server
-      uses: appleboy/scp-action@v0.1.0
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        password: ${{ secrets.SERVER_PASSWORD }}
-        port: 22
-        source: "config.env"
-        target: ~/
-        overwrite: true
-    
+    steps:   
     # SSH into the server and deploy the backend API container
     - name: Deploy backend API to server
       uses: appleboy/ssh-action@v0.1.5
@@ -139,9 +62,16 @@ jobs:
           docker pull mirotivo/avancira-backend:latest
           docker stop avancira-backend-container || true
           docker rm avancira-backend-container || true
-          docker run -d --restart always -p 9000:8080 -v ${PWD}/Database:/avancira-backend/Database -v ${PWD}/wwwroot:/avancira-backend/wwwroot --env-file ~/config.env \
-            --name avancira-backend-container --network avancira-network mirotivo/avancira-backend:latest
-    
+          docker run -d \
+            --name avancira-backend-container \
+            --restart always \
+            --network avancira-network \
+            -p 9000:8080 \
+            -v ${PWD}/Database:/avancira-backend/Database \
+            -v ${PWD}/wwwroot:/avancira-backend/wwwroot \
+            --env-file /home/avancira/config.env \
+            mirotivo/avancira-backend:latest
+
     # SSH into the server and deploy the Auth server container
     - name: Deploy Auth server to server
       uses: appleboy/ssh-action@v0.1.5
@@ -154,9 +84,15 @@ jobs:
           docker pull mirotivo/avancira-auth:latest
           docker stop avancira-auth-container || true
           docker rm avancira-auth-container || true
-          docker run -d --restart always -p 9100:8080 -v ${PWD}/Database:/avancira-auth/Database --env-file ~/config.env \
-            --name avancira-auth-container --network avancira-network mirotivo/avancira-auth:latest
-    
+          docker run -d \
+            --name avancira-auth-container \
+            --restart always \
+            --network avancira-network \
+            -p 9100:8080 \
+            -v ${PWD}/Database:/avancira-auth/Database \
+            --env-file /home/avancira/config.env \
+            mirotivo/avancira-auth:latest
+
     # SSH into the server and deploy the BFF container
     - name: Deploy BFF to server
       uses: appleboy/ssh-action@v0.1.5
@@ -169,5 +105,10 @@ jobs:
           docker pull mirotivo/avancira-bff:latest
           docker stop avancira-bff-container || true
           docker rm avancira-bff-container || true
-          docker run -d --restart always -p 9200:8080 --env-file ~/config.env \
-            --name avancira-bff-container --network avancira-network mirotivo/avancira-bff:latest
+          docker run -d \
+            --name avancira-bff-container \
+            --restart always \
+            --network avancira-network \
+            -p 9200:8080 \
+            --env-file /home/avancira/config.env \
+            mirotivo/avancira-bff:latest
