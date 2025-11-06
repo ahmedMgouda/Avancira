@@ -9,22 +9,7 @@ import { catchError, finalize, Observable, throwError } from 'rxjs';
 
 import { LoadingService } from './loading.service';
 
-/**
- * Loading Interceptor (ALL FIXES APPLIED)
- * ═══════════════════════════════════════════════════════════════════════
- * Handles loading state tracking for HTTP requests
- * 
- * ✅ ALL FIXES APPLIED:
- *   - Prevents duplicate completeRequest calls
- *   - Proper error handling
- *   - Clean separation of concerns
- *
- * Responsibilities:
- *   ✅ Start/stop loader via LoadingService
- *   ✅ Skip requests with X-Skip-Loading header
- *   ✅ Rely on correlationIdInterceptor for tracing
- *   ✅ No duplicate cleanup calls
- */
+import { BrowserCompat } from '../logging/utils/browser-compat.util';
 
 export const loadingInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -46,7 +31,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
   // 2️⃣ Get correlation ID (from correlation interceptor)
   //    Fallback to random UUID only if missing
   // ──────────────────────────────────────────────────────────────
-  const requestId = req.headers.get('X-Correlation-ID') ?? crypto.randomUUID();
+  const requestId = BrowserCompat.generateUUID();
 
   // ──────────────────────────────────────────────────────────────
   // 3️⃣ Notify LoadingService (start tracking)

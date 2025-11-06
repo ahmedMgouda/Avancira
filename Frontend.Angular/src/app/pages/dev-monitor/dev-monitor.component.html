@@ -121,7 +121,7 @@
         @for (log of filteredLogs(); track trackByLog($index, log)) {
           <div
             class="log-entry"
-            [ngClass]="getLevelClass(log.log?.level || '')"
+            [ngClass]="getLevelClass(log.log.level || '')"
             (click)="selectLog(log)">
             
             <div class="log-timestamp">
@@ -129,16 +129,16 @@
             </div>
 
             <div class="log-level">
-              {{ getLevelIcon(log.log?.level || '') }}
+              {{ getLevelIcon(log.log.level || '') }}
             </div>
 
             <div class="log-type">
-              {{ getTypeIcon(log.log?.type || '') }}
+              {{ getTypeIcon(log.log.type || '') }}
             </div>
 
             <div class="log-content">
-              <div class="log-source">{{ log.log?.source }}</div>
-              <div class="log-message">{{ truncateMessage(log.log?.message || '', 150) }}</div>
+              <div class="log-source">{{ log.log.source }}</div>
+              <div class="log-message">{{ truncateMessage(log.log.message || '', 150) }}</div>
               
               @if (log.http) {
                 <div class="log-http">
