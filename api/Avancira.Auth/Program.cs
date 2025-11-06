@@ -77,6 +77,8 @@ public partial class Program
         builder.Services.AddFluentValidationAutoValidation();
         builder.Services.AddFluentValidationClientsideAdapters();
 
+        builder.Services.AddHealthChecks();
+
         var app = builder.Build();
 
         // ============================================================
@@ -113,6 +115,7 @@ public partial class Program
 
         // ✅ Map controllers AFTER authentication
         app.MapControllers();
+        app.MapHealthChecks("/health");
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
