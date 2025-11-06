@@ -14,14 +14,13 @@ import { AppInitializerService } from './core/services/app-initializer.service';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
-// Import interceptors in correct order
 import { traceContextInterceptor } from './core/interceptors/trace-context.interceptor';
-// Import providers
 import { provideLoading } from './core/loading';
 import { loadingInterceptor } from './core/loading/loading.interceptor';
 import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
 import { provideLogging } from './core/logging/providers/logging.providers';
+import { networkInterceptor } from './core/network/network.interceptor';  
 import { routes } from './routes/app.routes';
 
 function initApp() {
@@ -59,10 +58,13 @@ export const appConfig: ApplicationConfig = {
         // 4️⃣ Loading - Track loading state (respects X-Skip-Loading)
         loadingInterceptor,
         
-        // 5️⃣ Retry - Handle failures with exponential backoff (respects X-Skip-Retry)
+        // 5️⃣ Network - Check connectivity & mark network errors ⚠️ CRITICAL: BEFORE RETRY
+        networkInterceptor,
+        
+        // 6️⃣ Retry - Handle failures with exponential backoff (respects X-Skip-Retry)
         retryInterceptor,
         
-        // 6️⃣ Error Handling - Log errors, mark as __logged (respects X-Skip-Logging)
+        // 7️⃣ Error Handling - Log errors, mark as __logged (respects X-Skip-Logging)
         httpErrorInterceptor
       ])
     ),

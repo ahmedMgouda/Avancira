@@ -1,13 +1,28 @@
-import { computed,Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 import { BrowserCompat } from '../logging/utils/browser-compat.util';
-import { Toast, ToastAction,ToastConfig, ToastType } from './toast.model';
+import { Toast, ToastAction, ToastConfig, ToastType } from './toast.model';
 
+/**
+ * Toast Service (Production-Ready)
+ * ═══════════════════════════════════════════════════════════════════════
+ * Manages toast notifications with duplicate prevention
+ * 
+ * Features:
+ *   ✅ Multiple toast types (success, error, warning, info)
+ *   ✅ Action buttons
+ *   ✅ Auto-dismiss with configurable duration
+ *   ✅ Duplicate prevention
+ *   ✅ Toast history
+ *   ✅ Max visible toasts
+ *   ✅ Production-ready (no debug logs)
+ */
 @Injectable({ providedIn: 'root' })
 export class ToastService {
   private readonly toasts = signal<Toast[]>([]);
   private readonly history = signal<Toast[]>([]);
   private readonly recentMessages = new Map<string, number>();
+  private readonly dismissTimers = new Map<string, number>();
 
   private readonly config: Required<ToastConfig> = {
     maxVisible: 5,
@@ -24,6 +39,9 @@ export class ToastService {
   
   readonly toastHistory = computed(() => this.history());
   readonly hasActiveToasts = computed(() => this.toasts().length > 0);
+  readonly queuedCount = computed(() => 
+    Math.max(0, this.toasts().length - this.config.maxVisible)
+  );
 
   // ────────────────────────────────────────────────────────────────
   // PUBLIC API
@@ -45,9 +63,6 @@ export class ToastService {
     return this.show('info', message, title, duration);
   }
 
-  /**
-   * Show toast with custom action button
-   */
   showWithAction(
     type: ToastType,
     message: string,
@@ -58,32 +73,34 @@ export class ToastService {
     return this.show(type, message, title, duration, action);
   }
 
-  /**
-   * Dismiss specific toast
-   */
   dismiss(id: string): void {
+    const timer = this.dismissTimers.get(id);
+    if (timer) {
+      window.clearTimeout(timer);
+      this.dismissTimers.delete(id);
+    }
+
     this.toasts.update(toasts => toasts.filter(t => t.id !== id));
   }
 
-  /**
-   * Dismiss all toasts
-   */
   dismissAll(): void {
+    for (const timer of this.dismissTimers.values()) {
+      window.clearTimeout(timer);
+    }
+    this.dismissTimers.clear();
     this.toasts.set([]);
   }
 
-  /**
-   * Clear toast history
-   */
   clearHistory(): void {
     this.history.set([]);
   }
 
-  /**
-   * Update configuration
-   */
   configure(config: Partial<ToastConfig>): void {
     Object.assign(this.config, config);
+  }
+
+  getConfig(): Readonly<Required<ToastConfig>> {
+    return { ...this.config };
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -97,14 +114,10 @@ export class ToastService {
     duration?: number,
     action?: ToastAction
   ): string {
-          console.log("toast displaaying...");
-
     // Check for duplicate
     if (this.config.preventDuplicates && this.isDuplicate(message)) {
-      console.log('[Toast] Duplicate message suppressed:', message);
-      return '';
+      return ''; // Suppressed
     }
-      console.log("toast displaaying...");
 
     const toast: Toast = {
       id: BrowserCompat.generateUUID(),
@@ -122,7 +135,7 @@ export class ToastService {
 
     // Add to history
     if (this.config.enableHistory) {
-      this.history.update(history => [...history, toast].slice(-100)); // Keep last 100
+      this.history.update(history => [...history, toast].slice(-100));
     }
 
     // Track for duplicate detection
@@ -133,7 +146,11 @@ export class ToastService {
 
     // Auto-dismiss
     if (toast.duration && toast.duration > 0) {
-      setTimeout(() => this.dismiss(toast.id), toast.duration);
+      const timer = window.setTimeout(() => {
+        this.dismiss(toast.id);
+      }, toast.duration);
+      
+      this.dismissTimers.set(toast.id, timer);
     }
 
     return toast.id;

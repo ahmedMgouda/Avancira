@@ -4,7 +4,6 @@ import { RouterOutlet } from '@angular/router';
 import { ConfirmationDialogComponent } from "./components/confirmation-dialog/confirmation-dialog.component";
 import { GlobalLoaderComponent } from "./core/loading/global-loader.component";
 import { TopProgressBarComponent } from "./core/loading/top-progress-bar.component";
-import { NetworkStatusComponent } from "./core/network/network-status.component";
 
 import { AuthService } from './core/services/auth.service';
 
@@ -17,8 +16,7 @@ import { ToastContainerComponent } from './core/toast';
     ToastContainerComponent,
     ConfirmationDialogComponent,
     GlobalLoaderComponent,
-    TopProgressBarComponent,
-    NetworkStatusComponent
+    TopProgressBarComponent
 ],
   templateUrl: './app.component.html'
 })

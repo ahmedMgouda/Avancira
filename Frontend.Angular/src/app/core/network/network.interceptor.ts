@@ -6,42 +6,51 @@ import {
   HttpRequest,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Observable, throwError, timer } from 'rxjs';
-import { catchError, retry, switchMap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { NetworkStatusService } from './network-status.service';
 
 /**
- * Network Interceptor
+ * Network Interceptor (Simplified - No Retry Logic)
  * ═══════════════════════════════════════════════════════════════════════
- * Handles network-related HTTP errors and retry logic
+ * ONLY handles offline detection and marks network errors
+ * Does NOT retry - that's the job of retryInterceptor
+ * Does NOT show toasts - NetworkStatusService handles that
  * 
- * Features:
- *   ✅ Detects network failures
- *   ✅ Waits for connection restoration before retry
- *   ✅ Exponential backoff for retries
- *   ✅ Configurable retry attempts
- *   ✅ Skip retry for specific endpoints
- *   ✅ Works with NetworkStatusService
+ * Responsibilities:
+ *   ✅ Check if offline before making requests
+ *   ✅ Wait for connection restoration
+ *   ✅ Mark network errors IMMEDIATELY for retry interceptor
+ *   ✅ Update network status on errors
  * 
- * Usage in app.config.ts:
- *   provideHttpClient(
- *     withInterceptors([
- *       correlationIdInterceptor,
- *       loggingInterceptor,
- *       authInterceptor,
- *       loadingInterceptor,
- *       networkInterceptor,  // ← Add before retry/error interceptors
- *       retryInterceptor,
- *       errorInterceptor
- *     ])
- *   )
+ * CRITICAL: Must be placed BEFORE retryInterceptor in app.config.ts
  * 
- * Skip retry for specific requests:
+ * Skip network check:
  *   httpClient.get('/api/data', {
- *     headers: { 'X-Skip-Network-Retry': 'true' }
+ *     headers: { 'X-Skip-Network-Check': 'true' }
  *   })
  */
+
+const CONNECTION_WAIT_TIMEOUT = 15000;
+
+/**
+ * Detect if error is network-related
+ * Enhanced detection for various network error scenarios
+ */
+function isNetworkError(error: HttpErrorResponse): boolean {
+  return (
+    error.status === 0 ||                                    // No response from server
+    error.error instanceof ProgressEvent ||                  // Network failure event
+    error.statusText === 'Unknown Error' ||                  // Browser network error
+    error.statusText === '' ||                               // Empty status text
+    error.message?.includes('Http failure response') ||      // Angular HTTP error message
+    error.message?.includes('ERR_CONNECTION_REFUSED') ||     // Connection refused
+    error.message?.includes('ERR_NAME_NOT_RESOLVED') ||      // DNS error
+    error.message?.includes('ERR_INTERNET_DISCONNECTED')     // Internet disconnected
+  );
+}
+
 export const networkInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
@@ -49,91 +58,90 @@ export const networkInterceptor: HttpInterceptorFn = (
   const networkService = inject(NetworkStatusService);
 
   // ──────────────────────────────────────────────────────────────
-  // 1️⃣ Skip network retry if header is present
+  // Skip network check if header is present
   // ──────────────────────────────────────────────────────────────
-  if (req.headers.has('X-Skip-Network-Retry')) {
+  if (req.headers.has('X-Skip-Network-Check')) {
     const cleanReq = req.clone({
-      headers: req.headers.delete('X-Skip-Network-Retry'),
+      headers: req.headers.delete('X-Skip-Network-Check'),
     });
     return next(cleanReq);
   }
 
   // ──────────────────────────────────────────────────────────────
-  // 2️⃣ Check if we're offline before making the request
+  // Check if offline before making request
   // ──────────────────────────────────────────────────────────────
   if (!networkService.isOnline()) {
-    // Wait for connection with timeout, then retry
     return new Observable(subscriber => {
-      networkService
-        .waitForOnline(10000) // Wait up to 10 seconds
+      const waitPromise = networkService
+        .waitForOnline(CONNECTION_WAIT_TIMEOUT)
         .then(() => {
-          // Connection restored, retry request
-          next(req).subscribe({
+          // Connection restored, make the request
+          const subscription = next(req).subscribe({
             next: value => subscriber.next(value),
-            error: err => subscriber.error(err),
+            error: err => {
+              // Mark network errors even after waiting
+              if (err instanceof HttpErrorResponse && isNetworkError(err)) {
+                (err as any).__isNetworkError = true;
+              }
+              subscriber.error(err);
+            },
             complete: () => subscriber.complete()
           });
+          
+          return subscription;
         })
         .catch(_error => {
-          // Timeout waiting for connection
-          subscriber.error(
-            new HttpErrorResponse({
-              error: 'Network connection timeout',
-              status: 0,
-              statusText: 'Network Error',
-              url: req.url
-            })
-          );
+          // Timeout waiting for connection - create marked error
+          const networkError = new HttpErrorResponse({
+            error: 'Network connection timeout',
+            status: 0,
+            statusText: 'Network Timeout',
+            url: req.url
+          });
+          
+          // Mark as network error
+          (networkError as any).__isNetworkError = true;
+          
+          subscriber.error(networkError);
         });
+
+      // Cleanup on unsubscribe
+      return () => {
+        waitPromise.catch(() => {/* ignore */});
+      };
     });
   }
 
   // ──────────────────────────────────────────────────────────────
-  // 3️⃣ Make the request with network error handling
+  // Make request and mark network errors IMMEDIATELY
   // ──────────────────────────────────────────────────────────────
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Only handle network errors (status 0 or specific network errors)
-      const isNetworkError = 
-        error.status === 0 || 
-        error.error instanceof ProgressEvent ||
-        error.statusText === 'Unknown Error';
-
-      if (!isNetworkError) {
-        // Not a network error, pass through
-        return throwError(() => error);
+      // Detect and mark network errors BEFORE passing to retry interceptor
+      if (isNetworkError(error)) {
+        // ⚠️ CRITICAL: Mark the error IMMEDIATELY
+        (error as any).__isNetworkError = true;
+        
+        // Trigger network status verification (will show toasts if needed)
+        networkService.verifyConnection();
+        
+        // Optional: Log in development
+        if (!req.headers.has('X-Skip-Logging')) {
+          console.info(
+            '[NetworkInterceptor] Network error detected',
+            {
+              url: req.url,
+              status: error.status,
+              statusText: error.statusText,
+              message: error.message,
+              isNetworkError: true
+            }
+          );
+        }
       }
 
-      // Update network status
-      networkService.verifyConnection();
-
-      // Wait for connection and retry with exponential backoff
-      return timer(1000).pipe(
-        switchMap(() => networkService.waitForOnline(15000)),
-        switchMap(() => {
-          // Connection restored, retry the request
-          return next(req);
-        }),
-        retry({
-          count: 2,
-          delay: (error, retryCount) => {
-            // Exponential backoff: 2s, 4s, 8s
-            const delayMs = Math.min(1000 * Math.pow(2, retryCount), 8000);
-            console.log(
-              `[NetworkInterceptor] Retry ${retryCount} after ${delayMs}ms for ${req.url}`
-            );
-            return timer(delayMs);
-          }
-        }),
-        catchError(retryError => {
-          // All retries failed
-          console.error(
-            `[NetworkInterceptor] All retries failed for ${req.url}`,
-            retryError
-          );
-          return throwError(() => retryError);
-        })
-      );
+      // Pass error to next interceptor with flag set
+      return throwError(() => error);
     })
   );
 };

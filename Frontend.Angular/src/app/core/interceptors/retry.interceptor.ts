@@ -1,4 +1,4 @@
-import { HttpErrorResponse,HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, retry, throwError } from 'rxjs';
 
@@ -8,8 +8,21 @@ import { TraceContextService } from '../services/trace-context.service';
 import { environment } from '../../environments/environment';
 
 /**
- * Retry interceptor with W3C Trace Context support
- * Respects X-Skip-Retry header
+ * Retry Interceptor (No Toast Notifications)
+ * ═══════════════════════════════════════════════════════════════════════
+ * Handles automatic retries with exponential backoff using ResilienceService
+ * Silent retries - NO toast notifications (handled by NetworkStatusService)
+ * 
+ * Features:
+ *   ✅ W3C Trace Context support
+ *   ✅ Respects X-Skip-Retry header
+ *   ✅ Uses ResilienceService for all retry logic
+ *   ✅ Network error aware
+ * 
+ * Skip retry:
+ *   httpClient.get('/api/data', {
+ *     headers: { 'X-Skip-Retry': 'true' }
+ *   })
  */
 export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   const resilience = inject(ResilienceService);
@@ -40,21 +53,27 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
           parentContext
         );
 
-        // Log retry attempt (not in resilience service to avoid loops)
+        // Determine if this is a network error
+        const isNetworkError = (error as any).__isNetworkError === true;
+
+        // Log retry attempt (development only)
         if (!req.headers.has('X-Skip-Logging') && !environment.production) {
-          console.info(`[Retry] Attempt ${metadata.attempt}/${metadata.maxAttempts}`, {
-            url: req.url,
-            method: req.method,
-            status: error.status,
-            delay: `${metadata.delay}ms`,
-            traceId: metadata.traceId,
-            spanId: metadata.spanId,
-            parentSpanId: metadata.parentSpanId
-          });
+          console.info(
+            `[Retry] Attempt ${metadata.attempt}/${metadata.maxAttempts}`,
+            {
+              url: req.url,
+              method: req.method,
+              status: error.status,
+              delay: `${metadata.delay}ms`,
+              isNetworkError,
+              traceId: metadata.traceId,
+              spanId: metadata.spanId,
+              parentSpanId: metadata.parentSpanId
+            }
+          );
         }
 
-        // Use resilience service's internal delay calculation
-        // This returns an Observable that will emit after the calculated delay
+        // Use ResilienceService for delay calculation
         return resilience.getRetryDelay(error, retryAttempt);
       }
     }),
@@ -62,7 +81,7 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
       // Mark error with retry information
       (error as any).__retryFailed = true;
       (error as any).__maxRetriesReached = true;
-      
+
       return throwError(() => error);
     })
   );
