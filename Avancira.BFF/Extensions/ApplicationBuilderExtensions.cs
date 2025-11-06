@@ -1,11 +1,6 @@
 ﻿namespace Avancira.BFF.Extensions;
 
-using Avancira.BFF.Services;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Avancira.Infrastructure.Health;
 
 public static class ApplicationBuilderExtensions
 {
@@ -50,10 +45,7 @@ public static class ApplicationBuilderExtensions
         this WebApplication app,
         IWebHostEnvironment environment)
     {
-        app.MapHealthChecks("/health", new HealthCheckOptions
-        {
-            ResponseWriter = WriteHealthResponse
-        });
+        app.MapAvanciraHealthChecks();
         app.MapControllers();
         app.MapReverseProxy();
 
@@ -62,36 +54,6 @@ public static class ApplicationBuilderExtensions
             .ExcludeFromDescription();
 
         return app;
-    }
-
-    private static readonly JsonSerializerOptions HealthCheckSerializerOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
-
-    private static async Task WriteHealthResponse(HttpContext context, HealthReport report)
-    {
-        context.Response.ContentType = "application/json";
-
-        var response = new
-        {
-            status = report.Status.ToString(),
-            totalDuration = report.TotalDuration.TotalMilliseconds,
-            checks = report.Entries.Select(entry => new
-            {
-                name = entry.Key,
-                status = entry.Value.Status.ToString(),
-                description = entry.Value.Description,
-                duration = entry.Value.Duration.TotalMilliseconds,
-                tags = entry.Value.Tags,
-                data = entry.Value.Data
-            })
-        };
-
-        var json = JsonSerializer.Serialize(response, HealthCheckSerializerOptions);
-
-        await context.Response.WriteAsync(json);
     }
 
     /// <summary>

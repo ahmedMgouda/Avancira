@@ -2,6 +2,7 @@
 using Avancira.Auth.OpenIddict;
 using Avancira.Auth.Validators;
 using Avancira.Infrastructure.Composition;
+using Avancira.Infrastructure.Health;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;
 using Avancira.Infrastructure.Persistence.Seeders;
@@ -77,7 +78,7 @@ public partial class Program
         builder.Services.AddFluentValidationAutoValidation();
         builder.Services.AddFluentValidationClientsideAdapters();
 
-        builder.Services.AddHealthChecks();
+        builder.Services.AddAvanciraHealthChecks<AvanciraDbContext>(builder.Configuration);
 
         var app = builder.Build();
 
@@ -115,7 +116,7 @@ public partial class Program
 
         // ✅ Map controllers AFTER authentication
         app.MapControllers();
-        app.MapHealthChecks("/health");
+        app.MapAvanciraHealthChecks();
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
@@ -126,6 +127,7 @@ public partial class Program
         app.Logger.LogInformation("✅ Avancira Auth Server Started");
         app.Logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
         app.Logger.LogInformation("OpenIddict Authority: {Issuer}", builder.Configuration["Auth:Issuer"]);
+        app.Logger.LogInformation("Health: /health/live, /health/ready, /health");
 
         await app.RunAsync();
     }
