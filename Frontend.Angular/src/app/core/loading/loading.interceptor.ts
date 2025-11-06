@@ -21,15 +21,12 @@ export const loadingInterceptor: HttpInterceptorFn = (
   // 1️⃣ Skip loading for requests marked with X-Skip-Loading
   // ──────────────────────────────────────────────────────────────
   if (req.headers.has('X-Skip-Loading')) {
-    const cleanReq = req.clone({
-      headers: req.headers.delete('X-Skip-Loading'),
-    });
-    return next(cleanReq);
+    return next(req);
   }
 
   // ──────────────────────────────────────────────────────────────
-  // 2️⃣ Get correlation ID (from correlation interceptor)
-  //    Fallback to random UUID only if missing
+  // 2️⃣ Generate unique request ID for tracking
+  //    Used by LoadingService to track individual requests
   // ──────────────────────────────────────────────────────────────
   const requestId = BrowserCompat.generateUUID();
 
@@ -41,7 +38,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
     url: req.urlWithParams,
   });
 
-  // ✅ FIX: Track if we've already completed to prevent duplicate calls
+  // Track if we've already completed to prevent duplicate calls
   let completed = false;
 
   // ──────────────────────────────────────────────────────────────
@@ -57,7 +54,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
       return throwError(() => error);
     }),
     finalize(() => {
-      // ✅ FIX: Only complete if not already done in error handler
+      // Only complete if not already done in error handler
       if (!completed) {
         completed = true;
         loader.completeRequest(requestId);
