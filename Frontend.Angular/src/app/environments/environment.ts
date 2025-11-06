@@ -23,7 +23,7 @@ export const environment = {
   /** Feature flags */
   disableNotifications: false,
   errorToastDuration: 7000,
-  useSignalR: true,
+  useSignalR: false,
 
   /** Error page configuration */
   errorPage: {

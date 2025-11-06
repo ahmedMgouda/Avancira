@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
@@ -36,7 +34,7 @@ public static class HealthCheckExtensions
             (builder, _) => builder.AddDbContextCheck<TDbContext>(
                 name: "database",
                 failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "ready", "db" },
+                tags: ["ready", "db"],
                 customTestQuery: async (db, ct) => await db.Database.CanConnectAsync(ct)));
 
     public static IHealthChecksBuilder AddAvanciraHealthChecks(
@@ -56,10 +54,7 @@ public static class HealthCheckExtensions
 
         var builder = services.AddHealthChecks();
 
-        builder.AddCheck(
-            "self",
-            () => HealthCheckResult.Healthy("Service is running"),
-            tags: new[] { "live" });
+        EnsureSelfHealthCheckRegistration(services);
 
         if (options.CheckDatabase && registerDatabaseCheck is not null)
         {
@@ -75,7 +70,7 @@ public static class HealthCheckExtensions
                     redisConnection,
                     name: "redis",
                     failureStatus: options.RedisFailureStatus,
-                    tags: new[] { "ready", "cache" });
+                    tags: ["ready", "cache"]);
             }
         }
 
@@ -93,12 +88,11 @@ public static class HealthCheckExtensions
                             $"Memory usage is {allocatedMb}MB (threshold: {options.MemoryThresholdMb}MB)")
                         : HealthCheckResult.Healthy($"Memory usage: {allocatedMb}MB");
                 },
-                tags: new[] { "ready" });
+                tags: ["ready"]);
         }
 
         return builder;
     }
-
     public static WebApplication MapAvanciraHealthChecks(
         this WebApplication app,
         AvanciraHealthCheckMappingOptions? options = null)
@@ -190,5 +184,33 @@ public static class HealthCheckExtensions
         };
 
         return context.Response.WriteAsync(JsonSerializer.Serialize(response, JsonOptions));
+    }
+
+    private static void EnsureSelfHealthCheckRegistration(IServiceCollection services)
+    {
+        services.Configure<HealthCheckServiceOptions>(options =>
+        {
+            if (options.Registrations.Any(r =>
+                    string.Equals(r.Name, "self", StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            options.Registrations.Add(new HealthCheckRegistration(
+                "self",
+                _ => new InlineHealthCheck(),
+                failureStatus: null,
+                tags: new[] { "live" }));
+        });
+    }
+    private sealed class InlineHealthCheck : IHealthCheck
+    {
+        public Task<HealthCheckResult> CheckHealthAsync(
+            HealthCheckContext context,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                HealthCheckResult.Healthy("Service is running"));
+        }
     }
 }

@@ -1,10 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler, inject, Injectable } from '@angular/core';
-import { ToastService } from '../toast/toast.service';
+
 import { ErrorHandlerService } from '../logging/services/error-handler.service';
-import { StandardError } from '../logging/models/standard-error.model';
+import { ToastService } from '../toast/toast.service';
 
 import { environment } from '../../environments/environment';
+import { StandardError } from '../logging/models/standard-error.model';
 
 @Injectable()
 export class GlobalErrorHandler implements ErrorHandler {

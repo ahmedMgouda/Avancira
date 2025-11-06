@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of,Subject } from 'rxjs';
 import { Category, CategoryFilter } from '@models/category';
 
+import {ToastService} from '@core/toast/toast.service';
 import { CategoryService } from '@services/category.service';
 
 import { LoadingDirective } from '@core/loading/loading.directive';
@@ -21,7 +22,7 @@ export class CategoryListComponent implements OnInit {
   private readonly categoryService = inject(CategoryService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-
+  private readonly toast = inject(ToastService);
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
   // ────────────────────────────────────────────────────────────────
@@ -354,10 +355,13 @@ export class CategoryListComponent implements OnInit {
 
 testLoading(): void {
   this.isRefresh.set(true);
-  console.log('Test spinner started');
+  throw Error("test toast");
+  // this.toast.success('Loading Test', 'This is a test of the loading spinner.');
+  // console.log('Test spinner started');
   setTimeout(() => {
     this.isRefresh.set(false);
-    console.log('Test spinner ended');
+    // this.toast.error('Loading Test Ended', 'The loading spinner test has completed.');
+    // console.log('Test spinner ended');
   }, 3000); // ✅ Will complete properly now
 }
 

@@ -86,7 +86,7 @@ public static class Extensions
         // ════════════════════════════════════════════════════════════
         services.AddExceptionHandler<CustomExceptionHandler>();
         services.AddProblemDetails();
-        services.AddHealthChecks();
+       // services.AddHealthChecks();
         services.AddHttpContextAccessor();
 
         // ════════════════════════════════════════════════════════════

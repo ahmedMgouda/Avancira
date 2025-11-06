@@ -97,11 +97,14 @@ export class ToastService {
     duration?: number,
     action?: ToastAction
   ): string {
+          console.log("toast displaaying...");
+
     // Check for duplicate
     if (this.config.preventDuplicates && this.isDuplicate(message)) {
       console.log('[Toast] Duplicate message suppressed:', message);
       return '';
     }
+      console.log("toast displaaying...");
 
     const toast: Toast = {
       id: BrowserCompat.generateUUID(),

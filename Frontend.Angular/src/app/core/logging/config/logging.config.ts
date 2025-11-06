@@ -77,7 +77,7 @@ export function getLoggingConfig(): LoggingConfig {
     },
     
     remote: {
-      enabled: true,
+      enabled: false,
       endpoint: '/api/logs',
       batchSize: 10,
       flushInterval: 5000,

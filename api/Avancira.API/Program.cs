@@ -8,11 +8,6 @@ using OpenIddict.Validation.AspNetCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
-using Avancira.Infrastructure.Auth;
-using Avancira.Infrastructure.OpenApi;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 
 
 public partial class Program
@@ -95,9 +90,8 @@ public partial class Program
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
 
-        var healthChecksBuilder = builder.Services.AddAvanciraHealthChecks<AvanciraDbContext>(builder.Configuration);
+        builder.Services.AddAvanciraHealthChecks<AvanciraDbContext>(builder.Configuration);
 
-        ConfigureDownstreamAuthHealthCheck(builder, authIssuer, healthChecksBuilder);
 
         var app = builder.Build();
 
@@ -156,59 +150,6 @@ public partial class Program
 
         await app.RunAsync();
     }
-
-    private static void ConfigureDownstreamAuthHealthCheck(
-        WebApplicationBuilder builder,
-        string authIssuer,
-        IHealthChecksBuilder healthChecksBuilder)
-    {
-        var downstreamSection = builder.Configuration.GetSection("HealthCheck:Downstream:AuthServer");
-        var isEnabled = !downstreamSection.Exists() || downstreamSection.GetValue("Enabled", true);
-
-        if (!isEnabled)
-        {
-            return;
-        }
-
-        var healthPath = downstreamSection.GetValue<string>("HealthPath") ?? "health/live";
-        var baseUrl = downstreamSection.GetValue<string>("Url") ?? authIssuer;
-        var endpoint = DownstreamEndpoint.Create("auth_server", baseUrl, healthPath);
-
-        var timeoutSeconds = downstreamSection.GetValue<int?>("Timeout");
-        if (timeoutSeconds.HasValue && timeoutSeconds.Value > 0)
-        {
-            endpoint.Timeout = TimeSpan.FromSeconds(timeoutSeconds.Value);
-        }
-
-        var failureStatusValue = downstreamSection.GetValue<string>("FailureStatus");
-        var failureStatus = Enum.TryParse<HealthStatus>(failureStatusValue, ignoreCase: true, out var parsed)
-            ? parsed
-            : HealthStatus.Degraded;
-
-        var httpClientTimeout = endpoint.Timeout ?? TimeSpan.FromSeconds(5);
-
-        builder.Services.AddHttpClient("downstream-health-check", client =>
-        {
-            client.Timeout = httpClientTimeout;
-            client.DefaultRequestHeaders.Add("User-Agent", "Avancira-API-HealthCheck/1.0");
-        })
-        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            AllowAutoRedirect = false
-        });
-
-        builder.Services.AddSingleton(new DownstreamHealthCheckOptions
-        {
-            HttpClientName = "downstream-health-check",
-            Endpoints = new List<DownstreamEndpoint> { endpoint }
-        });
-
-        healthChecksBuilder.AddCheck<DownstreamHealthCheck>(
-            "auth_server",
-            failureStatus: failureStatus,
-            tags: new[] { "ready", "downstream" });
-    }
-
 }
 
 public partial class Program { }
