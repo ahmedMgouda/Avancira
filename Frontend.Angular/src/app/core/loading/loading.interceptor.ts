@@ -10,20 +10,15 @@ import { catchError, finalize, Observable, throwError } from 'rxjs';
 import { LoadingService } from './loading.service';
 
 /**
- * Loading Interceptor (ALL FIXES APPLIED)
+ * Loading Interceptor
  * ═══════════════════════════════════════════════════════════════════════
  * Handles loading state tracking for HTTP requests
  * 
- * ✅ ALL FIXES APPLIED:
- *   - Prevents duplicate completeRequest calls
- *   - Proper error handling
- *   - Clean separation of concerns
- *
  * Responsibilities:
  *   ✅ Start/stop loader via LoadingService
  *   ✅ Skip requests with X-Skip-Loading header
- *   ✅ Rely on correlationIdInterceptor for tracing
- *   ✅ No duplicate cleanup calls
+ *   ✅ Generate unique request IDs for tracking
+ *   ✅ Prevent duplicate cleanup calls
  */
 
 export const loadingInterceptor: HttpInterceptorFn = (
@@ -36,17 +31,14 @@ export const loadingInterceptor: HttpInterceptorFn = (
   // 1️⃣ Skip loading for requests marked with X-Skip-Loading
   // ──────────────────────────────────────────────────────────────
   if (req.headers.has('X-Skip-Loading')) {
-    const cleanReq = req.clone({
-      headers: req.headers.delete('X-Skip-Loading'),
-    });
-    return next(cleanReq);
+    return next(req);
   }
 
   // ──────────────────────────────────────────────────────────────
-  // 2️⃣ Get correlation ID (from correlation interceptor)
-  //    Fallback to random UUID only if missing
+  // 2️⃣ Generate unique request ID for tracking
+  //    Used by LoadingService to track individual requests
   // ──────────────────────────────────────────────────────────────
-  const requestId = req.headers.get('X-Correlation-ID') ?? crypto.randomUUID();
+  const requestId = crypto.randomUUID();
 
   // ──────────────────────────────────────────────────────────────
   // 3️⃣ Notify LoadingService (start tracking)
@@ -56,7 +48,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
     url: req.urlWithParams,
   });
 
-  // ✅ FIX: Track if we've already completed to prevent duplicate calls
+  // Track if we've already completed to prevent duplicate calls
   let completed = false;
 
   // ──────────────────────────────────────────────────────────────
@@ -72,7 +64,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
       return throwError(() => error);
     }),
     finalize(() => {
-      // ✅ FIX: Only complete if not already done in error handler
+      // Only complete if not already done in error handler
       if (!completed) {
         completed = true;
         loader.completeRequest(requestId);
