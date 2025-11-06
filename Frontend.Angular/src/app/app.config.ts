@@ -11,6 +11,7 @@ import { provideRouter } from '@angular/router';
 
 import { AppInitializerService } from './core/services/app-initializer.service';
 
+import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
 // Import interceptors in correct order
@@ -18,7 +19,6 @@ import { traceContextInterceptor } from './core/interceptors/trace-context.inter
 // Import providers
 import { provideLoading } from './core/loading';
 import { loadingInterceptor } from './core/loading/loading.interceptor';
-import { GlobalErrorHandler } from './core/logging/handlers/global-error.handler';
 import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
 import { provideLogging } from './core/logging/providers/logging.providers';
