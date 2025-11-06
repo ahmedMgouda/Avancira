@@ -1,59 +1,42 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorHandler, inject,Injectable } from '@angular/core';
-
-import { LoggerService } from '../logging/services/logger.service';
+import { ErrorHandler, inject, Injectable } from '@angular/core';
 import { ToastService } from '../toast/toast.service';
+import { ErrorHandlerService } from '../logging/services/error-handler.service';
+import { StandardError } from '../logging/models/standard-error.model';
 
 import { environment } from '../../environments/environment';
 
 @Injectable()
 export class GlobalErrorHandler implements ErrorHandler {
-  private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
+  private readonly errorHandler = inject(ErrorHandlerService);
 
-  handleError(error: any): void {
+  handleError(error: unknown): void {
     // Skip if already logged by HTTP error interceptor
-    if (error.__logged) {
+    if ((error as any)?.__logged) {
       return;
     }
 
-    // Handle HTTP errors
-    if (error instanceof HttpErrorResponse) {
-      this.handleHttpError(error);
+    const handledError = this.errorHandler.handle(error);
+    const originalError = handledError.originalError;
+
+    if (originalError instanceof HttpErrorResponse) {
+      this.handleHttpToast(originalError);
       return;
     }
 
-    // Handle client-side errors
-    if (error instanceof Error) {
-      this.handleClientError(error);
+    if (originalError instanceof Error) {
+      this.handleClientErrorToast(handledError);
       return;
     }
 
-    // Handle unknown errors
-    this.handleUnknownError(error);
+    this.handleUnknownErrorToast(handledError);
   }
 
-  private handleHttpError(error: HttpErrorResponse): void {
+  private handleHttpToast(error: HttpErrorResponse): void {
     // Should not reach here if interceptor is working correctly
     // But handle it anyway as a safety net
-    
-    this.logger.error(
-      `Unhandled HTTP Error: ${error.status} ${error.statusText}`,
-      error,
-      {
-        log: {
-          source: 'GlobalErrorHandler',
-          type: 'http_error'
-        },
-        http: {
-          method: 'UNKNOWN',
-          url: error.url || 'unknown',
-          status_code: error.status
-        }
-      }
-    );
 
-    // Show toast for 5xx errors only
     if (error.status >= 500 && environment.clientErrorHandling.showClientErrorToasts) {
       this.toast.error(
         'A server error occurred. Please try again later.',
@@ -62,59 +45,27 @@ export class GlobalErrorHandler implements ErrorHandler {
     }
   }
 
-  private handleClientError(error: Error): void {
-    // Log client-side errors
-    this.logger.fatal(
-      `Uncaught Error: ${error.message}`,
-      error,
-      {
-        log: {
-          source: 'GlobalErrorHandler',
-          type: 'uncaught_error'
-        },
-        error: {
-          id: `err-${Date.now()}`,
-          kind: 'system',
-          handled: false,
-          code: error.name.toUpperCase().replace(/ERROR$/, ''),
-          type: error.name,
-          message: {
-            user: 'An unexpected error occurred. Please refresh the page.',
-            technical: error.message
-          },
-          severity: 'critical',
-          stack: environment.clientErrorHandling.logStackTraces ? error.stack : undefined
-        }
-      }
-    );
-
-    // Show toast in development
+  private handleClientErrorToast(handledError: StandardError): void {
     if (environment.clientErrorHandling.showClientErrorToasts) {
       this.toast.error(
-        'An unexpected error occurred. Please refresh the page.',
-        'Application Error',
+        handledError.userMessage,
+        handledError.userTitle,
         0 // Permanent toast
       );
     }
 
-    // Log to console for debugging
-    console.error('[GlobalErrorHandler] Uncaught error:', error);
+    console.error('[GlobalErrorHandler] Uncaught error:', handledError.originalError);
   }
 
-  private handleUnknownError(error: any): void {
-    const errorMessage = String(error);
+  private handleUnknownErrorToast(handledError: StandardError): void {
+    if (environment.clientErrorHandling.showClientErrorToasts) {
+      this.toast.error(
+        handledError.userMessage,
+        handledError.userTitle,
+        0 // Permanent toast
+      );
+    }
 
-    this.logger.fatal(
-      `Unknown Error: ${errorMessage}`,
-      null,
-      {
-        log: {
-          source: 'GlobalErrorHandler',
-          type: 'unknown_error'
-        }
-      }
-    );
-
-    console.error('[GlobalErrorHandler] Unknown error:', error);
+    console.error('[GlobalErrorHandler] Unknown error:', handledError.originalError);
   }
 }
