@@ -8,10 +8,13 @@ import { NetworkStatusComponent } from "./core/network/network-status.component"
 
 import { AuthService } from './core/services/auth.service';
 
+import { ToastContainerComponent } from './core/toast';
+
 @Component({
   selector: 'app-root',
   imports: [
     RouterOutlet,
+    ToastContainerComponent,
     ConfirmationDialogComponent,
     GlobalLoaderComponent,
     TopProgressBarComponent,

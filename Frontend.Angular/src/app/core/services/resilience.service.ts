@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, throwError, timer } from 'rxjs';
 import { retry, RetryConfig } from 'rxjs/operators';
 
-import { LoggerService } from './logger.service';
+import { TraceContext,TraceContextService } from './trace-context.service';
 
 import { environment } from '../../environments/environment';
 
@@ -14,9 +14,18 @@ export interface RetryStrategy {
   maxDelay?: number;
 }
 
+export interface RetryMetadata {
+  attempt: number;
+  maxAttempts: number;
+  delay: number;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResilienceService {
-  private readonly logger = inject(LoggerService);
+  private readonly traceContext = inject(TraceContextService);
 
   private readonly defaultStrategy: RetryStrategy = {
     maxRetries: environment.retryPolicy.maxRetries,
@@ -43,6 +52,39 @@ export class ResilienceService {
     });
   }
 
+  /**
+   * Get retry metadata for logging/headers (doesn't log itself)
+   */
+  getRetryMetadata(
+    retryCount: number,
+    maxRetries: number,
+    parentContext?: TraceContext
+  ): RetryMetadata {
+    // Get current context or use provided parent context
+    const currentContext: TraceContext = parentContext || this.traceContext.getCurrentContext();
+    
+    // Create child span for this retry attempt
+    const childContext = this.traceContext.createChildSpan(currentContext, retryCount);
+
+    return {
+      attempt: retryCount,
+      maxAttempts: maxRetries,
+      delay: this.calculateDelay(retryCount, this.defaultStrategy),
+      traceId: childContext.traceId,
+      spanId: childContext.spanId,
+      parentSpanId: childContext.parentSpanId
+    };
+  }
+
+  /**
+   * Public method to get retry delay observable
+   * Used by retry interceptor
+   */
+  getRetryDelay(error: unknown, retryCount: number, custom?: Partial<RetryStrategy>): Observable<number> {
+    const strategy = { ...this.defaultStrategy, ...custom };
+    return this.getDelay(error, retryCount, strategy);
+  }
+
   private getDelay(
     error: unknown,
     retryCount: number,
@@ -53,14 +95,14 @@ export class ResilienceService {
     }
 
     const delay = this.calculateDelay(retryCount, strategy);
-    const correlationId = this.logger.getCorrelationId();
 
-    this.logger.info(`Retrying (${retryCount}/${strategy.maxRetries})`, {
-      delay: `${delay}ms`,
-      status: error.status,
-      url: error.url ?? undefined,
-      correlationId
-    });
+    // Don't log here - let interceptor handle logging with proper context
+    if (!environment.production) {
+      console.info(
+        `[Resilience] Retry ${retryCount}/${strategy.maxRetries} after ${delay}ms`,
+        { status: error.status, url: error.url }
+      );
+    }
 
     return timer(delay);
   }
@@ -72,38 +114,14 @@ export class ResilienceService {
 
   /**
    * Calculate retry delay with exponential backoff and jitter
-   * 
-   * CHANGE: Fixed jitter to be ±25% (not just +25%)
-   * This prevents "thundering herd" problem where all clients
-   * retry at exactly the same time
-   * 
-   * Formula:
-   *   base = scalingDuration * 2^(retryCount - 1)
-   *   capped = min(base, maxDelay)
-   *   jitter = random value between -25% and +25% of capped
-   *   final = capped + jitter
-   * 
-   * Example with scalingDuration=1000ms:
-   *   Retry 1: 1000ms ± 250ms = 750-1250ms
-   *   Retry 2: 2000ms ± 500ms = 1500-2500ms
-   *   Retry 3: 4000ms ± 1000ms = 3000-5000ms
+   * Formula: base * 2^(retry-1) ± 25% jitter, capped at maxDelay
    */
   private calculateDelay(retryCount: number, strategy: RetryStrategy): number {
-    // Exponential backoff: 1x, 2x, 4x, 8x, ...
     const exponential = strategy.scalingDuration * Math.pow(2, retryCount - 1);
-
-    // Cap at maxDelay
     const capped = Math.min(exponential, strategy.maxDelay ?? 30000);
-
-    // Add jitter: ±25% of the capped value
-    // BEFORE: jitter was 0-25% (always adding)
-    // AFTER: jitter is -25% to +25% (randomized)
     const jitterRange = 0.25 * capped;
-    const jitter = (Math.random() - 0.5) * 2 * jitterRange; // -0.5 to +0.5, scaled by range
-
+    const jitter = (Math.random() - 0.5) * 2 * jitterRange;
     const finalDelay = Math.floor(capped + jitter);
-
-    // Ensure delay is never negative (edge case protection)
     return Math.max(0, finalDelay);
   }
 }

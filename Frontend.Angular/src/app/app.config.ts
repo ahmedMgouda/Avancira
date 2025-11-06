@@ -1,27 +1,27 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
-  //ErrorHandler,
+  ErrorHandler,
   inject,
   provideAppInitializer,
-  provideExperimentalZonelessChangeDetection // ← Changed for zoneless
+  provideExperimentalZonelessChangeDetection
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 
 import { AppInitializerService } from './core/services/app-initializer.service';
 
-//import { GlobalErrorHandler } from './core/handlers/global-error.handler';
-// Import interceptors
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-// import { correlationIdInterceptor } from './core/interceptors/correlation-id.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
-// Import loading system (encapsulated)
-import { loadingInterceptor, provideLoading } from './core/loading';
+// Import interceptors in correct order
+import { traceContextInterceptor } from './core/interceptors/trace-context.interceptor';
+// Import providers
+import { provideLoading } from './core/loading';
+import { loadingInterceptor } from './core/loading/loading.interceptor';
+import { GlobalErrorHandler } from './core/logging/handlers/global-error.handler';
 import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
 import { provideLogging } from './core/logging/providers/logging.providers';
-//import { networkInterceptor } from './core/network/network.interceptor';
 import { routes } from './routes/app.routes';
 
 function initApp() {
@@ -43,38 +43,40 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     
     // ═══════════════════════════════════════════════════════════
-    // HTTP Client with Interceptor Pipeline
+    // HTTP Client with Interceptor Pipeline (ORDER MATTERS!)
     // ═══════════════════════════════════════════════════════════
     provideHttpClient(
       withInterceptors([
-        //correlationIdInterceptor, // 1. Add correlation ID first
-        httpLoggingInterceptor,    // 2. Log requests
-        authInterceptor,           // 3. Add auth token
-        loadingInterceptor,        // 4. Track loading state
-       // networkInterceptor,      // ← Optional: Network status interceptor
-        retryInterceptor,          // 5. Retry failed requests
-        httpErrorInterceptor       // 6. Handle errors last
+        // 1️⃣ Trace Context - Add W3C trace headers to ALL requests
+        traceContextInterceptor,
+        
+        // 2️⃣ HTTP Logging - Log requests (respects X-Skip-Logging)
+        httpLoggingInterceptor,
+        
+        // 3️⃣ Auth - Add authentication token
+        authInterceptor,
+        
+        // 4️⃣ Loading - Track loading state (respects X-Skip-Loading)
+        loadingInterceptor,
+        
+        // 5️⃣ Retry - Handle failures with exponential backoff (respects X-Skip-Retry)
+        retryInterceptor,
+        
+        // 6️⃣ Error Handling - Log errors, mark as __logged (respects X-Skip-Logging)
+        httpErrorInterceptor
       ])
     ),
     
     // ═══════════════════════════════════════════════════════════
-    // Loading System (Route tracking + Config)
+    // Core Systems
     // ═══════════════════════════════════════════════════════════
-    provideLoading(), // ← One line! Handles route loading + config
-    
-    // Optional: Custom loading configuration
-    // provideLoading({
-    //   debounceDelay: 100,
-    //   requestTimeout: 60000,
-    //   maxRequests: 200
-    // }),
-    
+    provideLoading(),
     ...provideLogging(),
-
+    
     // ═══════════════════════════════════════════════════════════
     // Error Handling & Initialization
     // ═══════════════════════════════════════════════════════════
-    //{ provide: ErrorHandler, useClass: GlobalErrorHandler },
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideAppInitializer(initApp),
   ]
 };

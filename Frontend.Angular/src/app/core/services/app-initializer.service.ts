@@ -2,8 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { catchError, firstValueFrom, from, of } from 'rxjs';
 
 import { ConfigService } from '../../services/config.service';
+import { LoggerService } from '../logging/services/logger.service';
 import { AuthService } from './auth.service';
-import { LoggerService } from './logger.service';
 
 @Injectable({ providedIn: 'root' })
 export class AppInitializerService {

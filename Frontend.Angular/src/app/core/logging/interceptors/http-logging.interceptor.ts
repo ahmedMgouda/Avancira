@@ -1,10 +1,20 @@
-import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { tap } from 'rxjs/operators';
+
 import { LoggerService } from '../services/logger.service';
 import { SpanManagerService } from '../services/span-manager.service';
 
+/**
+ * HTTP logging interceptor with skip logic
+ * Respects X-Skip-Logging header
+ */
 export const httpLoggingInterceptor: HttpInterceptorFn = (req, next) => {
+  // Check if logging should be skipped
+  if (req.headers.has('X-Skip-Logging')) {
+    return next(req);
+  }
+
   const logger = inject(LoggerService);
   const spanManager = inject(SpanManagerService);
 

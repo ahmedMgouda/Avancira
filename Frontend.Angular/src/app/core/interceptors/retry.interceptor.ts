@@ -1,65 +1,69 @@
-import {
-    HttpEvent,
-    HttpHandlerFn,
-    HttpInterceptorFn,
-    HttpRequest
-} from '@angular/common/http';
+import { HttpErrorResponse,HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { catchError, retry, throwError } from 'rxjs';
 
-import { LoggerService } from '../services/logger.service';
 import { ResilienceService } from '../services/resilience.service';
+import { TraceContextService } from '../services/trace-context.service';
 
-import { environment } from '@/environments/environment';
+import { environment } from '../../environments/environment';
 
 /**
- * Retry Interceptor
- * ---------------------------------------------------------------------------
- * Automatically retries failed safe (idempotent) operations
- * Uses exponential backoff with jitter via ResilienceService
- * Can be customized via HTTP headers:
- *   - X-Skip-Retry: disables retry for this request
- *   - X-Allow-Retry: forces retry even for POST/PUT requests
+ * Retry interceptor with W3C Trace Context support
+ * Respects X-Skip-Retry header
  */
-export const retryInterceptor: HttpInterceptorFn = (
-    req: HttpRequest<unknown>,
-    next: HttpHandlerFn
-): Observable<HttpEvent<unknown>> => {
-    const resilience = inject(ResilienceService);
-    const logger = inject(LoggerService);
+export const retryInterceptor: HttpInterceptorFn = (req, next) => {
+  const resilience = inject(ResilienceService);
+  const traceContext = inject(TraceContextService);
 
-    // ------------------------------------------------------------------------
-    // Determine whether retry should apply
-    // ------------------------------------------------------------------------
-    const isSafeMethod = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
-    const skipRetry = req.headers.has('X-Skip-Retry');
-    const allowRetry = req.headers.has('X-Allow-Retry');
+  // Check if retry should be skipped
+  if (req.headers.has('X-Skip-Retry')) {
+    return next(req);
+  }
 
-    if (skipRetry) {
-        logger.debug(`Retry skipped for: ${req.method} ${req.url}`);
-        return next(req);
-    }
+  // Get parent trace context at the start of the request
+  const parentContext = traceContext.getCurrentContext();
+  const maxRetries = 3;
 
-    // Only retry idempotent methods unless explicitly allowed
-    if (!isSafeMethod && !allowRetry) {
-        return next(req);
-    }
+  return next(req).pipe(
+    retry({
+      count: maxRetries,
+      delay: (error: any, retryAttempt: number) => {
+        // Only retry on HTTP errors
+        if (!(error instanceof HttpErrorResponse)) {
+          return throwError(() => error);
+        }
 
-    // ------------------------------------------------------------------------
-    // Configure and apply retry operator
-    // ------------------------------------------------------------------------
-    const policy = environment.retryPolicy;
+        // Get retry metadata (includes new span context)
+        const metadata = resilience.getRetryMetadata(
+          retryAttempt,
+          maxRetries,
+          parentContext
+        );
 
-    const retryConfig = {
-        maxRetries: policy.maxRetries,
-        scalingDuration: policy.baseDelayMs,
-        excludedStatusCodes: policy.excluded,
-        maxDelay: policy.maxDelay
-    };
+        // Log retry attempt (not in resilience service to avoid loops)
+        if (!req.headers.has('X-Skip-Logging') && !environment.production) {
+          console.info(`[Retry] Attempt ${metadata.attempt}/${metadata.maxAttempts}`, {
+            url: req.url,
+            method: req.method,
+            status: error.status,
+            delay: `${metadata.delay}ms`,
+            traceId: metadata.traceId,
+            spanId: metadata.spanId,
+            parentSpanId: metadata.parentSpanId
+          });
+        }
 
-    logger.debug(`Retry enabled for: ${req.method} ${req.url}`, {
-        maxRetries: retryConfig.maxRetries
-    });
-
-    return next(req).pipe(resilience.withRetry(retryConfig));
+        // Use resilience service's internal delay calculation
+        // This returns an Observable that will emit after the calculated delay
+        return resilience.getRetryDelay(error, retryAttempt);
+      }
+    }),
+    catchError((error: HttpErrorResponse) => {
+      // Mark error with retry information
+      (error as any).__retryFailed = true;
+      (error as any).__maxRetriesReached = true;
+      
+      return throwError(() => error);
+    })
+  );
 };

@@ -1,13 +1,18 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, Injector,OnDestroy, signal } from '@angular/core';
+import { computed, inject, Injectable, Injector, OnDestroy, signal } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
 
+import { AuthService } from '../../services/auth.service';
+import { ResilienceService } from '../../services/resilience.service';
 import { LogMonitorService } from './log-monitor.service';
 import { SpanManagerService } from './span-manager.service';
 import { TraceManagerService } from './trace-manager.service';
 
-import { getLoggingConfig } from '../config/logging.config';
+import { environment } from '../../../environments/environment';
+import { getLoggingConfig, UserTypeLoggingConfig } from '../config/logging.config';
 import { BaseLogEntry } from '../models/base-log-entry.model';
 import { LogLevel } from '../models/log-level.model';
+import { BrowserCompat } from '../utils/browser-compat.util';
 import { DataSanitizer } from '../utils/data-sanitizer.util';
 import { IdGenerator } from '../utils/id-generator.util';
 import { SourceExtractor } from '../utils/source-extractor.util';
@@ -19,27 +24,40 @@ export class LoggerService implements OnDestroy {
   private readonly monitorService = inject(LogMonitorService);
   private readonly http = inject(HttpClient);
   private readonly injector = inject(Injector);
+  private readonly resilience = inject(ResilienceService);
   
-  private readonly config = getLoggingConfig(this.isProduction());
+  private readonly config = getLoggingConfig();
   private readonly sanitizer = new DataSanitizer(
     this.config.sanitization.sensitiveFields,
     this.config.sanitization.redactedValue
   );
   
   private readonly logBuffer = signal<BaseLogEntry[]>([]);
-  private sessionIdSignal: (() => string | null) | null = null;
-  private userIdSignal: (() => string | null) | null = null;
+  private authService: AuthService | null = null;
   private anonymousSessionId: string | null = null;
   private flushTimer?: ReturnType<typeof setInterval>;
+  private bufferWarningShown = false;
+  
+  // Deduplication cache
+  private recentLogHashes = new Map<string, number>();
   
   readonly bufferSize = computed(() => this.logBuffer().length);
+  readonly bufferUsagePercent = computed(() => {
+    const userConfig = this.getCurrentUserConfig();
+    return (this.logBuffer().length / userConfig.maxBufferSize) * 100;
+  });
   
   constructor() {
+    this.logBrowserCompatibility();
     this.initializeAnonymousSession();
     this.initializeAuthServiceConnection();
     this.initializeAutoFlush();
     this.setupUnloadHandler();
   }
+  
+  // ────────────────────────────────────────────────────────────────
+  // PUBLIC LOGGING METHODS
+  // ────────────────────────────────────────────────────────────────
   
   trace(message: string, context?: Partial<BaseLogEntry>): void {
     this.log(LogLevel.TRACE, message, context);
@@ -65,13 +83,30 @@ export class LoggerService implements OnDestroy {
     this.log(LogLevel.FATAL, message, context, error);
   }
   
+  // ────────────────────────────────────────────────────────────────
+  // INITIALIZATION
+  // ────────────────────────────────────────────────────────────────
+  
+  private logBrowserCompatibility(): void {
+    if (!environment.production) {
+      const info = BrowserCompat.getBrowserInfo();
+      console.log('[Logger] Browser Compatibility:', {
+        uuid: info.hasUUIDSupport ? '✅' : '⚠️ Fallback',
+        beacon: info.hasBeaconSupport ? '✅' : '⚠️ Disabled',
+        sessionStorage: info.hasSessionStorage ? '✅' : '⚠️ Disabled',
+        userAgent: info.userAgent,
+        platform: info.platform
+      });
+    }
+  }
+  
   private initializeAnonymousSession(): void {
     try {
-      let sessionId = sessionStorage.getItem('anon-session-id');
+      let sessionId = BrowserCompat.getSessionItem('anon-session-id');
       
       if (!sessionId) {
-        sessionId = `anon-${crypto.randomUUID()}`;
-        sessionStorage.setItem('anon-session-id', sessionId);
+        sessionId = `anon-${BrowserCompat.generateUUID()}`;
+        BrowserCompat.setSessionItem('anon-session-id', sessionId);
       }
       
       this.anonymousSessionId = sessionId;
@@ -82,16 +117,35 @@ export class LoggerService implements OnDestroy {
   
   private initializeAuthServiceConnection(): void {
     try {
-      const AuthService = this.injector.get('AuthService' as any, null);
-      if (AuthService && AuthService.sessionId) {
-        this.sessionIdSignal = () => AuthService.sessionId();
+      this.authService = this.injector.get(AuthService, null, { optional: true });
+      
+      if (!this.authService && !environment.production) {
+        console.warn('[Logger] AuthService not available for session tracking');
       }
-      if (AuthService && AuthService.userId) {
-        this.userIdSignal = () => AuthService.userId();
+    } catch (error) {
+      if (!environment.production) {
+        console.warn('[Logger] Failed to inject AuthService:', error);
       }
-    } catch {
     }
   }
+  
+  // ────────────────────────────────────────────────────────────────
+  // USER CONFIG SELECTION
+  // ────────────────────────────────────────────────────────────────
+  
+  private getCurrentUserConfig(): UserTypeLoggingConfig {
+    return this.isAuthenticated() 
+      ? this.config.authenticated 
+      : this.config.anonymous;
+  }
+  
+  private isAuthenticated(): boolean {
+    return !!this.getUserId();
+  }
+  
+  // ────────────────────────────────────────────────────────────────
+  // CORE LOGGING
+  // ────────────────────────────────────────────────────────────────
   
   private log(
     level: LogLevel,
@@ -99,14 +153,42 @@ export class LoggerService implements OnDestroy {
     context?: Partial<BaseLogEntry>,
     error?: unknown
   ): void {
-    if (!this.config.enabled || level < this.config.minLevel) {
+    const userConfig = this.getCurrentUserConfig();
+    
+    // Check if logging is enabled for this user type
+    if (!userConfig.enabled) {
       return;
     }
     
-    const entry = this.createBaseEntry(level, message, context, error);
+    // Check log level threshold
+    if (level < userConfig.minLevel) {
+      return;
+    }
+    
+    // Apply sampling (probabilistic)
+    if (Math.random() > userConfig.samplingRate) {
+      return;
+    }
+    
+    // Check action whitelist
+    const logType = context?.log?.type || 'application';
+    if (userConfig.logActions[0] !== '*') {
+      if (!userConfig.logActions.includes(logType)) {
+        return;
+      }
+    }
+    
+    const entry = this.createBaseEntry(level, message, context, error, userConfig);
+    
+    // Deduplication check
+    if (this.config.deduplication.enabled && this.isDuplicate(entry)) {
+      if (!environment.production) {
+        console.warn('[Logger] Duplicate log suppressed:', message);
+      }
+      return;
+    }
     
     if (this.config.console.enabled) {
-      console.log("enable logging...");
       this.logToConsole(entry);
     }
     
@@ -119,7 +201,8 @@ export class LoggerService implements OnDestroy {
     level: LogLevel,
     message: string,
     context?: Partial<BaseLogEntry>,
-    _error?: unknown
+    _error?: unknown,
+    userConfig?: UserTypeLoggingConfig
   ): BaseLogEntry {
     const now = new Date();
     const traceId = this.traceManager.getCurrentTraceId();
@@ -144,7 +227,7 @@ export class LoggerService implements OnDestroy {
       service: {
         name: this.config.application.name,
         version: this.config.application.version,
-        environment: this.isProduction() ? 'production' : 'development'
+        environment: environment.production ? 'production' : 'development'
       },
       
       trace: {
@@ -159,17 +242,22 @@ export class LoggerService implements OnDestroy {
       }
     };
     
-    const sessionId = this.getSessionId();
-    const userId = this.getUserId();
+    // Only include session/user data if allowed by config
+    const includeUserData = userConfig?.includeUserData ?? true;
     
-    if (sessionId) {
-      entry.session = {
-        id: sessionId,
-        user: userId ? { id: userId } : undefined as any
-      };
+    if (includeUserData) {
+      const sessionId = this.getSessionId();
+      const userId = this.getUserId();
       
-      if (!userId) {
-        delete (entry.session as any).user;
+      if (sessionId) {
+        entry.session = {
+          id: sessionId,
+          user: userId ? { id: userId } : undefined as any
+        };
+        
+        if (!userId) {
+          delete (entry.session as any).user;
+        }
       }
     }
     
@@ -208,17 +296,14 @@ export class LoggerService implements OnDestroy {
   }
   
   private getSessionId(): string {
-    const authSessionId = this.sessionIdSignal?.();
+    const authSessionId = this.authService?.sessionId?.();
     if (authSessionId) return authSessionId;
     
     return this.anonymousSessionId!;
   }
   
   private getUserId(): string | null {
-    if (this.userIdSignal) {
-      return this.userIdSignal();
-    }
-    return null;
+    return this.authService?.userId?.() || null;
   }
   
   private sanitizeHttpData(http: BaseLogEntry['http']): BaseLogEntry['http'] {
@@ -234,22 +319,93 @@ export class LoggerService implements OnDestroy {
     };
   }
   
+  // ────────────────────────────────────────────────────────────────
+  // DEDUPLICATION
+  // ────────────────────────────────────────────────────────────────
+  
+  private isDuplicate(entry: BaseLogEntry): boolean {
+    const hash = this.hashLog(entry);
+    const lastTime = this.recentLogHashes.get(hash);
+    
+    if (lastTime && Date.now() - lastTime < this.config.deduplication.timeWindowMs) {
+      return true;
+    }
+    
+    this.recentLogHashes.set(hash, Date.now());
+    this.cleanupLogHashes();
+    
+    return false;
+  }
+  
+  private hashLog(entry: BaseLogEntry): string {
+    // Create hash from level + message + type
+    return `${entry.log.level}-${entry.log.message}-${entry.log.type}`;
+  }
+  
+  private cleanupLogHashes(): void {
+    if (this.recentLogHashes.size <= this.config.deduplication.maxCacheSize) {
+      return;
+    }
+    
+    // Remove oldest entries
+    const entries = Array.from(this.recentLogHashes.entries())
+      .sort((a, b) => a[1] - b[1]);
+    
+    const toRemove = entries.slice(0, entries.length - this.config.deduplication.maxCacheSize);
+    toRemove.forEach(([key]) => this.recentLogHashes.delete(key));
+  }
+  
+  // ────────────────────────────────────────────────────────────────
+  // BUFFER MANAGEMENT
+  // ────────────────────────────────────────────────────────────────
+  
   private addToBuffer(entry: BaseLogEntry): void {
+    const userConfig = this.getCurrentUserConfig();
+    
     this.logBuffer.update(buffer => {
       const newBuffer = [...buffer, entry];
       
+      // Check for buffer overflow warning
+      this.checkBufferWarning(newBuffer.length, userConfig.maxBufferSize);
+      
+      // Auto-flush if batch size reached
       if (newBuffer.length >= this.config.remote.batchSize) {
         this.flush();
         return [];
       }
       
-      if (newBuffer.length > this.config.remote.maxBufferSize) {
-        return newBuffer.slice(-this.config.remote.maxBufferSize);
+      // Drop oldest logs if max buffer exceeded
+      if (newBuffer.length > userConfig.maxBufferSize) {
+        const dropped = newBuffer.length - userConfig.maxBufferSize;
+        console.warn(
+          `[Logger] Buffer overflow: dropped ${dropped} oldest log(s). ` +
+          `Consider increasing maxBufferSize or decreasing flushInterval.`
+        );
+        return newBuffer.slice(-userConfig.maxBufferSize);
       }
       
       return newBuffer;
     });
   }
+  
+  private checkBufferWarning(bufferSize: number, maxBufferSize: number): void {
+    const threshold = maxBufferSize * this.config.bufferWarningThreshold;
+    
+    if (bufferSize >= threshold && !this.bufferWarningShown) {
+      console.warn(
+        `[Logger] Buffer usage at ${Math.round((bufferSize / maxBufferSize) * 100)}% ` +
+        `(${bufferSize}/${maxBufferSize}). ` +
+        `Consider flushing more frequently or increasing buffer size.`
+      );
+      this.bufferWarningShown = true;
+    } else if (bufferSize < threshold / 2) {
+      this.bufferWarningShown = false;
+    }
+  }
+  
+  // ────────────────────────────────────────────────────────────────
+  // REMOTE TRANSMISSION (with skip headers)
+  // ────────────────────────────────────────────────────────────────
   
   private flush(): void {
     if (!this.config.remote.enabled) {
@@ -261,20 +417,44 @@ export class LoggerService implements OnDestroy {
       return;
     }
     
-    if (this.config.remote.filter) {
-      buffer = buffer.filter(this.config.remote.filter);
-    }
-    
-    if (buffer.length === 0) {
-      this.logBuffer.set([]);
-      return;
-    }
-    
     this.logBuffer.set([]);
     
-    this.http.post(this.config.remote.endpoint, { logs: buffer }, { withCredentials: true })
+    // Create headers to skip all interceptors for logging endpoint
+    const headers = {
+      'X-Skip-Logging': 'true',
+      'X-Skip-Retry': 'true',
+      'X-Skip-Loading': 'true'
+    };
+    
+    const retryConfig = this.config.remote.retry.enabled
+      ? {
+          maxRetries: this.config.remote.retry.maxRetries,
+          scalingDuration: this.config.remote.retry.baseDelayMs,
+          maxDelay: this.config.remote.retry.maxDelayMs,
+          excludedStatusCodes: [400, 401, 403, 404, 422]
+        }
+      : { maxRetries: 0, scalingDuration: 0, excludedStatusCodes: [] };
+    
+    this.http.post(
+      this.config.remote.endpoint,
+      { logs: buffer },
+      { headers, withCredentials: true }
+    )
+      .pipe(
+        this.resilience.withRetry(retryConfig),
+        catchError((error) => {
+          // DON'T LOG THIS ERROR (would create loop)
+          console.error('[Logger] Failed to send logs after retries:', error);
+          // TODO Phase 2: Store in IndexedDB
+          return throwError(() => error);
+        })
+      )
       .subscribe({
-        error: (error) => console.error('[Logger] Failed to send logs:', error)
+        next: () => {
+          if (!environment.production) {
+            console.log(`[Logger] Successfully sent ${buffer.length} log(s)`);
+          }
+        }
       });
   }
   
@@ -294,13 +474,9 @@ export class LoggerService implements OnDestroy {
     }
     
     window.addEventListener('beforeunload', () => {
-      let buffer = this.logBuffer();
+      const buffer = this.logBuffer();
       
-      if (this.config.remote.filter) {
-        buffer = buffer.filter(this.config.remote.filter);
-      }
-      
-      if (buffer.length > 0 && navigator.sendBeacon) {
+      if (buffer.length > 0 && BrowserCompat.hasSendBeaconSupport()) {
         navigator.sendBeacon(
           this.config.remote.endpoint,
           JSON.stringify({ logs: buffer })
@@ -308,6 +484,10 @@ export class LoggerService implements OnDestroy {
       }
     });
   }
+  
+  // ────────────────────────────────────────────────────────────────
+  // CONSOLE LOGGING
+  // ────────────────────────────────────────────────────────────────
   
   private logToConsole(entry: BaseLogEntry): void {
     const level = entry.log.level || 'INFO';
@@ -349,11 +529,6 @@ export class LoggerService implements OnDestroy {
   private getLevelName(level: LogLevel): string {
     const names = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
     return names[level] || 'UNKNOWN';
-  }
-  
-  private isProduction(): boolean {
-    return typeof window !== 'undefined' && 
-           (window as any).PRODUCTION === true;
   }
   
   ngOnDestroy(): void {

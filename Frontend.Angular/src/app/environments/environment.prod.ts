@@ -1,17 +1,14 @@
-import { LogLevel } from '@core/services/logger.service';
-
 export const environment = {
   production: true,
-  bffBaseUrl: 'https://avancira.com/bff',
-  frontendUrl: 'https://avancira.com',
+  bffBaseUrl: 'https://api.avancira.com/bff',
+  frontendUrl: 'https://www.avancira.com',
 
+  /** Logging policy */
   logPolicy: {
-    logLevel: LogLevel.Warn,        // Only warnings and errors
-    slowThresholdMs: 2000,
-    enableRequestLogging: false,    // Reduce log noise
-    enableResponseLogging: false
+    slowThresholdMs: 3000,
   },
 
+  /** Retry policy */
   retryPolicy: {
     maxRetries: 3,
     baseDelayMs: 1000,
@@ -19,32 +16,28 @@ export const environment = {
     excluded: [400, 401, 403, 404, 422]
   },
 
-  skipLoggingPatterns: ['/health', '/ping', '/heartbeat', '/notifications/poll'],
+  /** Skip patterns */
+  skipLoggingPatterns: ['/health', '/ping', '/heartbeat'],
   skipErrorNotifications: [404],
-  importantEndpoints: ['/api/auth/login', '/api/auth/logout', '/api/orders', '/api/payments'],
 
-  disableCorrelation: false,
+  /** Feature flags */
   disableNotifications: false,
-  errorToastDuration: 7000,
-
-  /** Observability / Telemetry */
-  sentryDsn: '',
-  appInsightsKey: '',
-
+  errorToastDuration: 5000,
   useSignalR: true,
 
-
+  /** Error page configuration */
   errorPage: {
     enabled: true,
     path: '/error',
-    autoReload: false, // Don't auto-reload in production (user should decide)
-    reloadDelayMs: 10000,
+    autoReload: false,
+    reloadDelayMs: 5000,
   },
 
+  /** Client-side error handling */
   clientErrorHandling: {
-    showClientErrorToasts: false, // Silent in production (only actionable errors)
-    logStackTraces: false, // Don't expose stack traces in production
-    errorThreshold: 20, // Higher threshold for production
+    showClientErrorToasts: false, // Don't show in production
+    logStackTraces: false, // Security - don't expose stack traces
+    errorThreshold: 10,
     errorWindowMs: 60000,
   },
 };

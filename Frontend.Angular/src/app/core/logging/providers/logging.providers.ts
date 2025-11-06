@@ -1,12 +1,19 @@
-import { ErrorHandler, Provider } from '@angular/core';
+import { Provider } from '@angular/core';
 
-import { GlobalErrorHandler } from '../handlers/global-error.handler';
+import { ErrorHandlerService } from '../services/error-handler.service';
+import { LogMonitorService } from '../services/log-monitor.service';
+import { LoggerService } from '../services/logger.service';
+import { NavigationTraceService } from '../services/navigation-trace.service';
+import { SpanManagerService } from '../services/span-manager.service';
+import { TraceManagerService } from '../services/trace-manager.service';
 
 export function provideLogging(): Provider[] {
   return [
-    {
-      provide: ErrorHandler,
-      useClass: GlobalErrorHandler
-    }
+    LoggerService,
+    LogMonitorService,
+    ErrorHandlerService,
+    TraceManagerService,
+    SpanManagerService,
+    NavigationTraceService
   ];
 }

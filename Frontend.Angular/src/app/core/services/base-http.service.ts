@@ -3,7 +3,7 @@ import { inject, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, shareReplay, tap } from 'rxjs/operators';
 
-import { LoggerService } from './logger.service';
+import { LoggerService } from '../logging/services/logger.service';
 import { ResilienceService } from './resilience.service';
 
 import { BaseFilter, PaginatedResult } from '../models/base.model';
@@ -57,8 +57,8 @@ export abstract class BaseHttpService<
         this.entitiesSignal.set(result);
         this.cache.setList(result.items);
         this.logger.info(`Fetched ${this.entityName} list`, {
-          count: result.items.length,
-          total: result.totalCount
+          //count: result.items.length,
+          //total: result.totalCount
         });
       }),
       catchError(error => {

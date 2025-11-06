@@ -1,4 +1,6 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+
 import { BaseLogEntry } from '../models/base-log-entry.model';
 
 interface LogStats {
@@ -13,7 +15,14 @@ export class LogMonitorService {
   private channel: BroadcastChannel | null = null;
   private readonly MAX_LOGS = 1000;
   
+  // Subject for observable pattern (backwards compatibility)
+  private readonly logsSubject = new Subject<BaseLogEntry>();
+  
+  // Modern signal-based approach
   readonly logs = signal<BaseLogEntry[]>([]);
+  
+  // Observable for components that prefer subscription pattern
+  readonly logs$: Observable<BaseLogEntry> = this.logsSubject.asObservable();
   
   readonly stats = computed<LogStats>(() => {
     const allLogs = this.logs();
@@ -51,6 +60,10 @@ export class LogMonitorService {
   broadcast(log: BaseLogEntry): void {
     this.addLog(log);
     
+    // Emit to observable subscribers
+    this.logsSubject.next(log);
+    
+    // Broadcast to other tabs
     if (this.channel) {
       try {
         this.channel.postMessage(log);
@@ -80,5 +93,6 @@ export class LogMonitorService {
     if (this.channel) {
       this.channel.close();
     }
+    this.logsSubject.complete();
   }
 }

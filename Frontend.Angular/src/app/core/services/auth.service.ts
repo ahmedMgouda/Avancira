@@ -55,6 +55,9 @@ export class AuthService {
   // ═══════════════════════════════════════════════════════════
   
   readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
+  readonly userId = computed(() => this.authState().user?.userId ?? null);
+  readonly sessionId = computed(() => this.authState().user?.sessionId ?? null);
+
   readonly currentUser = computed(() => this.authState().user);
   readonly roles = computed(() => this.authState().user?.roles ?? []);
   readonly authError = computed(() => this.authState().error);

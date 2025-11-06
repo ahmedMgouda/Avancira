@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { BaseLogEntry } from '@core/logging/models/base-log-entry.model';
 
-import { LogEntry, LoggerService, LogLevel } from '@core/services/logger.service';
+import { LogMonitorService } from '@core/logging/services/log-monitor.service';
 
 interface MetricStats {
-  totalRequests: number;
+  totalLogs: number;
   totalErrors: number;
+  totalWarnings: number;
+  httpRequests: number;
   slowRequests: number;
   errorRate: string;
 }
@@ -18,64 +21,80 @@ interface MetricStats {
   styleUrls: ['./dev-monitor.component.scss']
 })
 export class DevMonitorComponent {
-  private readonly logger = inject(LoggerService);
-  private readonly destroyRef = inject(DestroyRef);
-
+  private readonly logMonitor = inject(LogMonitorService);
+  
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
   // ────────────────────────────────────────────────────────────────
   readonly maxLogs = signal(200);
   readonly isPaused = signal(false);
-  readonly selectedLog = signal<LogEntry | null>(null);
-
-  readonly allLogs = this.logger.logs;
+  readonly selectedLog = signal<BaseLogEntry | null>(null);
+  
+  // Use the LogMonitor's signal directly (no subscription needed!)
+  private readonly allLogs = this.logMonitor.logs;
   readonly logs = computed(() => this.allLogs().slice(-this.maxLogs()));
-
+  
   // ────────────────────────────────────────────────────────────────
   // FILTERS
   // ────────────────────────────────────────────────────────────────
-  readonly levelFilter = signal<LogLevel | 'all'>('all');
-  readonly methodFilter = signal<string | 'all'>('all');
+  readonly levelFilter = signal<string>('all');
+  readonly typeFilter = signal<string>('all');
   readonly statusFilter = signal<number | 'all'>('all');
   readonly searchTerm = signal('');
-
-  // Extract available HTTP methods/status codes dynamically from logs
-  readonly availableMethods = computed(() => {
-    const methods = new Set<string>();
+  
+  // Extract available types and status codes
+  readonly availableTypes = computed(() => {
+    const types = new Set<string>();
     for (const log of this.allLogs()) {
-      const method = log.context?.method;
-      if (typeof method === 'string' && method.trim()) {
-        methods.add(method.toUpperCase());
+      if (log.log?.type) {
+        types.add(log.log.type);
       }
     }
-    return Array.from(methods).sort();
+    return Array.from(types).sort();
   });
-
+  
   readonly availableStatuses = computed(() => {
     const statuses = new Set<number>();
     for (const log of this.allLogs()) {
-      const status = log.context?.status;
-      if (typeof status === 'number') {
-        statuses.add(status);
+      if (log.http?.status_code) {
+        statuses.add(log.http.status_code);
       }
     }
     return Array.from(statuses).sort((a, b) => a - b);
   });
-
+  
+  readonly availableLevels = computed(() => {
+    const levels = new Set<string>();
+    for (const log of this.allLogs()) {
+      if (log.log?.level) {
+        levels.add(log.log.level);
+      }
+    }
+    return Array.from(levels).sort();
+  });
+  
   // ────────────────────────────────────────────────────────────────
-  // FILTERED LOGS (deep search + filters)
+  // FILTERED LOGS
   // ────────────────────────────────────────────────────────────────
   readonly filteredLogs = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     const level = this.levelFilter();
-    const method = this.methodFilter();
+    const type = this.typeFilter();
     const status = this.statusFilter();
     let list = this.logs();
-
-    if (level !== 'all') list = list.filter(l => l.level === level);
-    if (method !== 'all') list = list.filter(l => l.context?.method?.toUpperCase() === method);
-    if (status !== 'all') list = list.filter(l => l.context?.status === status);
-
+    
+    if (level !== 'all') {
+      list = list.filter(l => l.log?.level?.toLowerCase() === level.toLowerCase());
+    }
+    
+    if (type !== 'all') {
+      list = list.filter(l => l.log?.type === type);
+    }
+    
+    if (status !== 'all') {
+      list = list.filter(l => l.http?.status_code === status);
+    }
+    
     if (term) {
       const deepMatch = (obj: any): boolean => {
         if (obj == null) return false;
@@ -87,65 +106,73 @@ export class DevMonitorComponent {
         }
         return false;
       };
-
-      list = list.filter(l =>
-        deepMatch(l.message) ||
-        deepMatch(l.correlationId) ||
-        deepMatch(l.url) ||
-        deepMatch(l.context)
-      );
+      
+      list = list.filter(l => deepMatch(l));
     }
-
+    
     return list;
   });
-
+  
   // ────────────────────────────────────────────────────────────────
   // METRICS
   // ────────────────────────────────────────────────────────────────
-  readonly metrics = computed<MetricStats>(() => this.logger.stats());
-  readonly logLevels = computed(() => [
-    { value: 'all', label: 'All', count: this.logs().length },
-    ...Object.values(LogLevel)
-      .filter(v => typeof v === 'number' && v !== LogLevel.None)
-      .map(v => ({
-        value: v as LogLevel,
-        label: this.formatLevel(v as LogLevel),
-        count: this.logs().filter(l => l.level === v).length
-      }))
-  ]);
-
+  readonly metrics = computed<MetricStats>(() => {
+    const logs = this.allLogs();
+    const errors = logs.filter(l => l.log?.level === 'ERROR' || l.log?.level === 'FATAL');
+    const warnings = logs.filter(l => l.log?.level === 'WARN');
+    const httpLogs = logs.filter(l => l.log?.type === 'http');
+    const slowRequests = logs.filter(l => 
+      l.http?.duration_ms && l.http.duration_ms > 3000
+    );
+    
+    return {
+      totalLogs: logs.length,
+      totalErrors: errors.length,
+      totalWarnings: warnings.length,
+      httpRequests: httpLogs.length,
+      slowRequests: slowRequests.length,
+      errorRate: logs.length > 0 
+        ? ((errors.length / logs.length) * 100).toFixed(1) + '%'
+        : '0%'
+    };
+  });
+  
+  readonly logLevelCounts = computed(() => {
+    const logs = this.allLogs();
+    const counts: Record<string, number> = {};
+    
+    for (const log of logs) {
+      const level = log.log?.level || 'UNKNOWN';
+      counts[level] = (counts[level] || 0) + 1;
+    }
+    
+    return counts;
+  });
+  
   readonly hasLogs = computed(() => this.logs().length > 0);
   readonly hasFilteredLogs = computed(() => this.filteredLogs().length > 0);
-  readonly isFiltering = computed(
-    () =>
-      this.levelFilter() !== 'all' ||
-      this.methodFilter() !== 'all' ||
-      this.statusFilter() !== 'all' ||
-      !!this.searchTerm().trim()
+  readonly isFiltering = computed(() =>
+    this.levelFilter() !== 'all' ||
+    this.typeFilter() !== 'all' ||
+    this.statusFilter() !== 'all' ||
+    !!this.searchTerm().trim()
   );
-
-  // ────────────────────────────────────────────────────────────────
-  // CLOCK SIGNAL
-  // ────────────────────────────────────────────────────────────────
-  readonly lastUpdated = signal(Date.now());
-  private readonly clockInterval = setInterval(() => {
-    if (!this.isPaused()) this.lastUpdated.set(Date.now());
-  }, 1000);
-
+  
   // ────────────────────────────────────────────────────────────────
   // INTERACTIONS
   // ────────────────────────────────────────────────────────────────
+  
   togglePause(): void {
     this.isPaused.update(v => !v);
   }
-
+  
   clearLogs(): void {
     if (confirm('Clear all logs?')) {
-      this.logger.clearLogs();
+      this.logMonitor.clearLogs();
       this.selectedLog.set(null);
     }
   }
-
+  
   exportLogs(): void {
     const blob = new Blob([JSON.stringify(this.filteredLogs(), null, 2)], {
       type: 'application/json'
@@ -157,108 +184,103 @@ export class DevMonitorComponent {
     link.click();
     URL.revokeObjectURL(url);
   }
-
-  selectLog(log: LogEntry): void {
+  
+  selectLog(log: BaseLogEntry): void {
     this.selectedLog.set(log);
   }
-
+  
   closeLogDetails(): void {
     this.selectedLog.set(null);
   }
-
-  onSearchInput(value: string): void {
+  
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
     this.searchTerm.set(value);
   }
-
-  onLevelFilterChange(value: string): void {
-    this.levelFilter.set(value === 'all' ? 'all' : (+value as LogLevel));
+  
+  onLevelFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.levelFilter.set(value);
   }
-
-  onMethodFilterChange(value: string): void {
-    this.methodFilter.set(value === 'all' ? 'all' : value);
+  
+  onTypeFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.typeFilter.set(value);
   }
-
-  onStatusFilterChange(value: string): void {
-    const num = +value;
-    this.statusFilter.set(value === 'all' ? 'all' : num);
+  
+  onStatusFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.statusFilter.set(value === 'all' ? 'all' : +value);
   }
-
+  
   clearFilters(): void {
     this.searchTerm.set('');
     this.levelFilter.set('all');
-    this.methodFilter.set('all');
+    this.typeFilter.set('all');
     this.statusFilter.set('all');
   }
-
-  onMaxLogsChange(value: string): void {
+  
+  onMaxLogsChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
     const num = +value;
     if (num > 0 && num <= 1000) this.maxLogs.set(num);
   }
-
+  
   // ────────────────────────────────────────────────────────────────
   // HELPERS
   // ────────────────────────────────────────────────────────────────
-  copyLogToClipboard(log: LogEntry): void {
+  
+  copyLogToClipboard(log: BaseLogEntry): void {
     navigator.clipboard
       .writeText(JSON.stringify(log, null, 2))
       .then(() => alert('Copied to clipboard'))
       .catch(() => alert('Failed to copy'));
   }
-
-  trackByLog = (_: number, log: LogEntry) => log.id;
-
+  
+  trackByLog = (_: number, log: BaseLogEntry) => log.log?.id || log['@timestamp'];
+  
   // ────────────────────────────────────────────────────────────────
   // LOG LEVEL HELPERS
   // ────────────────────────────────────────────────────────────────
-  getLevelIcon(level: LogLevel): string {
-    const icons: Record<LogLevel, string> = {
-      [LogLevel.Trace]: '🔍',
-      [LogLevel.Debug]: '🐛',
-      [LogLevel.Info]: 'ℹ️',
-      [LogLevel.Warn]: '⚠️',
-      [LogLevel.Error]: '❌',
-      [LogLevel.Fatal]: '💀',
-      [LogLevel.None]: '📝'
+  
+  getLevelIcon(level: string): string {
+    const icons: Record<string, string> = {
+      'TRACE': '🔍',
+      'DEBUG': '🐛',
+      'INFO': 'ℹ️',
+      'WARN': '⚠️',
+      'ERROR': '❌',
+      'FATAL': '💀'
     };
     return icons[level] ?? '📝';
   }
-
-  getLevelClass(level: LogLevel): string {
-    return {
-      [LogLevel.Trace]: 'level-trace',
-      [LogLevel.Debug]: 'level-debug',
-      [LogLevel.Info]: 'level-info',
-      [LogLevel.Warn]: 'level-warn',
-      [LogLevel.Error]: 'level-error',
-      [LogLevel.Fatal]: 'level-fatal',
-      [LogLevel.None]: 'level-none'
-    }[level] ?? '';
+  
+  getLevelClass(level: string): string {
+    return `level-${level.toLowerCase()}`;
   }
-
-  countByLevel(level: LogLevel): number {
-    return this.logs().filter(l => l.level === level).length;
+  
+  getTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'http': '🌐',
+      'http_error': '🚫',
+      'error': '⚠️',
+      'application': '📱',
+      'system': '⚙️',
+      'navigation': '🧭'
+    };
+    return icons[type] ?? '📄';
   }
-
-  setLevelFilter(level: LogLevel | 'all'): void {
-    this.levelFilter.set(level);
+  
+  getSpanIdDisplay(span: BaseLogEntry['trace']['span']): string {
+    if (!span?.id) return 'N/A';
+    return span.id.length >= 8 ? span.id.substring(0, 8) + '...' : span.id;
   }
-
+  
   // ────────────────────────────────────────────────────────────────
   // FORMAT HELPERS
   // ────────────────────────────────────────────────────────────────
-  formatLevel(level: LogLevel): string {
-    return {
-      [LogLevel.Trace]: 'Trace',
-      [LogLevel.Debug]: 'Debug',
-      [LogLevel.Info]: 'Info',
-      [LogLevel.Warn]: 'Warn',
-      [LogLevel.Error]: 'Error',
-      [LogLevel.Fatal]: 'Fatal',
-      [LogLevel.None]: 'None'
-    }[level] ?? 'Unknown';
-  }
-
-  formatTimestamp(timestamp: string | number): string {
+  
+  formatTimestamp(timestamp: string): string {
     const d = new Date(timestamp);
     return d.toLocaleTimeString('en-US', {
       hour12: false,
@@ -268,16 +290,31 @@ export class DevMonitorComponent {
       fractionalSecondDigits: 3
     });
   }
-
-  formatContext(ctx: any): string {
+  
+  formatDuration(ms: number | undefined): string {
+    if (!ms) return '—';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+  
+  formatJSON(obj: any): string {
     try {
-      return ctx ? JSON.stringify(ctx, null, 2) : '—';
+      return obj ? JSON.stringify(obj, null, 2) : '—';
     } catch {
-      return String(ctx);
+      return String(obj);
     }
   }
-
+  
   truncateMessage(msg: string, max = 100): string {
     return msg.length <= max ? msg : msg.slice(0, max) + '…';
+  }
+  
+  getStatusClass(status: number | undefined): string {
+    if (!status) return '';
+    if (status >= 200 && status < 300) return 'status-success';
+    if (status >= 300 && status < 400) return 'status-redirect';
+    if (status >= 400 && status < 500) return 'status-client-error';
+    if (status >= 500) return 'status-server-error';
+    return '';
   }
 }

@@ -1,28 +1,27 @@
+import { BrowserCompat } from './browser-compat.util';
+
 export class IdGenerator {
+  private static logCounter = 0;
+  private static errorCounter = 0;
+  private static spanCounter = 0;
+
   static generateLogId(): string {
-    return `log-${this.generateId()}`;
+    return `log-${Date.now()}-${++this.logCounter}`;
   }
-  
+
   static generateErrorId(): string {
-    return `err-${this.generateId()}`;
+    return `err-${Date.now()}-${++this.errorCounter}`;
   }
-  
-  static generateTraceId(): string {
-    return `trace-${this.generateId()}`;
-  }
-  
+
   static generateSpanId(): string {
-    return `span-${this.generateId()}`;
+    return `span-${Date.now()}-${++this.spanCounter}`;
   }
-  
-  private static generateId(): string {
-    try {
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-      }
-    } catch {
-    }
-    
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+  static generateTraceId(): string {
+    return `trace-${BrowserCompat.generateUUID()}`;
+  }
+
+  static generateSessionId(): string {
+    return `sess-${BrowserCompat.generateUUID()}`;
   }
 }

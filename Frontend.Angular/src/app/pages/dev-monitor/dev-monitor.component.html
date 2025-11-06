@@ -1,214 +1,189 @@
 <div class="dev-monitor">
-  <!-- ═════════════════════════════════ HEADER ═════════════════════════════════ -->
-  <header class="header">
-    <div class="header-title">
-      <h1>🧩 Developer Monitor</h1>
-      <span class="version-badge">v1.0.0</span>
-    </div>
-
+  <!-- Header -->
+  <div class="monitor-header">
+    <h1>
+      <span class="icon">🔍</span>
+      Development Monitor
+    </h1>
     <div class="header-actions">
-      <button class="btn btn-sm btn-secondary" (click)="togglePause()">
+      <button (click)="togglePause()" [class.active]="isPaused()">
         {{ isPaused() ? '▶️ Resume' : '⏸️ Pause' }}
       </button>
-
-      <button class="btn btn-sm btn-info" (click)="exportLogs()" [disabled]="!hasFilteredLogs()">
-        📥 Export
-      </button>
-
-      <button class="btn btn-sm btn-danger" (click)="clearLogs()" [disabled]="!hasLogs()">
-        🗑️ Clear
-      </button>
-    </div>
-  </header>
-
-  <!-- ═════════════════════════════════ METRICS ═════════════════════════════════ -->
-  <section class="metrics">
-    <h2>📊 Metrics</h2>
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <span>🌐</span>
-        <div>
-          <div class="metric-label">Requests</div>
-          <div class="metric-value">{{ metrics().totalRequests }}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <span>❌</span>
-        <div>
-          <div class="metric-label">Errors</div>
-          <div class="metric-value error">{{ metrics().totalErrors }}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <span>🐌</span>
-        <div>
-          <div class="metric-label">Slow</div>
-          <div class="metric-value warning">{{ metrics().slowRequests }}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <span>📈</span>
-        <div>
-          <div class="metric-label">Error Rate</div>
-          <div class="metric-value">{{ metrics().errorRate }}</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═════════════════════════════════ FILTERS ═════════════════════════════════ -->
-  <section class="filters">
-    <div class="filters-header">
-      <h2>🔍 Filters</h2>
-      @if (isFiltering()) {
-      <button class="btn btn-sm btn-link" (click)="clearFilters()">Clear</button>
-      }
-    </div>
-
-    <div class="filters-controls">
-      <!-- Search -->
-      <div class="filter-group search">
-        <input type="text" class="input search-box" placeholder="Search logs (message, correlation ID, URL, context...)"
-          [value]="searchTerm()" (input)="onSearchInput($any($event.target).value)" />
-      </div>
-
-      <!-- Method -->
-      <div class="filter-group">
-        <select class="select" title="Filter by HTTP method" [value]="methodFilter()"
-          (change)="onMethodFilterChange($any($event.target).value)">
-          <option value="all">All Methods</option>
-          @for (m of availableMethods(); track m) {
-          <option [value]="m">{{ m }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- Status -->
-      <div class="filter-group">
-        <select class="select" title="Filter by HTTP status" [value]="statusFilter()"
-          (change)="onStatusFilterChange($any($event.target).value)">
-          <option value="all">All Statuses</option>
-          @for (s of availableStatuses(); track s) {
-          <option [value]="s">{{ s }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- Level -->
-      <div class="filter-group">
-        <select class="select" title="Filter by level" [value]="levelFilter()"
-          (change)="onLevelFilterChange($any($event.target).value)">
-          @for (level of logLevels(); track level.value) {
-          <option [value]="level.value">{{ level.label }} ({{ level.count }})</option>
-          }
-        </select>
-      </div>
-
-      <!-- Max Logs -->
-      <div class="filter-group">
-        <select class="select" title="Max logs to display" [value]="maxLogs()"
-          (change)="onMaxLogsChange($any($event.target).value)">
-          @for (num of [50,100,200,500,1000]; track num) {
-          <option [value]="num">{{ num }}</option>
-          }
-        </select>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═════════════════════════════════ LOG TABLE ═════════════════════════════════ -->
-  <section class="logs">
-    <div class="logs-header">
-      <h2>🪵 Logs</h2>
-      <span>Showing {{ filteredLogs().length }} / {{ logs().length }}</span>
-    </div>
-
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Level</th>
-            <th>Message</th>
-            <th>Context</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (!hasLogs()) {
-          <tr>
-            <td colspan="5" class="empty-state">📭 No Logs</td>
-          </tr>
-          } @else if (!hasFilteredLogs()) {
-          <tr>
-            <td colspan="5" class="empty-state">🔍 No Matching Logs</td>
-          </tr>
-          } @else {
-          @for (log of filteredLogs(); track trackByLog($index, log)) {
-          <tr [class]="getLevelClass(log.level)" (click)="selectLog(log)">
-            <td>{{ formatTimestamp(log.timestamp) }}</td>
-            <td>{{ getLevelIcon(log.level) }} {{ formatLevel(log.level) }}</td>
-            <td>{{ truncateMessage(log.message, 120) }}</td>
-            <td>{{ log.context ? '📄' : '—' }}</td>
-          </tr>
-          }
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ═════════════════════════════════ LOG DETAILS MODAL ═════════════════════════════════ -->
-  @if (selectedLog()) {
-  <div class="modal-overlay" (click)="closeLogDetails()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <header class="modal-header">
-        <h3>📋 Log Details</h3>
-        <button class="btn-close" (click)="closeLogDetails()">✕</button>
-      </header>
-
-      <div class="modal-body">
-        <div class="detail"><strong>Level:</strong> {{ formatLevel(selectedLog()!.level) }}</div>
-        <div class="detail"><strong>Time:</strong> {{ formatTimestamp(selectedLog()!.timestamp) }}</div>
-        <div class="detail"><strong>Message:</strong> {{ selectedLog()!.message }}</div>
-
-        @if (selectedLog()!.correlationId) {
-        <div class="detail"><strong>Correlation:</strong> {{ selectedLog()!.correlationId }}</div>
-        }
-
-        @if (selectedLog()!.url) {
-        <div class="detail"><strong>URL:</strong> {{ selectedLog()!.url }}</div>
-        }
-
-        @if (selectedLog()!.context) {
-        <div class="detail"><strong>Context:</strong></div>
-        <pre class="context-json">{{ formatContext(selectedLog()!.context) }}</pre>
-        }
-      </div>
-
-      <footer class="modal-footer">
-        <button class="btn btn-sm btn-secondary" (click)="copyLogToClipboard(selectedLog()!)">
-          📋 Copy
-        </button>
-        <button class="btn btn-sm btn-primary" (click)="closeLogDetails()">Close</button>
-      </footer>
+      <button (click)="clearLogs()">🗑️ Clear</button>
+      <button (click)="exportLogs()">💾 Export</button>
     </div>
   </div>
-  }
 
-  <!-- ═════════════════════════════════ FOOTER ═════════════════════════════════ -->
-  <footer class="footer">
-    <div class="footer-info">
-      <span>Last updated: {{ formatTimestamp(lastUpdated()) }}</span>
-      <span>•</span>
-      <span>Logs: {{ allLogs().length }} (showing {{ logs().length }})</span>
-      <span>•</span>
-      <span>
-        <span class="status-dot" [class.paused]="isPaused()"></span>
-        {{ isPaused() ? 'Paused' : 'Live' }}
-      </span>
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Logs</div>
+      <div class="metric-value">{{ metrics().totalLogs }}</div>
     </div>
-  </footer>
+    <div class="metric-card error">
+      <div class="metric-label">Errors</div>
+      <div class="metric-value">{{ metrics().totalErrors }}</div>
+    </div>
+    <div class="metric-card warning">
+      <div class="metric-label">Warnings</div>
+      <div class="metric-value">{{ metrics().totalWarnings }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">HTTP Requests</div>
+      <div class="metric-value">{{ metrics().httpRequests }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Slow Requests</div>
+      <div class="metric-value">{{ metrics().slowRequests }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Error Rate</div>
+      <div class="metric-value">{{ metrics().errorRate }}</div>
+    </div>
+  </div>
+
+  <!-- Level Stats -->
+  <div class="level-stats">
+    @for (level of availableLevels(); track level) {
+      <button 
+        class="level-badge"
+        [ngClass]="getLevelClass(level)"
+        [class.active]="levelFilter() === level"
+        (click)="levelFilter.set(level)">
+        {{ getLevelIcon(level) }} {{ level }} ({{ logLevelCounts()[level] || 0 }})
+      </button>
+    }
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input
+      type="text"
+      placeholder="🔍 Search logs..."
+      [value]="searchTerm()"
+      (input)="onSearchInput($event)"
+      class="search-input"
+    />
+
+    <select title="..." (change)="onLevelFilterChange($event)" [value]="levelFilter()">
+      <option value="all">All Levels</option>
+      @for (level of availableLevels(); track level) {
+        <option [value]="level">{{ level }}</option>
+      }
+    </select>
+
+    <select title="..." (change)="onTypeFilterChange($event)" [value]="typeFilter()">
+      <option value="all">All Types</option>
+      @for (type of availableTypes(); track type) {
+        <option [value]="type">{{ type }}</option>
+      }
+    </select>
+
+    <select title="..." (change)="onStatusFilterChange($event)" [value]="statusFilter()">
+      <option value="all">All Status</option>
+      @for (status of availableStatuses(); track status) {
+        <option [value]="status">{{ status }}</option>
+      }
+    </select>
+
+    <input
+      type="number"
+      min="10"
+      max="1000"
+      [value]="maxLogs()"
+      (change)="onMaxLogsChange($event)"
+      placeholder="Max logs"
+      class="max-logs-input"
+    />
+
+    @if (isFiltering()) {
+      <button (click)="clearFilters()" class="clear-filters">
+        ✕ Clear Filters
+      </button>
+    }
+  </div>
+
+  <!-- Log List -->
+  <div class="logs-container">
+    @if (!hasLogs()) {
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No logs yet. Start using the application to see logs here.</p>
+      </div>
+    } @else if (!hasFilteredLogs()) {
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>No logs match your filters.</p>
+        <button (click)="clearFilters()">Clear Filters</button>
+      </div>
+    } @else {
+      <div class="logs-list">
+        @for (log of filteredLogs(); track trackByLog($index, log)) {
+          <div
+            class="log-entry"
+            [ngClass]="getLevelClass(log.log?.level || '')"
+            (click)="selectLog(log)">
+            
+            <div class="log-timestamp">
+              {{ formatTimestamp(log['@timestamp']) }}
+            </div>
+
+            <div class="log-level">
+              {{ getLevelIcon(log.log?.level || '') }}
+            </div>
+
+            <div class="log-type">
+              {{ getTypeIcon(log.log?.type || '') }}
+            </div>
+
+            <div class="log-content">
+              <div class="log-source">{{ log.log?.source }}</div>
+              <div class="log-message">{{ truncateMessage(log.log?.message || '', 150) }}</div>
+              
+              @if (log.http) {
+                <div class="log-http">
+                  <span [ngClass]="getStatusClass(log.http.status_code)">
+                    {{ log.http.status_code }}
+                  </span>
+                  <span>{{ log.http.method }}</span>
+                  <span class="log-url">{{ log.http.url }}</span>
+                  @if (log.http.duration_ms) {
+                    <span class="log-duration">{{ formatDuration(log.http.duration_ms) }}</span>
+                  }
+                </div>
+              }
+            </div>
+            <div class="log-trace">
+              <div class="trace-id">trace: {{ log.trace.id.substring(0, 8) }}...</div>
+              @if (log.trace.span?.id) {
+                <div class="span-id">span: {{ log.trace.span?.id?.substring(0, 8) }}...</div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Log Details Modal -->
+  @if (selectedLog()) {
+    <div class="modal-overlay" (click)="closeLogDetails()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Log Details</h2>
+          <button (click)="closeLogDetails()" class="modal-close">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="detail-actions">
+            <button (click)="copyLogToClipboard(selectedLog()!)">
+              📋 Copy JSON
+            </button>
+          </div>
+          
+          <pre class="log-json">{{ formatJSON(selectedLog()) }}</pre>
+        </div>
+      </div>
+    </div>
+  }
 </div>
