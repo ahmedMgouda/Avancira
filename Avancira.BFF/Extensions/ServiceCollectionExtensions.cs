@@ -6,6 +6,7 @@ using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 using Polly.Extensions.Http;
@@ -43,7 +44,22 @@ public static class ServiceCollectionExtensions
 
         // MVC & API
         services.AddControllers();
-        services.AddHealthChecks();
+
+        services.AddHttpClient(DownstreamHealthCheck.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+            client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
+            {
+                NoCache = true,
+                NoStore = true,
+            };
+        });
+
+        services.AddHealthChecks()
+            .AddCheck<DownstreamHealthCheck>(
+                DownstreamHealthCheck.RegistrationName,
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { "ready", "live" });
 
         // Swagger (development only)
         if (environment.IsDevelopment())

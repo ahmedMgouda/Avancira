@@ -89,6 +89,8 @@ public partial class Program
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
 
+        builder.Services.AddHealthChecks();
+
         var app = builder.Build();
 
 
@@ -132,7 +134,7 @@ public partial class Program
         //app.UseMiddleware<CurrentUserMiddleware>();
 
         app.MapControllers();
-        //app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health");
 
 
         // ═════════════════════════════════════════════════════════
