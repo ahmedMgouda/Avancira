@@ -12,6 +12,7 @@ namespace Avancira.Infrastructure.Health;
 
 /// <summary>
 /// Provides a consistent set of health checks and endpoint mappings across Avancira services.
+/// Follows security best practices for public health endpoints.
 /// </summary>
 public static class HealthCheckExtensions
 {
@@ -93,12 +94,35 @@ public static class HealthCheckExtensions
 
         return builder;
     }
+    
+    /// <summary>
+    /// Maps health check endpoints following best practices:
+    /// - /health - Public endpoint with minimal info (safe for external monitoring)
+    /// - /health/live - Liveness probe (internal use)
+    /// - /health/ready - Readiness probe (internal use)
+    /// </summary>
     public static WebApplication MapAvanciraHealthChecks(
         this WebApplication app,
         AvanciraHealthCheckMappingOptions? options = null)
     {
         options ??= new AvanciraHealthCheckMappingOptions();
 
+        // PUBLIC ENDPOINT - Minimal information for external monitoring
+        // Returns only: status, timestamp, (optionally version)
+        // No internal details, no error messages, no dependency info
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResponseWriter = WritePublicHealthResponse,
+            AllowCachingResponses = false,
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+            }
+        });
+
+        // INTERNAL ENDPOINTS - For Kubernetes/Docker health probes
         app.MapHealthChecks(options.LivenessPath, new HealthCheckOptions
         {
             Predicate = registration => registration.Tags.Contains("live"),
@@ -119,6 +143,7 @@ public static class HealthCheckExtensions
             }
         });
 
+        // DETAILED ENDPOINT - For internal debugging (should be protected in production)
         app.MapHealthChecks(options.DetailedPath, new HealthCheckOptions
         {
             ResponseWriter = WriteDetailedResponse,
@@ -126,6 +151,24 @@ public static class HealthCheckExtensions
         });
 
         return app;
+    }
+
+    /// <summary>
+    /// Public health response - safe for external consumption
+    /// No sensitive information, no internal details
+    /// </summary>
+    private static Task WritePublicHealthResponse(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json";
+
+        var response = report.Status switch
+        {
+            HealthStatus.Healthy => PublicHealthResponse.Healthy(),
+            HealthStatus.Degraded => PublicHealthResponse.Degraded(),
+            _ => PublicHealthResponse.Unhealthy()
+        };
+
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, JsonOptions));
     }
 
     private static Task WriteLivenessResponse(HttpContext context, HealthReport report)
@@ -203,6 +246,7 @@ public static class HealthCheckExtensions
                 tags: new[] { "live" }));
         });
     }
+    
     private sealed class InlineHealthCheck : IHealthCheck
     {
         public Task<HealthCheckResult> CheckHealthAsync(

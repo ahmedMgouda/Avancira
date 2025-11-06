@@ -216,6 +216,7 @@ export class NetworkStatusService {
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(online => {
+        const wasOffline = !this._isOnline();
         this._isOnline.set(online);
         
         if (online) {
@@ -255,7 +256,7 @@ export class NetworkStatusService {
       });
 
     // Periodic connection check (every 30 seconds when online)
-    interval(30000)
+    interval(this.CHECK_INTERVAL)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         switchMap(() => this.verifyConnection())
@@ -295,10 +296,8 @@ export class NetworkStatusService {
     const startTime = performance.now();
     const maxAttempts = 3;
 
-    return fetch('/favicon.ico', {
-      method: 'HEAD',
-      cache: 'no-cache',
-      mode: 'no-cors'
+    return this.http.get<HealthCheckResponse>(this.HEALTH_ENDPOINT, {
+      headers: { 'Cache-Control': 'no-cache' }
     })
       .then(() => {
         const endTime = performance.now();
