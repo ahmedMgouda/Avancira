@@ -2,6 +2,7 @@
 
 using Avancira.BFF.Configuration;
 using Avancira.BFF.Services;
+using Avancira.Infrastructure.Health;
 using Duende.AccessTokenManagement.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -10,6 +11,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 using Polly.Extensions.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using Yarp.ReverseProxy.Transforms;
 
@@ -45,21 +50,12 @@ public static class ServiceCollectionExtensions
         // MVC & API
         services.AddControllers();
 
-        services.AddHttpClient(DownstreamHealthCheck.HttpClientName, client =>
+        var healthChecksBuilder = services.AddAvanciraHealthChecks(configuration, options =>
         {
-            client.Timeout = TimeSpan.FromSeconds(5);
-            client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
-            {
-                NoCache = true,
-                NoStore = true,
-            };
+            options.CheckDatabase = false;
         });
 
-        services.AddHealthChecks()
-            .AddCheck<DownstreamHealthCheck>(
-                DownstreamHealthCheck.RegistrationName,
-                failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "ready", "live" });
+        ConfigureDownstreamHealthChecks(services, configuration, settings, healthChecksBuilder);
 
         // Swagger (development only)
         if (environment.IsDevelopment())
@@ -78,6 +74,101 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    private static void ConfigureDownstreamHealthChecks(
+        IServiceCollection services,
+        IConfiguration configuration,
+        BffSettings settings,
+        IHealthChecksBuilder healthChecksBuilder)
+    {
+        var downstreamSection = configuration.GetSection("HealthCheck:Downstream");
+        if (!downstreamSection.Exists())
+        {
+            return;
+        }
+
+        var endpoints = new List<(DownstreamEndpoint Endpoint, HealthStatus FailureStatus)>();
+
+        foreach (var child in downstreamSection.GetChildren())
+        {
+            var enabled = child.GetValue<bool?>("Enabled");
+            if (enabled.HasValue && !enabled.Value)
+            {
+                continue;
+            }
+
+            var name = child.Key.ToLowerInvariant();
+            var url = child.GetValue<string>("Url") ?? ResolveDefaultUrl(name, settings);
+            var healthPath = child.GetValue<string>("HealthPath") ?? "health/live";
+
+            var endpoint = DownstreamEndpoint.Create(name, url, healthPath);
+
+            var timeoutSeconds = child.GetValue<int?>("Timeout");
+            if (timeoutSeconds.HasValue && timeoutSeconds.Value > 0)
+            {
+                endpoint.Timeout = TimeSpan.FromSeconds(timeoutSeconds.Value);
+            }
+
+            endpoints.Add((endpoint, ParseHealthStatus(child.GetValue<string>("FailureStatus"))));
+        }
+
+        if (endpoints.Count == 0)
+        {
+            return;
+        }
+
+        var httpClientTimeout = endpoints
+            .Select(e => e.Endpoint.Timeout)
+            .Where(t => t.HasValue && t.Value > TimeSpan.Zero)
+            .Select(t => t!.Value)
+            .DefaultIfEmpty(TimeSpan.FromSeconds(5))
+            .Max();
+
+        services.AddHttpClient("downstream-health-check", client =>
+        {
+            client.Timeout = httpClientTimeout;
+            client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
+            {
+                NoCache = true,
+                NoStore = true,
+            };
+            client.DefaultRequestHeaders.Add("User-Agent", "Avancira-BFF-HealthCheck/1.0");
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false
+        });
+
+        services.AddSingleton(new DownstreamHealthCheckOptions
+        {
+            HttpClientName = "downstream-health-check",
+            Endpoints = endpoints.Select(e => e.Endpoint).ToList()
+        });
+
+        var aggregatedFailureStatus = endpoints.Any(e => e.FailureStatus == HealthStatus.Unhealthy)
+            ? HealthStatus.Unhealthy
+            : endpoints.Any(e => e.FailureStatus == HealthStatus.Degraded)
+                ? HealthStatus.Degraded
+                : HealthStatus.Unhealthy;
+
+        healthChecksBuilder.AddCheck<DownstreamHealthCheck>(
+            "downstream_services",
+            failureStatus: aggregatedFailureStatus,
+            tags: new[] { "ready", "downstream" });
+    }
+
+    private static string? ResolveDefaultUrl(string name, BffSettings settings)
+        => name switch
+        {
+            "api" => settings.ApiBaseUrl,
+            "auth" => settings.Auth.Authority,
+            _ => null
+        };
+
+    private static HealthStatus ParseHealthStatus(string? value)
+        => Enum.TryParse<HealthStatus>(value, ignoreCase: true, out var parsed)
+            ? parsed
+            : HealthStatus.Unhealthy;
 
     /// <summary>
     /// Registers distributed cache (Redis or Memory)
