@@ -3,7 +3,7 @@ import { computed, inject, Injectable, Injector, OnDestroy, signal } from '@angu
 import { catchError, throwError } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
-import { ResilienceService } from '../../services/resilience.service';
+import { ResilienceService, RetryStrategy } from '../../services/resilience.service';
 import { LogMonitorService } from './log-monitor.service';
 import { SpanManagerService } from './span-manager.service';
 import { TraceManagerService } from './trace-manager.service';
@@ -426,14 +426,14 @@ export class LoggerService implements OnDestroy {
       'X-Skip-Loading': 'true'
     };
     
-    const retryConfig = this.config.remote.retry.enabled
+    const retryConfig: Partial<RetryStrategy> = this.config.remote.retry.enabled
       ? {
           maxRetries: this.config.remote.retry.maxRetries,
-          scalingDuration: this.config.remote.retry.baseDelayMs,
+          baseDelay: this.config.remote.retry.baseDelayMs,
           maxDelay: this.config.remote.retry.maxDelayMs,
           excludedStatusCodes: [400, 401, 403, 404, 422]
         }
-      : { maxRetries: 0, scalingDuration: 0, excludedStatusCodes: [] };
+      : { maxRetries: 0 };
     
     this.http.post(
       this.config.remote.endpoint,
