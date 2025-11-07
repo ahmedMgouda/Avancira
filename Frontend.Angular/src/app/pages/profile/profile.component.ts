@@ -7,8 +7,9 @@ import { MapAddressComponent } from '../../components/map-address/map-address.co
 
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../services/alert.service';
-import { SpinnerService } from '../../services/spinner.service';
 import { UserService } from '../../services/user.service';
+
+import { LoadingService } from '@core/loading/loading.service';
 
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
@@ -61,7 +62,7 @@ export class ProfileComponent implements OnInit {
     private alertService: AlertService,
     public authService: AuthService,
     private userService: UserService,
-    private spinnerService: SpinnerService,
+    private loader: LoadingService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
@@ -141,18 +142,18 @@ export class ProfileComponent implements OnInit {
   saveProfile(): void {
     if (!this.profile) return;
 
-    this.spinnerService.show();
+    this.loader.showGlobal('Saving profile...');
 
     this.userService.updateUser(this.profile, this.profileImageFile || undefined).subscribe({
       next: () => {
         this.alertService.successAlert('Profile updated successfully.', 'Success');
         this.profileImageFile = null;
-        this.spinnerService.hide();
+        this.loader.hideGlobal();
       },
       error: (err) => {
         console.error('Failed to update profile', err);
         this.alertService.errorAlert('Failed to update profile. Please try again.', 'Error');
-        this.spinnerService.hide();
+        this.loader.hideGlobal();
       }
     });
   }
