@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { ToastService } from '../../services/toast.service';
+import { ToastService } from '@core/toast/toast.service';
 
 
 declare var JitsiMeetExternalAPI: any;
@@ -24,7 +24,7 @@ export class VideoCallWindowComponent implements OnInit, OnDestroy {
       const displayName = params['displayName'];
 
       if (!roomName || !domain) {
-        this.toastService.showError('Missing required meeting parameters.');
+        this.toastService.error('Missing required meeting parameters.');
         return;
       }
 
@@ -42,7 +42,7 @@ export class VideoCallWindowComponent implements OnInit, OnDestroy {
   private loadJitsi(roomName: string, domain: string, jwt: string | null, displayName: string | null): void {
     const container = document.getElementById('jitsi-container');
     if (!container) {
-      this.toastService.showError('Failed to find Jitsi container.');
+      this.toastService.error('Failed to find Jitsi container.');
       return;
     }
 
@@ -65,16 +65,16 @@ export class VideoCallWindowComponent implements OnInit, OnDestroy {
         }
       });
 
-      this.toastService.showSuccess('Video call started successfully.');
+      this.toastService.success('Video call started successfully.');
 
       this.jitsiApi.addEventListener('videoConferenceLeft', () => {
-        this.toastService.showInfo('You have left the meeting.');
+        this.toastService.info('You have left the meeting.');
         this.cleanupJitsi();
       });
 
     } catch (error) {
       console.error('Failed to initialize Jitsi Meet API:', error);
-      this.toastService.showError('Could not start the video call. Please try again.');
+      this.toastService.error('Could not start the video call. Please try again.');
     }
   }
 

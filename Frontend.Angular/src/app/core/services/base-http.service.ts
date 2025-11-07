@@ -39,7 +39,6 @@ export abstract class BaseHttpService<
   getAll(filter: TFilter = {} as TFilter): Observable<PaginatedResult<T>> {
     const params = this.buildHttpParams(filter);
     return this.http.get<PaginatedResult<T>>(this.apiUrl, { params }).pipe(
-      this.resilience.withRetry(),
       tap(result => {
         this.entitiesSignal.set(result);
         this.cache.setList(result.items);
@@ -62,7 +61,6 @@ export abstract class BaseHttpService<
     }
 
     return this.http.get<T>(`${this.apiUrl}/${id}`).pipe(
-      this.resilience.withRetry(),
       tap(entity => {
         this.cache.set(entity.id, entity);
         this.logger.info(`Fetched ${this.entityName} #${entity.id}`, this.enrichLog());
@@ -92,7 +90,6 @@ export abstract class BaseHttpService<
   update(dto: TUpdate): Observable<T> {
     const id = (dto as any).id;
     return this.http.put<T>(`${this.apiUrl}/${id}`, dto).pipe(
-      this.resilience.withRetry({ mode: 'linear', maxRetries: 2 }), // optional for idempotent PUTs
       tap(entity => {
         this.cache.set(entity.id, entity);
         this.cache.invalidateList();

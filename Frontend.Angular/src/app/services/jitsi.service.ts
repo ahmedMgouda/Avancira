@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { ToastService } from '../services/toast.service';
+import { ToastService } from '@core/toast/toast.service';
 
 import { Lesson } from '../models/lesson';
 import { User } from '../models/user';
@@ -18,13 +18,13 @@ export class JitsiService {
     try {
       // Validate meeting domain (should be present in the lesson)
       if (!lesson?.meetingDomain) {
-        this.toastService.showError('Error: Meeting domain is missing.');
+        this.toastService.error('Error: Meeting domain is missing.');
         return;
       }
 
       // Validate user - Reject guests
       if (!user?.email || !user?.firstName || !user?.lastName) {
-        this.toastService.showError('Error: Unauthorized access. User must be authenticated.');
+        this.toastService.error('Error: Unauthorized access. User must be authenticated.');
         return;
       }
 
@@ -33,7 +33,7 @@ export class JitsiService {
 
       // Validate essential lesson details
       if (!lesson?.meetingRoomName || !lesson?.meetingUrl) {
-        this.toastService.showError('Error: Meeting details are missing.');
+        this.toastService.error('Error: Meeting details are missing.');
         return;
       }
 
@@ -77,6 +77,6 @@ export class JitsiService {
  
   private handleError(error: any): void {
     console.error('JitsiService Error:', error);
-    this.toastService.showError('Failed to start video call. Please check your settings and try again.');
+    this.toastService.error('Failed to start video call. Please check your settings and try again.');
   }
 }

@@ -29,7 +29,10 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
 
   // Skip retry if header set
   if (req.headers.has('X-Skip-Retry')) {
-    return next(req);
+    const sanitizedRequest = req.clone({
+      headers: req.headers.delete('X-Skip-Retry')
+    });
+    return next(sanitizedRequest);
   }
 
   const parentContext = traceContext.getCurrentContext();

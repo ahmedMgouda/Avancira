@@ -22,9 +22,10 @@ import { ConfirmationDialogService } from '../../../services/confirmation-dialog
 import { GridState, GridStateService } from '../../../services/grid-state.service.service';
 import { JitsiService } from '../../../services/jitsi.service';
 import { LessonService } from '../../../services/lesson.service';
-import { SpinnerService } from '../../../services/spinner.service';
-import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
+
+import { LoadingService } from '@core/loading/loading.service';
+import { ToastService } from '@core/toast/toast.service';
 
 import { DurationPipe } from '../../../pipes/duration.pipe';
 
@@ -77,7 +78,7 @@ export class LessonsComponent implements OnInit {
 
     //#region Constructor & Lifecycle Hooks
     constructor(
-        private spinnerService: SpinnerService,
+        private loader: LoadingService,
         private toastService: ToastService,
         private lessonService: LessonService,
         private userService: UserService,
@@ -88,7 +89,7 @@ export class LessonsComponent implements OnInit {
 
 
     ngOnInit(): void {
-        this.toastService.showSuccess('Lesson canceled successfully.');
+        this.toastService.success('Lesson canceled successfully.');
 
         this.loadLessons();
     }
@@ -124,16 +125,16 @@ export class LessonsComponent implements OnInit {
     loadLessons(event?: any): void {
         if (event && event.isInteracted === false) return;
 
-        this.spinnerService.show();
+        this.loader.showGlobal('Loading lessons...');
         this.lessonService.getAllLessons(this.currentPage, this.pageSettings.pageSize, this.lessonFilter)
-            .pipe(finalize(() => this.spinnerService.hide()))
+            .pipe(finalize(() => this.loader.hideGlobal()))
             .subscribe({
                 next: (response) => {
                     this.gridData = { result: response.lessons.results, count: response.lessons.totalResults };
                 },
                 error: (err) => {
                     console.error('Failed to fetch lessons:', err);
-                    this.toastService.showError('Failed to load lessons. Please try again.');
+                    this.toastService.error('Failed to load lessons. Please try again.');
                 }
             });
     }
@@ -148,18 +149,18 @@ export class LessonsComponent implements OnInit {
 
         if (!confirmed) return;
 
-        this.spinnerService.show(); // Show loader
+        this.loader.showGlobal('Cancelling lesson...');
 
-        this.lessonService.cancelLesson(lesson.id).pipe(finalize(() => this.spinnerService.hide())) // Hide loader after API call
+        this.lessonService.cancelLesson(lesson.id).pipe(finalize(() => this.loader.hideGlobal()))
             .subscribe({
                 next: () => {
                     lesson.status = LessonStatus.Canceled;
                     this.grid.refresh();
-                    this.toastService.showSuccess('Lesson canceled successfully.');
+                    this.toastService.success('Lesson canceled successfully.');
                 },
                 error: (err) => {
                     console.error('Failed to cancel lesson:', err);
-                    this.toastService.showError('Failed to cancel lesson. Please try again.');
+                    this.toastService.error('Failed to cancel lesson. Please try again.');
                 },
             });
     }
@@ -175,19 +176,19 @@ export class LessonsComponent implements OnInit {
             if (!confirmed) return;
         }
 
-        this.spinnerService.show(); // Show loader
+        this.loader.showGlobal('Updating lesson status...');
 
-        this.lessonService.respondToProposition(lesson.id, accept).pipe(finalize(() => this.spinnerService.hide())) // Hide loader after API call
+        this.lessonService.respondToProposition(lesson.id, accept).pipe(finalize(() => this.loader.hideGlobal()))
             .subscribe({
                 next: () => {
                     lesson.status = accept ? LessonStatus.Booked : LessonStatus.Canceled;
                     this.grid.refresh();
                     const message = accept ? 'Lesson accepted successfully.' : 'Lesson canceled successfully.';
-                    this.toastService.showSuccess(message);
+                    this.toastService.success(message);
                 },
                 error: (err) => {
                     console.error('Failed to respond to proposition:', err);
-                    this.toastService.showError('Failed to respond to proposition. Please try again.');
+                    this.toastService.error('Failed to respond to proposition. Please try again.');
                 }
             });
     }
