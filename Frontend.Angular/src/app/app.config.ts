@@ -20,7 +20,9 @@ import { loadingInterceptor } from './core/loading/loading.interceptor';
 import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
 import { provideLogging } from './core/logging/providers/logging.providers';
-import { networkInterceptor } from './core/network/network.interceptor';  
+import { NETWORK_STATUS_CONFIG } from './core/network';
+import { networkInterceptor } from './core/network/network.interceptor';
+import { environment } from './environments/environment';
 import { routes } from './routes/app.routes';
 
 function initApp() {
@@ -34,51 +36,55 @@ export const appConfig: ApplicationConfig = {
     // Change Detection (Zoneless)
     // ═══════════════════════════════════════════════════════════
     provideExperimentalZonelessChangeDetection(),
-    
+
     // ═══════════════════════════════════════════════════════════
     // Router & Animations
     // ═══════════════════════════════════════════════════════════
     provideRouter(routes),
     provideAnimationsAsync(),
-    
+
     // ═══════════════════════════════════════════════════════════
     // HTTP Client with Interceptor Pipeline (ORDER MATTERS!)
     // ═══════════════════════════════════════════════════════════
     provideHttpClient(
       withInterceptors([
-        // 1️⃣ Trace Context - Add W3C trace headers to ALL requests
-        traceContextInterceptor,
-        
-        // 2️⃣ HTTP Logging - Log requests (respects X-Skip-Logging)
-        httpLoggingInterceptor,
-        
-        // 3️⃣ Auth - Add authentication token
-        authInterceptor,
-        
-        // 4️⃣ Loading - Track loading state (respects X-Skip-Loading)
-        loadingInterceptor,
-        
-        // 5️⃣ Network - Check connectivity & mark network errors ⚠️ CRITICAL: BEFORE RETRY
-        networkInterceptor,
-        
-        // 6️⃣ Retry - Handle failures with exponential backoff (respects X-Skip-Retry)
-        retryInterceptor,
-        
-        // 7️⃣ Error Handling - Log errors, mark as __logged (respects X-Skip-Logging)
-        httpErrorInterceptor
+        traceContextInterceptor, // 1️⃣ Trace Context - W3C trace headers
+        httpLoggingInterceptor,  // 2️⃣ Logging - respects X-Skip-Logging
+        authInterceptor,         // 3️⃣ Auth - attach token
+        loadingInterceptor,      // 4️⃣ Loading - respects X-Skip-Loading
+        networkInterceptor,      // 5️⃣ Network - must come before retry
+        retryInterceptor,        // 6️⃣ Retry - exponential backoff
+        httpErrorInterceptor     // 7️⃣ Error Handling - log errors
       ])
     ),
-    
+
+    // ──────────────────────────────────────────────────────────────
+    // NETWORK STATUS CONFIGURATION
+    // ──────────────────────────────────────────────────────────────
+    {
+      provide: NETWORK_STATUS_CONFIG,
+      useValue: {
+        // BFF health endpoint
+        healthEndpoint: `https://localhost:9200/health`,
+
+        // Check interval (30s = industry standard)
+        checkInterval: 30000,
+
+        // Max retry attempts for health checks
+        maxAttempts: 3
+      }
+    },
+
     // ═══════════════════════════════════════════════════════════
     // Core Systems
     // ═══════════════════════════════════════════════════════════
     provideLoading(),
     ...provideLogging(),
-    
+
     // ═══════════════════════════════════════════════════════════
     // Error Handling & Initialization
     // ═══════════════════════════════════════════════════════════
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
-    provideAppInitializer(initApp),
+    provideAppInitializer(initApp)
   ]
 };

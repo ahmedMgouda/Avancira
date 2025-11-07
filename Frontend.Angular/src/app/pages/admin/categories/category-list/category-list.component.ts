@@ -34,7 +34,7 @@ export class CategoryListComponent implements OnInit {
 
 
   // Use service's entities signal for consistent state
-  readonly paginatedData = this.categoryService.entities$;
+  readonly paginatedData = this.categoryService.entities;
 
   // ────────────────────────────────────────────────────────────────
   // FILTER STATE

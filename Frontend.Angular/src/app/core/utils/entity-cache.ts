@@ -75,9 +75,10 @@ export class EntityCache<T extends { id: number }> {
   // ─────────────────────────────────────────────────────────
 
   /** Cache a list of entities (e.g., paginated result) */
-  setList(data: T[]): void {
-    this.listCache = { data, timestamp: Date.now() };
-  }
+  setList(data: readonly T[]): void {
+  this.listCache = { data: [...data], timestamp: Date.now() };
+}
+
 
   /** Get cached list (returns null if expired or missing) */
   getList(): T[] | null {

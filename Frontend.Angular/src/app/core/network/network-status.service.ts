@@ -1,4 +1,5 @@
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { HttpBackend, HttpClient } from '@angular/common/http';
+import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent, interval, merge } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -6,25 +7,52 @@ import { map, switchMap } from 'rxjs/operators';
 import { ResilienceService } from '../services/resilience.service';
 import { ToastService } from '../toast/toast.service';
 
+import { ConnectionQuality, HealthCheckResponse, NetworkDiagnostics } from './health-check.model';
+import { NETWORK_STATUS_CONFIG } from './network-status.config';
+
 /**
- * Network Status Service (Angular 19 - Signal-Based)
+ * Network Status Service - Industry Best Practice Implementation
  * ═══════════════════════════════════════════════════════════════════════
- * Centralized network connectivity monitoring with toast notifications
- * Uses ResilienceService for retry logic
+ * Follows Kubernetes/Docker health check patterns
+ * Uses HttpBackend to bypass interceptors (recommended for health checks)
  * 
- * Features:
- *   ✅ Real-time online/offline detection
- *   ✅ Actual internet connectivity verification
- *   ✅ Connection quality estimation (latency)
- *   ✅ Toast notifications for connection changes
- *   ✅ Uses ResilienceService for exponential backoff
- *   ✅ Angular 19 signal-based API
+ * FIXES IMPLEMENTED:
+ *   ✅ Promise deduplication prevents duplicate health checks
+ *   ✅ Reactive toast management with effect()
+ *   ✅ Proper cleanup of all resources
+ *   ✅ Centralized state management
+ * 
+ * Architecture:
+ *   - Bypasses ALL interceptors using HttpBackend (no circular dependencies)
+ *   - Uses BFF /health endpoint (aggregates backend service health)
+ *   - Implements exponential backoff via ResilienceService
+ *   - Signal-based reactive state management
+ * 
+ * BFF Health Check Pattern:
+ *   Frontend → BFF /health → Backend Services
+ *   The BFF aggregates health from all downstream services
  */
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastService = inject(ToastService);
   private readonly resilienceService = inject(ResilienceService);
+  private readonly config = inject(NETWORK_STATUS_CONFIG);
+  
+  /**
+   * Interceptor-free HttpClient for health checks
+   * Best Practice: Health checks should NOT go through interceptors
+   * This prevents circular dependencies and ensures pure connectivity testing
+   */
+  private readonly httpClient: HttpClient;
+
+  // ────────────────────────────────────────────────────────────────
+  // CONFIGURATION
+  // ────────────────────────────────────────────────────────────────
+  
+  private readonly HEALTH_ENDPOINT: string;
+  private readonly CHECK_INTERVAL: number;
+  private readonly MAX_ATTEMPTS: number;
 
   // ────────────────────────────────────────────────────────────────
   // SIGNALS
@@ -36,13 +64,28 @@ export class NetworkStatusService {
   private readonly _latency = signal<number | null>(null);
   private readonly _wasOffline = signal(false);
   
-  // Track active wait promises for cleanup
+  // ────────────────────────────────────────────────────────────────
+  // DEDUPLICATION & CLEANUP
+  // ────────────────────────────────────────────────────────────────
+  
+  /**
+   * FIX #1: Promise deduplication prevents duplicate health checks
+   * If verification is in progress, return the existing promise
+   */
+  private verificationPromise: Promise<boolean> | null = null;
+  
+  /**
+   * Track active wait promises for cleanup
+   */
   private readonly activeWaitPromises = new Set<{
     interval: number;
     timeout: number;
   }>();
 
-  // Track toast IDs to prevent duplicates
+  /**
+   * FIX #2: Toast management via effect (reactive)
+   * Single source of truth for toast state
+   */
   private offlineToastId: string | null = null;
   
   // ────────────────────────────────────────────────────────────────
@@ -56,26 +99,26 @@ export class NetworkStatusService {
   readonly latency = this._latency.asReadonly();
   readonly wasOffline = this._wasOffline.asReadonly();
   
-  // Connection quality based on latency
-  readonly quality = computed(() => {
+  // Connection quality based on latency (standard thresholds)
+  readonly quality = computed<ConnectionQuality>(() => {
     const lat = this._latency();
     if (lat === null || !this._isOnline()) return 'unknown';
-    if (lat < 100) return 'excellent';
-    if (lat < 300) return 'good';
-    if (lat < 600) return 'fair';
-    return 'poor';
+    if (lat < 100) return 'excellent';  // < 100ms
+    if (lat < 300) return 'good';       // 100-300ms
+    if (lat < 600) return 'fair';       // 300-600ms
+    return 'poor';                       // > 600ms
   });
 
   readonly qualityMessage = computed(() => {
     const q = this.quality();
-    const map: Record<string, string> = {
+    const map: Record<ConnectionQuality, string> = {
       excellent: 'Excellent connection',
       good: 'Good connection',
       fair: 'Fair connection',
       poor: 'Poor connection',
       unknown: 'Connection quality unknown'
     };
-    return map[q] || map['unknown'];
+    return map[q];
   });
 
   // Status icon for UI
@@ -84,18 +127,28 @@ export class NetworkStatusService {
     if (!this._isOnline()) return '📴';
     
     const q = this.quality();
-    const icons: Record<string, string> = {
+    const icons: Record<ConnectionQuality, string> = {
       excellent: '🟢',
       good: '🟡',
       fair: '🟠',
       poor: '🔴',
       unknown: '⚪'
     };
-    return icons[q] || icons['unknown'];
+    return icons[q];
   });
 
-  constructor() {
+  constructor(handler: HttpBackend) {
+    // Create interceptor-free HttpClient
+    // Best Practice: Health checks bypass all interceptors
+    this.httpClient = new HttpClient(handler);
+    
+    // Load configuration
+    this.HEALTH_ENDPOINT = this.config.healthEndpoint || '/health';
+    this.CHECK_INTERVAL = this.config.checkInterval || 30000;
+    this.MAX_ATTEMPTS = this.config.maxAttempts || 3;
+    
     this.initializeNetworkMonitoring();
+    this.initializeToastManagement();
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -103,15 +156,26 @@ export class NetworkStatusService {
   // ────────────────────────────────────────────────────────────────
 
   /**
+   * FIX #1: Promise deduplication prevents duplicate health checks
    * Verify actual internet connectivity with exponential backoff retry
+   * Calls BFF /health endpoint which aggregates backend service health
    */
   verifyConnection(): Promise<boolean> {
-    if (this._isVerifying()) {
-      return Promise.resolve(this._isOnline());
+    // Return existing promise if verification already in progress
+    if (this.verificationPromise) {
+      return this.verificationPromise;
     }
 
     this._isVerifying.set(true);
-    return this.attemptConnection(1);
+    
+    this.verificationPromise = this.attemptConnection(1)
+      .finally(() => {
+        // Clear cache and verification state
+        this.verificationPromise = null;
+        this._isVerifying.set(false);
+      });
+      
+    return this.verificationPromise;
   }
 
   /**
@@ -130,12 +194,6 @@ export class NetworkStatusService {
           3000
         );
         this._wasOffline.set(false);
-        
-        // Dismiss offline toast
-        if (this.offlineToastId) {
-          this.toastService.dismiss(this.offlineToastId);
-          this.offlineToastId = null;
-        }
       } else {
         this.toastService.error(
           'Still offline. Please check your network.',
@@ -150,6 +208,7 @@ export class NetworkStatusService {
 
   /**
    * Wait for online connection with proper cleanup
+   * Standard timeout: 30 seconds (Kubernetes default)
    */
   waitForOnline(timeout = 30000): Promise<void> {
     if (this._isOnline()) {
@@ -183,7 +242,7 @@ export class NetworkStatusService {
   /**
    * Get diagnostics for debugging
    */
-  getDiagnostics() {
+  getDiagnostics(): NetworkDiagnostics {
     return {
       isOnline: this._isOnline(),
       isOffline: this.isOffline(),
@@ -197,7 +256,11 @@ export class NetworkStatusService {
       navigatorOnLine: navigator.onLine,
       connectionType: (navigator as any).connection?.effectiveType || 'unknown',
       activeWaitCount: this.activeWaitPromises.size,
-      retryStrategy: this.resilienceService.strategy()
+      retryStrategy: this.resilienceService.strategy(),
+      healthEndpoint: this.HEALTH_ENDPOINT,
+      checkInterval: this.CHECK_INTERVAL,
+      maxAttempts: this.MAX_ATTEMPTS,
+      bypassesInterceptors: true
     };
   }
 
@@ -206,7 +269,7 @@ export class NetworkStatusService {
   // ────────────────────────────────────────────────────────────────
 
   /**
-   * Initialize network monitoring with toast notifications
+   * Initialize network monitoring (browser events and periodic checks)
    */
   private initializeNetworkMonitoring(): void {
     // Listen to browser online/offline events
@@ -216,46 +279,23 @@ export class NetworkStatusService {
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(online => {
-        const wasOffline = !this._isOnline();
         this._isOnline.set(online);
         
         if (online) {
-          // Dismiss offline toast if showing
-          if (this.offlineToastId) {
-            this.toastService.dismiss(this.offlineToastId);
-            this.offlineToastId = null;
-          }
-
-          // Verify actual connectivity
+          // Verify actual connectivity (browser might lie)
           this.verifyConnection().then(isActuallyOnline => {
             if (isActuallyOnline && this._wasOffline()) {
-              this.toastService.success(
-                'Connection restored',
-                'Back Online',
-                3000
-              );
               this._wasOffline.set(false);
             }
           });
         } else {
-          // Show offline toast
+          // Mark as offline
           this._latency.set(null);
           this._wasOffline.set(true);
-          
-          this.offlineToastId = this.toastService.showWithAction(
-            'warning',
-            'No internet connection',
-            {
-              label: 'Retry',
-              action: () => this.retry()
-            },
-            'Offline',
-            0 // Permanent
-          );
         }
       });
 
-    // Periodic connection check (every 30 seconds when online)
+    // Periodic connection check (every 30s - industry standard)
     interval(this.CHECK_INTERVAL)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -265,11 +305,6 @@ export class NetworkStatusService {
         // Detect silent disconnection
         if (!isOnline && !this._wasOffline()) {
           this._wasOffline.set(true);
-          this.offlineToastId = this.toastService.warning(
-            'Connection lost',
-            'Offline',
-            0
-          );
         }
       });
 
@@ -285,34 +320,101 @@ export class NetworkStatusService {
       this.cleanupActiveWaitPromises();
       if (this.offlineToastId) {
         this.toastService.dismiss(this.offlineToastId);
+        this.offlineToastId = null;
+      }
+    });
+  }
+
+  /**
+   * FIX #2: Centralized toast management using effect()
+   * Automatically reacts to online/offline state changes
+   * Single source of truth for toast behavior
+   */
+  private initializeToastManagement(): void {
+    effect(() => {
+      const online = this._isOnline();
+      const wasOff = this._wasOffline();
+      
+      if (!online) {
+        // Show offline toast if not already showing
+        if (!this.offlineToastId) {
+          this.offlineToastId = this.toastService.showWithAction(
+            'warning',
+            'No internet connection',
+            {
+              label: 'Retry',
+              action: () => this.retry()
+            },
+            'Offline',
+            0 // Permanent until dismissed
+          );
+        }
+      } else {
+        // Online - dismiss offline toast if exists
+        if (this.offlineToastId) {
+          this.toastService.dismiss(this.offlineToastId);
+          this.offlineToastId = null;
+          
+          // Show reconnection success if was offline
+          if (wasOff) {
+            this.toastService.success(
+              'Connection restored',
+              'Back Online',
+              3000
+            );
+            this._wasOffline.set(false);
+          }
+        }
       }
     });
   }
 
   /**
    * Attempt connection with retry using ResilienceService
+   * Implements exponential backoff (industry standard)
    */
   private attemptConnection(attempt: number): Promise<boolean> {
     const startTime = performance.now();
-    const maxAttempts = 3;
 
-    return this.http.get<HealthCheckResponse>(this.HEALTH_ENDPOINT, {
-      headers: { 'Cache-Control': 'no-cache' }
-    })
-      .then(() => {
+    return this.httpClient
+      .get<HealthCheckResponse>(this.HEALTH_ENDPOINT, {
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      .toPromise()
+      .then((response) => {
         const endTime = performance.now();
         const latency = Math.round(endTime - startTime);
         
-        this._isOnline.set(true);
-        this._latency.set(latency);
-        this._lastCheck.set(Date.now());
-        this._isVerifying.set(false);
+        // Validate response structure
+        if (!response || !response.status) {
+          throw new Error('Invalid health check response');
+        }
         
-        return true;
+        // Standard: healthy and degraded = online
+        // Only 'unhealthy' status = offline
+        const isHealthy = response.status === 'healthy' || response.status === 'degraded';
+        
+        if (isHealthy) {
+          this._isOnline.set(true);
+          this._latency.set(latency);
+          this._lastCheck.set(Date.now());
+          
+          // Log degraded status for monitoring
+          if (response.status === 'degraded') {
+            console.warn('[NetworkStatus] BFF reporting degraded health', {
+              latency,
+              endpoint: this.HEALTH_ENDPOINT
+            });
+          }
+          
+          return true;
+        }
+        
+        throw new Error(`BFF unhealthy: ${response.status}`);
       })
-      .catch(() => {
-        // Use ResilienceService for retry delay calculation
-        if (attempt < maxAttempts) {
+      .catch((error) => {
+        // Retry with exponential backoff
+        if (attempt < this.MAX_ATTEMPTS) {
           const delay = this.resilienceService.calculateDelay(attempt);
 
           return new Promise<boolean>((resolve) => {
@@ -326,7 +428,13 @@ export class NetworkStatusService {
         this._isOnline.set(false);
         this._latency.set(null);
         this._lastCheck.set(Date.now());
-        this._isVerifying.set(false);
+        
+        console.warn('[NetworkStatus] BFF health check failed after all retries:', {
+          attempt,
+          maxAttempts: this.MAX_ATTEMPTS,
+          endpoint: this.HEALTH_ENDPOINT,
+          error: error?.message || error
+        });
         
         return false;
       });

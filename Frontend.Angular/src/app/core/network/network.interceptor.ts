@@ -9,27 +9,40 @@ import { inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { NetworkErrorTracker } from './network-error-tracker.service';
 import { NetworkStatusService } from './network-status.service';
 
 /**
  * Network Interceptor (Simplified - No Retry Logic)
  * ═══════════════════════════════════════════════════════════════════════
- * ONLY handles offline detection and marks network errors
+ * ONLY handles offline detection and tracks network errors using signals
  * Does NOT retry - that's the job of retryInterceptor
  * Does NOT show toasts - NetworkStatusService handles that
+ * 
+ * FIXES IMPLEMENTED:
+ *   ✅ Uses NetworkErrorTracker service instead of error mutation
+ *   ✅ Type-safe signal-based error tracking
+ *   ✅ Clean separation of concerns
+ *   ✅ No object mutations
  * 
  * Responsibilities:
  *   ✅ Check if offline before making requests
  *   ✅ Wait for connection restoration
- *   ✅ Mark network errors IMMEDIATELY for retry interceptor
+ *   ✅ Track network errors via NetworkErrorTracker
  *   ✅ Update network status on errors
  * 
  * CRITICAL: Must be placed BEFORE retryInterceptor in app.config.ts
  * 
- * Skip network check:
- *   httpClient.get('/api/data', {
- *     headers: { 'X-Skip-Network-Check': 'true' }
- *   })
+ * Example:
+ *   providers: [
+ *     provideHttpClient(
+ *       withInterceptors([
+ *         traceContextInterceptor,  // ← First (adds trace headers)
+ *         networkInterceptor,       // ← Second (detects network issues)
+ *         retryInterceptor          // ← Third (retries with backoff)
+ *       ])
+ *     )
+ *   ]
  */
 
 const CONNECTION_WAIT_TIMEOUT = 15000;
@@ -56,16 +69,7 @@ export const networkInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ): Observable<HttpEvent<unknown>> => {
   const networkService = inject(NetworkStatusService);
-
-  // ──────────────────────────────────────────────────────────────
-  // Skip network check if header is present
-  // ──────────────────────────────────────────────────────────────
-  if (req.headers.has('X-Skip-Network-Check')) {
-    const cleanReq = req.clone({
-      headers: req.headers.delete('X-Skip-Network-Check'),
-    });
-    return next(cleanReq);
-  }
+  const errorTracker = inject(NetworkErrorTracker);
 
   // ──────────────────────────────────────────────────────────────
   // Check if offline before making request
@@ -79,9 +83,9 @@ export const networkInterceptor: HttpInterceptorFn = (
           const subscription = next(req).subscribe({
             next: value => subscriber.next(value),
             error: err => {
-              // Mark network errors even after waiting
+              // Track network errors even after waiting
               if (err instanceof HttpErrorResponse && isNetworkError(err)) {
-                (err as any).__isNetworkError = true;
+                errorTracker.markNetworkError();
               }
               subscriber.error(err);
             },
@@ -91,16 +95,15 @@ export const networkInterceptor: HttpInterceptorFn = (
           return subscription;
         })
         .catch(_error => {
-          // Timeout waiting for connection - create marked error
+          // Timeout waiting for connection - track error
+          errorTracker.markNetworkError();
+          
           const networkError = new HttpErrorResponse({
             error: 'Network connection timeout',
             status: 0,
             statusText: 'Network Timeout',
             url: req.url
           });
-          
-          // Mark as network error
-          (networkError as any).__isNetworkError = true;
           
           subscriber.error(networkError);
         });
@@ -113,14 +116,15 @@ export const networkInterceptor: HttpInterceptorFn = (
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Make request and mark network errors IMMEDIATELY
+  // Make request and track network errors via NetworkErrorTracker
+  // FIX #3: Signal-based error tracking (no object mutation)
   // ──────────────────────────────────────────────────────────────
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Detect and mark network errors BEFORE passing to retry interceptor
+      // Detect and track network errors
       if (isNetworkError(error)) {
-        // ⚠️ CRITICAL: Mark the error IMMEDIATELY
-        (error as any).__isNetworkError = true;
+        // FIX #3: Use signal-based error tracker
+        errorTracker.markNetworkError();
         
         // Trigger network status verification (will show toasts if needed)
         networkService.verifyConnection();
@@ -134,13 +138,16 @@ export const networkInterceptor: HttpInterceptorFn = (
               status: error.status,
               statusText: error.statusText,
               message: error.message,
-              isNetworkError: true
+              tracked: true
             }
           );
         }
+      } else {
+        // Non-network error - mark success to clear error state
+        errorTracker.markSuccess();
       }
 
-      // Pass error to next interceptor with flag set
+      // Pass error to next interceptor
       return throwError(() => error);
     })
   );
