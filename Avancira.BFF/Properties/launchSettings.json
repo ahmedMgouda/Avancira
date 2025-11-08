@@ -8,5 +8,11 @@
       },
       "applicationUrl": "https://localhost:9200;http://localhost:59469"
     }
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "https://localhost:4200",
+      "http://localhost:4200"
+    ]
   }
 }

@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { PortalShellComponent } from '../layouts/portal/portal-shell.component';
 
-import { roleGuard } from '../core/guards/role.guard';
+import { roleGuard } from '../core/auth/guards/role.guard';
 
 export const studentRoutes: Routes = [
   {

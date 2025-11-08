@@ -1,3 +1,9 @@
-export * from './toast.model';
-export * from './toast.service';
-export * from './toast-container.component';
+// Models
+export * from './models/toast.model';
+
+// Services
+export * from './services/toast.service';
+export * from './services/toast-coordinator.service';
+
+// Components
+export * from './components/toast-container.component';

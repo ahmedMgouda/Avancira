@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { SpanManagerService } from '../logging/services/span-manager.service';
 import { TraceManagerService } from '../logging/services/trace-manager.service';
 
-import { IdGenerator } from '../logging/utils/id-generator.util';
+import { IdGenerator } from '../utils/id-generator';
 
 /**
  * W3C Trace Context Implementation

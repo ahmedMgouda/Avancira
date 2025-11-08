@@ -10,7 +10,7 @@ import { AlertService } from '../../services/alert.service';
 import { ConfigService } from '../../services/config.service';
 import { PaymentService } from '../../services/payment.service';
 import { SubscriptionService } from '../../services/subscription.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../core/auth/services/auth.service';
 import { ConfigKey } from '../../models/config-key';
 
 import { Card } from '../../models/card';

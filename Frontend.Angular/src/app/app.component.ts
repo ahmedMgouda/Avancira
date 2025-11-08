@@ -2,10 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ConfirmationDialogComponent } from "./components/confirmation-dialog/confirmation-dialog.component";
-import { GlobalLoaderComponent } from "./core/loading/global-loader.component";
-import { TopProgressBarComponent } from "./core/loading/top-progress-bar.component";
+import { GlobalLoaderComponent } from "./core/loading/components/global-loader.component";
+import { TopProgressBarComponent } from "./core/loading/components/top-progress-bar.component";
 
-import { AuthService } from './core/services/auth.service';
+import { AuthService } from './core/auth/services/auth.service';
 
 import { ToastContainerComponent } from './core/toast';
 

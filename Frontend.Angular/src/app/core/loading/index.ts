@@ -1,32 +1,24 @@
-// ─────────────────────────────────────────────────────────────
-// Setup Function (use in app.config.ts)
-// ─────────────────────────────────────────────────────────────
-export { loadingInterceptor,provideLoading } from './provide-loading';
+/**
+ * Loading Module
+ * Loading indicators and state management
+ */
 
-// ─────────────────────────────────────────────────────────────
-// Service & Types (use in components/services)
-// ─────────────────────────────────────────────────────────────
+// Services & Types
 export { 
   type LoadingConfig,
   type LoadingDiagnostics,
   type LoadingService,
   type OperationInfo,
   type RequestInfo,
-  type RequestMetadata} from './loading.service';
+  type RequestMetadata
+} from './services/loading.service';
 
-// ─────────────────────────────────────────────────────────────
-// Directive (use in templates)
-// ─────────────────────────────────────────────────────────────
-export { LoadingDirective } from './loading.directive';
+// Providers
+export { loadingInterceptor, provideLoading } from './provide-loading';
 
-// ─────────────────────────────────────────────────────────────
-// UI Components (use in app.component.html)
-// ─────────────────────────────────────────────────────────────
-export { GlobalLoaderComponent } from './global-loader.component';
-export { TopProgressBarComponent } from './top-progress-bar.component';
+// Directives
+export { LoadingDirective } from './directives/loading.directive';
 
-// ─────────────────────────────────────────────────────────────
-// Internal Implementation (DO NOT EXPORT)
-// ─────────────────────────────────────────────────────────────
-// - provideRouteLoading (used internally by provideLoading)
-// - LOADING_CONFIG (use provideLoading config instead)
+// Components
+export { GlobalLoaderComponent } from './components/global-loader.component';
+export { TopProgressBarComponent } from './components/top-progress-bar.component';

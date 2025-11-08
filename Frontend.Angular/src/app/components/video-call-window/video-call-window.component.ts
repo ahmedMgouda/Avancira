@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { ToastService } from '@core/toast/toast.service';
+import { ToastService } from '@core/toast/services/toast.service';
 
 
 declare var JitsiMeetExternalAPI: any;

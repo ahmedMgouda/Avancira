@@ -1,4 +1,12 @@
 /**
+ * Optimized Entity Cache
+ * ═══════════════════════════════════════════════════════════════════════
+ * Phase 2 Performance Improvements:
+ *   ✅ TTL-based auto-cleanup timer (prevents memory leaks)
+ *   ✅ Lazy eviction (only on size check, not every write)
+ *   ✅ LRU eviction strategy (remove least recently used)
+ *   ✅ Proper cleanup on destroy
+ * 
  * Configuration options for EntityCache
  */
 export interface CacheConfig {
@@ -10,11 +18,18 @@ export interface CacheConfig {
 
   /** If true, refresh TTL each time an item is accessed */
   slidingTtl?: boolean;
+
+  /** Auto-cleanup interval in milliseconds (default: 5 minutes) */
+  cleanupInterval?: number;
+
+  /** Enable LRU eviction (default: true) */
+  useLRU?: boolean;
 }
 
 interface CachedItem<T> {
   data: T;
   timestamp: number;
+  lastAccessed: number; // For LRU
 }
 
 interface ListCache<T> {
@@ -25,12 +40,17 @@ interface ListCache<T> {
 /**
  * Generic in-memory cache for entities with IDs.
  * ─────────────────────────────────────────────────────────────
- * TTL expiration per item
- * Optional sliding TTL (extends life on access)
- * Size-bounded eviction
- * Separate list cache for bulk queries
+ * ✅ TTL expiration per item
+ * ✅ Optional sliding TTL (extends life on access)
+ * ✅ Size-bounded eviction with LRU strategy
+ * ✅ Separate list cache for bulk queries
+ * ✅ Automatic cleanup timer (prevents memory leaks)
+ * ✅ Lazy eviction (only when needed)
  * 
- * ENHANCEMENT: Improved clear() to prevent race conditions
+ * PERFORMANCE IMPROVEMENTS:
+ *   - Cleanup only runs periodically (not every write)
+ *   - Size check is O(1) (just checks cache.size)
+ *   - LRU eviction removes least recently used (not oldest)
  */
 export class EntityCache<T extends { id: number }> {
   private cache = new Map<number, CachedItem<T>>();
@@ -38,8 +58,13 @@ export class EntityCache<T extends { id: number }> {
 
   private readonly defaultTtl = 5 * 60 * 1000; // 5 minutes
   private readonly defaultMaxSize = 100;
+  private readonly defaultCleanupInterval = 5 * 60 * 1000; // 5 minutes
 
-  constructor(private readonly config: CacheConfig = {}) {}
+  private cleanupTimer?: ReturnType<typeof setInterval>;
+
+  constructor(private readonly config: CacheConfig = {}) {
+    this.startAutoCleanup();
+  }
 
   // ─────────────────────────────────────────────────────────
   // 🔹 Single-item cache operations
@@ -55,14 +80,30 @@ export class EntityCache<T extends { id: number }> {
       return null;
     }
 
-    if (this.config.slidingTtl) cached.timestamp = Date.now();
+    // Update access tracking for LRU
+    cached.lastAccessed = Date.now();
+
+    // Sliding TTL: refresh timestamp
+    if (this.config.slidingTtl) {
+      cached.timestamp = Date.now();
+    }
+
     return cached.data;
   }
 
   /** Store a single item in the cache */
   set(id: number, data: T): void {
-    this.ensureSizeLimit();
-    this.cache.set(id, { data, timestamp: Date.now() });
+    // Lazy eviction: only check size when adding
+    if (this.cache.size >= (this.config.maxSize ?? this.defaultMaxSize)) {
+      this.evictOne();
+    }
+
+    const now = Date.now();
+    this.cache.set(id, {
+      data,
+      timestamp: now,
+      lastAccessed: now
+    });
   }
 
   /** Remove a single item by ID */
@@ -76,9 +117,8 @@ export class EntityCache<T extends { id: number }> {
 
   /** Cache a list of entities (e.g., paginated result) */
   setList(data: readonly T[]): void {
-  this.listCache = { data: [...data], timestamp: Date.now() };
-}
-
+    this.listCache = { data: [...data], timestamp: Date.now() };
+  }
 
   /** Get cached list (returns null if expired or missing) */
   getList(): T[] | null {
@@ -89,7 +129,10 @@ export class EntityCache<T extends { id: number }> {
       return null;
     }
 
-    if (this.config.slidingTtl) this.listCache.timestamp = Date.now();
+    if (this.config.slidingTtl) {
+      this.listCache.timestamp = Date.now();
+    }
+
     return this.listCache.data;
   }
 
@@ -104,24 +147,25 @@ export class EntityCache<T extends { id: number }> {
 
   /**
    * Clears all cached entries (items + list)
-   * 
-   * ENHANCEMENT: Creates new Map reference to prevent race conditions
-   * 
-   * WHY: If a component is iterating over cached items during clear(),
-   * mutating the same Map can cause inconsistent state. Creating a
-   * new reference ensures clean separation.
+   * Creates new Map reference to prevent race conditions
    */
   clear(): void {
-    // Create new Map instead of calling .clear()
-    // This prevents potential issues if code is iterating over the old map
     const oldSize = this.cache.size;
     this.cache = new Map<number, CachedItem<T>>();
     this.listCache = null;
 
-    // Optional: Log for debugging (can be removed in production)
     if (oldSize > 0) {
       console.debug(`[EntityCache] Cleared ${oldSize} cached items`);
     }
+  }
+
+  /**
+   * Destroy cache and stop cleanup timer
+   * Call this when service is destroyed
+   */
+  destroy(): void {
+    this.stopAutoCleanup();
+    this.clear();
   }
 
   /** Returns summary information for debugging */
@@ -129,12 +173,13 @@ export class EntityCache<T extends { id: number }> {
     return {
       itemCount: this.cache.size,
       hasListCache: !!this.listCache,
-      config: this.config
+      config: this.config,
+      nextCleanup: this.cleanupTimer ? 'active' : 'stopped'
     };
   }
 
   // ─────────────────────────────────────────────────────────
-  // Internal helpers
+  // 🔹 Internal helpers
   // ─────────────────────────────────────────────────────────
 
   /** Checks if an entry is expired based on TTL */
@@ -143,17 +188,87 @@ export class EntityCache<T extends { id: number }> {
     return Date.now() - timestamp > ttl;
   }
 
-  /** Evicts oldest entries when the cache exceeds its max size */
-  private ensureSizeLimit(): void {
-    const maxSize = this.config.maxSize ?? this.defaultMaxSize;
+  /**
+   * Evict one item from cache
+   * Uses LRU (Least Recently Used) strategy if enabled, otherwise FIFO
+   */
+  private evictOne(): void {
+    if (this.cache.size === 0) return;
 
-    while (this.cache.size >= maxSize) {
+    const useLRU = this.config.useLRU ?? true;
+
+    if (useLRU) {
+      // Find least recently accessed item
+      let lruKey: number | null = null;
+      let lruTime = Infinity;
+
+      for (const [key, item] of this.cache.entries()) {
+        if (item.lastAccessed < lruTime) {
+          lruTime = item.lastAccessed;
+          lruKey = key;
+        }
+      }
+
+      if (lruKey !== null) {
+        this.cache.delete(lruKey);
+        console.debug(`[EntityCache] LRU evicted item ${lruKey}`);
+      }
+    } else {
+      // FIFO: Remove first (oldest) entry
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {
         this.cache.delete(oldestKey);
-      } else {
-        break; // safety guard if the map is empty
+        console.debug(`[EntityCache] FIFO evicted item ${oldestKey}`);
       }
+    }
+  }
+
+  /**
+   * Start automatic cleanup timer
+   * Runs periodically to remove expired entries
+   */
+  private startAutoCleanup(): void {
+    const interval = this.config.cleanupInterval ?? this.defaultCleanupInterval;
+
+    this.cleanupTimer = setInterval(() => {
+      this.removeExpiredEntries();
+    }, interval);
+  }
+
+  /**
+   * Stop automatic cleanup timer
+   */
+  private stopAutoCleanup(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+  }
+
+  /**
+   * Remove all expired entries from cache
+   * Called periodically by cleanup timer
+   */
+  private removeExpiredEntries(): void {
+    const now = Date.now();
+    const ttl = this.config.ttl ?? this.defaultTtl;
+    let removedCount = 0;
+
+    for (const [id, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > ttl) {
+        this.cache.delete(id);
+        removedCount++;
+      }
+    }
+
+    // Also check list cache
+    if (this.listCache && now - this.listCache.timestamp > ttl) {
+      this.listCache = null;
+      removedCount++;
+    }
+
+    if (removedCount > 0) {
+      console.debug(`[EntityCache] Auto-cleanup removed ${removedCount} expired entries`);
     }
   }
 }

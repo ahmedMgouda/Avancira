@@ -110,6 +110,8 @@ public partial class Program
         // ✅ CRITICAL: UseRouting MUST come before Authentication
         app.UseRouting();
 
+        app.UseCorsPolicy();
+
         // ✅ Authentication middleware order is critical
         app.UseAuthentication();
         app.UseAuthorization();

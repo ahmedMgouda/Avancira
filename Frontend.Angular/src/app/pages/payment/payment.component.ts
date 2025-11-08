@@ -7,7 +7,7 @@ import { PaymentMethodComponent } from '../../components/payment-method/payment-
 
 import { AlertService } from '../../services/alert.service';
 import { SubscriptionService } from '../../services/subscription.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../core/auth/services/auth.service';
 
 import { Card } from '../../models/card';
 import { SubscriptionBillingFrequency } from '../../models/enums/subscription-billing-frequency';

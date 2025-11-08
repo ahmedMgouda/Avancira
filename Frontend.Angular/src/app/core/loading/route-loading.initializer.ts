@@ -1,3 +1,14 @@
+/**
+ * Route Loading Initializer
+ * ✅ KEEP THIS - Provides automatic route navigation tracking
+ * 
+ * What it does:
+ * - Listens to Angular Router events
+ * - Shows progress bar when navigation starts
+ * - Hides progress bar when navigation completes
+ * - Works with <app-top-progress-bar />
+ */
+
 import { DestroyRef, inject, provideAppInitializer } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -8,32 +19,8 @@ import {
   Router,
 } from '@angular/router';
 
-import { LoadingService } from './loading.service';
+import { LoadingService } from './services/loading.service';
 
-/**
- * Route Loading Initializer (Zoneless Compatible)
- * ═══════════════════════════════════════════════════════════════════════
- * Automatically tracks route navigation and updates loading state
- * 
- * Features:
- *   ✅ Automatic route change detection
- *   ✅ Loading state for navigation transitions
- *   ✅ Proper cleanup on app destroy
- *   ✅ Zoneless compatible
- * 
- * Usage:
- *   Add to app.config.ts providers:
- *   export const appConfig: ApplicationConfig = {
- *     providers: [
- *       provideRouter(routes),
- *       provideRouteLoading(),
- *       // ... other providers
- *     ]
- *   };
- * 
- * @example
- * provideRouteLoading()
- */
 export function provideRouteLoading() {
   return provideAppInitializer(() => {
     const router = inject(Router);
@@ -45,14 +32,14 @@ export function provideRouteLoading() {
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe(event => {
         if (event instanceof NavigationStart) {
-          // Start loading on navigation
+          // ✅ Start loading on navigation
           loader.startRouteLoading(router.url, event.url);
         } else if (
           event instanceof NavigationEnd ||
           event instanceof NavigationCancel ||
           event instanceof NavigationError
         ) {
-          // Complete loading when navigation finishes
+          // ✅ Complete loading when navigation finishes
           loader.completeRouteLoading();
         }
       });

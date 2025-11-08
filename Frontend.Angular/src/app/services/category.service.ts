@@ -1,7 +1,7 @@
 import { HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
-import { BaseHttpService } from '../core/services/base-http.service';
+import { BaseHttpService } from '../core/http/services/base-http.service';
 
 import { environment } from '../environments/environment';
 import {

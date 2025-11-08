@@ -1,3 +1,4 @@
+// app.config.ts - CORRECTED VERSION
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
@@ -11,24 +12,45 @@ import { provideRouter } from '@angular/router';
 
 import { AppInitializerService } from './core/services/app-initializer.service';
 
+// ═══════════════════════════════════════════════════════════════════
+// ✅ CORRECTED IMPORTS - Interceptors
+// ═══════════════════════════════════════════════════════════════════
+// HTTP Interceptors (core/http/interceptors/)
+import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
-import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { retryInterceptor } from './core/interceptors/retry.interceptor';
-import { traceContextInterceptor } from './core/interceptors/trace-context.interceptor';
+import { retryInterceptor } from './core/http/interceptors/retry.interceptor';
+import { traceContextInterceptor } from './core/http/interceptors/trace-context.interceptor';
+// ═══════════════════════════════════════════════════════════════════
+// ✅ CORRECTED IMPORTS - Providers
+// ═══════════════════════════════════════════════════════════════════
+// Loading System
 import { provideLoading } from './core/loading';
-import { loadingInterceptor } from './core/loading/loading.interceptor';
+// Loading Interceptor (core/loading/interceptors/)
+import { loadingInterceptor } from './core/loading/interceptors/loading.interceptor';
+// Logging Interceptors (core/logging/interceptors/)
 import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
+// Logging System
 import { provideLogging } from './core/logging/providers/logging.providers';
+// Network Configuration
 import { NETWORK_STATUS_CONFIG } from './core/network';
-import { networkInterceptor } from './core/network/network.interceptor';
-import { environment } from './environments/environment';
+// Network Interceptor (core/network/interceptors/)
+import { networkInterceptor } from './core/network/interceptors/network.interceptor';
+// Routes
 import { routes } from './routes/app.routes';
+
+// ═══════════════════════════════════════════════════════════════════
+// App Initializer
+// ═══════════════════════════════════════════════════════════════════
 
 function initApp() {
   const initializer = inject(AppInitializerService);
   return initializer.initialize();
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Application Configuration
+// ═══════════════════════════════════════════════════════════════════
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -58,27 +80,33 @@ export const appConfig: ApplicationConfig = {
       ])
     ),
 
-    // ──────────────────────────────────────────────────────────────
-    // NETWORK STATUS CONFIGURATION
-    // ──────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    // Network Status Configuration
+    // ═══════════════════════════════════════════════════════════
     {
       provide: NETWORK_STATUS_CONFIG,
       useValue: {
-        // BFF health endpoint
-        healthEndpoint: `https://localhost:9200/health`,
-
-        // Check interval (30s = industry standard)
-        checkInterval: 30000,
-
-        // Max retry attempts for health checks
-        maxAttempts: 3
+        healthEndpoint: 'https://localhost:9200/health',
+        checkInterval: 30000,  // 30 seconds
+        maxAttempts: 1
       }
     },
 
     // ═══════════════════════════════════════════════════════════
     // Core Systems
     // ═══════════════════════════════════════════════════════════
-    provideLoading(),
+    
+    // Loading System (includes route tracking + HTTP tracking)
+    provideLoading({
+      debounceDelay: 200,
+      requestTimeout: 30000,
+      maxRequests: 100,
+      maxOperations: 50,
+      errorRetentionTime: 5000,
+      microtaskBatchThreshold: 5  // ✅ NEW from Phase 3
+    }),
+    
+    // Logging System
     ...provideLogging(),
 
     // ═══════════════════════════════════════════════════════════

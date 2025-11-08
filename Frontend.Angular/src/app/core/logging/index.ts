@@ -1,5 +1,9 @@
+/**
+ * Logging Module
+ * Comprehensive logging system with W3C trace context
+ */
+
 export * from './config/logging.config';
-export * from './handlers/global-error.handler';
 export * from './interceptors/http-error.interceptor';
 export * from './interceptors/http-logging.interceptor';
 export * from './models/base-log-entry.model';
@@ -13,5 +17,4 @@ export * from './services/navigation-trace.service';
 export * from './services/span-manager.service';
 export * from './services/trace-manager.service';
 export * from './utils/data-sanitizer.util';
-export * from './utils/id-generator.util';
 export * from './utils/source-extractor.util';

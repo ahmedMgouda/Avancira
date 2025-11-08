@@ -5,11 +5,11 @@ import { Router } from '@angular/router';
 
 import { MapAddressComponent } from '../../components/map-address/map-address.component';
 
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../core/auth/services/auth.service';
 import { AlertService } from '../../services/alert.service';
 import { UserService } from '../../services/user.service';
 
-import { LoadingService } from '@core/loading/loading.service';
+import { LoadingService } from '@/core/loading/services/loading.service';
 
 import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 

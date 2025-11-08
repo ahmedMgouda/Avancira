@@ -23,9 +23,8 @@ import { GridState, GridStateService } from '../../../services/grid-state.servic
 import { JitsiService } from '../../../services/jitsi.service';
 import { LessonService } from '../../../services/lesson.service';
 import { UserService } from '../../../services/user.service';
-
-import { LoadingService } from '@core/loading/loading.service';
-import { ToastService } from '@core/toast/toast.service';
+import { LoadingService } from '@/core/loading/services/loading.service';
+import { ToastService } from '@core/toast/services/toast.service';
 
 import { DurationPipe } from '../../../pipes/duration.pipe';
 
@@ -52,7 +51,7 @@ import { User } from '../../../models/user';
         ButtonModule,
         DurationPipe
     ],
-    providers: [ToolbarService, PageService, SortService, FilterService, ResizeService],
+    providers: [ToolbarService, PageService, SortService, FilterService, ResizeService, ToastService],
     templateUrl: './lessons.component.html',
     styleUrls: ['./lessons.component.scss']
 })

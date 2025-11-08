@@ -1,10 +1,11 @@
 <div class="dev-monitor">
-  <!-- Header -->
+  <!-- HEADER -->
   <div class="monitor-header">
     <h1>
-      <span class="icon">🔍</span>
+      <span class="icon">🧩</span>
       Development Monitor
     </h1>
+
     <div class="header-actions">
       <button (click)="togglePause()" [class.active]="isPaused()">
         {{ isPaused() ? '▶️ Resume' : '⏸️ Pause' }}
@@ -14,7 +15,7 @@
     </div>
   </div>
 
-  <!-- Metrics -->
+  <!-- METRICS -->
   <div class="metrics-grid">
     <div class="metric-card">
       <div class="metric-label">Total Logs</div>
@@ -42,20 +43,21 @@
     </div>
   </div>
 
-  <!-- Level Stats -->
+  <!-- LEVEL STATS -->
   <div class="level-stats">
     @for (level of availableLevels(); track level) {
-      <button 
+      <button
         class="level-badge"
         [ngClass]="getLevelClass(level)"
         [class.active]="levelFilter() === level"
         (click)="levelFilter.set(level)">
-        {{ getLevelIcon(level) }} {{ level }} ({{ logLevelCounts()[level] || 0 }})
+        {{ getLevelIcon(level) }} {{ level }}
+        ({{ logLevelCounts()[level] || 0 }})
       </button>
     }
   </div>
 
-  <!-- Filters -->
+  <!-- FILTERS -->
   <div class="filters">
     <input
       type="text"
@@ -65,21 +67,21 @@
       class="search-input"
     />
 
-    <select title="..." (change)="onLevelFilterChange($event)" [value]="levelFilter()">
+    <select title='...' (change)="onLevelFilterChange($event)" [value]="levelFilter()">
       <option value="all">All Levels</option>
       @for (level of availableLevels(); track level) {
         <option [value]="level">{{ level }}</option>
       }
     </select>
 
-    <select title="..." (change)="onTypeFilterChange($event)" [value]="typeFilter()">
+    <select title='...' (change)="onTypeFilterChange($event)" [value]="typeFilter()">
       <option value="all">All Types</option>
       @for (type of availableTypes(); track type) {
         <option [value]="type">{{ type }}</option>
       }
     </select>
 
-    <select title="..." (change)="onStatusFilterChange($event)" [value]="statusFilter()">
+    <select title='...' (change)="onStatusFilterChange($event)" [value]="statusFilter()">
       <option value="all">All Status</option>
       @for (status of availableStatuses(); track status) {
         <option [value]="status">{{ status }}</option>
@@ -103,7 +105,7 @@
     }
   </div>
 
-  <!-- Log List -->
+  <!-- LOG LIST -->
   <div class="logs-container">
     @if (!hasLogs()) {
       <div class="empty-state">
@@ -123,23 +125,18 @@
             class="log-entry"
             [ngClass]="getLevelClass(log.log.level || '')"
             (click)="selectLog(log)">
-            
             <div class="log-timestamp">
               {{ formatTimestamp(log['@timestamp']) }}
             </div>
-
-            <div class="log-level">
-              {{ getLevelIcon(log.log.level || '') }}
-            </div>
-
-            <div class="log-type">
-              {{ getTypeIcon(log.log.type || '') }}
-            </div>
+            <div class="log-level">{{ getLevelIcon(log.log.level || '') }}</div>
+            <div class="log-type">{{ getTypeIcon(log.log.type || '') }}</div>
 
             <div class="log-content">
               <div class="log-source">{{ log.log.source }}</div>
-              <div class="log-message">{{ truncateMessage(log.log.message || '', 150) }}</div>
-              
+              <div class="log-message">
+                {{ truncateMessage(log.log.message || '', 150) }}
+              </div>
+
               @if (log.http) {
                 <div class="log-http">
                   <span [ngClass]="getStatusClass(log.http.status_code)">
@@ -148,15 +145,22 @@
                   <span>{{ log.http.method }}</span>
                   <span class="log-url">{{ log.http.url }}</span>
                   @if (log.http.duration_ms) {
-                    <span class="log-duration">{{ formatDuration(log.http.duration_ms) }}</span>
+                    <span class="log-duration">
+                      {{ formatDuration(log.http.duration_ms) }}
+                    </span>
                   }
                 </div>
               }
             </div>
+
             <div class="log-trace">
-              <div class="trace-id">trace: {{ log.trace.id.substring(0, 8) }}...</div>
+              <div class="trace-id">
+                trace: {{ log.trace.id.substring(0, 8) }}...
+              </div>
               @if (log.trace.span?.id) {
-                <div class="span-id">span: {{ log.trace.span?.id?.substring(0, 8) }}...</div>
+                <div class="span-id">
+                  span: {{ log.trace.span?.id?.substring(0, 8) }}...
+                </div>
               }
             </div>
           </div>
@@ -165,7 +169,7 @@
     }
   </div>
 
-  <!-- Log Details Modal -->
+  <!-- LOG DETAILS MODAL -->
   @if (selectedLog()) {
     <div class="modal-overlay" (click)="closeLogDetails()">
       <div class="modal-content" (click)="$event.stopPropagation()">
@@ -173,14 +177,12 @@
           <h2>Log Details</h2>
           <button (click)="closeLogDetails()" class="modal-close">✕</button>
         </div>
-        
         <div class="modal-body">
           <div class="detail-actions">
             <button (click)="copyLogToClipboard(selectedLog()!)">
               📋 Copy JSON
             </button>
           </div>
-          
           <pre class="log-json">{{ formatJSON(selectedLog()) }}</pre>
         </div>
       </div>

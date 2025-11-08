@@ -9,5 +9,5 @@ public sealed class AvanciraHealthCheckMappingOptions
 
     public string ReadinessPath { get; set; } = "/health/ready";
 
-    public string DetailedPath { get; set; } = "/health";
+    public string DetailedPath { get; set; } = "/health/detailed";
 }

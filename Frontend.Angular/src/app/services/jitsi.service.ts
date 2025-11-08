@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { ToastService } from '@core/toast/toast.service';
+import { ToastService } from '@core/toast/services/toast.service';
 
 import { Lesson } from '../models/lesson';
 import { User } from '../models/user';

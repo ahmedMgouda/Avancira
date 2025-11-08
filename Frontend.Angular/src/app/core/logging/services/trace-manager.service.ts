@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { IdGenerator } from '../utils/id-generator.util';
+import { IdGenerator } from '../../utils/id-generator';
 
 @Injectable({ providedIn: 'root' })
 export class TraceManagerService {

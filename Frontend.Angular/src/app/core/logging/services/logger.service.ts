@@ -2,19 +2,19 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, Injector, OnDestroy, signal } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 
-import { AuthService } from '../../services/auth.service';
-import { ResilienceService } from '../../services/resilience.service';
+import { AuthService } from '../../auth/services/auth.service';
+import { ResilienceService } from '../../http/services/resilience.service';
 import { LogMonitorService } from './log-monitor.service';
 import { SpanManagerService } from './span-manager.service';
 import { TraceManagerService } from './trace-manager.service';
 
 import { environment } from '../../../environments/environment';
+import { IdGenerator } from '../../utils/id-generator';
 import { getLoggingConfig, UserTypeLoggingConfig } from '../config/logging.config';
 import { BaseLogEntry } from '../models/base-log-entry.model';
 import { LogLevel } from '../models/log-level.model';
 import { BrowserCompat } from '../utils/browser-compat.util';
 import { DataSanitizer } from '../utils/data-sanitizer.util';
-import { IdGenerator } from '../utils/id-generator.util';
 import { SourceExtractor } from '../utils/source-extractor.util';
 
 @Injectable({ providedIn: 'root' })

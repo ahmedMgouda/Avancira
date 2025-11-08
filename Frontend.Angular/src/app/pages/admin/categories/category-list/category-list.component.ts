@@ -6,15 +6,20 @@ import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of,Subject } from 'rxjs';
 import { Category, CategoryFilter } from '@models/category';
 
-import {ToastService} from '@core/toast/toast.service';
+import { FileUploadComponent } from '@core/file-upload/components/file-upload.component';
+
+import { FileUploadService } from '@core/file-upload/services/file-upload.service';
+import {ToastService} from '@core/toast/services/toast.service';
 import { CategoryService } from '@services/category.service';
 
-import { LoadingDirective } from '@core/loading/loading.directive';
+import { LoadingDirective } from '@/core/loading/directives/loading.directive';
+
+import { FileMetadata, FileType } from '@/core/file-upload/models/file-upload.models';
 
 @Component({
   selector: 'app-category-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingDirective],
+  imports: [CommonModule, FormsModule, LoadingDirective, FileUploadComponent],
   templateUrl: './category-list.component.html',
   styleUrls: ['./category-list.component.scss', '../categories.styles.scss']
 })
@@ -23,9 +28,14 @@ export class CategoryListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
+
+  private readonly fileUploadService = inject(FileUploadService);
+
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
   // ────────────────────────────────────────────────────────────────
+  
+
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly deleting = signal<number | null>(null);
@@ -119,6 +129,37 @@ export class CategoryListComponent implements OnInit {
     this.setupSearchDebounce();
     this.loadCategories();
   }
+
+
+
+  fileType = FileType.Image;
+  files: FileMetadata[] = [];
+  isValid = true;
+
+  onFilesChanged(files: FileMetadata[]): void {
+    this.files = files;
+  }
+
+  onFilesValidated(valid: boolean): void {
+    this.isValid = valid;
+  }
+
+  async uploadImages(): Promise<void> {
+    try {
+      const urls = await this.fileUploadService.uploadFiles(
+        this.files,
+        '/api/products/upload-images'
+      );
+      
+     
+      
+      console.log('Uploaded URLs:', urls);
+      // Save URLs to your form or backend
+    } catch{
+    }
+  }
+
+
 
   // ────────────────────────────────────────────────────────────────
   // PRIVATE HELPERS

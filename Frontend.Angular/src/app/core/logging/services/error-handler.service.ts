@@ -1,10 +1,17 @@
+/**
+ * Error Handler Service - Phase 3 Refactored
+ * ✅ Uses ErrorClassifier for all error classification
+ * ✅ Cleaner code with less duplication
+ */
+
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { LoggerService } from './logger.service';
 
+import { ErrorClassifier } from '../../utils/error-classifier';
+import { IdGenerator } from '../../utils/id-generator';
 import { StandardError } from '../models/standard-error.model';
-import { IdGenerator } from '../utils/id-generator.util';
 import { SourceExtractor } from '../utils/source-extractor.util';
 
 @Injectable({ providedIn: 'root' })
@@ -25,8 +32,11 @@ export class ErrorHandlerService {
 
   private handleHttpError(error: HttpErrorResponse): StandardError {
     const errorId = IdGenerator.generateErrorId();
+    
+    // ✅ Use ErrorClassifier
+    const classification = ErrorClassifier.classify(error);
 
-    if (this.isProblemDetails(error.error)) {
+    if (classification.isProblemDetails) {
       const problem = error.error;
 
       this.logger.error(`${error.status} ${problem.title}`, null, {
@@ -51,13 +61,13 @@ export class ErrorHandlerService {
           id: errorId,
           kind: 'application',
           handled: true,
-          code: this.extractCodeFromType(problem.type),
+          code: ErrorClassifier.extractCodeFromProblemType(problem.type),
           type: 'HttpError',
           message: {
             user: problem.detail || problem.title,
             technical: `${error.status} ${error.statusText}: ${problem.detail}`
           },
-          severity: this.mapStatusToSeverity(error.status)
+          severity: classification.category === 'network' ? 'warning' : ErrorClassifier.getSeverity(error)
         }
       });
 
@@ -65,14 +75,15 @@ export class ErrorHandlerService {
         errorId,
         userMessage: problem.detail || problem.title,
         userTitle: problem.title,
-        severity: this.mapStatusToSeverity(error.status),
-        code: this.extractCodeFromType(problem.type),
+        severity: ErrorClassifier.getSeverity(error),
+        code: ErrorClassifier.extractCodeFromProblemType(problem.type),
         timestamp: new Date(),
         originalError: error
       };
     }
 
-    const code = this.mapStatusToCode(error.status);
+    // Standard HTTP error (no Problem Details)
+    const code = ErrorClassifier.statusToCode(error.status);
     const userMessage = this.getHttpErrorMessage(error.status);
 
     this.logger.error(`${error.status} ${error.statusText}`, null, {
@@ -97,7 +108,7 @@ export class ErrorHandlerService {
           user: userMessage,
           technical: `${error.status} ${error.statusText}: ${error.message}`
         },
-        severity: this.mapStatusToSeverity(error.status)
+        severity: ErrorClassifier.getSeverity(error)
       }
     });
 
@@ -105,7 +116,7 @@ export class ErrorHandlerService {
       errorId,
       userMessage,
       userTitle: this.getHttpErrorTitle(error.status),
-      severity: this.mapStatusToSeverity(error.status),
+      severity: ErrorClassifier.getSeverity(error),
       code,
       timestamp: new Date(),
       originalError: error
@@ -182,46 +193,6 @@ export class ErrorHandlerService {
       timestamp: new Date(),
       originalError: error
     };
-  }
-
-  private isProblemDetails(obj: any): boolean {
-    return obj &&
-      typeof obj === 'object' &&
-      'type' in obj &&
-      'title' in obj &&
-      'status' in obj;
-  }
-
-  private extractCodeFromType(type: string): string {
-    const parts = type.split('/');
-    const lastPart = parts[parts.length - 1];
-    return lastPart.toUpperCase().replace(/-/g, '_');
-  }
-
-  private mapStatusToCode(status: number): string {
-    const statusMap: Record<number, string> = {
-      400: 'BAD_REQUEST',
-      401: 'UNAUTHORIZED',
-      403: 'FORBIDDEN',
-      404: 'NOT_FOUND',
-      408: 'TIMEOUT',
-      409: 'CONFLICT',
-      422: 'VALIDATION_ERROR',
-      429: 'TOO_MANY_REQUESTS',
-      500: 'SERVER_ERROR',
-      502: 'BAD_GATEWAY',
-      503: 'SERVICE_UNAVAILABLE',
-      504: 'GATEWAY_TIMEOUT'
-    };
-
-    return statusMap[status] || `HTTP_${status}`;
-  }
-
-  private mapStatusToSeverity(status: number): 'info' | 'warning' | 'error' | 'critical' {
-    if (status >= 500) return 'critical';
-    if (status >= 400) return 'error';
-    if (status >= 300) return 'warning';
-    return 'info';
   }
 
   private getHttpErrorMessage(status: number): string {

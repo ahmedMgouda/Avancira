@@ -6,7 +6,7 @@ import * as AOS from 'aos';
 import { OwlOptions } from 'ngx-owl-carousel-o';
 import { CarouselModule } from 'ngx-owl-carousel-o';
 
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../core/auth/services/auth.service';
 import { GoogleMapsService } from '../../services/google-maps.service';
 import { LandingService } from '../../services/landing.service';
 
