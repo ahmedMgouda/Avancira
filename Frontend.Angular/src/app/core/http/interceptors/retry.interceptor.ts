@@ -1,28 +1,30 @@
+// core/http/interceptors/retry.interceptor.ts
 /**
- * Retry Interceptor - Phase 3 Refactored
+ * Retry Interceptor - UPDATED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * CHANGES:
+ * ✅ Uses NetworkService (merged service)
  * ✅ Uses ErrorClassifier for error detection
- * ✅ Cleaner logic and better logging
+ * ✅ Uses TraceService (merged service)
  */
 
 import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, retry, tap, throwError } from 'rxjs';
 
-import { ResilienceService } from '../../http/services/resilience.service';
-import { NetworkErrorTracker } from '../../network/services/network-error-tracker.service';
-import { NetworkStatusService } from '../../network/services/network-status.service';
+import { NetworkService } from '../../network/services/network.service';
 import { TraceContextService } from '../../services/trace-context.service';
+import { ResilienceService } from '../services/resilience.service';
 
 import { environment } from '../../../environments/environment';
-import { ErrorClassifier } from '../../utils/error-classifier';
+import { ErrorClassifier } from '../../utils/error-classifier.utility';
 
 export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   const resilience = inject(ResilienceService);
   const traceContext = inject(TraceContextService);
-  const networkStatus = inject(NetworkStatusService);
-  const errorTracker = inject(NetworkErrorTracker);
+  const network = inject(NetworkService);
 
-  // Skip retry if header set
   if (req.headers.has('X-Skip-Retry')) {
     const sanitizedRequest = req.clone({
       headers: req.headers.delete('X-Skip-Retry')
@@ -31,53 +33,48 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   const parentContext = traceContext.getCurrentContext();
+
   const maxRetries = resilience.maxRetries();
 
   return next(req).pipe(
     tap(event => {
       if (event instanceof HttpResponse) {
-        errorTracker.markSuccess(); // Clear network error streak
+        network.markSuccess();
       }
     }),
 
     retry({
       count: maxRetries,
       delay: (error: any, attempt: number) => {
-        // Only handle HttpErrorResponse
         if (!(error instanceof HttpErrorResponse)) {
           return throwError(() => error);
         }
 
-        // ✅ Use ErrorClassifier instead of inline logic
         const classification = ErrorClassifier.classify(error);
 
-        // Network checks
-        if (!networkStatus.isOnline() || errorTracker.hasRecentNetworkError()) {
+        // Check network health
+        if (!network.isHealthy()) {
           if (!environment.production) {
-            console.info('[Retry] Network issue - skipping retry', {
+            console.info('[Retry] Network unhealthy - skipping retry', {
               url: req.url,
-              isOnline: networkStatus.isOnline(),
-              recentNetworkError: errorTracker.hasRecentNetworkError(),
-              consecutive: errorTracker.consecutiveErrors()
+              status: error.status
             });
           }
           return throwError(() => error);
         }
 
-        // ✅ Use ErrorClassifier
-        if (!classification.isRetryable) {
+        // Check if retryable
+        if (!classification.isTransient) {
           if (!environment.production) {
             console.info('[Retry] Non-retryable error', {
               url: req.url,
               status: error.status,
-              category: classification.category,
-              reason: ErrorClassifier.getReason(error)
+              category: classification.category
             });
           }
           return throwError(() => error);
         }
 
-        // Create retry span + metadata
         const metadata = resilience.getRetryMetadata(
           attempt,
           maxRetries,
@@ -91,10 +88,7 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
               url: req.url,
               status: error.status,
               delay: `${metadata.delay}ms`,
-              strategy: metadata.strategy,
-              traceId: metadata.traceId,
-              spanId: metadata.spanId,
-              category: classification.category
+              traceId: metadata.traceId
             }
           );
         }
@@ -110,9 +104,7 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
       if (!req.headers.has('X-Skip-Logging') && !environment.production) {
         console.warn('[Retry] Max attempts reached', {
           url: req.url,
-          method: req.method,
-          status: error.status,
-          message: error.message
+          status: error.status
         });
       }
 

@@ -1,3 +1,13 @@
+// core/http/services/resilience.service.ts
+/**
+ * Resilience Service - UPDATED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * CHANGES:
+ * ✅ Uses TraceService (merged service) via TraceContextService
+ * ✅ Uses ErrorClassifier for error detection
+ */
+
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, throwError, timer } from 'rxjs';
@@ -6,27 +16,19 @@ import { retry, RetryConfig } from 'rxjs/operators';
 import { TraceContext, TraceContextService } from '../../services/trace-context.service';
 
 import { environment } from '../../../environments/environment';
+import { ErrorClassifier } from '../../utils/error-classifier.utility';
 
-/**
- * Retry Strategy Modes
- */
 export type RetryMode = 'exponential' | 'linear' | 'constant';
 
-/**
- * Retry Strategy Configuration
- */
 export interface RetryStrategy {
   mode: RetryMode;
   maxRetries: number;
   baseDelay: number;
   maxDelay: number;
-  jitterFactor: number; // e.g., 0.25 = ±25%
+  jitterFactor: number;
   excludedStatusCodes: number[];
 }
 
-/**
- * Retry Metadata for logging & tracing
- */
 export interface RetryMetadata {
   attempt: number;
   maxAttempts: number;
@@ -37,22 +39,9 @@ export interface RetryMetadata {
   parentSpanId?: string | null;
 }
 
-/**
- * 🛡️ ResilienceService (Final Type-Safe Version)
- * --------------------------------------------------------------
- * ✅ Generic retry operator for any observable type
- * ✅ Exponential / Linear / Constant strategies
- * ✅ Signal-based configuration + environment defaults
- * ✅ W3C trace metadata support
- * ✅ Smart transient error classification
- */
 @Injectable({ providedIn: 'root' })
 export class ResilienceService {
   private readonly traceContext = inject(TraceContextService);
-
-  // ────────────────────────────────────────────────────────────────
-  // SIGNALS
-  // ────────────────────────────────────────────────────────────────
 
   private readonly _strategy = signal<RetryStrategy>({
     mode: 'exponential',
@@ -63,27 +52,18 @@ export class ResilienceService {
     excludedStatusCodes: environment.retryPolicy?.excluded ?? [400, 401, 403, 404, 409],
   });
 
-  private readonly _retryableStatuses = signal<number[]>([0, 408, 429, 500, 502, 503, 504]);
-
-  // Readonly signals
   readonly strategy = this._strategy.asReadonly();
-  readonly retryableStatuses = this._retryableStatuses.asReadonly();
-
-  // Computed properties
   readonly maxRetries = computed(() => this._strategy().maxRetries);
   readonly baseDelay = computed(() => this._strategy().baseDelay);
   readonly maxDelay = computed(() => this._strategy().maxDelay);
   readonly mode = computed(() => this._strategy().mode);
 
-  // ────────────────────────────────────────────────────────────────
-  // PUBLIC METHODS
-  // ────────────────────────────────────────────────────────────────
-
   shouldRetry(error: HttpErrorResponse): boolean {
     const s = this._strategy();
-    const status = error.status;
-    if (s.excludedStatusCodes.includes(status)) return false;
-    return this._retryableStatuses().includes(status);
+    if (s.excludedStatusCodes.includes(error.status)) return false;
+    
+    // Use ErrorClassifier
+    return ErrorClassifier.isTransient(error);
   }
 
   calculateDelay(attempt: number, custom?: Partial<RetryStrategy>): number {
@@ -98,7 +78,7 @@ export class ResilienceService {
       case 'constant':
         delay = baseDelay;
         break;
-      default: // exponential
+      default:
         delay = baseDelay * Math.pow(2, attempt - 1);
         break;
     }
@@ -108,9 +88,6 @@ export class ResilienceService {
     return Math.max(0, delay + jitter);
   }
 
-  /**
-   * ✅ Type-safe generic RetryConfig
-   */
   getRetryConfig(custom?: Partial<RetryStrategy>): RetryConfig {
     const strategy = { ...this._strategy(), ...custom };
     return {
@@ -120,9 +97,6 @@ export class ResilienceService {
     };
   }
 
-  /**
-   * ✅ Generic operator – type propagates automatically
-   */
   withRetry<T>(custom?: Partial<RetryStrategy>) {
     const cfg = this.getRetryConfig(custom);
     return retry<T>(cfg);
@@ -188,18 +162,6 @@ export class ResilienceService {
     });
   }
 
-  addRetryableStatus(status: number): void {
-    this._retryableStatuses.update((statuses) =>
-      statuses.includes(status) ? statuses : [...statuses, status]
-    );
-  }
-
-  removeRetryableStatus(status: number): void {
-    this._retryableStatuses.update((statuses) =>
-      statuses.filter((s) => s !== status)
-    );
-  }
-
   getDiagnostics() {
     const s = this._strategy();
     return {
@@ -211,8 +173,7 @@ export class ResilienceService {
         attempt1: this.calculateDelay(1),
         attempt2: this.calculateDelay(2),
         attempt3: this.calculateDelay(3),
-      },
-      retryableStatuses: this._retryableStatuses(),
+      }
     };
   }
 }

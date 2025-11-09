@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { ToastService } from '@core/toast/services/toast.service';
+import { ToastManager } from '@core/toast/services/toast-manager.service';
 
 
 declare var JitsiMeetExternalAPI: any;
@@ -14,7 +14,7 @@ declare var JitsiMeetExternalAPI: any;
 export class VideoCallWindowComponent implements OnInit, OnDestroy {
   private jitsiApi: any | null = null;
 
-  constructor(private route: ActivatedRoute, private toastService: ToastService) {}
+  constructor(private route: ActivatedRoute, private toastService: ToastManager) {}
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {

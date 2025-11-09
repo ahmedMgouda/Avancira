@@ -1,16 +1,23 @@
-import { inject,Injectable } from '@angular/core';
-import { NavigationStart,Router } from '@angular/router';
+// core/logging/services/navigation-trace.service.ts
+/**
+ * Navigation Trace Service - UPDATED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * CHANGES:
+ * ✅ Uses TraceService (merged service)
+ */
+
+import { inject, Injectable } from '@angular/core';
+import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
-import { SpanManagerService } from './span-manager.service';
-import { TraceManagerService } from './trace-manager.service';
+import { TraceService } from './trace.service';
 
 @Injectable({ providedIn: 'root' })
 export class NavigationTraceService {
   private readonly router = inject(Router);
-  private readonly traceManager = inject(TraceManagerService);
-  private readonly spanManager = inject(SpanManagerService);
-  
+  private readonly traceService = inject(TraceService);
+
   initialize(): void {
     this.router.events.pipe(
       filter(event => event instanceof NavigationStart)
@@ -19,13 +26,12 @@ export class NavigationTraceService {
       this.startNewTrace();
     });
   }
-  
+
   private startNewTrace(): void {
-    this.traceManager.startTrace();
+    this.traceService.startTrace();
   }
-  
+
   private endCurrentTrace(): void {
-    this.spanManager.clearAllSpans();
-    this.traceManager.endTrace();
+    this.traceService.clearAll();
   }
 }

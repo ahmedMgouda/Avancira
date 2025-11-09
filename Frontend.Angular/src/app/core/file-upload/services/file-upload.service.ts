@@ -7,7 +7,7 @@
  *   ✅ Uses IdGenerator from core/utils
  *   ✅ Integrated with LoggerService for tracking
  *   ✅ Better error handling with ErrorHandlerService
- *   ✅ Toast notifications via ToastCoordinator
+ *   ✅ Toast notifications via ToastManager
  *   ✅ Proper cleanup of blob URLs
  *   ✅ Signal-based state management
  */
@@ -18,9 +18,9 @@ import { Subject } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 import { LoggerService } from '../../logging/services/logger.service';
-import { ToastCoordinator } from '../../toast/services/toast-coordinator.service';
+import { ToastManager } from '../../toast/services/toast-manager.service';
 
-import { IdGenerator } from '../../utils/id-generator';
+import { IdGenerator } from '../../utils/id-generator.utility';
 import {
   DEFAULT_FILE_CONFIGS,
   FileMetadata,
@@ -37,7 +37,7 @@ import {
 export class FileUploadService {
   private readonly http = inject(HttpClient);
   private readonly logger = inject(LoggerService);
-  private readonly toast = inject(ToastCoordinator);
+  private readonly toast = inject(ToastManager);
   
   private readonly fileSubject = new Subject<FileUploadEvent>();
   

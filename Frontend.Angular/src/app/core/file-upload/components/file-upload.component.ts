@@ -19,7 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { FileUploadService } from '../services/file-upload.service';
 
-import { CleanableService } from '../../../core/utils/cleanup-manager';
+import { CleanableService } from '../../utils/cleanup-manager.utility';
 import {
   FileMetadata,
   FileType,

@@ -1,9 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 
-import { SpanManagerService } from '../logging/services/span-manager.service';
-import { TraceManagerService } from '../logging/services/trace-manager.service';
+import { TraceService } from '../logging/services/trace.service';
 
-import { IdGenerator } from '../utils/id-generator';
+import { IdGenerator } from '../utils/id-generator.utility';
 
 /**
  * W3C Trace Context Implementation
@@ -20,13 +19,12 @@ export interface TraceContext {
 
 @Injectable({ providedIn: 'root' })
 export class TraceContextService {
-  private readonly traceManager = inject(TraceManagerService);
-  private readonly spanManager = inject(SpanManagerService);
+  private readonly traceService = inject(TraceService);
 
   /** Generate W3C traceparent header */
   generateTraceparent(context?: Partial<TraceContext>): string {
     const version = '00';
-    const traceId = context?.traceId || this.traceManager.getCurrentTraceId() || IdGenerator.generateTraceId();
+    const traceId = context?.traceId || this.traceService.getCurrentTraceId() || IdGenerator.generateTraceId();
     const spanId = context?.spanId || IdGenerator.generateSpanId();
     const flags = context?.sampled !== false ? '01' : '00';
 
@@ -67,8 +65,8 @@ export class TraceContextService {
   /** Get the currently active trace context (or create one) */
   getCurrentContext(): TraceContext {
     const traceId =
-      this.traceManager.getCurrentTraceId() || IdGenerator.generateTraceId();
-    const activeSpans = this.spanManager.getAllSpans().filter(s => s.status === 'active');
+      this.traceService.getCurrentTraceId() || IdGenerator.generateTraceId();
+    const activeSpans = this.traceService.getAllSpans().filter(s => s.status === 'active');
     const activeSpan = activeSpans.at(-1);
 
     return {

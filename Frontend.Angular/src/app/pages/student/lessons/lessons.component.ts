@@ -24,7 +24,7 @@ import { JitsiService } from '../../../services/jitsi.service';
 import { LessonService } from '../../../services/lesson.service';
 import { UserService } from '../../../services/user.service';
 import { LoadingService } from '@/core/loading/services/loading.service';
-import { ToastService } from '@core/toast/services/toast.service';
+import { ToastManager } from '@core/toast/services/toast-manager.service';
 
 import { DurationPipe } from '../../../pipes/duration.pipe';
 
@@ -51,7 +51,7 @@ import { User } from '../../../models/user';
         ButtonModule,
         DurationPipe
     ],
-    providers: [ToolbarService, PageService, SortService, FilterService, ResizeService, ToastService],
+    providers: [ToolbarService, PageService, SortService, FilterService, ResizeService],
     templateUrl: './lessons.component.html',
     styleUrls: ['./lessons.component.scss']
 })
@@ -80,7 +80,7 @@ export class LessonsComponent implements OnInit {
     //#region Constructor & Lifecycle Hooks
     constructor(
         private loader: LoadingService,
-        private toastService: ToastService,
+        private toastService: ToastManager,
         private lessonService: LessonService,
         private userService: UserService,
         private gridStateService: GridStateService,

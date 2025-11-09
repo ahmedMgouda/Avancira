@@ -9,7 +9,8 @@ import { catchError, finalize, Observable, throwError } from 'rxjs';
 
 import { LoadingService } from '../services/loading.service';
 
-import { BrowserCompat } from '../../logging/utils/browser-compat.util';
+import { IdGenerator } from '../../utils/id-generator.utility';
+
 
 export const loadingInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -28,7 +29,7 @@ export const loadingInterceptor: HttpInterceptorFn = (
   // 2️⃣ Generate unique request ID for tracking
   //    Used by LoadingService to track individual requests
   // ──────────────────────────────────────────────────────────────
-  const requestId = BrowserCompat.generateUUID();
+  const requestId = IdGenerator.generateRequestId();
 
   // ──────────────────────────────────────────────────────────────
   // 3️⃣ Notify LoadingService (start tracking)

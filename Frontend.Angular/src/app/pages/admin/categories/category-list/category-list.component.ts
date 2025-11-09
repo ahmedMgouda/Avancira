@@ -6,9 +6,8 @@ import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of,Subject } from 'rxjs';
 import { Category, CategoryFilter } from '@models/category';
 
-import { FileUploadComponent } from '@core/file-upload/components/file-upload.component';
-
-import { FileUploadService } from '@core/file-upload/services/file-upload.service';
+// import { FileUploadComponent } from '@core/file-upload/components/file-upload.component';
+// import { FileUploadService } from '@core/file-upload/services/file-upload.service';
 import {ToastService} from '@core/toast/services/toast.service';
 import { CategoryService } from '@services/category.service';
 
@@ -19,7 +18,7 @@ import { FileMetadata, FileType } from '@/core/file-upload/models/file-upload.mo
 @Component({
   selector: 'app-category-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingDirective, FileUploadComponent],
+  imports: [CommonModule, FormsModule, LoadingDirective],
   templateUrl: './category-list.component.html',
   styleUrls: ['./category-list.component.scss', '../categories.styles.scss']
 })
@@ -29,7 +28,7 @@ export class CategoryListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
 
-  private readonly fileUploadService = inject(FileUploadService);
+  // private readonly fileUploadService = inject(FileUploadService);
 
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
@@ -144,20 +143,20 @@ export class CategoryListComponent implements OnInit {
     this.isValid = valid;
   }
 
-  async uploadImages(): Promise<void> {
-    try {
-      const urls = await this.fileUploadService.uploadFiles(
-        this.files,
-        '/api/products/upload-images'
-      );
+  // async uploadImages(): Promise<void> {
+  //   try {
+  //     const urls = await this.fileUploadService.uploadFiles(
+  //       this.files,
+  //       '/api/products/upload-images'
+  //     );
       
      
       
-      console.log('Uploaded URLs:', urls);
-      // Save URLs to your form or backend
-    } catch{
-    }
-  }
+  //     console.log('Uploaded URLs:', urls);
+  //     // Save URLs to your form or backend
+  //   } catch{
+  //   }
+  // }
 
 
 

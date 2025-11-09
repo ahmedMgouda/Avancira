@@ -10,7 +10,7 @@ export * from './models/health-check.model';
 export * from './config/network-status.config';
 
 // Services
-export * from './services/network-error-tracker.service';
+export * from './services/network.service';
 export * from './services/network-status.service';
 
 // Interceptors

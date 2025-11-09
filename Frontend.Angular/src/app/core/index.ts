@@ -3,7 +3,7 @@
  * Re-exports all public APIs from core modules
  * 
  * Usage:
- *   import { ToastCoordinator, LoadingService, IdGenerator } from '@core';
+ *   import { ToastManager, LoadingService, IdGenerator } from '@core';
  */
 
 // ─────────────────────────────────────────────────────────────────────
@@ -74,6 +74,6 @@ export * from './models/base.model';
  * }
  * 
  * Then you can import like:
- *   import { ToastCoordinator, IdGenerator } from '@core';
+ *   import { ToastManager, IdGenerator } from '@core';
  *   import { LoadingService } from '@core/loading';
  */

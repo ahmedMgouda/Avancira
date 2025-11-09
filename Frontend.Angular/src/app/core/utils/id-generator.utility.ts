@@ -118,7 +118,6 @@ export class IdGenerator {
     return {
       hasNativeUUID: this.hasNativeUUID,
       userAgent: navigator.userAgent,
-      platform: navigator.platform,
       logCounter: this.logCounter,
       errorCounter: this.errorCounter
     };

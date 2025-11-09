@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { ToastService } from '@core/toast/services/toast.service';
+import { ToastManager } from '@core/toast/services/toast-manager.service';
 
 import { Lesson } from '../models/lesson';
 import { User } from '../models/user';
@@ -12,7 +12,7 @@ import { User } from '../models/user';
 export class JitsiService {
   private videoCallWindow: Window | null = null; // Track opened window
 
-  constructor(private router: Router, private toastService: ToastService) {}
+  constructor(private router: Router, private toastService: ToastManager) {}
 
   startVideoCall(lesson: Lesson, user: User): void {
     try {

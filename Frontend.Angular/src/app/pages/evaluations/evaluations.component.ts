@@ -6,7 +6,6 @@ import { LeaveReviewComponent } from '../../components/leave-review/leave-review
 import { ModalComponent } from '../../components/modal/modal.component';
 
 import { AlertService } from '../../services/alert.service';
-import { AuthService } from '../../core/auth/services/auth.service';
 import { EvaluationService } from '../../services/evaluation.service';
 import { UserService } from '../../services/user.service';
 
@@ -37,7 +36,6 @@ export class EvaluationsComponent {
   constructor(
     private alertService: AlertService,
     private userService: UserService,
-    private authService: AuthService,
     private evaluationService: EvaluationService
   ) { }
 

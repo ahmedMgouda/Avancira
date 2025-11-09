@@ -2,14 +2,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler, inject, Injectable } from '@angular/core';
 
 import { ErrorHandlerService } from '../logging/services/error-handler.service';
-import { ToastService } from '../toast/services/toast.service';
+import { ToastManager } from '../toast/services/toast-manager.service';
 
 import { environment } from '../../environments/environment';
 import { StandardError } from '../logging/models/standard-error.model';
 
 @Injectable()
 export class GlobalErrorHandler implements ErrorHandler {
-  private readonly toast = inject(ToastService);
+  private readonly toast = inject(ToastManager);
   private readonly errorHandler = inject(ErrorHandlerService);
 
   handleError(error: unknown): void {

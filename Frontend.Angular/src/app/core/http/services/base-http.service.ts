@@ -8,7 +8,7 @@ import { LoggerService } from '../../logging/services/logger.service';
 import { TraceContextService } from '../../services/trace-context.service';
 
 import { BaseFilter, PaginatedResult } from '../../models/base.model';
-import { CacheConfig, EntityCache } from '../../utils/entity-cache';
+import { CacheConfig, EntityCache } from '../../utils/entity-cache.utility';
 
 export abstract class BaseHttpService<
   T extends { id: number },

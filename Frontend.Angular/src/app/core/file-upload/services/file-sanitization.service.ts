@@ -13,9 +13,9 @@
 import { inject, Injectable } from '@angular/core';
 
 import { LoggerService } from '../../logging/services/logger.service';
-import { ToastCoordinator } from '../../toast/services/toast-coordinator.service';
+import { ToastManager } from '../../toast/services/toast-manager.service';
 
-import { IdGenerator } from '../../utils/id-generator';
+import { IdGenerator } from '../../utils/id-generator.utility';
 import { FileMetadata } from '../models/file-upload.models';
 
 @Injectable({
@@ -23,7 +23,7 @@ import { FileMetadata } from '../models/file-upload.models';
 })
 export class FileSanitizationService {
   private readonly logger = inject(LoggerService);
-  private readonly toast = inject(ToastCoordinator);
+  private readonly toast = inject(ToastManager);
 
   // Dangerous file extensions that should never be allowed
   private readonly DANGEROUS_EXTENSIONS = [

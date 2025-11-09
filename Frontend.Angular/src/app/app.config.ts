@@ -1,4 +1,14 @@
-// app.config.ts - CORRECTED VERSION
+// app.config.ts - UPDATED
+/**
+ * Application Configuration - UPDATED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * CHANGES:
+ * ✅ Merged HTTP logging interceptors (removed http-error.interceptor)
+ * ✅ Updated loading provider to use new config
+ * ✅ Added network config provider
+ */
+
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
@@ -12,107 +22,69 @@ import { provideRouter } from '@angular/router';
 
 import { AppInitializerService } from './core/services/app-initializer.service';
 
-// ═══════════════════════════════════════════════════════════════════
-// ✅ CORRECTED IMPORTS - Interceptors
-// ═══════════════════════════════════════════════════════════════════
-// HTTP Interceptors (core/http/interceptors/)
+// Auth
 import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
+import { NETWORK_CONFIG } from './core/config/network.config';
+import { getNetworkConfig } from './core/config/network.config';
+// Error Handling
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
+// HTTP
 import { retryInterceptor } from './core/http/interceptors/retry.interceptor';
 import { traceContextInterceptor } from './core/http/interceptors/trace-context.interceptor';
-// ═══════════════════════════════════════════════════════════════════
-// ✅ CORRECTED IMPORTS - Providers
-// ═══════════════════════════════════════════════════════════════════
-// Loading System
+// Loading
 import { provideLoading } from './core/loading';
-// Loading Interceptor (core/loading/interceptors/)
 import { loadingInterceptor } from './core/loading/interceptors/loading.interceptor';
-// Logging Interceptors (core/logging/interceptors/)
-import { httpErrorInterceptor } from './core/logging/interceptors/http-error.interceptor';
+// Logging
 import { httpLoggingInterceptor } from './core/logging/interceptors/http-logging.interceptor';
-// Logging System
 import { provideLogging } from './core/logging/providers/logging.providers';
-// Network Configuration
-import { NETWORK_STATUS_CONFIG } from './core/network';
-// Network Interceptor (core/network/interceptors/)
+// Network
 import { networkInterceptor } from './core/network/interceptors/network.interceptor';
 // Routes
 import { routes } from './routes/app.routes';
 
-// ═══════════════════════════════════════════════════════════════════
 // App Initializer
-// ═══════════════════════════════════════════════════════════════════
-
 function initApp() {
   const initializer = inject(AppInitializerService);
   return initializer.initialize();
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Application Configuration
-// ═══════════════════════════════════════════════════════════════════
-
 export const appConfig: ApplicationConfig = {
   providers: [
-    // ═══════════════════════════════════════════════════════════
-    // Change Detection (Zoneless)
-    // ═══════════════════════════════════════════════════════════
+    // Change Detection
     provideExperimentalZonelessChangeDetection(),
 
-    // ═══════════════════════════════════════════════════════════
     // Router & Animations
-    // ═══════════════════════════════════════════════════════════
     provideRouter(routes),
     provideAnimationsAsync(),
 
-    // ═══════════════════════════════════════════════════════════
-    // HTTP Client with Interceptor Pipeline (ORDER MATTERS!)
-    // ═══════════════════════════════════════════════════════════
+    // HTTP Client with Interceptor Pipeline
     provideHttpClient(
       withInterceptors([
-        traceContextInterceptor, // 1️⃣ Trace Context - W3C trace headers
-        httpLoggingInterceptor,  // 2️⃣ Logging - respects X-Skip-Logging
-        authInterceptor,         // 3️⃣ Auth - attach token
-        loadingInterceptor,      // 4️⃣ Loading - respects X-Skip-Loading
-        networkInterceptor,      // 5️⃣ Network - must come before retry
-        retryInterceptor,        // 6️⃣ Retry - exponential backoff
-        httpErrorInterceptor     // 7️⃣ Error Handling - log errors
+        traceContextInterceptor,  // 1️⃣ Trace Context
+        authInterceptor,           // 2️⃣ Auth (moved before logging)
+        httpLoggingInterceptor,    // 3️⃣ Logging (merged success + error)
+        loadingInterceptor,        // 4️⃣ Loading
+        networkInterceptor,        // 5️⃣ Network
+        retryInterceptor           // 6️⃣ Retry (error handling last)
       ])
     ),
 
-    // ═══════════════════════════════════════════════════════════
-    // Network Status Configuration
-    // ═══════════════════════════════════════════════════════════
+    // Network Configuration
     {
-      provide: NETWORK_STATUS_CONFIG,
-      useValue: {
-        healthEndpoint: 'https://localhost:9200/health',
-        checkInterval: 30000,  // 30 seconds
-        maxAttempts: 1
-      }
+      provide: NETWORK_CONFIG,
+      useFactory: getNetworkConfig
     },
 
-    // ═══════════════════════════════════════════════════════════
-    // Core Systems
-    // ═══════════════════════════════════════════════════════════
-    
-    // Loading System (includes route tracking + HTTP tracking)
-    provideLoading({
-      debounceDelay: 200,
-      requestTimeout: 30000,
-      maxRequests: 100,
-      maxOperations: 50,
-      errorRetentionTime: 5000,
-      microtaskBatchThreshold: 5  // ✅ NEW from Phase 3
-    }),
-    
+    // Loading System (with new config)
+    provideLoading(),
+
     // Logging System
     ...provideLogging(),
 
-    // ═══════════════════════════════════════════════════════════
-    // Error Handling & Initialization
-    // ═══════════════════════════════════════════════════════════
+    // Error Handling
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    
+    // App Initialization
     provideAppInitializer(initApp)
   ]
 };
