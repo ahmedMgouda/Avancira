@@ -19,6 +19,7 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../../auth/services/auth.service';
 import { ResilienceService } from '../../http/services/resilience.service';
 import { TraceService } from './trace.service';
+import { LogMonitorService } from './log-monitor.service';
 
 import { environment } from '../../../environments/environment';
 import { getDeduplicationConfig } from '../../config/deduplication.config';
@@ -36,6 +37,7 @@ import { SourceExtractor } from '../utils/source-extractor.utility';
 @Injectable({ providedIn: 'root' })
 export class LoggerService {
   private readonly traceService = inject(TraceService);
+  private readonly logMonitor = inject(LogMonitorService);
   private readonly http = inject(HttpClient);
   private readonly injector = inject(Injector);
   private readonly resilience = inject(ResilienceService);
@@ -139,11 +141,14 @@ export class LoggerService {
       this.logToConsole(entry);
     }
 
-    // ✅ Step 5: Add to buffer
+    // ✅ Step 5: Broadcast to dev monitor
+    this.logMonitor.broadcast(entry);
+
+    // ✅ Step 6: Add to buffer
     this.buffer.add(entry);
     this.bufferSize.set(this.buffer.size());
 
-    // ✅ Step 6: Auto-flush if batch size reached
+    // ✅ Step 7: Auto-flush if batch size reached
     if (this.buffer.size() >= this.config.remote.batchSize) {
       this.flush();
     }
