@@ -20,8 +20,6 @@ import {
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 
-import { AppInitializerService } from './core/services/app-initializer.service';
-
 // Auth
 import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
 import { NETWORK_CONFIG } from './core/config/network.config';
@@ -43,6 +41,8 @@ import { networkInterceptor } from './core/network/interceptors/network.intercep
 import { routes } from './routes/app.routes';
 
 // App Initializer
+import { AppInitializerService } from './core/services/app-initializer.service';
+
 function initApp() {
   const initializer = inject(AppInitializerService);
   return initializer.initialize();

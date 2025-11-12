@@ -15,10 +15,13 @@ export const networkInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         const classification = ErrorClassifier.classify(error);
-         
-        console.log('Network Interceptor - Error Classification:', classification);
+
+        const isNetworkRelated =
+          classification.category === 'network' ||
+          classification.category === 'timeout';
+
         // Track error in network service (simple counting)
-        network.trackError();
+        network.trackError(isNetworkRelated);
 
         // Show toast for network errors (Toast handles deduplication)
         if (classification.category === 'network') {
