@@ -35,8 +35,8 @@ import { LoadingService } from '../services/loading.service';
     
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #2563eb, #60a5fa);
-      box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+      background: linear-gradient(90deg, var(--color-progress-start, #2563eb), var(--color-progress-end, #60a5fa));
+      box-shadow: 0 0 10px var(--color-progress-shadow, rgba(37, 99, 235, 0.5));
       transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
       will-change: width;
       transform-origin: left;
@@ -52,11 +52,8 @@ import { LoadingService } from '../services/loading.service';
       }
     }
     
-    @media (prefers-color-scheme: dark) {
-      .progress-bar {
-        background: linear-gradient(90deg, #3b82f6, #60a5fa);
-        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
-      }
+    :host-context(.dark-theme) .progress-bar {
+      box-shadow: 0 0 12px var(--color-progress-shadow, rgba(59, 130, 246, 0.6));
     }
   `]
 })

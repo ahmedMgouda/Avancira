@@ -33,3 +33,19 @@
   padding: 10px 10px;
   align-items: center;
 }
+
+.theme-toggle-item {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+
+  app-theme-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 991px) {
+  .theme-toggle-item {
+    margin-right: 0.5rem;
+  }
+}
