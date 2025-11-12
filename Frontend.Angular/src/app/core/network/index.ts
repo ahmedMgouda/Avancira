@@ -1,8 +1,6 @@
 // Models
 export type {
-  ConnectionQuality,
-  HealthCheckResponse,
-  NetworkDiagnostics
+  HealthCheckResponse
 } from './models/health-check.model';
 export type { 
   NetworkConfig,

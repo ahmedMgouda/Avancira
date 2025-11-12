@@ -21,9 +21,6 @@ export const networkInterceptor: HttpInterceptorFn = (req, next) => {
           classification.category === 'timeout';
 
         // Track error in network service (simple counting)
-        console.log('Network Interceptor - tracking error, isNetworkRelated:', isNetworkRelated);
-        console.log('Error classification:', classification);
-        console.log('Full error object:', error);
         network.trackError(isNetworkRelated);
 
         // Show toast for network errors (Toast handles deduplication)
