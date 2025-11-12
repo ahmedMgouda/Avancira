@@ -1,6 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { catchError, interval, of, Subscription, switchMap } from 'rxjs';
+import { catchError, interval, of, startWith, Subscription, switchMap, tap } from 'rxjs';
+
+import { NETWORK_CONFIG, type NetworkConfig as AppNetworkConfig } from '../../config/network.config';
+import { ToastManager } from '../../toast/services/toast-manager.service';
+
+const DEFAULT_CHECK_INTERVAL = 30000;
+const DEFAULT_MAX_ATTEMPTS = 3;
+
+interface NormalizedNetworkConfig {
+  healthEndpoint: string;
+  checkInterval: number;
+  maxAttempts: number;
+}
 
 export interface NetworkStatus {
   online: boolean;
@@ -12,15 +24,13 @@ export interface NetworkStatus {
   lastCheck: Date;
 }
 
-export interface NetworkConfig {
-  healthEndpoint: string;
-  checkInterval: number;
-  maxAttempts: number;
-}
+export type NetworkConfig = AppNetworkConfig;
 
 @Injectable({ providedIn: 'root' })
 export class NetworkService {
   private readonly http = inject(HttpClient);
+  private readonly toast = inject(ToastManager);
+  private readonly providedConfig = inject(NETWORK_CONFIG, { optional: true });
 
   // ═══════════════════════════════════════════════════════════════════
   // State Signals
@@ -31,6 +41,10 @@ export class NetworkService {
   private readonly _totalRequests = signal(0);
   private readonly _successfulRequests = signal(0);
   private readonly _lastCheck = signal(new Date());
+  private readonly _maxAttempts = signal(DEFAULT_MAX_ATTEMPTS);
+
+  private offlineToastId: string | null = null;
+  private healthFailureToastShown = false;
 
   // ═══════════════════════════════════════════════════════════════════
   // Computed Signals
@@ -47,16 +61,20 @@ export class NetworkService {
   /**
    * Network is healthy if:
    * 1. Browser reports online
-   * 2. Fewer than 3 consecutive errors
+   * 2. Consecutive errors stay below configured threshold
    */
   readonly isHealthy = computed(() => {
-    return this._online() && this._consecutiveErrors() < 3;
+    return this._online() && this._consecutiveErrors() < this._maxAttempts();
   });
 
   private healthCheckSubscription?: Subscription;
 
   constructor() {
     this.setupBrowserListeners();
+    if (this.providedConfig) {
+      this.startMonitoring(this.providedConfig);
+    }
+    this.initializeOfflineState();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -67,15 +85,22 @@ export class NetworkService {
    * Start health check monitoring
    */
   startMonitoring(config: NetworkConfig): void {
+    const normalized = this.normalizeConfig(config);
+
+    if (!normalized) {
+      this.stopMonitoring();
+      return;
+    }
+
     this.stopMonitoring();
 
-    this.healthCheckSubscription = interval(config.checkInterval)
+    this._maxAttempts.set(normalized.maxAttempts);
+    this.healthFailureToastShown = false;
+
+    this.healthCheckSubscription = interval(normalized.checkInterval)
       .pipe(
-        switchMap(() => this.performHealthCheck(config.healthEndpoint)),
-        catchError(() => {
-          this.markUnhealthy();
-          return of(null);
-        })
+        startWith(0),
+        switchMap(() => this.performHealthCheck(normalized.healthEndpoint))
       )
       .subscribe();
   }
@@ -119,8 +144,11 @@ export class NetworkService {
    * Track failed request
    * ✅ Simple counting - no deduplication
    */
-  trackError(): void {
-    this._consecutiveErrors.update(n => n + 1);
+  trackError(networkRelated = true): void {
+    if (networkRelated) {
+      this._consecutiveErrors.update(n => n + 1);
+    }
+
     this._totalRequests.update(n => n + 1);
   }
 
@@ -149,12 +177,11 @@ export class NetworkService {
    */
   private setupBrowserListeners(): void {
     window.addEventListener('online', () => {
-      this._online.set(true);
-      this._consecutiveErrors.set(0);
+      this.handleOnline();
     });
 
     window.addEventListener('offline', () => {
-      this._online.set(false);
+      this.handleOffline();
     });
   }
 
@@ -163,24 +190,87 @@ export class NetworkService {
    */
   private performHealthCheck(endpoint: string) {
     return this.http.get(endpoint, {
-      headers: { 
-        'X-Skip-Loading': 'true', 
-        'X-Skip-Logging': 'true' 
+      headers: {
+        'X-Skip-Loading': 'true',
+        'X-Skip-Logging': 'true'
       }
     }).pipe(
+      tap(() => this.handleHealthCheckSuccess()),
       catchError(() => {
-        this.markUnhealthy();
+        this.handleHealthCheckFailure();
         return of(null);
       })
     );
   }
 
-  /**
-   * Mark network as unhealthy
-   */
-  private markUnhealthy(): void {
+  private initializeOfflineState(): void {
+    if (!navigator.onLine) {
+      this.handleOffline();
+    }
+  }
+
+  private normalizeConfig(config: NetworkConfig): NormalizedNetworkConfig | null {
+    const endpoint = config.healthEndpoint?.trim();
+
+    if (!endpoint) {
+      return null;
+    }
+
+    return {
+      healthEndpoint: endpoint,
+      checkInterval: config.checkInterval ?? DEFAULT_CHECK_INTERVAL,
+      maxAttempts: config.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+    };
+  }
+
+  private handleOnline(): void {
+    this._online.set(true);
+    this._consecutiveErrors.set(0);
+    this.healthFailureToastShown = false;
+
+    if (this.offlineToastId) {
+      this.toast.dismiss(this.offlineToastId);
+      this.offlineToastId = null;
+      this.toast.success('Connection restored.', 'Back online');
+    }
+  }
+
+  private handleOffline(): void {
+    this._online.set(false);
+
+    if (!this.offlineToastId) {
+      this.offlineToastId = this.toast.error(
+        'You appear to be offline. Please check your internet connection.',
+        'No internet connection'
+      );
+    }
+  }
+
+  private handleHealthCheckSuccess(): void {
+    this._consecutiveErrors.set(0);
+    this._lastCheck.set(new Date());
+    this.healthFailureToastShown = false;
+  }
+
+  private handleHealthCheckFailure(): void {
     this._consecutiveErrors.update(n => n + 1);
     this._lastCheck.set(new Date());
+
+    if (this._online() && this._consecutiveErrors() >= this._maxAttempts()) {
+      this.notifyHealthCheckIssue();
+    }
+  }
+
+  private notifyHealthCheckIssue(): void {
+    if (this.healthFailureToastShown) {
+      return;
+    }
+
+    this.toast.warning(
+      'We are having trouble reaching the server. We will keep trying in the background.',
+      'Connection issue'
+    );
+    this.healthFailureToastShown = true;
   }
 
   // ═══════════════════════════════════════════════════════════════════

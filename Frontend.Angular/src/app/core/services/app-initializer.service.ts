@@ -4,17 +4,20 @@ import { catchError, firstValueFrom, from, of } from 'rxjs';
 import { ConfigService } from '../../services/config.service';
 import { AuthService } from '../auth/services/auth.service';
 import { LoggerService } from '../logging/services/logger.service';
+import { NetworkService } from '../network/services/network.service';
 
 @Injectable({ providedIn: 'root' })
 export class AppInitializerService {
   private readonly configService = inject(ConfigService);
   private readonly authService = inject(AuthService);
   private readonly logger = inject(LoggerService);
+  private readonly network = inject(NetworkService);
 
   async initialize(): Promise<void> {
     this.showLoader('Loading...');
 
     try {
+      this.network.getStatus();
       await this.restoreSession();
       this.logger.info('[AppInit] Initialization completed');
     } catch (err) {

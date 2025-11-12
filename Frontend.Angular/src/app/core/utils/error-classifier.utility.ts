@@ -28,19 +28,22 @@ export class ErrorClassifier {
    * Comprehensive network error detection
    */
   static isNetworkError(error: HttpErrorResponse): boolean {
-    return (
-      error.status === 0 ||
-      error.error instanceof ProgressEvent ||
-      error.statusText === 'Unknown Error' ||
-      error.statusText === '' ||
-      error.message?.includes('Http failure response') ||
-      error.message?.includes('ERR_CONNECTION_REFUSED') ||
-      error.message?.includes('ERR_NAME_NOT_RESOLVED') ||
-      error.message?.includes('ERR_INTERNET_DISCONNECTED') ||
-      error.message?.includes('ERR_NETWORK_CHANGED') ||
-      error.message?.includes('ERR_CONNECTION_RESET') ||
-      error.message?.includes('ERR_CONNECTION_TIMED_OUT')
-    );
+    if (error.status === 0 || error.error instanceof ProgressEvent) {
+      return true;
+    }
+
+    const message = (error.message ?? '').toLowerCase();
+    const networkTokens = [
+      'err_connection_refused',
+      'err_name_not_resolved',
+      'err_internet_disconnected',
+      'err_network_changed',
+      'err_connection_reset',
+      'err_connection_timed_out',
+      'failed to fetch'
+    ];
+
+    return networkTokens.some(token => message.includes(token));
   }
 
   /**
