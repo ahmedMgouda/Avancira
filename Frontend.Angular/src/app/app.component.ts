@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ConfirmationDialogComponent } from "./components/confirmation-dialog/confirmation-dialog.component";
@@ -6,6 +6,7 @@ import { GlobalLoaderComponent } from "./core/loading/components/global-loader.c
 import { TopProgressBarComponent } from "./core/loading/components/top-progress-bar.component";
 
 import { AuthService } from './core/auth/services/auth.service';
+import { ThemeService } from './core/services/theme.service';
 
 import { ToastContainerComponent } from './core/toast';
 
@@ -21,6 +22,8 @@ import { ToastContainerComponent } from './core/toast';
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit {
+  private readonly theme = inject(ThemeService);
+
   constructor(private readonly auth: AuthService) { }
 
   async ngOnInit(): Promise<void> {

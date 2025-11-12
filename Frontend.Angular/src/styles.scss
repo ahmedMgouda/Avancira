@@ -1,3 +1,41 @@
+:root {
+  color-scheme: light;
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1f5f9;
+  --color-border: rgba(15, 23, 42, 0.12);
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-overlay: rgba(255, 255, 255, 0.85);
+  --color-loader-border: rgba(15, 23, 42, 0.1);
+  --color-loader-border-top: #2563eb;
+  --color-progress-start: #2563eb;
+  --color-progress-end: #60a5fa;
+  --color-progress-shadow: rgba(37, 99, 235, 0.5);
+}
+
+:root.dark-theme {
+  color-scheme: dark;
+  --color-background: #0f172a;
+  --color-surface: #111827;
+  --color-surface-alt: #1f2937;
+  --color-border: rgba(148, 163, 184, 0.35);
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5f5;
+  --color-overlay: rgba(15, 23, 42, 0.82);
+  --color-loader-border: rgba(148, 163, 184, 0.25);
+  --color-loader-border-top: #60a5fa;
+  --color-progress-start: #3b82f6;
+  --color-progress-end: #60a5fa;
+  --color-progress-shadow: rgba(59, 130, 246, 0.65);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
 .e-dlg-overlay {
   background-color: rgba(0, 0, 0, 0.07) !important;
 }
@@ -77,6 +115,15 @@
   .no-data-container .e-card-content {
     color: #9ca3af;
   }
+}
+
+:root.dark-theme .no-data-container .e-card {
+  background: #1f2937;
+  box-shadow: 0px 4px 6px rgba(15, 23, 42, 0.6);
+}
+
+:root.dark-theme .no-data-container .e-card-content {
+  color: #cbd5f5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

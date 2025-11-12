@@ -1,9 +1,10 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, effect, Injectable, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map } from 'rxjs';
 
 import { PortalRole } from '../../portal/portal.types';
+import { ThemeService } from '../../../core/services/theme.service';
 
 export interface LayoutState {
   sidebarCollapsed: boolean;
@@ -31,10 +32,23 @@ export class LayoutContextService {
 
   constructor(
     private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly themeService: ThemeService
   ) {
     this.initMobileDetection();
     this.initCurrentRoleTracking();
+
+    effect(() => {
+      const activeTheme = this.themeService.theme();
+      this.layoutState.update(state =>
+        state.theme === activeTheme
+          ? state
+          : {
+              ...state,
+              theme: activeTheme
+            }
+      );
+    }, { allowSignalWrites: true });
   }
 
   private initCurrentRoleTracking(): void {
@@ -69,10 +83,7 @@ export class LayoutContextService {
   }
 
   setTheme(theme: 'light' | 'dark'): void {
-    this.layoutState.update(state => ({
-      ...state,
-      theme
-    }));
+    this.themeService.setTheme(theme);
   }
 
   isRole(role: PortalRole): boolean {
