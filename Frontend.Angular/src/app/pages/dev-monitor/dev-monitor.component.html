@@ -41,6 +41,20 @@
       <div class="metric-label">Error Rate</div>
       <div class="metric-value">{{ metrics().errorRate }}</div>
     </div>
+    @for (card of levelCards(); track card.level) {
+      <button
+        type="button"
+        class="metric-card level-card"
+        [ngClass]="[getLevelClass(card.level), levelFilter() === card.level ? 'active' : '']"
+        [attr.aria-pressed]="levelFilter() === card.level"
+        (click)="onLevelCardClick(card.level)">
+        <div class="metric-label">
+          {{ getLevelIcon(card.level) }} {{ card.label }}
+        </div>
+        <div class="metric-value">{{ card.count }}</div>
+        <div class="metric-description">{{ card.description }}</div>
+      </button>
+    }
   </div>
 
   <!-- LEVEL STATS -->

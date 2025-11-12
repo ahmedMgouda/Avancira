@@ -140,13 +140,31 @@ export class DevMonitorComponent {
   readonly logLevelCounts = computed(() => {
     const logs = this.allLogs();
     const counts: Record<string, number> = {};
-    
+
     for (const log of logs) {
       const level = log.log?.level || 'UNKNOWN';
       counts[level] = (counts[level] || 0) + 1;
     }
-    
+
     return counts;
+  });
+
+  readonly levelCards = computed(() => {
+    const counts = this.logLevelCounts();
+
+    const levelDefinitions: Array<{ level: string; label: string; description: string }> = [
+      { level: 'FATAL', label: 'Fatal', description: 'Critical failures' },
+      { level: 'ERROR', label: 'Errors', description: 'Runtime issues' },
+      { level: 'WARN', label: 'Warnings', description: 'Potential problems' },
+      { level: 'INFO', label: 'Info', description: 'General updates' },
+      { level: 'DEBUG', label: 'Debug', description: 'Diagnostic details' },
+      { level: 'TRACE', label: 'Trace', description: 'Verbose traces' }
+    ];
+
+    return levelDefinitions.map(def => ({
+      ...def,
+      count: counts[def.level] ?? 0
+    }));
   });
   
   readonly hasLogs = computed(() => this.logs().length > 0);
@@ -212,7 +230,11 @@ export class DevMonitorComponent {
     const value = (event.target as HTMLSelectElement).value;
     this.statusFilter.set(value === 'all' ? 'all' : +value);
   }
-  
+
+  onLevelCardClick(level: string): void {
+    this.levelFilter.update(current => (current === level ? 'all' : level));
+  }
+
   clearFilters(): void {
     this.searchTerm.set('');
     this.levelFilter.set('all');
