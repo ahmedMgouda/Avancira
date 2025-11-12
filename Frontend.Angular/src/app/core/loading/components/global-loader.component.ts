@@ -48,10 +48,9 @@ import { LoadingService } from '../services/loading.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-overlay, rgba(255, 255, 255, 0.85));
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(4px);
       z-index: 9999;
-      transition: background 200ms ease;
     }
 
     /* Centers everything */
@@ -77,8 +76,8 @@ import { LoadingService } from '../services/loading.service';
     .loader {
       width: 48px;
       height: 48px;
-      border: 4px solid var(--color-loader-border, rgba(0, 0, 0, 0.1));
-      border-top-color: var(--color-loader-border-top, #2563eb);
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #2563eb;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       box-sizing: border-box;
@@ -93,12 +92,11 @@ import { LoadingService } from '../services/loading.service';
     .message {
       font-size: 15px;
       font-weight: 500;
-      color: var(--color-text-primary, #374151);
+      color: #374151;
       margin: 0;
       max-width: 300px;
       line-height: 1.5;
       text-align: center;
-      transition: color 200ms ease;
     }
 
     .sr-only {
@@ -113,12 +111,17 @@ import { LoadingService } from '../services/loading.service';
       border: 0;
     }
 
-    :host-context(.dark-theme) .overlay {
-      background: var(--color-overlay, rgba(0, 0, 0, 0.7));
-    }
-
-    :host-context(.dark-theme) .message {
-      color: var(--color-text-primary, #e5e7eb);
+    @media (prefers-color-scheme: dark) {
+      .overlay {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      .loader {
+        border-color: rgba(255, 255, 255, 0.1);
+        border-top-color: #60a5fa;
+      }
+      .message {
+        color: #e5e7eb;
+      }
     }
   `]
 })

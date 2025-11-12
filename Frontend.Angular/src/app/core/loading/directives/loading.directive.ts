@@ -79,8 +79,8 @@ export class LoadingDirective {
         display: inline-block;
         width: var(--loader-size, 20px);
         height: var(--loader-size, 20px);
-        border: 3px solid var(--color-loader-border, rgba(0, 0, 0, 0.1));
-        border-top-color: var(--loader-color, var(--color-loader-border-top, #2563eb));
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top-color: var(--loader-color, #2563eb);
         border-radius: 50%;
         animation: loader-spin var(--loader-speed, 0.8s) linear infinite;
         will-change: transform;
@@ -101,18 +101,20 @@ export class LoadingDirective {
       }
 
       .loading-overlay {
-        background: var(--color-overlay, rgba(255, 255, 255, 0.85));
+        background: rgba(255, 255, 255, 0.85);
         -webkit-backdrop-filter: blur(4px);
         backdrop-filter: blur(4px);
       }
 
-      .dark-theme .loader-spinner {
-        border: 3px solid var(--color-loader-border, rgba(148, 163, 184, 0.25));
-        border-top-color: var(--loader-color, var(--color-loader-border-top, #60a5fa));
-      }
-
-      .dark-theme .loading-overlay {
-        background: var(--color-overlay, rgba(0, 0, 0, 0.6));
+      @media (prefers-color-scheme: dark) {
+        .loader-spinner {
+          border-color: rgba(255, 255, 255, 0.1);
+          border-top-color: var(--loader-color, #60a5fa);
+        }
+        
+        .loading-overlay {
+          background: rgba(0, 0, 0, 0.6);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {

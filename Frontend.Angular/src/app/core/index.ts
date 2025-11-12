@@ -52,7 +52,6 @@ export * from './handlers/global-error.handler';
 export * from './services/app-initializer.service';
 //export * from './services/config.service';
 export * from './services/trace-context.service';
-export * from './services/theme.service';
 
 // ─────────────────────────────────────────────────────────────────────
 // Models

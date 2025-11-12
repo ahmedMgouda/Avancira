@@ -3,7 +3,6 @@ import { Component, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { AuthService } from '../../../../core/auth/services/auth.service';
-import { ThemeToggleComponent } from '../../../../core/theme/theme-toggle.component';
 
 import { ImageFallbackDirective } from '../../../../directives/image-fallback.directive';
 
@@ -39,7 +38,7 @@ const ROLE_ROUTES: Record<AvailableRole, PortalNavItem> = {
 @Component({
   selector: 'app-site-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, ImageFallbackDirective, ThemeToggleComponent],
+  imports: [CommonModule, RouterModule, ImageFallbackDirective],
   templateUrl: './site-header.component.html',
   styleUrls: ['./site-header.component.scss']
 })

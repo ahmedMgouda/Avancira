@@ -47,9 +47,6 @@
       </div>
 
       <ul class="nav header-navbar-rht">
-        <li class="nav-item theme-toggle-item">
-          <app-theme-toggle></app-theme-toggle>
-        </li>
         <!-- Login button -->
         <li class="nav-item signin" *ngIf="!authService.isAuthenticated()">
           <a class="nav-link" href="javascript:void(0);" (click)="startLogin($event)">
