@@ -27,7 +27,8 @@ export class ToastService {
     message: string,
     title?: string,
     duration?: number,
-    action?: ToastAction
+    action?: ToastAction,
+    dismissible = true
   ): string {
     const toast: Toast = {
       id: IdGenerator.generateUUID(),
@@ -35,7 +36,7 @@ export class ToastService {
       title,
       message,
       duration: duration ?? this.config.defaultDuration,
-      dismissible: true,
+      dismissible,
       action,
       icon: this.getIcon(type),
       timestamp: Date.now()
@@ -43,7 +44,7 @@ export class ToastService {
 
     this.toasts.update(toasts => [...toasts, toast]);
 
-    // Auto-dismiss if duration specified
+    // Auto-dismiss if duration specified and > 0
     if (toast.duration && toast.duration > 0) {
       setTimeout(() => this.dismiss(toast.id), toast.duration);
     }

@@ -32,7 +32,8 @@ export class ToastManager {
         request.message,
         request.title,
         request.duration,
-        request.action
+        request.action,
+        request.dismissible
       );
     }
 
@@ -127,6 +128,9 @@ export class ToastManager {
    * Handle duplicate toast
    */
   private handleDuplicate(request: ToastRequest, record: ToastRecord): string | null {
+    // Update last shown time
+    record.lastShown = new Date();
+    
     // Increment suppression counter
     record.suppressedCount++;
 
@@ -136,7 +140,6 @@ export class ToastManager {
       
       // Reset counter after showing summary
       record.suppressedCount = 0;
-      record.lastShown = new Date();
       
       return summaryId;
     }
@@ -154,7 +157,8 @@ export class ToastManager {
       request.message,
       request.title,
       request.duration,
-      request.action
+      request.action,
+      request.dismissible
     );
 
     // Record this toast
@@ -188,7 +192,8 @@ export class ToastManager {
       summaryMessage,
       request.title,
       request.duration,
-      request.action
+      request.action,
+      request.dismissible
     );
   }
 

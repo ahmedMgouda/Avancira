@@ -7,7 +7,7 @@
 
 import { InjectionToken } from '@angular/core';
 
-import { type Environment,getCurrentEnvironment } from './environment.config';
+import { type Environment, getCurrentEnvironment } from './environment.config';
 
 export interface NetworkConfig {
   healthEndpoint: string;
@@ -19,19 +19,19 @@ const CONFIG_BY_ENV: Record<Environment, NetworkConfig> = {
   dev: {
     healthEndpoint: 'https://localhost:9200/health',
     checkInterval: 60000,    // 60 seconds (less frequent in dev)
-    maxAttempts: 1
+    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
   },
 
   staging: {
     healthEndpoint: 'https://staging-api.avancira.com/health',
     checkInterval: 30000,    // 30 seconds
-    maxAttempts: 1
+    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
   },
 
   prod: {
     healthEndpoint: 'https://api.avancira.com/health',
     checkInterval: 30000,    // 30 seconds
-    maxAttempts: 1
+    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
   }
 };
 
