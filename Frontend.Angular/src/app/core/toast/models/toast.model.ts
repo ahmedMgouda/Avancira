@@ -1,4 +1,5 @@
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
 export type ToastPosition =
   | 'top-left'
   | 'top-center'
@@ -28,7 +29,28 @@ export interface ToastConfig {
   maxVisible?: number;
   defaultDuration?: number;
   position?: ToastPosition;
-  enableHistory?: boolean;
-  preventDuplicates?: boolean;
-  duplicateTimeout?: number; // ms
+}
+
+/**
+ * Internal model for tracking recent toasts
+ */
+export interface ToastRecord {
+  hash: string;
+  lastShown: Date;
+  suppressedCount: number;
+  type: ToastType;
+  message: string;
+  title?: string;
+}
+
+/**
+ * Request model for showing toasts
+ */
+export interface ToastRequest {
+  type: ToastType;
+  message: string;
+  title?: string;
+  duration?: number;
+  action?: ToastAction;
+  dismissible?: boolean;
 }

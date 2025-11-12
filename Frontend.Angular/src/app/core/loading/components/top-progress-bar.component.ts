@@ -2,34 +2,6 @@ import { Component, computed, DestroyRef, effect, inject, signal, untracked } fr
 
 import { LoadingService } from '../services/loading.service';
 
-/**
- * Top Progress Bar Component (Zoneless Compatible - ALL FIXES APPLIED)
- * ═══════════════════════════════════════════════════════════════════════
- * Slim progress bar at the top of the screen for route/HTTP loading
- * 
- * ✅ ALL FIXES APPLIED:
- *   - Fixed memory leak by tracking all setTimeout calls
- *   - Minimum visible duration (400ms) to prevent flashing
- *   - Proper cleanup on component destroy
- *   - Uses same CSS variable as loader for color consistency
- *   - Better timing logic for fast requests
- * 
- * Features:
- *   ✅ Progressive animation (10% → 90% → 100%)
- *   ✅ Auto-advances while loading
- *   ✅ Error state styling
- *   ✅ Reduced motion support
- *   ✅ Zoneless compatible (no NgZone!)
- *   ✅ Efficient rendering with signals
- *   ✅ No memory leaks
- * 
- * Usage:
- *   Add to app.component.html:
- *   <app-top-progress-bar />
- * 
- * @example
- * <app-top-progress-bar />
- */
 @Component({
   selector: 'app-top-progress-bar',
   standalone: true,
@@ -37,14 +9,13 @@ import { LoadingService } from '../services/loading.service';
     @if (visible()) {
       <div
         class="progress-container"
+        [class.completing]="isCompleting()"
         role="progressbar"
         [attr.aria-valuenow]="progress()"
         aria-valuemin="0"
-        aria-valuemax="100"
-        aria-label="Loading progress">
-        <div
+        aria-valuemax="100">
+        <div 
           class="progress-bar"
-          [class.error]="hasError()"
           [style.width.%]="progress()">
         </div>
       </div>
@@ -55,52 +26,36 @@ import { LoadingService } from '../services/loading.service';
       position: fixed;
       top: 0;
       left: 0;
-      height: 3px;
       width: 100%;
-      z-index: 3000;
+      height: 3px;
+      z-index: 9998;
       background: transparent;
-      opacity: 1;
-      transition: opacity 0.2s ease-in-out;
-      transform: translateZ(0);
-      backface-visibility: hidden;
+      pointer-events: none;
     }
-
+    
     .progress-bar {
       height: 100%;
-      /* ✅ Uses same CSS variable as loader for consistency */
-      background: linear-gradient(
-        90deg, 
-        var(--loader-color-medium, #2563eb), 
-        #60a5fa
-      );
-      box-shadow: 0 0 10px var(--loader-glow-dark, rgba(37, 99, 235, 0.5));
-      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      transform: translateZ(0);
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+      transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
       will-change: width;
+      transform-origin: left;
     }
-
-    .progress-bar.error {
-      background: linear-gradient(90deg, #ef4444, #f87171);
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    
+    .progress-container.completing .progress-bar {
+      transition: width 200ms ease-out;
     }
-
+    
     @media (prefers-reduced-motion: reduce) {
-      .progress-container {
-        transition: none;
-      }
-
       .progress-bar {
-        transition: width 0.1s linear;
+        transition: width 150ms linear;
       }
     }
-
+    
     @media (prefers-color-scheme: dark) {
       .progress-bar {
-        box-shadow: 0 0 12px var(--loader-glow-dark, rgba(37, 99, 235, 0.7));
-      }
-
-      .progress-bar.error {
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
       }
     }
   `]
@@ -109,122 +64,112 @@ export class TopProgressBarComponent {
   private readonly loader = inject(LoadingService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly visible = computed(() =>
+  // Configuration
+  private readonly MIN_VISIBLE_MS = 300;
+  private readonly COMPLETE_DELAY_MS = 150;
+  
+  // State
+  private readonly _progress = signal(0);
+  private readonly _isCompleting = signal(false);
+  
+  readonly progress = this._progress.asReadonly();
+  readonly isCompleting = this._isCompleting.asReadonly();
+  
+  readonly visible = computed(() => 
     this.loader.isRouteLoading() || this.loader.isHttpLoading()
   );
 
-  readonly hasError = computed(() => this.loader.hasRequestErrors());
-
-  private readonly _progress = signal(0);
-  readonly progress = this._progress.asReadonly();
-
-  private timer: ReturnType<typeof setInterval> | null = null;
-  
-  // ✅ FIX: Track ALL timeouts for proper cleanup
-  private timeouts: Set<ReturnType<typeof setTimeout>> = new Set();
-  
-  // Minimum visibility duration to prevent flashing
-  private readonly minVisibleDuration = 400; // ms
-  private lastStartTime = 0;
-
-  private readonly prefersReducedMotion =
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Tracking
+  private startTime = 0;
+  private peakCount = 0;
+  private completedCount = 0;
+  private completeTimer?: ReturnType<typeof setTimeout>;
+  private resetTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
-    // Watch for visibility changes and update progress accordingly
     effect(() => {
-      const isVisible = this.visible();
+      const httpActive = this.loader.activeCount();
+      const routeActive = this.loader.isRouteLoading();
       
-      untracked(() => {
-        if (isVisible) {
-          this.startProgress();
-        } else {
-          this.completeProgress();
-        }
-      });
+      untracked(() => this.updateProgress(httpActive, routeActive));
     });
 
-    // ✅ FIX: Cleanup ALL timers on destroy
-    this.destroyRef.onDestroy(() => {
-      this.clearTimer();
-      this.clearAllTimeouts();
-    });
+    this.destroyRef.onDestroy(() => this.cleanup());
   }
 
-  /**
-   * Start progressive loading animation
-   * Progress advances from 10% → 90% automatically
-   * ✅ Tracks start time for minimum visibility
-   */
-  private startProgress(): void {
-    this.clearTimer();
-    this.clearAllTimeouts();
-    this.lastStartTime = Date.now();
-    this._progress.set(10);
+  private updateProgress(httpActive: number, routeActive: boolean): void {
+    const totalActive = httpActive + (routeActive ? 1 : 0);
 
-    // For reduced motion, just show near-complete
-    if (this.prefersReducedMotion) {
-      this._progress.set(90);
-      return;
-    }
-
-    // Progressive animation without zone.js
-    this.timer = setInterval(() => {
-      const currentProgress = this._progress();
-
-      if (currentProgress < 90) {
-        // Logarithmic slowdown as we approach 90%
-        const increment = (90 - currentProgress) * 0.1;
-        const newProgress = Math.min(currentProgress + increment, 90);
-        this._progress.set(newProgress);
-      } else {
-        this.clearTimer();
+    if (totalActive > 0) {
+      // Clear any pending completion
+      this.clearTimers();
+      
+      // Initialize on first request
+      if (this.startTime === 0) {
+        this.startTime = Date.now();
+        this._progress.set(10);
+        this._isCompleting.set(false);
       }
-    }, 200);
+      
+      // Track peak for completion calculation
+      if (totalActive > this.peakCount) {
+        this.peakCount = totalActive;
+      }
+      
+      // Calculate completed work
+      const newCompleted = this.peakCount - totalActive;
+      
+      // Only advance progress (never go backward)
+      if (newCompleted > this.completedCount) {
+        this.completedCount = newCompleted;
+        const ratio = this.completedCount / this.peakCount;
+        const newProgress = 10 + (ratio * 80);
+        this._progress.set(Math.min(90, newProgress));
+      }
+    } else {
+      // All work complete
+      this.complete();
+    }
   }
 
-  /**
-   * Complete progress smoothly
-   * Jumps to 100%, then fades out
-   * ✅ FIXED: Ensures minimum visibility duration + tracks timeouts
-   */
-  private completeProgress(): void {
-    this.clearTimer();
+  private complete(): void {
+    if (this._isCompleting()) return;
     
-    // Calculate elapsed time and enforce minimum visibility
-    const elapsed = Date.now() - this.lastStartTime;
-    const delay = Math.max(0, this.minVisibleDuration - elapsed);
+    this._isCompleting.set(true);
     
-    // ✅ FIX: Track timeout for cleanup
-    const timeout1 = setTimeout(() => {
+    // Ensure minimum visible time
+    const elapsed = Date.now() - this.startTime;
+    const delay = Math.max(0, this.MIN_VISIBLE_MS - elapsed);
+    
+    this.completeTimer = setTimeout(() => {
       this._progress.set(100);
       
-      // ✅ FIX: Track nested timeout too
-      const timeout2 = setTimeout(() => {
-        this._progress.set(0);
-        this.timeouts.delete(timeout2);
-      }, 300);
-      
-      this.timeouts.add(timeout2);
-      this.timeouts.delete(timeout1);
+      this.resetTimer = setTimeout(() => {
+        this.reset();
+      }, this.COMPLETE_DELAY_MS);
     }, delay);
-    
-    this.timeouts.add(timeout1);
   }
 
-  /** Stop and clear interval timer */
-  private clearTimer(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+  private reset(): void {
+    this._progress.set(0);
+    this._isCompleting.set(false);
+    this.startTime = 0;
+    this.peakCount = 0;
+    this.completedCount = 0;
+  }
+
+  private clearTimers(): void {
+    if (this.completeTimer) {
+      clearTimeout(this.completeTimer);
+      this.completeTimer = undefined;
+    }
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = undefined;
     }
   }
 
-  /**
-   * ✅ NEW: Clear all tracked timeouts
-   */
-  private clearAllTimeouts(): void {
-    this.timeouts.forEach(timeout => clearTimeout(timeout));
-    this.timeouts.clear();
+  private cleanup(): void {
+    this.clearTimers();
   }
 }

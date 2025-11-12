@@ -1,10 +1,15 @@
 <div class="container">
 
   <!-- Test Loading Button -->
-  <button class="btn btn-secondary" [appLoading]="isRefresh()" loadingColor="#1E88E5" loadingSize="small"
+  <!-- <button class="btn btn-secondary" [appLoading]="isRefresh()" mode loadingSize="small"
     loadingPosition="right" (click)="testLoading()">
     Test Loading
+  </button> -->
+
+  <button [loading]="isRefresh()" mode="button" size="sm" (click)="testLoading()">
+    Save Changes
   </button>
+
 
   <!-- <app-file-upload [fileType]="fileType" (filesChanged)="onFilesChanged($event)"
     (filesValidated)="onFilesValidated($event)">
@@ -82,103 +87,98 @@
   }
 
   <!-- Results Section -->
-  <div [appLoading]="loading()" loadingSize="medium" loadingDisplay="inline">
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th (click)="onSort('name')" class="sortable">
-              Name {{ getSortIcon('name') }}
-            </th>
-            <th>Description</th>
-            <th (click)="onSort('sortOrder')" class="sortable text-center">
-              Sort Order {{ getSortIcon('sortOrder') }}
-            </th>
-            <th (click)="onSort('isActive')" class="sortable text-center">
-              Active {{ getSortIcon('isActive') }}
-            </th>
-            <th (click)="onSort('isVisible')" class="sortable text-center">
-              Visible {{ getSortIcon('isVisible') }}
-            </th>
-            <th (click)="onSort('isFeatured')" class="sortable text-center">
-              Featured {{ getSortIcon('isFeatured') }}
-            </th>
-            <th class="actions-col">Actions</th>
-          </tr>
-        </thead>
+  <div class="table-container" [loading]="loading()" mode="overlay" size="lg">
+    <table class="table">
+      <thead>
+        <tr>
+          <th (click)="onSort('name')" class="sortable">
+            Name {{ getSortIcon('name') }}
+          </th>
+          <th>Description</th>
+          <th (click)="onSort('sortOrder')" class="sortable text-center">
+            Sort Order {{ getSortIcon('sortOrder') }}
+          </th>
+          <th (click)="onSort('isActive')" class="sortable text-center">
+            Active {{ getSortIcon('isActive') }}
+          </th>
+          <th (click)="onSort('isVisible')" class="sortable text-center">
+            Visible {{ getSortIcon('isVisible') }}
+          </th>
+          <th (click)="onSort('isFeatured')" class="sortable text-center">
+            Featured {{ getSortIcon('isFeatured') }}
+          </th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
 
-        <!-- 👇 Skeleton loader applied here -->
-        <tbody>
-          @if (!loading()) {
-          @if (showEmptyState()) {
-          <tr>
-            <td colspan="7" class="text-center empty-state">
-              <div class="empty-state-content">
-                <p class="empty-state-icon">📁</p>
-                <p class="empty-state-message">
-                  @if (hasActiveFilters()) {
-                  No categories match your filters.
-                  } @else {
-                  No categories found.
-                  }
-                </p>
+      <tbody>
+        @if (showEmptyState()) {
+        <tr>
+          <td colspan="7" class="text-center empty-state">
+            <div class="empty-state-content">
+              <p class="empty-state-icon">📁</p>
+              <p class="empty-state-message">
                 @if (hasActiveFilters()) {
-                <button class="btn btn-secondary" (click)="clearFilters()">
-                  Clear Filters
-                </button>
+                No categories match your filters.
                 } @else {
-                <button class="btn btn-primary" (click)="onCreate()">
-                  <span class="icon">+</span>
-                  Create Your First Category
-                </button>
+                No categories found.
                 }
-              </div>
-            </td>
-          </tr>
-          } @else {
-          @for (category of categories(); track trackByCategory($index, category)) {
-          <tr [class.deleting]="isDeleting(category.id)">
-            <td class="category-name"><strong>{{ category.name }}</strong></td>
-            <td class="description">{{ category.description || '—' }}</td>
-            <td class="text-center"><span class="sort-order-badge">{{ category.sortOrder }}</span></td>
-            <td class="text-center">
-              <span [class]="'badge ' + (category.isActive ? 'badge-success' : 'badge-danger')">
-                {{ category.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </td>
-            <td class="text-center">
-              <span [class]="'badge ' + (category.isVisible ? 'badge-success' : 'badge-secondary')">
-                {{ category.isVisible ? 'Visible' : 'Hidden' }}
-              </span>
-            </td>
-            <td class="text-center">
-              @if (category.isFeatured) {
-              <span class="badge badge-warning">★ Featured</span>
-              } @else {
-              <span class="badge badge-secondary">—</span>
-              }
-            </td>
-            <td class="actions">
-              <button class="btn btn-sm btn-info" title="View Details" (click)="onView(category.id)"
-                [disabled]="isDeleting(category.id)">👁</button>
-              <button class="btn btn-sm btn-primary" title="Edit" (click)="onEdit(category.id)"
-                [disabled]="isDeleting(category.id)">✏️</button>
-              <button class="btn btn-sm btn-danger" title="Delete" (click)="onDelete(category)"
-                [disabled]="isDeleting(category.id)">
-                @if (isDeleting(category.id)) {
-                <span class="spinner-small"></span>
-                } @else {
-                🗑️
-                }
+              </p>
+              @if (hasActiveFilters()) {
+              <button class="btn btn-secondary" (click)="clearFilters()">
+                Clear Filters
               </button>
-            </td>
-          </tr>
-          }
-          }
-          }
-        </tbody>
-      </table>
-    </div>
+              } @else {
+              <button class="btn btn-primary" (click)="onCreate()">
+                <span class="icon">+</span>
+                Create Your First Category
+              </button>
+              }
+            </div>
+          </td>
+        </tr>
+        } @else {
+        @for (category of categories(); track trackByCategory($index, category)) {
+        <tr [class.deleting]="isDeleting(category.id)">
+          <td class="category-name"><strong>{{ category.name }}</strong></td>
+          <td class="description">{{ category.description || '—' }}</td>
+          <td class="text-center"><span class="sort-order-badge">{{ category.sortOrder }}</span></td>
+          <td class="text-center">
+            <span [class]="'badge ' + (category.isActive ? 'badge-success' : 'badge-danger')">
+              {{ category.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="text-center">
+            <span [class]="'badge ' + (category.isVisible ? 'badge-success' : 'badge-secondary')">
+              {{ category.isVisible ? 'Visible' : 'Hidden' }}
+            </span>
+          </td>
+          <td class="text-center">
+            @if (category.isFeatured) {
+            <span class="badge badge-warning">★ Featured</span>
+            } @else {
+            <span class="badge badge-secondary">—</span>
+            }
+          </td>
+          <td class="actions">
+            <button class="btn btn-sm btn-info" title="View Details" (click)="onView(category.id)"
+              [disabled]="isDeleting(category.id)">👁</button>
+            <button class="btn btn-sm btn-primary" title="Edit" (click)="onEdit(category.id)"
+              [disabled]="isDeleting(category.id)">✏️</button>
+            <button class="btn btn-sm btn-danger" title="Delete" (click)="onDelete(category)"
+              [disabled]="isDeleting(category.id)">
+              @if (isDeleting(category.id)) {
+              <span class="spinner-small"></span>
+              } @else {
+              🗑️
+              }
+            </button>
+          </td>
+        </tr>
+        }
+        }
+      </tbody>
+    </table>
   </div>
 
 

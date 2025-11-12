@@ -1,31 +1,13 @@
-// core/toast/services/toast.service.ts
-/**
- * Toast Service - SIMPLIFIED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * CHANGES FROM ORIGINAL (200 → 120 lines, -40%):
- * ✅ Removed deduplication (moved to coordinator)
- * ✅ Removed history tracking (coordinator's job)
- * ✅ Pure operations only (dumb service)
- */
-
 import { computed, Injectable, signal } from '@angular/core';
 
+import { getToastDisplayConfig } from '../../config/toast.config';
 import { IdGenerator } from '../../utils/id-generator.utility';
-import { Toast, ToastAction, ToastConfig, ToastType } from '../models/toast.model';
+import { Toast, ToastAction, ToastType } from '../models/toast.model';
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
   private readonly toasts = signal<Toast[]>([]);
-
-  private readonly config: Required<ToastConfig> = {
-    maxVisible: 5,
-    defaultDuration: 5000,
-    position: 'top-right',
-    enableHistory: false,
-    preventDuplicates: false,
-    duplicateTimeout: 0
-  };
+  private readonly config = getToastDisplayConfig();
 
   readonly activeToasts = computed(() =>
     this.toasts().slice(0, this.config.maxVisible)
@@ -37,7 +19,9 @@ export class ToastService {
     Math.max(0, this.toasts().length - this.config.maxVisible)
   );
 
-  // ✅ Pure operations (no business logic)
+  /**
+   * Show a toast notification
+   */
   show(
     type: ToastType,
     message: string,
@@ -59,6 +43,7 @@ export class ToastService {
 
     this.toasts.update(toasts => [...toasts, toast]);
 
+    // Auto-dismiss if duration specified
     if (toast.duration && toast.duration > 0) {
       setTimeout(() => this.dismiss(toast.id), toast.duration);
     }
@@ -66,22 +51,23 @@ export class ToastService {
     return toast.id;
   }
 
+  /**
+   * Dismiss a specific toast
+   */
   dismiss(id: string): void {
     this.toasts.update(toasts => toasts.filter(t => t.id !== id));
   }
 
+  /**
+   * Dismiss all toasts
+   */
   dismissAll(): void {
     this.toasts.set([]);
   }
 
-  configure(config: Partial<ToastConfig>): void {
-    Object.assign(this.config, config);
-  }
-
-  getConfig(): Readonly<Required<ToastConfig>> {
-    return { ...this.config };
-  }
-
+  /**
+   * Get icon for toast type
+   */
   private getIcon(type: ToastType): string {
     const icons: Record<ToastType, string> = {
       success: '✓',
@@ -90,5 +76,17 @@ export class ToastService {
       info: 'ℹ'
     };
     return icons[type];
+  }
+
+  /**
+   * Get diagnostics
+   */
+  getDiagnostics() {
+    return {
+      totalToasts: this.toasts().length,
+      activeToasts: this.activeToasts().length,
+      queuedToasts: this.queuedCount(),
+      config: this.config
+    };
   }
 }

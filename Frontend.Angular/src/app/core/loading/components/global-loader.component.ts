@@ -4,38 +4,6 @@ import { Component, effect, inject, Renderer2 } from '@angular/core';
 
 import { LoadingService } from '../services/loading.service';
 
-/**
- * Global Loader Component (Zoneless Compatible - Fixed Version)
- * ═══════════════════════════════════════════════════════════════════════
- * Full-screen blocking overlay with spinner for critical operations
- * 
- * ✅ FIXES APPLIED:
- *   - Added aria-live="assertive" for dynamic message updates
- *   - Added aria-atomic="true" for complete announcements
- *   - Improved accessibility for screen readers
- * 
- * Features:
- *   ✅ Fade in/out animation
- *   ✅ Backdrop blur effect
- *   ✅ Optional status message
- *   ✅ Scroll lock (via Renderer2)
- *   ✅ Pointer events disabled
- *   ✅ Full accessibility (ARIA)
- *   ✅ Zoneless compatible
- *   ✅ Proper cleanup on destroy
- * 
- * Usage:
- *   Add to app.component.html:
- *   <app-global-loader />
- * 
- *   Control via LoadingService:
- *   loader.showGlobal('Processing payment...');
- *   loader.updateGlobalMessage('Verifying transaction...');
- *   loader.hideGlobal();
- * 
- * @example
- * <app-global-loader />
- */
 @Component({
   selector: 'app-global-loader',
   standalone: true,
@@ -43,7 +11,7 @@ import { LoadingService } from '../services/loading.service';
     trigger('fadeIn', [
       transition(':enter', [
         style({ opacity: 0 }),
-        animate('150ms ease-out', style({ opacity: 1 })),
+        animate('200ms ease-out', style({ opacity: 1 })),
       ]),
       transition(':leave', [
         animate('150ms ease-in', style({ opacity: 0 })),
@@ -52,28 +20,19 @@ import { LoadingService } from '../services/loading.service';
   ],
   template: `
     @if (isActive()) {
-      <div 
-        @fadeIn 
+      <div
+        @fadeIn
         class="overlay"
         role="dialog"
         aria-modal="true"
         aria-busy="true"
         [attr.aria-labelledby]="message() ? 'loading-message' : null">
-        <div class="spinner">
-          <div 
-            class="loader" 
-            role="status" 
-            aria-live="polite"
-            aria-label="Loading">
+        <div class="content">
+          <div class="loader-wrap">
+            <div class="loader" role="status" aria-label="Loading"></div>
           </div>
           @if (message()) {
-            <p 
-              id="loading-message" 
-              class="message"
-              aria-live="assertive"
-              aria-atomic="true">
-              {{ message() }}
-            </p>
+            <p id="loading-message" class="message">{{ message() }}</p>
           } @else {
             <span class="sr-only">Loading, please wait...</span>
           }
@@ -82,75 +41,64 @@ import { LoadingService } from '../services/loading.service';
     }
   `,
   styles: [`
-    /* ─────────────────────────────────────────────────────────
-       Overlay - Full screen blocking layer
-       ───────────────────────────────────────────────────────── */
+    /* Overlay fills entire view */
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000;
-      backdrop-filter: blur(3px);
-      
-      /* Ensure smooth rendering */
-      will-change: opacity;
-      transform: translateZ(0);
-      backface-visibility: hidden;
-      /* ✅ GPU optimization */
-      contain: layout style paint;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
     }
-    
-    /* ─────────────────────────────────────────────────────────
-       Spinner Container
-       ───────────────────────────────────────────────────────── */
-    .spinner {
+
+    /* Centers everything */
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      color: white;
-      padding: 2rem;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
-    
-    /* ─────────────────────────────────────────────────────────
-       Loader Animation
-       ───────────────────────────────────────────────────────── */
+
+    /* Reserve space for spinner explicitly */
+    .loader-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;     
+      height: 64px;
+      margin-bottom: 1rem;
+    }
+
+    /* Spinner itself */
     .loader {
-      border: 4px solid rgba(255, 255, 255, 0.2);
-      border-top: 4px solid var(--accent-color, #3b82f6);
-      border-radius: 50%;
       width: 48px;
       height: 48px;
-      margin: 0 auto 12px;
-      animation: global-spin 0.9s linear infinite;
-      
-      /* GPU optimization */
-      transform: translateZ(0);
-      will-change: transform;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      box-sizing: border-box;
     }
-    
-    @keyframes global-spin {
+
+    @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
-    /* ─────────────────────────────────────────────────────────
-       Message Text
-       ───────────────────────────────────────────────────────── */
+
+    /* Message below spinner */
     .message {
       font-size: 15px;
-      opacity: 0.9;
-      margin: 0;
       font-weight: 500;
+      color: #374151;
+      margin: 0;
       max-width: 300px;
+      line-height: 1.5;
+      text-align: center;
     }
-    
-    /* ─────────────────────────────────────────────────────────
-       Screen Reader Only Text
-       ───────────────────────────────────────────────────────── */
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -160,34 +108,19 @@ import { LoadingService } from '../services/loading.service';
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;
-      border-width: 0;
+      border: 0;
     }
-    
-    /* ─────────────────────────────────────────────────────────
-       Accessibility: Reduced Motion
-       ───────────────────────────────────────────────────────── */
-    @media (prefers-reduced-motion: reduce) {
-      .loader {
-        animation: none;
-        border-top-color: var(--accent-color, #3b82f6);
-        opacity: 0.8;
-      }
-      
-      .overlay {
-        backdrop-filter: none;
-      }
-    }
-    
-    /* ─────────────────────────────────────────────────────────
-       Dark Mode Support
-       ───────────────────────────────────────────────────────── */
+
     @media (prefers-color-scheme: dark) {
       .overlay {
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.7);
       }
-      
-      .spinner {
-        background: rgba(0, 0, 0, 0.5);
+      .loader {
+        border-color: rgba(255, 255, 255, 0.1);
+        border-top-color: #60a5fa;
+      }
+      .message {
+        color: #e5e7eb;
       }
     }
   `]
@@ -196,26 +129,17 @@ export class GlobalLoaderComponent {
   private readonly loader = inject(LoadingService);
   private readonly renderer = inject(Renderer2);
   private readonly document = inject(DOCUMENT);
-  
+
   readonly isActive = this.loader.isGlobalLoading;
   readonly message = this.loader.globalMessage;
 
   constructor() {
-    // Lock scroll and pointer events when active
-    // Using Renderer2 for proper DOM manipulation in zoneless
+    // Lock scroll while loader visible
     effect(() => {
       const active = this.isActive();
       const body = this.document.body;
-      
-      if (active) {
-        // Disable pointer events and lock scroll
-        this.renderer.setStyle(body, 'pointer-events', 'none');
-        this.renderer.setStyle(body, 'overflow', 'hidden');
-      } else {
-        // Restore body styles
-        this.renderer.removeStyle(body, 'pointer-events');
-        this.renderer.removeStyle(body, 'overflow');
-      }
+      if (active) this.renderer.setStyle(body, 'overflow', 'hidden');
+      else this.renderer.removeStyle(body, 'overflow');
     }, { allowSignalWrites: false });
   }
 }

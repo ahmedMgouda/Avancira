@@ -1,22 +1,6 @@
-// core/network/services/network.service.ts
-/**
- * Network Service - MERGED
- * ═══════════════════════════════════════════════════════════════════════
- * Unified network status and error tracking
- * 
- * CHANGES FROM ORIGINAL:
- * ✅ Merged NetworkStatusService + NetworkErrorTracker
- * ✅ Uses DedupManager for error tracking
- * ✅ Single source of truth for network health
- * ✅ 230 → 160 lines (-30%)
- */
-
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, interval, of, Subscription, switchMap } from 'rxjs';
-
-import { getDeduplicationConfig } from '../../config/deduplication.config';
-import { DedupManager } from '../../utils/dedup-manager.utility';
 
 export interface NetworkStatus {
   online: boolean;
@@ -38,28 +22,33 @@ export interface NetworkConfig {
 export class NetworkService {
   private readonly http = inject(HttpClient);
 
-  // ✅ Use DedupManager for error tracking
-  private readonly errorDedup = new DedupManager<HttpErrorResponse>({
-    ...getDeduplicationConfig().networkErrors,
-    hashFn: (error) => `${error.status}-${error.url}`
-  });
+  // ═══════════════════════════════════════════════════════════════════
+  // State Signals
+  // ═══════════════════════════════════════════════════════════════════
 
-  // State signals
   private readonly _online = signal(navigator.onLine);
   private readonly _consecutiveErrors = signal(0);
   private readonly _totalRequests = signal(0);
   private readonly _successfulRequests = signal(0);
   private readonly _lastCheck = signal(new Date());
 
-  // Computed signals
+  // ═══════════════════════════════════════════════════════════════════
+  // Computed Signals
+  // ═══════════════════════════════════════════════════════════════════
+
   readonly isOnline = this._online.asReadonly();
   readonly consecutiveErrors = this._consecutiveErrors.asReadonly();
+
   readonly successRate = computed(() => {
     const total = this._totalRequests();
     return total > 0 ? (this._successfulRequests() / total) * 100 : 100;
   });
 
-  // ✅ Unified health check (OS-level + app-level)
+  /**
+   * Network is healthy if:
+   * 1. Browser reports online
+   * 2. Fewer than 3 consecutive errors
+   */
   readonly isHealthy = computed(() => {
     return this._online() && this._consecutiveErrors() < 3;
   });
@@ -118,6 +107,7 @@ export class NetworkService {
 
   /**
    * Track successful request
+   * Resets consecutive error counter
    */
   markSuccess(): void {
     this._consecutiveErrors.set(0);
@@ -126,14 +116,10 @@ export class NetworkService {
   }
 
   /**
-   * Track error (with deduplication)
+   * Track failed request
+   * ✅ Simple counting - no deduplication
    */
-  trackError(error: HttpErrorResponse): void {
-    // ✅ Use deduplication to prevent duplicate tracking
-    if (this.errorDedup.check(error)) {
-      return; // Duplicate error, skip
-    }
-
+  trackError(): void {
     this._consecutiveErrors.update(n => n + 1);
     this._totalRequests.update(n => n + 1);
   }
@@ -158,6 +144,9 @@ export class NetworkService {
   // Private Methods
   // ═══════════════════════════════════════════════════════════════════
 
+  /**
+   * Setup browser online/offline event listeners
+   */
   private setupBrowserListeners(): void {
     window.addEventListener('online', () => {
       this._online.set(true);
@@ -169,9 +158,15 @@ export class NetworkService {
     });
   }
 
+  /**
+   * Perform health check against backend
+   */
   private performHealthCheck(endpoint: string) {
     return this.http.get(endpoint, {
-      headers: { 'X-Skip-Loading': 'true', 'X-Skip-Logging': 'true' }
+      headers: { 
+        'X-Skip-Loading': 'true', 
+        'X-Skip-Logging': 'true' 
+      }
     }).pipe(
       catchError(() => {
         this.markUnhealthy();
@@ -180,6 +175,9 @@ export class NetworkService {
     );
   }
 
+  /**
+   * Mark network as unhealthy
+   */
   private markUnhealthy(): void {
     this._consecutiveErrors.update(n => n + 1);
     this._lastCheck.set(new Date());
@@ -189,10 +187,14 @@ export class NetworkService {
   // Diagnostics
   // ═══════════════════════════════════════════════════════════════════
 
+  /**
+   * Get diagnostic information
+   */
   getDiagnostics() {
     return {
-      ...this.getStatus(),
-      deduplication: this.errorDedup.getStats()
+      status: this.getStatus(),
+      browserOnline: navigator.onLine,
+      healthCheckActive: !!this.healthCheckSubscription
     };
   }
 

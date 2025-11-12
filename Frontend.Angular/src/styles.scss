@@ -1,7 +1,3 @@
-@use './app/core/loading/components/loading.styles.scss' as *;
-
-
-/* Dialog Overlay - FIXED: Use background-color instead of opacity */
 .e-dlg-overlay {
   background-color: rgba(0, 0, 0, 0.07) !important;
 }
@@ -84,34 +80,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   PERFORMANCE OPTIMIZATIONS
+   PERFORMANCE OPTIMIZATIONS (non-loader elements only)
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* Force GPU acceleration for smooth animations */
-.inline-spinner,
-.skeleton,
-.loading-wrapper {
+.custom-toolbar,
+.action-buttons,
+.no-data-container {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-}
-
-/* Optimize rendering for fixed elements */
-.progress-container,
-.overlay {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   PRINT STYLES (Hide loading indicators)
-   ═══════════════════════════════════════════════════════════════════════ */
-@media print {
-  .inline-spinner,
-  .skeleton,
-  .overlay,
-  .progress-container,
-  .is-loading {
-    display: none !important;
-  }
 }

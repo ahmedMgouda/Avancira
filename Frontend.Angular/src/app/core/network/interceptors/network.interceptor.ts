@@ -1,15 +1,3 @@
-// core/network/interceptors/network.interceptor.ts
-/**
- * Network Interceptor - UPDATED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * CHANGES:
- * ✅ Uses NetworkService (merged service)
- * ✅ Uses ErrorClassifier for error detection
- * ✅ Uses ToastManager (instead of ToastService)
- * ✅ Uses HTTP_ERROR_METADATA for consistent messages
- */
-
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
@@ -27,11 +15,12 @@ export const networkInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         const classification = ErrorClassifier.classify(error);
+         
+        console.log('Network Interceptor - Error Classification:', classification);
+        // Track error in network service (simple counting)
+        network.trackError();
 
-        // Track error in network service
-        network.trackError(error);
-
-        // Show toast for network errors
+        // Show toast for network errors (Toast handles deduplication)
         if (classification.category === 'network') {
           toast.error(
             classification.metadata.userMessage,

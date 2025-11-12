@@ -1,105 +1,84 @@
-
-// core/toast/services/toast-coordinator.service.ts
-/**
- * Toast Coordinator Service
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * Uses DedupManager (removed inline deduplication)
- */
-
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 
 import { ToastService } from './toast.service';
 
-import { getDeduplicationConfig } from '../../config/deduplication.config';
-import { DedupManager } from '../../utils/dedup-manager.utility';
-import { ToastAction, ToastType } from '../models/toast.model';
-
-interface ToastRequest {
-  type: ToastType;
-  message: string;
-  title?: string;
-  duration?: number;
-  action?: ToastAction;
-  dismissible?: boolean;
-}
+import { getToastDeduplicationConfig } from '../../config/toast.config';
+import { ToastAction, ToastRecord, ToastRequest, ToastType } from '../models/toast.model';
 
 @Injectable({ providedIn: 'root' })
 export class ToastManager {
   private readonly toastService = inject(ToastService);
+  private readonly config = getToastDeduplicationConfig();
 
-  // Use DedupManager for toast deduplication
-  private readonly dedup = new DedupManager<ToastRequest>({
-    ...getDeduplicationConfig().toasts,
-    hashFn: (toast) => `${toast.type}:${toast.message}:${toast.title || ''}`
-  });
+  // Time-window based tracking
+  private readonly recentToasts = new Map<string, ToastRecord>();
+  private cleanupTimer?: ReturnType<typeof setInterval>;
 
-  // Rate limiting per type
-  private readonly rateLimiters = new Map<ToastType, number>();
-  private readonly RATE_LIMIT_MS = 1000;
-
-  // Active toast tracking
-  private readonly activeToastIds = signal<Set<string>>(new Set());
-  private readonly MAX_ACTIVE_TOASTS = 5;
-
-  readonly availableSlots = computed(() =>
-    this.MAX_ACTIVE_TOASTS - this.activeToastIds().size
-  );
-
-  readonly hasAvailableSlots = computed(() => this.availableSlots() > 0);
-
-  show(request: ToastRequest): string | null {
-    // Check rate limit
-    if (this.isRateLimited(request.type)) {
-      return null;
-    }
-
-    // Check deduplication
-    if (this.dedup.check(request)) {
-      return null;
-    }
-
-    // Check slots
-    if (!this.hasAvailableSlots()) {
-      return null;
-    }
-
-    const toastId = this.toastService.show(
-      request.type,
-      request.message,
-      request.title,
-      request.duration,
-      request.action
-    );
-
-    this.activeToastIds.update(ids => {
-      const newIds = new Set(ids);
-      newIds.add(toastId);
-      return newIds;
-    });
-
-    this.rateLimiters.set(request.type, Date.now());
-    this.scheduleCleanup(toastId, request.duration || 5000);
-
-    return toastId;
+  constructor() {
+    this.initializeCleanup();
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // Public API
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Show a toast with deduplication
+   */
+  show(request: ToastRequest): string | null {
+    if (!this.config.enabled) {
+      return this.toastService.show(
+        request.type,
+        request.message,
+        request.title,
+        request.duration,
+        request.action
+      );
+    }
+
+    const hash = this.createHash(request);
+    const recent = this.recentToasts.get(hash);
+
+    // Check if shown recently (within time window)
+    if (recent && this.isWithinWindow(recent.lastShown)) {
+      return this.handleDuplicate(request, recent);
+    }
+
+    // Show new toast
+    return this.showNewToast(request, hash);
+  }
+
+  /**
+   * Show success toast
+   */
   success(message: string, title?: string, duration?: number): string | null {
     return this.show({ type: 'success', message, title, duration });
   }
 
+  /**
+   * Show error toast
+   */
   error(message: string, title?: string, duration?: number): string | null {
     return this.show({ type: 'error', message, title, duration });
   }
 
+  /**
+   * Show warning toast
+   */
   warning(message: string, title?: string, duration?: number): string | null {
     return this.show({ type: 'warning', message, title, duration });
   }
 
+  /**
+   * Show info toast
+   */
   info(message: string, title?: string, duration?: number): string | null {
     return this.show({ type: 'info', message, title, duration });
   }
 
+  /**
+   * Show toast with action button
+   */
   showWithAction(
     type: ToastType,
     message: string,
@@ -110,46 +89,184 @@ export class ToastManager {
     return this.show({ type, message, title, duration, action });
   }
 
+  /**
+   * Dismiss a specific toast
+   */
   dismiss(id: string): void {
     this.toastService.dismiss(id);
-    this.removeFromActive(id);
   }
 
+  /**
+   * Dismiss all toasts
+   */
   dismissAll(): void {
     this.toastService.dismissAll();
-    this.activeToastIds.set(new Set());
   }
 
-  private isRateLimited(type: ToastType): boolean {
-    const lastShown = this.rateLimiters.get(type);
-    if (!lastShown) return false;
+  // ═══════════════════════════════════════════════════════════════════
+  // Private Methods - Deduplication Logic
+  // ═══════════════════════════════════════════════════════════════════
 
-    const elapsed = Date.now() - lastShown;
-    return elapsed < this.RATE_LIMIT_MS;
+  /**
+   * Create hash for deduplication
+   * Based on: type + title + message (what user sees)
+   */
+  private createHash(request: ToastRequest): string {
+    return `${request.type}:${request.title || ''}:${request.message}`;
   }
 
-  private scheduleCleanup(toastId: string, duration: number): void {
-    const cleanupDelay = duration > 0 ? duration + 500 : 5500;
-
-    setTimeout(() => {
-      this.removeFromActive(toastId);
-    }, cleanupDelay);
+  /**
+   * Check if toast was shown within time window
+   */
+  private isWithinWindow(lastShown: Date): boolean {
+    const elapsed = Date.now() - lastShown.getTime();
+    return elapsed < this.config.windowMs;
   }
 
-  private removeFromActive(toastId: string): void {
-    this.activeToastIds.update(ids => {
-      const newIds = new Set(ids);
-      newIds.delete(toastId);
-      return newIds;
+  /**
+   * Handle duplicate toast
+   */
+  private handleDuplicate(request: ToastRequest, record: ToastRecord): string | null {
+    // Increment suppression counter
+    record.suppressedCount++;
+
+    // After threshold, show summary toast
+    if (record.suppressedCount >= this.config.maxSuppressedBeforeShow) {
+      const summaryId = this.showSuppressedSummary(request, record.suppressedCount);
+      
+      // Reset counter after showing summary
+      record.suppressedCount = 0;
+      record.lastShown = new Date();
+      
+      return summaryId;
+    }
+
+    // Silently suppressed
+    return null;
+  }
+
+  /**
+   * Show new toast and record it
+   */
+  private showNewToast(request: ToastRequest, hash: string): string {
+    const toastId = this.toastService.show(
+      request.type,
+      request.message,
+      request.title,
+      request.duration,
+      request.action
+    );
+
+    // Record this toast
+    this.recentToasts.set(hash, {
+      hash,
+      lastShown: new Date(),
+      suppressedCount: 0,
+      type: request.type,
+      message: request.message,
+      title: request.title
     });
+
+    return toastId;
   }
 
+  /**
+   * Show summary toast for suppressed notifications
+   */
+  private showSuppressedSummary(
+    request: ToastRequest,
+    count: number
+  ): string | null {
+    if (!this.config.showSuppressedCount) {
+      return null;
+    }
+
+    const summaryMessage = `${request.message} (${count} similar suppressed)`;
+
+    return this.toastService.show(
+      request.type,
+      summaryMessage,
+      request.title,
+      request.duration,
+      request.action
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Cleanup Management
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Initialize periodic cleanup of old records
+   */
+  private initializeCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupOldRecords();
+    }, this.config.cleanupIntervalMs);
+  }
+
+  /**
+   * Remove records outside time window
+   */
+  private cleanupOldRecords(): void {
+    const now = Date.now();
+    const cutoff = now - this.config.windowMs;
+
+    for (const [hash, record] of this.recentToasts.entries()) {
+      if (record.lastShown.getTime() < cutoff) {
+        this.recentToasts.delete(hash);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Diagnostics
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Get diagnostic information
+   */
   getDiagnostics() {
+    const totalSuppressed = Array.from(this.recentToasts.values())
+      .reduce((sum, record) => sum + record.suppressedCount, 0);
+
+    const suppressionsByType = Array.from(this.recentToasts.values())
+      .reduce((acc, record) => {
+        acc[record.type] = (acc[record.type] || 0) + record.suppressedCount;
+        return acc;
+      }, {} as Record<ToastType, number>);
+
     return {
-      activeToasts: this.activeToastIds().size,
-      maxToasts: this.MAX_ACTIVE_TOASTS,
-      availableSlots: this.availableSlots(),
-      deduplication: this.dedup.getStats()
+      recentToastsTracked: this.recentToasts.size,
+      totalSuppressed,
+      suppressionsByType,
+      config: this.config,
+      toastService: this.toastService.getDiagnostics()
     };
+  }
+
+  /**
+   * Get suppression stats for specific toast
+   */
+  getSuppressionStats(type: ToastType, message: string, title?: string): {
+    suppressedCount: number;
+    lastShown: Date | null;
+  } {
+    const hash = this.createHash({ type, message, title });
+    const record = this.recentToasts.get(hash);
+
+    return {
+      suppressedCount: record?.suppressedCount || 0,
+      lastShown: record?.lastShown || null
+    };
+  }
+
+  /**
+   * Cleanup on destroy
+   */
+  ngOnDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
   }
 }

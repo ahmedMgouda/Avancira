@@ -1,4 +1,4 @@
-import { animate, state,style, transition, trigger } from '@angular/animations';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 
@@ -19,10 +19,6 @@ import { ToastService } from '../services/toast.service';
       transition(':leave', [
         animate('200ms ease-in', style({ transform: 'translateX(100%)', opacity: 0 }))
       ])
-    ]),
-    trigger('progressBar', [
-      state('active', style({ width: '0%' })),
-      state('done', style({ width: '100%' }))
     ])
   ]
 })

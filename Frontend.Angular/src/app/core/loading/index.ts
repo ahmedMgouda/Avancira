@@ -1,82 +1,73 @@
-// core/loading/index.ts
-/**
- * Loading Module - Public API
- * ═══════════════════════════════════════════════════════════════════════
- * Centralized exports for loading system
- */
-
-// ─────────────────────────────────────────────────────────────────────
-// Services
-// ─────────────────────────────────────────────────────────────────────
-export { LoadingService } from './services/loading.service';
-
-// ─────────────────────────────────────────────────────────────────────
-// Types & Interfaces (only what exists)
-// ─────────────────────────────────────────────────────────────────────
-export type { 
-  RequestInfo, 
-  RequestMetadata 
-} from './services/loading.service';
-
-// ─────────────────────────────────────────────────────────────────────
-// Directives
-// ─────────────────────────────────────────────────────────────────────
-export { LoadingDirective } from './directives/loading.directive';
-
-// ─────────────────────────────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────────────────────────────
+// Public API
 export { GlobalLoaderComponent } from './components/global-loader.component';
 export { TopProgressBarComponent } from './components/top-progress-bar.component';
-
-// ─────────────────────────────────────────────────────────────────────
-// Interceptors
-// ─────────────────────────────────────────────────────────────────────
+export { LoadingDirective } from './directives/loading.directive';
 export { loadingInterceptor } from './interceptors/loading.interceptor';
-
-// ─────────────────────────────────────────────────────────────────────
-// Providers
-// ─────────────────────────────────────────────────────────────────────
 export { provideLoading } from './providers/loading.provider';
+export { LoadingService } from './services/loading.service';
 
 /**
- * ═════════════════════════════════════════════════════════════════════
- * Usage Examples
- * ═════════════════════════════════════════════════════════════════════
+ * Loading System - Self-Contained Components
+ * ═══════════════════════════════════════════════════════════════
+ * All styles are embedded in components/directives - no external CSS needed!
  * 
- * 1. In app.config.ts:
+ * 1. Setup (app.config.ts):
  * ```typescript
- * import { provideLoading } from '@core/loading';
+ * import { provideLoading, loadingInterceptor } from '@core/loading';
  * 
  * export const appConfig = {
  *   providers: [
+ *     provideHttpClient(withInterceptors([loadingInterceptor])),
  *     provideLoading()
  *   ]
  * };
  * ```
  * 
- * 2. In components:
+ * 2. Add to app.component.ts:
  * ```typescript
- * import { LoadingService, LoadingDirective } from '@core/loading';
+ * import { GlobalLoaderComponent, TopProgressBarComponent } from '@core/loading';
  * 
  * @Component({
- *   imports: [LoadingDirective]
+ *   imports: [GlobalLoaderComponent, TopProgressBarComponent],
+ *   template: `
+ *     <app-global-loader />
+ *     <app-top-progress-bar />
+ *     <router-outlet />
+ *   `
  * })
- * export class MyComponent {
- *   loader = inject(LoadingService);
- *   
- *   async save() {
- *     this.loader.showGlobal('Saving...');
+ * ```
+ * 
+ * 3. Button Loading:
+ * ```html
+ * <button [loading]="saving()">Save</button>
+ * <button [loading]="saving()" size="lg" color="#10b981">Save</button>
+ * ```
+ * 
+ * 4. Container Loading:
+ * ```html
+ * <div [loading]="loading()" mode="overlay">
+ *   <p>Content stays visible</p>
+ * </div>
+ * ```
+ * 
+ * 5. Manual Global Loading:
+ * ```typescript
+ * loader = inject(LoadingService);
+ * 
+ * async save() {
+ *   this.loader.showGlobal('Saving...');
+ *   try {
  *     await this.api.save();
+ *   } finally {
  *     this.loader.hideGlobal();
  *   }
  * }
  * ```
  * 
- * 3. In templates:
- * ```html
- * <button [appLoading]="saving">Save</button>
- * <app-global-loader />
- * <app-top-progress-bar />
+ * 6. Skip HTTP Loading:
+ * ```typescript
+ * http.get('/api/data', {
+ *   headers: { 'X-Skip-Loading': 'true' }
+ * });
  * ```
  */

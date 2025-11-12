@@ -1,16 +1,3 @@
-// core/utils/error-classifier.utility.ts
-/**
- * Error Classifier Utility - REFACTORED
- * ═══════════════════════════════════════════════════════════════════════
- * Centralized error classification and detection logic
- * 
- * CHANGES FROM ORIGINAL:
- * ✅ Uses HTTP_ERROR_METADATA constant (no duplicate mappings)
- * ✅ Removed redundant methods (getReason, statusToCode, getSeverity)
- * ✅ Simpler API
- * ✅ 200 → 80 lines (-60%)
- */
-
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { 

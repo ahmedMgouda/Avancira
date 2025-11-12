@@ -1,17 +1,16 @@
-/**
- * Network Module
- * Network status monitoring and resilience
- */
-
 // Models
-export * from './models/health-check.model';
-
-// Configuration
-export * from './config/network-status.config';
+export type {
+  ConnectionQuality,
+  HealthCheckResponse,
+  NetworkDiagnostics
+} from './models/health-check.model';
+export type { 
+  NetworkConfig,
+  NetworkStatus 
+} from './services/network.service';
 
 // Services
-export * from './services/network.service';
-export * from './services/network-status.service';
+export { NetworkService } from './services/network.service';
 
 // Interceptors
-export * from './interceptors/network.interceptor';
+export { networkInterceptor } from './interceptors/network.interceptor';
