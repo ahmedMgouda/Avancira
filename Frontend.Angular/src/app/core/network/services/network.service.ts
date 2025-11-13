@@ -4,19 +4,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   catchError,
   distinctUntilChanged,
-  fromEvent,
-  map,
-  merge,
   Observable,
   of,
   switchMap,
   tap,
-  timer,
   timeout,
-  TimeoutError
-} from 'rxjs';
+  TimeoutError,
+  timer} from 'rxjs';
 
 import { ToastManager } from '../../toast/services/toast-manager.service';
+
 import { NETWORK_CONFIG, type NetworkConfig as AppNetworkConfig } from '../../config/network.config';
 import { type HealthCheckResponse } from '../models/health-check.model';
 
@@ -287,44 +284,42 @@ export class NetworkService {
    * Monitor browser online/offline events
    * Provides instant feedback for internet connectivity changes
    */
-  private monitorBrowserStatus(): void {
-    const status$ = merge(
-      fromEvent(window, 'online').pipe(map(() => true)),
-      fromEvent(window, 'offline').pipe(map(() => false)),
-      of(navigator.onLine)
-    ).pipe(distinctUntilChanged());
+private monitorBrowserStatus(): void {
+  const online$ = new Observable<boolean>(subscriber => {
+    const onOnline = () => {subscriber.next(true); console.log('Browser went online'); };
+    const onOffline = () => {subscriber.next(false); console.log('Browser went offline'); };
 
-    let isFirstEmission = true;
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
 
-    status$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(isOnline => {
-        const previousState = this._lastOnlineState();
-        this._online.set(isOnline);
-        this._lastOnlineState.set(isOnline);
+    subscriber.next(navigator.onLine);
 
-        // Only show notifications on state changes (not initial load)
-        if (isFirstEmission) {
-          isFirstEmission = false;
-          
-          // If app starts while offline, show notification
-          if (!isOnline) {
-            this.handleOffline();
-          }
-          
-          return;
-        }
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  });
 
-        // Check if state actually changed
-        if (isOnline !== previousState) {
-          if (isOnline) {
-            this.handleBrowserOnline();
-          } else {
-            this.handleOffline();
-          }
-        }
-      });
-  }
+  let skipFirst = true;
+
+  online$
+    .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+    .subscribe(isOnline => {
+      const previous = this._lastOnlineState();
+      this._online.set(isOnline);
+      this._lastOnlineState.set(isOnline);
+
+      if (skipFirst) {
+        skipFirst = false;
+        if (!isOnline) this.handleOffline();
+        return;
+      }
+
+      if (isOnline !== previous) {
+        isOnline ? this.handleBrowserOnline() : this.handleOffline();
+      }
+    });
+}
 
   private normalizeConfig(config: NetworkConfig): NormalizedNetworkConfig | null {
     const endpoint = config.healthEndpoint?.trim();
