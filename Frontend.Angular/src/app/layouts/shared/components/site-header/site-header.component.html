@@ -47,9 +47,14 @@
       </div>
 
       <ul class="nav header-navbar-rht">
-        <!-- ✅ NEW: Network Status Indicator (only when authenticated) -->
-        <li class="nav-item network-status" *ngIf="authService.isAuthenticated()">
-          <app-network-indicator />
+        <!-- ✨ NEW: Theme Toggle (always visible) -->
+        <li class="nav-item theme-toggle-item">
+          <app-theme-toggle />
+        </li>
+
+        <!-- ✨ NEW: Network Status Indicator (only when authenticated) -->
+        <li class="nav-item network-status-item" *ngIf="authService.isAuthenticated()">
+          <app-network-status-indicator />
         </li>
 
         <!-- Login button -->

@@ -1,35 +1,39 @@
-@media (max-width: 991px) {
-  /* Hide sidebar menu and mobile menu button */
-  .main-menu-wrapper,
-  #mobile_btn {
-    display: none !important;
-  }
+/**
+ * Site Header Styles
+ * ═══════════════════════════════════════════════════════════════════════
+ * Enhanced with theme toggle and network status indicators
+ */
 
-  /* Make the navbar take full width */
-  .navbar {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+// Theme toggle styling
+.theme-toggle-item {
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+}
 
-  /* Ensure the logo is on the left */
-  .navbar-header {
-    display: flex;
-    align-items: center;
-    width: fit-content;
-  }
+// Network status indicator styling
+.network-status-item {
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+}
 
-  /* Align the right menu items */
-  .header-navbar-rht {
+// Ensure proper spacing in header
+.header-navbar-rht {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .nav-item {
     display: flex;
     align-items: center;
-    margin-left: auto;
-    width: fit-content;
   }
 }
 
-.user-header {
-  padding: 10px 10px;
-  align-items: center;
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .theme-toggle-item,
+  .network-status-item {
+    margin-right: 0.25rem;
+  }
 }
