@@ -4,16 +4,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
-import { DialogService } from '@core/dialogs';
-import { Category, CategoryFilter } from '@models/category';
 
+import { Category, CategoryFilter } from '@models/category';
 import { LoadingService } from '@/core/loading/services/loading.service';
-import { ToastManager } from '@core/toast/services/toast-manager.service';
+import { ToastService } from '@core/toast/services/toast.service';
+import { DialogService } from '@core/dialogs';
+import { ErrorHandlerService } from '@core/logging/services/error-handler.service';
+import { LoggerService } from '@core/logging/services/logger.service';
 import { CategoryService } from '@services/category.service';
 
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
-
-import { FileMetadata, FileType } from '@/core/file-upload/models/file-upload.models';
 
 @Component({
   selector: 'app-category-list',
@@ -29,17 +29,15 @@ export class CategoryListComponent implements OnInit {
   private readonly toast = inject(ToastManager);
   private readonly loadingService = inject(LoadingService);
   private readonly dialogService = inject(DialogService);
+  private readonly errorHandler = inject(ErrorHandlerService);
+  private readonly logger = inject(LoggerService);
 
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
   // ────────────────────────────────────────────────────────────────
 
   readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
   readonly deleting = signal<number | null>(null);
-  readonly isRefresh = signal(false);
-
-  // Use service's entities signal for consistent state
   readonly paginatedData = this.categoryService.entities;
 
   // ────────────────────────────────────────────────────────────────
@@ -124,18 +122,7 @@ export class CategoryListComponent implements OnInit {
   ngOnInit(): void {
     this.setupSearchDebounce();
     this.loadCategories();
-  }
-
-  fileType = FileType.Image;
-  files: FileMetadata[] = [];
-  isValid = true;
-
-  onFilesChanged(files: FileMetadata[]): void {
-    this.files = files;
-  }
-
-  onFilesValidated(valid: boolean): void {
-    this.isValid = valid;
+    this.logger.debug('CategoryListComponent initialized');
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -172,30 +159,20 @@ export class CategoryListComponent implements OnInit {
     };
   }
 
-  private extractErrorMessage(err: unknown): string {
-    if (err instanceof Error) return err.message;
-    if (typeof err === 'string') return err;
-    if (err && typeof err === 'object' && 'message' in err) {
-      return String(err.message);
-    }
-    return 'An unexpected error occurred';
-  }
-
   // ────────────────────────────────────────────────────────────────
   // LOAD DATA
   // ────────────────────────────────────────────────────────────────
   loadCategories(): void {
     this.loading.set(true);
-    this.error.set(null);
-
     const filter = this.buildFilter();
 
     this.categoryService
       .getAll(filter)
       .pipe(
-        catchError((err: unknown) => {
-          this.error.set(this.extractErrorMessage(err));
-          this.loading.set(false);
+        catchError((error: unknown) => {
+          // Use ErrorHandlerService for proper error handling
+          const standardError = this.errorHandler.handle(error);
+          this.toast.error(standardError.userMessage, standardError.userTitle);
           return of(null);
         }),
         takeUntilDestroyed(this.destroyRef)
@@ -238,6 +215,7 @@ export class CategoryListComponent implements OnInit {
     this.filterFeatured.set(undefined);
     this.resetToFirstPage();
     this.loadCategories();
+    this.logger.debug('Filters cleared');
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -247,6 +225,7 @@ export class CategoryListComponent implements OnInit {
     this.pageSize.set(size);
     this.resetToFirstPage();
     this.loadCategories();
+    this.logger.debug('Page size changed', { size });
   }
 
   onPageChange(page: number | string): void {
@@ -300,6 +279,7 @@ export class CategoryListComponent implements OnInit {
       this.sortOrder.set('asc');
     }
     this.loadCategories();
+    this.logger.debug('Sort changed', { field, order: this.sortOrder() });
   }
 
   getSortIcon(field: string): string {
@@ -323,20 +303,24 @@ export class CategoryListComponent implements OnInit {
   }
 
   async onDelete(category: Category): Promise<void> {
+    // Use DialogService for confirmation
     const confirmed = await this.dialogService.confirmDelete(category.name);
     
-    if (!confirmed) return;
+    if (!confirmed) {
+      this.logger.debug('Delete cancelled by user', { categoryId: category.id });
+      return;
+    }
 
     this.deleting.set(category.id);
-    this.error.set(null);
+    this.logger.info('Deleting category', { categoryId: category.id, name: category.name });
 
     this.categoryService
       .delete(category.id)
       .pipe(
-        catchError((err: unknown) => {
-          const errorMessage = this.extractErrorMessage(err);
-          this.error.set(errorMessage);
-          this.toast.error(errorMessage, 'Delete Failed');
+        catchError((error: unknown) => {
+          // Use ErrorHandlerService for proper error handling
+          const standardError = this.errorHandler.handle(error);
+          this.toast.error(standardError.userMessage, 'Delete Failed');
           this.deleting.set(null);
           return of(void 0);
         }),
@@ -345,7 +329,9 @@ export class CategoryListComponent implements OnInit {
       .subscribe(() => {
         this.deleting.set(null);
         this.toast.success(`"${category.name}" has been deleted.`, 'Category Deleted');
+        this.logger.info('Category deleted successfully', { categoryId: category.id });
         
+        // Navigate to previous page if we deleted the last item
         const currentData = this.paginatedData();
         if (currentData && currentData.items.length === 1 && this.pageIndex() > 0) {
           this.pageIndex.set(this.pageIndex() - 1);
@@ -369,16 +355,22 @@ export class CategoryListComponent implements OnInit {
   refreshList(): void {
     this.categoryService.clearCache();
     this.loadCategories();
+    this.toast.info('Category list refreshed');
+    this.logger.debug('Cache cleared and list refreshed');
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // TESTING / DEBUG
+  // ────────────────────────────────────────────────────────────────
   testLoading(): void {
-    this.isRefresh.set(true);
     this.loadingService.showGlobal();
-    this.loadingService.updateGlobalMessage("Loading...");
-    console.log('Test spinner started');
+    this.loadingService.updateGlobalMessage('Testing loading overlay...');
+    this.logger.debug('Test loading started');
+    
     setTimeout(() => {
-      this.isRefresh.set(false);
       this.loadingService.hideGlobal();
+      this.toast.success('Loading test completed');
+      this.logger.debug('Test loading completed');
     }, 3000);
   }
 }
