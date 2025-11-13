@@ -1,29 +1,35 @@
-// core/logging/services/error-handler.service.ts
-/**
- * Error Handler Service - REFACTORED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * CHANGES FROM ORIGINAL (250 → 120 lines, -52%):
- * ✅ Uses HTTP_ERROR_METADATA constant (no hardcoded messages)
- * ✅ Uses ErrorClassifier.classify()
- * ✅ Removed duplicate error message mappings
- * ✅ Simplified error handling logic
- */
-
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { LoggerService } from './logger.service';
-
 import { ErrorClassifier } from '../../utils/error-classifier.utility';
 import { IdGenerator } from '../../utils/id-generator.utility';
 import { StandardError } from '../models/standard-error.model';
 import { SourceExtractor } from '../utils/source-extractor.utility';
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * ERROR HANDLER SERVICE - IMPROVED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * SINGLE RESPONSIBILITY:
+ * - Transform any error → StandardError
+ * - Log error ONCE (no duplicates)
+ * - Provide user-friendly messages
+ * 
+ * USED BY:
+ * - BaseHttpService (for all HTTP errors)
+ * - Global Error Handler (for uncaught errors)
+ * - Components (for manual error handling)
+ */
 @Injectable({ providedIn: 'root' })
 export class ErrorHandlerService {
   private readonly logger = inject(LoggerService);
 
+  /**
+   * Handle any error and return StandardError
+   * Logs error automatically - no need for duplicate logging
+   */
   handle(error: unknown): StandardError {
     if (error instanceof HttpErrorResponse) {
       return this.handleHttpError(error);
@@ -33,20 +39,27 @@ export class ErrorHandlerService {
       return this.handleJavaScriptError(error);
     }
 
+    // Check if it's already a StandardError (from BaseHttpService)
+    if (this.isStandardError(error)) {
+      return error as StandardError;
+    }
+
     return this.handleUnknownError(error);
   }
 
+  /**
+   * Handle HTTP errors (from API calls)
+   */
   private handleHttpError(error: HttpErrorResponse): StandardError {
     const errorId = IdGenerator.generateErrorId();
-
-    // ✅ Use ErrorClassifier for classification
     const classification = ErrorClassifier.classify(error);
     const metadata = classification.metadata;
 
+    // Handle Problem Details (RFC 7807) responses
     if (classification.isProblemDetails) {
       const problem = error.error;
 
-      this.logger.error(`${error.status} ${problem.title}`, null, {
+      this.logger.error(`HTTP ${error.status}: ${problem.title}`, null, {
         log: {
           id: errorId,
           source: 'HTTP',
@@ -89,8 +102,8 @@ export class ErrorHandlerService {
       };
     }
 
-    // ✅ Standard HTTP error (uses metadata constant)
-    this.logger.error(`${error.status} ${error.statusText}`, null, {
+    // Handle standard HTTP errors
+    this.logger.error(`HTTP ${error.status}: ${error.statusText}`, null, {
       log: {
         id: errorId,
         source: 'HTTP',
@@ -127,6 +140,9 @@ export class ErrorHandlerService {
     };
   }
 
+  /**
+   * Handle JavaScript errors (exceptions, runtime errors)
+   */
   private handleJavaScriptError(error: Error): StandardError {
     const errorId = IdGenerator.generateErrorId();
     const source = SourceExtractor.extractFromError(error);
@@ -164,6 +180,9 @@ export class ErrorHandlerService {
     };
   }
 
+  /**
+   * Handle unknown errors
+   */
   private handleUnknownError(error: unknown): StandardError {
     const errorId = IdGenerator.generateErrorId();
     const errorMessage = String(error);
@@ -199,8 +218,26 @@ export class ErrorHandlerService {
     };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private isStandardError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'errorId' in error &&
+      'userMessage' in error &&
+      'severity' in error
+    );
+  }
+
   private normalizeErrorType(errorName: string): string {
-    return errorName.replace(/Error$/, '').toUpperCase().replace(/([A-Z])/g, '_$1').substring(1);
+    return errorName
+      .replace(/Error$/, '')
+      .toUpperCase()
+      .replace(/([A-Z])/g, '_$1')
+      .substring(1);
   }
 
   private extractErrorSource(error: Error): { component?: string; file?: string; line?: number } | undefined {

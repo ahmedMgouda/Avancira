@@ -1,15 +1,25 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, signal } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, shareReplay, tap } from 'rxjs/operators';
 
-import { ResilienceService } from '../../http/services/resilience.service';
-import { LoggerService } from '../../logging/services/logger.service';
-import { TraceContextService } from '../../services/trace-context.service';
-
+import { ErrorHandlerService } from '../../logging/services/error-handler.service';
+import { StandardError } from '../../logging/models/standard-error.model';
 import { BaseFilter, PaginatedResult } from '../../models/base.model';
 import { CacheConfig, EntityCache } from '../../utils/entity-cache.utility';
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * BASE HTTP SERVICE - IMPROVED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * IMPROVEMENTS:
+ * ✅ Uses ErrorHandlerService for all error handling
+ * ✅ Returns StandardError in catchError (no manual handling in components)
+ * ✅ Single place for error logging (no duplicates)
+ * ✅ Components receive clean StandardError objects
+ * ✅ Removed duplicate logging code
+ */
 export abstract class BaseHttpService<
   T extends { id: number },
   TCreate = Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
@@ -17,9 +27,7 @@ export abstract class BaseHttpService<
   TFilter extends BaseFilter = BaseFilter
 > {
   protected readonly http = inject(HttpClient);
-  protected readonly logger = inject(LoggerService);
-  protected readonly resilience = inject(ResilienceService);
-  protected readonly traceContext = inject(TraceContextService);
+  protected readonly errorHandler = inject(ErrorHandlerService);
 
   protected abstract readonly apiUrl: string;
   protected abstract readonly entityName: string;
@@ -32,9 +40,9 @@ export abstract class BaseHttpService<
     this.cache = new EntityCache<T>(cacheConfig);
   }
 
-  // --------------------------------------------------------------------------
+  // ═══════════════════════════════════════════════════════════════════════
   // CRUD METHODS
-  // --------------------------------------------------------------------------
+  // ═══════════════════════════════════════════════════════════════════════
 
   getAll(filter: TFilter = {} as TFilter): Observable<PaginatedResult<T>> {
     const params = this.buildHttpParams(filter);
@@ -42,12 +50,8 @@ export abstract class BaseHttpService<
       tap(result => {
         this.entitiesSignal.set(result);
         this.cache.setList(result.items);
-        this.logger.info(`Fetched ${this.entityName} list`, this.enrichLog({ total: result.totalCount }));
       }),
-      catchError(error => {
-        this.logger.error(`Failed to fetch ${this.entityName} list`, this.enrichLog(error));
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError(error, `fetch ${this.entityName} list`))
     );
   }
 
@@ -55,21 +59,17 @@ export abstract class BaseHttpService<
     if (!forceRefresh) {
       const cached = this.cache.get(id);
       if (cached) {
-        this.logger.debug(`Cache hit for ${this.entityName} #${id}`, this.enrichLog());
-        return of(cached);
+        return new Observable(observer => {
+          observer.next(cached);
+          observer.complete();
+        });
       }
     }
 
     return this.http.get<T>(`${this.apiUrl}/${id}`).pipe(
-      tap(entity => {
-        this.cache.set(entity.id, entity);
-        this.logger.info(`Fetched ${this.entityName} #${entity.id}`, this.enrichLog());
-      }),
+      tap(entity => this.cache.set(entity.id, entity)),
       shareReplay(1),
-      catchError(error => {
-        this.logger.error(`Failed to fetch ${this.entityName} #${id}`, this.enrichLog(error));
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError(error, `fetch ${this.entityName} #${id}`))
     );
   }
 
@@ -78,12 +78,8 @@ export abstract class BaseHttpService<
       tap(entity => {
         this.cache.set(entity.id, entity);
         this.cache.invalidateList();
-        this.logger.info(`Created ${this.entityName} #${entity.id}`, this.enrichLog());
       }),
-      catchError(error => {
-        this.logger.error(`Failed to create ${this.entityName}`, this.enrichLog(error));
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError(error, `create ${this.entityName}`))
     );
   }
 
@@ -93,12 +89,8 @@ export abstract class BaseHttpService<
       tap(entity => {
         this.cache.set(entity.id, entity);
         this.cache.invalidateList();
-        this.logger.info(`Updated ${this.entityName} #${entity.id}`, this.enrichLog());
       }),
-      catchError(error => {
-        this.logger.error(`Failed to update ${this.entityName} #${id}`, this.enrichLog(error));
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError(error, `update ${this.entityName} #${id}`))
     );
   }
 
@@ -107,18 +99,39 @@ export abstract class BaseHttpService<
       tap(() => {
         this.cache.invalidate(id);
         this.cache.invalidateList();
-        this.logger.warn(`Deleted ${this.entityName} #${id}`, this.enrichLog());
       }),
-      catchError(error => {
-        this.logger.error(`Failed to delete ${this.entityName} #${id}`, this.enrichLog(error));
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError(error, `delete ${this.entityName} #${id}`))
     );
   }
 
-  // --------------------------------------------------------------------------
-  // Utilities
-  // --------------------------------------------------------------------------
+  // ═══════════════════════════════════════════════════════════════════════
+  // ERROR HANDLING - CENTRALIZED
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Handle errors using ErrorHandlerService
+   * This ensures:
+   * - Errors are logged once (no duplicates)
+   * - Errors are transformed to StandardError
+   * - Components receive clean error objects
+   */
+  private handleError(error: unknown, operation: string): Observable<never> {
+    // Use ErrorHandlerService to transform and log error
+    const standardError = this.errorHandler.handle(error);
+    
+    // Add operation context
+    const errorWithContext: StandardError = {
+      ...standardError,
+      userMessage: `Failed to ${operation}: ${standardError.userMessage}`,
+    };
+
+    // Return as StandardError for components to handle
+    return throwError(() => errorWithContext);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════
 
   protected buildHttpParams(filter: TFilter): HttpParams {
     let params = new HttpParams()
@@ -134,16 +147,9 @@ export abstract class BaseHttpService<
   clearCache(): void {
     this.cache.clear();
     this.entitiesSignal.set(null);
-    this.logger.debug(`Cleared ${this.entityName} cache`, this.enrichLog());
   }
 
   getCacheStats() {
     return this.cache.getStats();
-  }
-
-  // Include trace context automatically
-  private enrichLog(data?: any) {
-    const ctx = this.traceContext.getCurrentContext();
-    return { ...data, traceId: ctx.traceId, spanId: ctx.spanId };
   }
 }
