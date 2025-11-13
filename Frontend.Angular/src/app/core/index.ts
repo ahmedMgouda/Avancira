@@ -37,6 +37,11 @@ export * from './logging';
 export * from './network';
 
 // ─────────────────────────────────────────────────────────────────────
+// Theme
+// ─────────────────────────────────────────────────────────────────────
+export * from './theme';
+
+// ─────────────────────────────────────────────────────────────────────
 // Toast
 // ─────────────────────────────────────────────────────────────────────
 export * from './toast';
@@ -58,9 +63,9 @@ export * from './services/trace-context.service';
 // ─────────────────────────────────────────────────────────────────────
 export * from './models/base.model';
 
-// ═════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // tsconfig.json - Add Path Mapping (RECOMMENDED)
-// ═════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 /**
  * Add this to your tsconfig.json for clean imports:
  * 
@@ -74,6 +79,7 @@ export * from './models/base.model';
  * }
  * 
  * Then you can import like:
- *   import { ToastManager, IdGenerator } from '@core';
+ *   import { ToastManager, IdGenerator, ThemeService } from '@core';
  *   import { LoadingService } from '@core/loading';
+ *   import { NetworkStatusIndicatorComponent } from '@core/network';
  */

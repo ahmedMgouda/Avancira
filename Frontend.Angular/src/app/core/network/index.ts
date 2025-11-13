@@ -1,14 +1,14 @@
-// Models
-export type {
-  HealthCheckResponse
-} from './models/health-check.model';
-export type { 
-  NetworkConfig,
-  NetworkStatus 
-} from './services/network.service';
+/**
+ * Network Module Exports
+ * ═══════════════════════════════════════════════════════════════════════
+ * Barrel exports for network module
+ */
 
 // Services
-export { NetworkService } from './services/network.service';
+export * from './services/network.service';
 
-// Interceptors
-export { networkInterceptor } from './interceptors/network.interceptor';
+// Models
+export * from './models/health-check.model';
+
+// Components
+export * from './components';
