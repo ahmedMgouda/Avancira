@@ -1,1 +1,1 @@
-export * from './network-status-indicator';
+export * from './network-status-indicator.component';
