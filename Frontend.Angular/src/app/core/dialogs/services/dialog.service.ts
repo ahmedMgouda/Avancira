@@ -1,5 +1,6 @@
-import { inject, Injectable, signal, computed } from '@angular/core';
-import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { inject, Injectable, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom, Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -10,100 +11,274 @@ import {
   CustomDialogConfig,
   DEFAULT_DIALOG_CONFIG,
   DIALOG_PRESETS,
-  FormDialogConfig,
-  FormDialogResult,
   PromptDialogConfig,
-  PromptDialogResult
+  PromptDialogResult,
+  LoadingDialogConfig,
 } from '../models/dialog.models';
 
 /**
- * Dialog Service - Production Ready
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DIALOG SERVICE
+ * ═══════════════════════════════════════════════════════════════════════════
  * 
- * USAGE GUIDELINES:
- * ━━━━━━━━━━━━━━━━━
- * Dialog vs Toast:
- * - Use DIALOGS for: Important decisions, confirmations, forms, critical errors
- * - Use TOASTS for: Success feedback, transient info, background notifications
- * 
- * FEATURES:
- * ━━━━━━━━━
- * ✅ Deduplication (prevents identical dialogs)
- * ✅ Queue Management (sequential dialogs)
- * ✅ Max Limit (prevents dialog spam)
- * ✅ Semantic Presets (confirmDelete, alertSuccess, etc)
- * ✅ Type Safety (strongly typed configs & results)
- * ✅ Lazy Loading (components loaded on demand)
- * ✅ Promise-based API (async/await friendly)
+ * Centralized service for managing application dialogs with:
+ * - Deduplication (prevents duplicate dialogs)
+ * - Queue management (sequential dialogs)
+ * - Max dialog limit (prevents dialog spam)
+ * - Loading dialogs with progress
+ * - Strong type safety
+ * - Promise-based API
  */
 
+interface DialogTracker {
+  hash: string;
+  ref: MatDialogRef<any>;
+  timestamp: number;
+}
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DialogService {
   private readonly dialog = inject(MatDialog);
-  private readonly destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Configuration
-  private readonly MAX_DIALOGS = 3;
-  private readonly DEDUP_WINDOW_MS = 1000;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // State Management
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  private readonly MAX_DIALOGS = 3; // Maximum concurrent dialogs
+  private readonly DEDUP_WINDOW_MS = 500; // Deduplication time window
+  
+  private readonly recentDialogs = new Map<string, DialogTracker>();
+  private readonly dialogQueue: Array<() => Promise<any>> = [];
+  private readonly _isProcessingQueue = signal(false);
+  private readonly _loadingDialogRef = signal<MatDialogRef<any> | null>(null);
 
-  // State
-  private readonly _activeDialogs = signal<string[]>([]);
-  private readonly _queuedDialogs = signal<QueuedDialog[]>([]);
-  private readonly recentDialogs = new Map<string, number>();
+  readonly isProcessingQueue = this._isProcessingQueue.asReadonly();
 
-  // Public state
-  readonly activeDialogs = this._activeDialogs.asReadonly();
-  readonly queuedDialogs = this._queuedDialogs.asReadonly();
-  readonly activeCount = computed(() => this._activeDialogs().length);
-  readonly queuedCount = computed(() => this._queuedDialogs().length);
-  readonly canOpenMore = computed(() => this.activeCount() < this.MAX_DIALOGS);
+  constructor() {
+    // Cleanup recent dialogs periodically
+    this.setupCleanup();
+  }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Confirm Dialogs
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Core Dialog Methods
+  // ═══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Display a confirmation dialog
+   */
   async confirm(config: ConfirmDialogConfig | string): Promise<boolean> {
     const dialogConfig = this.normalizeConfirmConfig(config);
-    const hash = this.createHash('confirm', dialogConfig.message, dialogConfig.title);
+    const hash = this.createHash('confirm', dialogConfig);
 
-    if (!this.shouldOpenDialog(hash)) {
+    // Check for duplicate
+    if (this.isDuplicate(hash)) {
       return false;
     }
 
-    const { ConfirmDialogComponent } = await import('../components/confirm-dialog.component');
+    // Check max dialogs limit
+    if (this.hasReachedMaxDialogs()) {
+      console.warn('[DialogService] Maximum dialogs reached. Dialog queued.');
+      return this.queueDialog(() => this.confirm(config));
+    }
 
-    return this.openDialogWithQueue(
-      hash,
+    const { ConfirmDialogComponent } = await import(
+      '../components/confirm-dialog.component'
+    );
+
+    const dialogRef = this.dialog.open<any, ConfirmDialogConfig, ConfirmDialogResult>(
       ConfirmDialogComponent,
       {
         ...DEFAULT_DIALOG_CONFIG,
         width: dialogConfig.width || DEFAULT_DIALOG_CONFIG.width,
         disableClose: dialogConfig.disableClose ?? DEFAULT_DIALOG_CONFIG.disableClose,
-        data: dialogConfig
-      },
-      result => result?.confirmed ?? false
+        data: dialogConfig,
+      }
     );
+
+    this.trackDialog(hash, dialogRef);
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    this.removeFromTracker(hash);
+    
+    return result?.confirmed ?? false;
   }
 
-  async confirmDelete(message?: string): Promise<boolean> {
+  /**
+   * Display an alert dialog
+   */
+  async alert(config: AlertDialogConfig | string): Promise<void> {
+    const dialogConfig = this.normalizeAlertConfig(config);
+    const hash = this.createHash('alert', dialogConfig);
+
+    if (this.isDuplicate(hash)) {
+      return;
+    }
+
+    if (this.hasReachedMaxDialogs()) {
+      console.warn('[DialogService] Maximum dialogs reached. Dialog queued.');
+      return this.queueDialog(() => this.alert(config));
+    }
+
+    const { AlertDialogComponent } = await import(
+      '../components/alert-dialog.component'
+    );
+
+    const dialogRef = this.dialog.open<any, AlertDialogConfig, void>(
+      AlertDialogComponent,
+      {
+        ...DEFAULT_DIALOG_CONFIG,
+        width: dialogConfig.width || DEFAULT_DIALOG_CONFIG.width,
+        disableClose: dialogConfig.disableClose ?? DEFAULT_DIALOG_CONFIG.disableClose,
+        data: dialogConfig,
+      }
+    );
+
+    this.trackDialog(hash, dialogRef);
+
+    await firstValueFrom(dialogRef.afterClosed());
+    this.removeFromTracker(hash);
+  }
+
+  /**
+   * Display a prompt dialog
+   */
+  async prompt(config: PromptDialogConfig | string): Promise<string | null> {
+    const dialogConfig = this.normalizePromptConfig(config);
+    const hash = this.createHash('prompt', dialogConfig);
+
+    if (this.isDuplicate(hash)) {
+      return null;
+    }
+
+    if (this.hasReachedMaxDialogs()) {
+      console.warn('[DialogService] Maximum dialogs reached. Dialog queued.');
+      return this.queueDialog(() => this.prompt(config));
+    }
+
+    const { PromptDialogComponent } = await import(
+      '../components/prompt-dialog.component'
+    );
+
+    const dialogRef = this.dialog.open<any, PromptDialogConfig, PromptDialogResult>(
+      PromptDialogComponent,
+      {
+        ...DEFAULT_DIALOG_CONFIG,
+        width: dialogConfig.width || DEFAULT_DIALOG_CONFIG.width,
+        disableClose: dialogConfig.disableClose ?? DEFAULT_DIALOG_CONFIG.disableClose,
+        data: dialogConfig,
+      }
+    );
+
+    this.trackDialog(hash, dialogRef);
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    this.removeFromTracker(hash);
+    
+    return result?.submitted ? (result.value ?? null) : null;
+  }
+
+  /**
+   * Show loading dialog with optional progress
+   */
+  async showLoading(config: LoadingDialogConfig | string): Promise<MatDialogRef<any>> {
+    const dialogConfig = typeof config === 'string' 
+      ? { message: config } 
+      : config;
+
+    const { LoadingDialogComponent } = await import(
+      '../components/loading-dialog.component'
+    );
+
+    const dialogRef = this.dialog.open(
+      LoadingDialogComponent,
+      {
+        ...DEFAULT_DIALOG_CONFIG,
+        width: '300px',
+        disableClose: true,
+        data: dialogConfig,
+      }
+    );
+
+    this._loadingDialogRef.set(dialogRef);
+    return dialogRef;
+  }
+
+  /**
+   * Update loading dialog message or progress
+   */
+  updateLoading(message?: string, progress?: number): void {
+    const ref = this._loadingDialogRef();
+    if (ref?.componentInstance) {
+      if (message !== undefined) {
+        ref.componentInstance.message = message;
+      }
+      if (progress !== undefined) {
+        ref.componentInstance.progress = progress;
+      }
+    }
+  }
+
+  /**
+   * Hide loading dialog
+   */
+  hideLoading(): void {
+    const ref = this._loadingDialogRef();
+    if (ref) {
+      ref.close();
+      this._loadingDialogRef.set(null);
+    }
+  }
+
+  /**
+   * Open a custom dialog
+   */
+  openCustom<T, R = any>(config: CustomDialogConfig<T>): Observable<R | undefined> {
+    if (this.hasReachedMaxDialogs()) {
+      console.warn('[DialogService] Maximum dialogs reached.');
+    }
+
+    const dialogRef = this.dialog.open<any, T, R>(config.component, {
+      ...DEFAULT_DIALOG_CONFIG,
+      ...config,
+    });
+
+    return dialogRef.afterClosed();
+  }
+
+  /**
+   * Open custom dialog as promise
+   */
+  async openCustomAsync<T, R = any>(config: CustomDialogConfig<T>): Promise<R | undefined> {
+    return firstValueFrom(this.openCustom<T, R>(config));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Semantic Preset Methods
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async confirmDelete(itemName?: string): Promise<boolean> {
     return this.confirm({
       ...DIALOG_PRESETS.confirmDelete,
-      message: message || DIALOG_PRESETS.confirmDelete.message
+      message: itemName 
+        ? `Are you sure you want to delete "${itemName}"? This action cannot be undone.`
+        : DIALOG_PRESETS.confirmDelete.message,
     });
   }
 
   async confirmDiscard(message?: string): Promise<boolean> {
     return this.confirm({
       ...DIALOG_PRESETS.confirmDiscard,
-      message: message || DIALOG_PRESETS.confirmDiscard.message
+      message: message || DIALOG_PRESETS.confirmDiscard.message,
     });
   }
 
   async confirmLeave(message?: string): Promise<boolean> {
     return this.confirm({
       ...DIALOG_PRESETS.confirmLeave,
-      message: message || DIALOG_PRESETS.confirmLeave.message
+      message: message || DIALOG_PRESETS.confirmLeave.message,
     });
   }
 
@@ -111,334 +286,171 @@ export class DialogService {
     return this.confirm(DIALOG_PRESETS.confirmLogout);
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Alert Dialogs
-  // ═══════════════════════════════════════════════════════════════════
-
-  async alert(config: AlertDialogConfig | string): Promise<void> {
-    const dialogConfig = this.normalizeAlertConfig(config);
-    const hash = this.createHash('alert', dialogConfig.message, dialogConfig.title);
-
-    if (!this.shouldOpenDialog(hash)) {
-      return;
-    }
-
-    const { AlertDialogComponent } = await import('../components/alert-dialog.component');
-
-    await this.openDialogWithQueue(
-      hash,
-      AlertDialogComponent,
-      {
-        ...DEFAULT_DIALOG_CONFIG,
-        width: dialogConfig.width || DEFAULT_DIALOG_CONFIG.width,
-        disableClose: dialogConfig.disableClose ?? DEFAULT_DIALOG_CONFIG.disableClose,
-        data: dialogConfig
-      }
-    );
-  }
-
-  async alertSuccess(message: string): Promise<void> {
-    return this.alert({ ...DIALOG_PRESETS.success, message });
-  }
-
-  async alertError(message: string): Promise<void> {
-    return this.alert({ ...DIALOG_PRESETS.error, message });
-  }
-
-  async alertInfo(message: string): Promise<void> {
-    return this.alert({ ...DIALOG_PRESETS.info, message });
-  }
-
-  async alertWarning(message: string): Promise<void> {
-    return this.alert({ ...DIALOG_PRESETS.warning, message });
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Prompt Dialogs
-  // ═══════════════════════════════════════════════════════════════════
-
-  async prompt(config: PromptDialogConfig | string): Promise<string | null> {
-    const dialogConfig = this.normalizePromptConfig(config);
-    const hash = this.createHash('prompt', dialogConfig.message, dialogConfig.title);
-
-    if (!this.shouldOpenDialog(hash)) {
-      return null;
-    }
-
-    const { PromptDialogComponent } = await import('../components/prompt-dialog.component');
-
-    return this.openDialogWithQueue(
-      hash,
-      PromptDialogComponent,
-      {
-        ...DEFAULT_DIALOG_CONFIG,
-        width: dialogConfig.width || DEFAULT_DIALOG_CONFIG.width,
-        disableClose: dialogConfig.disableClose ?? DEFAULT_DIALOG_CONFIG.disableClose,
-        data: dialogConfig
-      },
-      result => (result?.submitted ? result.value ?? null : null)
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Form Dialogs
-  // ═══════════════════════════════════════════════════════════════════
-
-  async openForm<T = any>(config: FormDialogConfig<T>): Promise<T | null> {
-    const hash = this.createHash('form', config.component.name || 'form');
-
-    if (!this.shouldOpenDialog(hash)) {
-      return null;
-    }
-
-    return this.openDialogWithQueue(
-      hash,
-      config.component,
-      {
-        ...DEFAULT_DIALOG_CONFIG,
-        width: config.width || '600px',
-        disableClose: config.disableClose ?? true,
-        data: config.data
-      },
-      result => (result?.submitted ? result.data ?? null : null)
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Custom Dialogs
-  // ═══════════════════════════════════════════════════════════════════
-
-  openCustom<T, R = any>(config: CustomDialogConfig<T>): Observable<R | undefined> {
-    const hash = this.createHash('custom', config.component.name || 'custom');
-
-    if (!this.canOpenMore()) {
-      return new Observable(observer => observer.next(undefined));
-    }
-
-    this.trackDialog(hash);
-
-    const dialogRef = this.dialog.open<any, T, R>(config.component, {
-      ...DEFAULT_DIALOG_CONFIG,
-      ...config
-    });
-
-    const dialogId = this.generateDialogId();
-    this._activeDialogs.update(dialogs => [...dialogs, dialogId]);
-
-    dialogRef.afterClosed().subscribe(() => {
-      this.removeDialog(dialogId);
-      this.processQueue();
-    });
-
-    return dialogRef.afterClosed();
-  }
-
-  async openCustomAsync<T, R = any>(config: CustomDialogConfig<T>): Promise<R | undefined> {
-    return firstValueFrom(this.openCustom<T, R>(config));
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Bottom Sheet
-  // ═══════════════════════════════════════════════════════════════════
-
-  async openBottomSheet<T, R = any>(config: CustomDialogConfig<T>): Promise<R | undefined> {
-    return this.openCustomAsync<T, R>({
-      ...config,
-      position: { bottom: '0' },
-      width: '100%',
-      maxWidth: '100vw',
-      panelClass: ['bottom-sheet-dialog', ...(config.panelClass || [])]
+  async alertSuccess(message: string, title?: string): Promise<void> {
+    return this.alert({
+      ...DIALOG_PRESETS.success,
+      message,
+      title: title || DIALOG_PRESETS.success.title,
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Side Panel
-  // ═══════════════════════════════════════════════════════════════════
-
-  async openSidePanel<T, R = any>(
-    config: CustomDialogConfig<T>,
-    side: 'left' | 'right' = 'right'
-  ): Promise<R | undefined> {
-    return this.openCustomAsync<T, R>({
-      ...config,
-      position: side === 'right' ? { right: '0' } : { left: '0' },
-      width: config.width || '400px',
-      height: '100%',
-      maxWidth: '90vw',
-      panelClass: [`side-panel-dialog-${side}`, ...(config.panelClass || [])]
+  async alertError(message: string, title?: string): Promise<void> {
+    return this.alert({
+      ...DIALOG_PRESETS.error,
+      message,
+      title: title || DIALOG_PRESETS.error.title,
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Fullscreen
-  // ═══════════════════════════════════════════════════════════════════
-
-  async openFullscreen<T, R = any>(config: CustomDialogConfig<T>): Promise<R | undefined> {
-    return this.openCustomAsync<T, R>({
-      ...config,
-      width: '100vw',
-      height: '100vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      panelClass: ['fullscreen-dialog', ...(config.panelClass || [])]
+  async alertInfo(message: string, title?: string): Promise<void> {
+    return this.alert({
+      ...DIALOG_PRESETS.info,
+      message,
+      title: title || DIALOG_PRESETS.info.title,
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API - Utility Methods
-  // ═══════════════════════════════════════════════════════════════════
+  async alertWarning(message: string, title?: string): Promise<void> {
+    return this.alert({
+      ...DIALOG_PRESETS.warning,
+      message,
+      title: title || DIALOG_PRESETS.warning.title,
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Dialog Management
+  // ═══════════════════════════════════════════════════════════════════════════
 
   closeAll(): void {
     this.dialog.closeAll();
-    this._activeDialogs.set([]);
-    this._queuedDialogs.set([]);
+    this.recentDialogs.clear();
+    this.dialogQueue.length = 0;
+    this._loadingDialogRef.set(null);
   }
 
   hasOpenDialogs(): boolean {
     return this.dialog.openDialogs.length > 0;
   }
 
-  getDiagnostics() {
-    return {
-      activeCount: this.activeCount(),
-      queuedCount: this.queuedCount(),
-      canOpenMore: this.canOpenMore(),
-      maxDialogs: this.MAX_DIALOGS,
-      recentDialogsCount: this.recentDialogs.size,
-      matDialogCount: this.dialog.openDialogs.length
-    };
+  getOpenDialogCount(): number {
+    return this.dialog.openDialogs.length;
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Private Methods - Queue Management
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Deduplication & Queue Management
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  private async openDialogWithQueue<T, R>(
-    hash: string,
-    component: any,
-    config: MatDialogConfig,
-    resultMapper?: (result: any) => R
-  ): Promise<R> {
-    if (!this.canOpenMore()) {
-      return this.queueDialog(hash, component, config, resultMapper);
-    }
-
-    return this.openDialogInternal(hash, component, config, resultMapper);
+  private createHash(type: string, config: any): string {
+    const message = config.message || '';
+    const title = config.title || '';
+    return `${type}:${title}:${message}`;
   }
 
-  private async openDialogInternal<T, R>(
-    hash: string,
-    component: any,
-    config: MatDialogConfig,
-    resultMapper?: (result: any) => R
-  ): Promise<R> {
-    this.trackDialog(hash);
+  private isDuplicate(hash: string): boolean {
+    const recent = this.recentDialogs.get(hash);
+    if (!recent) return false;
 
-    const dialogRef = this.dialog.open(component, config);
-    const dialogId = this.generateDialogId();
-    this._activeDialogs.update(dialogs => [...dialogs, dialogId]);
-
-    const result = await firstValueFrom(dialogRef.afterClosed());
-
-    this.removeDialog(dialogId);
-    this.processQueue();
-
-    return resultMapper ? resultMapper(result) : result;
+    const elapsed = Date.now() - recent.timestamp;
+    return elapsed < this.DEDUP_WINDOW_MS;
   }
 
-  private queueDialog<T, R>(
-    hash: string,
-    component: any,
-    config: MatDialogConfig,
-    resultMapper?: (result: any) => R
-  ): Promise<R> {
-    return new Promise((resolve) => {
-      const queuedDialog: QueuedDialog = {
-        hash,
-        component,
-        config,
-        resolve: async () => {
-          const result = await this.openDialogInternal(hash, component, config, resultMapper);
+  private trackDialog(hash: string, ref: MatDialogRef<any>): void {
+    this.recentDialogs.set(hash, {
+      hash,
+      ref,
+      timestamp: Date.now(),
+    });
+
+    // Remove from tracker when closed
+    ref.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.removeFromTracker(hash);
+        this.processQueue();
+      });
+  }
+
+  private removeFromTracker(hash: string): void {
+    this.recentDialogs.delete(hash);
+  }
+
+  private hasReachedMaxDialogs(): boolean {
+    return this.dialog.openDialogs.length >= this.MAX_DIALOGS;
+  }
+
+  private async queueDialog<T>(dialogFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.dialogQueue.push(async () => {
+        try {
+          const result = await dialogFn();
           resolve(result);
+          return result;
+        } catch (error) {
+          reject(error);
+          throw error;
         }
-      };
+      });
 
-      this._queuedDialogs.update(queue => [...queue, queuedDialog]);
+      this.processQueue();
     });
   }
 
-  private processQueue(): void {
-    if (!this.canOpenMore() || this.queuedCount() === 0) {
+  private async processQueue(): Promise<void> {
+    if (this._isProcessingQueue() || this.dialogQueue.length === 0) {
       return;
     }
 
-    const queue = this._queuedDialogs();
-    const nextDialog = queue[0];
+    if (this.hasReachedMaxDialogs()) {
+      return;
+    }
 
+    this._isProcessingQueue.set(true);
+
+    const nextDialog = this.dialogQueue.shift();
     if (nextDialog) {
-      this._queuedDialogs.update(q => q.slice(1));
-      nextDialog.resolve();
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Private Methods - Deduplication
-  // ═══════════════════════════════════════════════════════════════════
-
-  private shouldOpenDialog(hash: string): boolean {
-    const lastShown = this.recentDialogs.get(hash);
-    if (lastShown && Date.now() - lastShown < this.DEDUP_WINDOW_MS) {
-      return false;
-    }
-    return true;
-  }
-
-  private trackDialog(hash: string): void {
-    this.recentDialogs.set(hash, Date.now());
-    this.cleanupRecentDialogs();
-  }
-
-  private cleanupRecentDialogs(): void {
-    const now = Date.now();
-    for (const [hash, timestamp] of this.recentDialogs.entries()) {
-      if (now - timestamp > this.DEDUP_WINDOW_MS) {
-        this.recentDialogs.delete(hash);
+      try {
+        await nextDialog();
+      } catch (error) {
+        console.error('[DialogService] Queue processing error:', error);
       }
     }
+
+    this._isProcessingQueue.set(false);
+
+    // Process next in queue if available
+    if (this.dialogQueue.length > 0 && !this.hasReachedMaxDialogs()) {
+      setTimeout(() => this.processQueue(), 100);
+    }
   }
 
-  private createHash(type: string, message?: string, title?: string): string {
-    return `${type}:${title || ''}:${message || ''}`;
+  private setupCleanup(): void {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [hash, tracker] of this.recentDialogs.entries()) {
+        if (now - tracker.timestamp > this.DEDUP_WINDOW_MS) {
+          this.recentDialogs.delete(hash);
+        }
+      }
+    }, this.DEDUP_WINDOW_MS);
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Private Methods - State Management
-  // ═══════════════════════════════════════════════════════════════════
-
-  private removeDialog(dialogId: string): void {
-    this._activeDialogs.update(dialogs => dialogs.filter(id => id !== dialogId));
-  }
-
-  private generateDialogId(): string {
-    return `dialog_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Private Methods - Config Normalization
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Config Normalizers
+  // ═══════════════════════════════════════════════════════════════════════════
 
   private normalizeConfirmConfig(config: ConfirmDialogConfig | string): ConfirmDialogConfig {
     if (typeof config === 'string') {
       return {
         message: config,
         confirmText: 'Confirm',
-        cancelText: 'Cancel'
+        cancelText: 'Cancel',
       };
     }
     return {
       confirmText: 'Confirm',
       cancelText: 'Cancel',
-      ...config
+      ...config,
     };
   }
 
@@ -446,12 +458,12 @@ export class DialogService {
     if (typeof config === 'string') {
       return {
         message: config,
-        okText: 'OK'
+        okText: 'OK',
       };
     }
     return {
       okText: 'OK',
-      ...config
+      ...config,
     };
   }
 
@@ -461,27 +473,29 @@ export class DialogService {
         message: config,
         inputType: 'text',
         confirmText: 'Submit',
-        cancelText: 'Cancel'
+        cancelText: 'Cancel',
       };
     }
     return {
       inputType: 'text',
       confirmText: 'Submit',
       cancelText: 'Cancel',
-      ...config
+      ...config,
     };
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.closeAll();
-  }
-}
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Diagnostics
+  // ═══════════════════════════════════════════════════════════════════════════
 
-interface QueuedDialog {
-  hash: string;
-  component: any;
-  config: MatDialogConfig;
-  resolve: () => Promise<void>;
+  getDiagnostics() {
+    return {
+      openDialogs: this.dialog.openDialogs.length,
+      queuedDialogs: this.dialogQueue.length,
+      recentDialogs: this.recentDialogs.size,
+      isProcessingQueue: this._isProcessingQueue(),
+      maxDialogs: this.MAX_DIALOGS,
+      hasLoadingDialog: !!this._loadingDialogRef(),
+    };
+  }
 }
