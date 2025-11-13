@@ -1,118 +1,163 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NetworkService } from '../services/network.service';
+import { NetworkNotificationService } from '../services/network-notification.service';
+import { WifiIconComponent } from './wifi-icon.component';
 
 /**
  * Network Status Indicator Component
  * 
- * Displays a small, unobtrusive network status indicator in the header.
+ * Displays WiFi icon with network status and provides manual retry
  * 
  * Visual States:
- * - Green dot: ✅ Online and healthy (all good)
- * - Orange dot: 🟠 Online but server unreachable
- * - Red dot: 🔴 Offline (no internet connection)
+ * - Green WiFi (full): Online and healthy
+ * - Orange WiFi (weak): Online but server unreachable (pulsing)
+ * - Red WiFi (off): Offline (pulsing)
  * 
  * Features:
  * - Real-time updates using Angular signals
+ * - Clickable for manual retry
  * - Tooltip showing detailed status
- * - Minimal footprint (small circle with pulse animation when unhealthy)
- * - Accessible (ARIA labels and keyboard navigation)
+ * - Loading state during retry
  */
 @Component({
   selector: 'app-network-status-indicator',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, WifiIconComponent],
   template: `
-    <div 
-      class="network-status-indicator"
+    <button
+      type="button"
+      class="network-status-button"
       [attr.aria-label]="statusLabel()"
       [title]="statusTooltip()"
-      role="status"
-      [attr.aria-live]="!status().healthy ? 'polite' : 'off'"
+      [disabled]="isRetrying()"
+      (click)="onRetry()"
+      [class.can-retry]="!status().healthy"
+      [class.retrying]="isRetrying()"
     >
-      <div 
-        class="status-dot"
-        [class.status-online]="status().online && status().healthy"
-        [class.status-server-issue]="status().online && !status().healthy"
-        [class.status-offline]="!status().online"
+      <div
+        class="icon-wrapper"
         [class.pulse]="!status().healthy"
-      ></div>
-    </div>
+        [class.spin]="isRetrying()"
+      >
+        <app-wifi-icon [status]="iconStatus()" [size]="20" />
+      </div>
+    </button>
   `,
-  styles: [`
-    .network-status-indicator {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.25rem;
-      cursor: help;
-    }
+  styles: [
+    `
+      .network-status-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        background: transparent;
+        border: none;
+        cursor: help;
+        border-radius: 0.375rem;
+        transition: background-color 0.2s;
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      transition: background-color 0.3s ease;
-    }
+        &:hover:not(:disabled) {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
 
-    .status-online {
-      background-color: #10b981; /* Green */
-    }
+        &.can-retry {
+          cursor: pointer;
 
-    .status-server-issue {
-      background-color: #f59e0b; /* Orange */
-    }
+          &:hover:not(:disabled) {
+            background-color: rgba(0, 0, 0, 0.1);
+          }
+        }
 
-    .status-offline {
-      background-color: #ef4444; /* Red */
-    }
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
 
-    /* Pulse animation for unhealthy states */
-    .pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
+        &:focus-visible {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
+        }
       }
-      50% {
-        opacity: 0.5;
-      }
-    }
 
-    /* Hover effect */
-    .network-status-indicator:hover .status-dot {
-      transform: scale(1.2);
-      transition: transform 0.2s ease;
-    }
-  `]
+      .icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+      }
+
+      .network-status-button:hover:not(:disabled) .icon-wrapper {
+        transform: scale(1.1);
+      }
+
+      /* Pulse animation for unhealthy states */
+      .pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Spin animation for retry */
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `
+  ]
 })
 export class NetworkStatusIndicatorComponent {
   private readonly networkService = inject(NetworkService);
+  private readonly notificationService = inject(NetworkNotificationService);
 
-  // Public computed signals for template
   readonly status = this.networkService.networkState;
+  readonly isRetrying = this.notificationService.isRetrying;
+
+  readonly iconStatus = computed(() => {
+    const state = this.status();
+    if (!state.online) return 'offline';
+    if (!state.healthy) return 'server-issue';
+    return 'online';
+  });
 
   readonly statusLabel = computed(() => {
+    if (this.isRetrying()) return 'Retrying connection...';
     const state = this.status();
-    if (!state.online) {
-      return 'Network status: Offline';
-    }
-    if (!state.healthy) {
-      return 'Network status: Server unreachable';
-    }
-    return 'Network status: Online';
+    if (!state.online) return 'Network offline - Click to retry';
+    if (!state.healthy) return 'Server unreachable - Click to retry';
+    return 'Network online';
   });
 
   readonly statusTooltip = computed(() => {
+    if (this.isRetrying()) return 'Retrying connection...';
     const state = this.status();
-    if (!state.online) {
-      return 'No internet connection';
-    }
-    if (!state.healthy) {
-      return `Server unreachable (${state.consecutiveErrors} failed attempts)`;
-    }
+    if (!state.online) return 'No internet connection. Click to retry.';
+    if (!state.healthy)
+      return `Server unreachable (${state.consecutiveErrors} failed attempts). Click to retry.`;
     return 'Connected and healthy';
   });
+
+  onRetry(): void {
+    const state = this.status();
+    // Only retry if unhealthy
+    if (!state.healthy && !this.isRetrying()) {
+      this.notificationService.retryConnection();
+    }
+  }
 }

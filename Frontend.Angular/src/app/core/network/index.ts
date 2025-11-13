@@ -1,14 +1,5 @@
-/**
- * Network Module Exports
- * ═══════════════════════════════════════════════════════════════════════
- * Barrel exports for network module
- */
-
-// Services
 export * from './services/network.service';
-
-// Models
-export * from './models/health-check.model';
-
-// Components
+export * from './services/network-notification.service';
 export * from './components';
+export * from './interceptors/network.interceptor';
+export * from './models/health-check.model';
