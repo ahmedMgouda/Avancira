@@ -7,7 +7,7 @@
 
 import { environment } from '../../environments/environment';
 
-export type Environment = 'dev' | 'staging' | 'prod';
+export type Environment = 'dev' | 'prod';
 
 /**
  * Get current environment
@@ -15,11 +15,6 @@ export type Environment = 'dev' | 'staging' | 'prod';
 export function getCurrentEnvironment(): Environment {
   if (environment.production) {
     return 'prod';
-  }
-  
-  // Check for staging flag (add to your environment.staging.ts)
-  if ((environment as any).staging) {
-    return 'staging';
   }
   
   return 'dev';

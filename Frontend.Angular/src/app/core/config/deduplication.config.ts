@@ -59,29 +59,6 @@ const CONFIG_BY_ENV: Record<Environment, DeduplicationConfig> = {
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // Staging Configuration
-  // ═══════════════════════════════════════════════════════════════════
-  staging: {
-    logging: {
-      enabled: true,       // Production-like behavior
-      windowMs: 5000,      // 5 seconds
-      maxCacheSize: 100
-    },
-    
-    toasts: {
-      enabled: true,       // Prevent toast spam
-      windowMs: 3000,      // 3 seconds
-      maxCacheSize: 50
-    },
-    
-    networkErrors: {
-      enabled: true,       // Prevent duplicate error tracking
-      windowMs: 10000,     // 10 seconds
-      maxCacheSize: 30
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════════
   // Production Configuration (Optimized for 1000+ Users)
   // ═══════════════════════════════════════════════════════════════════
   prod: {

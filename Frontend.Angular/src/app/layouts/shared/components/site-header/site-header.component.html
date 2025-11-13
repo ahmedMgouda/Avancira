@@ -47,6 +47,11 @@
       </div>
 
       <ul class="nav header-navbar-rht">
+        <!-- ✅ NEW: Network Status Indicator (only when authenticated) -->
+        <li class="nav-item network-status" *ngIf="authService.isAuthenticated()">
+          <app-network-indicator />
+        </li>
+
         <!-- Login button -->
         <li class="nav-item signin" *ngIf="!authService.isAuthenticated()">
           <a class="nav-link" href="javascript:void(0);" (click)="startLogin($event)">

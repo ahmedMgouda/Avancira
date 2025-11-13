@@ -28,16 +28,6 @@ const CONFIG_BY_ENV: Record<Environment, LoadingConfig> = {
     }
   },
 
-  staging: {
-    debounceDelay: 200,
-    requestTimeout: 30000,
-    maxRequests: 100,
-    errorRetentionTime: 5000,
-    buffer: {
-      maxSize: 100
-    }
-  },
-
   prod: {
     debounceDelay: 200,
     requestTimeout: 30000,

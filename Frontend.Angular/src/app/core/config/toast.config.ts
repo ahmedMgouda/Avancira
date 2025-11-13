@@ -44,25 +44,7 @@ const CONFIG_BY_ENV: Record<Environment, ToastConfig> = {
       cleanupIntervalMs: 60000     // 1 minute
     }
   },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Staging Configuration
-  // ═══════════════════════════════════════════════════════════════════
-  staging: {
-    display: {
-      maxVisible: 5,
-      defaultDuration: 5000,
-      position: 'top-right'
-    },
-    deduplication: {
-      enabled: true,
-      windowMs: 5000,              // 5 seconds
-      maxSuppressedBeforeShow: 5,
-      showSuppressedCount: true,   // Still show counts in staging
-      cleanupIntervalMs: 60000
-    }
-  },
-
+  
   // ═══════════════════════════════════════════════════════════════════
   // Production Configuration
   // ═══════════════════════════════════════════════════════════════════

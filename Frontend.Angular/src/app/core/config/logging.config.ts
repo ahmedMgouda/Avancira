@@ -1,16 +1,3 @@
-// core/config/logging.config.ts
-/**
- * Unified Logging Configuration
- * ═══════════════════════════════════════════════════════════════════════
- * Environment-aware logging configuration
- * 
- * UNIFIED APPROACH:
- * ✅ All users (authenticated + anonymous) logged the same way
- * ✅ No user-type specific configs
- * ✅ Backend handles user filtering if needed
- * ✅ Simpler configuration
- */
-
 import { type Environment,getCurrentEnvironment } from './environment.config';
 
 export interface LoggingConfig {
@@ -86,47 +73,6 @@ const CONFIG_BY_ENV: Record<Environment, LoggingConfig> = {
 
     buffer: {
       maxSize: 100          // Reasonable buffer for dev
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Staging Configuration
-  // ═══════════════════════════════════════════════════════════════════
-  staging: {
-    application: {
-      name: 'avancira-frontend',
-      version: '1.0.0'
-    },
-
-    console: {
-      enabled: true,        // Console + remote in staging
-      useColors: true
-    },
-
-    remote: {
-      enabled: true,        // Enable remote logging
-      endpoint: '/api/logs',
-      batchSize: 10,
-      flushInterval: 5000,  // 5 seconds
-      retry: {
-        enabled: true,      // Retry on failures
-        maxRetries: 3,
-        baseDelayMs: 1000
-      }
-    },
-
-    sanitization: {
-      enabled: true,
-      sensitiveFields: [
-        'password', 'token', 'authorization', 'api_key', 'secret',
-        'credit_card', 'ssn', 'accessToken', 'refreshToken', 'apiKey',
-        'privateKey', 'Bearer', 'sessionToken'
-      ],
-      redactedValue: '[REDACTED]'
-    },
-
-    buffer: {
-      maxSize: 100
     }
   },
 

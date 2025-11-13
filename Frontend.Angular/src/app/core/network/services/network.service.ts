@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { DestroyRef, OnDestroy, computed, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   catchError,
@@ -7,9 +7,8 @@ import {
   fromEvent,
   map,
   merge,
-  of,
   Observable,
-  Subscription,
+  of,
   switchMap,
   tap,
   timer
@@ -21,7 +20,7 @@ import { NETWORK_CONFIG, type NetworkConfig as AppNetworkConfig } from '../../co
 import { type HealthCheckResponse } from '../models/health-check.model';
 
 const DEFAULT_CHECK_INTERVAL = 30000;
-const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_MAX_ATTEMPTS = 2; // ✅ Changed to 2 for faster feedback
 const STARTUP_GRACE_CHECKS = 2;
 const INITIAL_CHECK_DELAY = 2000;
 
@@ -41,28 +40,29 @@ export interface NetworkStatus {
 export type NetworkConfig = AppNetworkConfig;
 
 @Injectable({ providedIn: 'root' })
-export class NetworkService implements OnDestroy {
+export class NetworkService {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastManager);
   private readonly providedConfig = inject(NETWORK_CONFIG, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // State Signals
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   private readonly _online = signal(navigator.onLine);
   private readonly _consecutiveErrors = signal(0);
   private readonly _lastCheck = signal<Date | null>(null);
   private readonly _maxAttempts = signal(DEFAULT_MAX_ATTEMPTS);
   private readonly _checkCount = signal(0);
+  private readonly _lastOnlineState = signal(navigator.onLine); // ✅ Track previous state
 
   private offlineToastId: string | null = null;
   private healthWarningToastId: string | null = null;
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Computed Signals
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   readonly isOnline = this._online.asReadonly();
   readonly consecutiveErrors = this._consecutiveErrors.asReadonly();
@@ -71,7 +71,15 @@ export class NetworkService implements OnDestroy {
     return this._online() && this._consecutiveErrors() < this._maxAttempts();
   });
 
-  private healthCheckSubscription?: Subscription;
+  // ✅ NEW: Public computed signal for UI components
+  readonly networkState = computed(() => ({
+    online: this._online(),
+    healthy: this.isHealthy(),
+    consecutiveErrors: this._consecutiveErrors(),
+    lastCheck: this._lastCheck()
+  }));
+
+  private healthCheckSubscription?: { unsubscribe: () => void };
 
   constructor() {
     this.monitorBrowserStatus();
@@ -83,9 +91,9 @@ export class NetworkService implements OnDestroy {
     this.destroyRef.onDestroy(() => this.teardown());
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Public API
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   startMonitoring(config: NetworkConfig): void {
     const normalized = this.normalizeConfig(config);
@@ -97,12 +105,14 @@ export class NetworkService implements OnDestroy {
 
     this.stopMonitoring();
 
-    // ✅ Signal updates in injection context
     this._maxAttempts.set(normalized.maxAttempts);
     this._checkCount.set(0);
 
     this.healthCheckSubscription = timer(INITIAL_CHECK_DELAY, normalized.checkInterval)
-      .pipe(switchMap(() => this.performHealthCheck(normalized.healthEndpoint)))
+      .pipe(
+        switchMap(() => this.performHealthCheck(normalized.healthEndpoint)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe();
   }
 
@@ -132,9 +142,9 @@ export class NetworkService implements OnDestroy {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Private Methods - Zoneless Compatible
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   private monitorBrowserStatus(): void {
     const status$ = merge(
@@ -148,22 +158,29 @@ export class NetworkService implements OnDestroy {
     status$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(isOnline => {
+        const previousState = this._lastOnlineState();
         this._online.set(isOnline);
+        this._lastOnlineState.set(isOnline);
 
+        // ✅ FIX: Only show notifications on state changes (not initial load)
         if (isFirstEmission) {
           isFirstEmission = false;
-
+          
+          // If app starts while offline, show notification
           if (!isOnline) {
             this.handleOffline();
           }
-
+          
           return;
         }
 
-        if (isOnline) {
-          this.handleOnline();
-        } else {
-          this.handleOffline();
+        // ✅ FIX: Check if state actually changed
+        if (isOnline !== previousState) {
+          if (isOnline) {
+            this.handleOnline();
+          } else {
+            this.handleOffline();
+          }
         }
       });
   }
@@ -198,33 +215,36 @@ export class NetworkService implements OnDestroy {
   }
 
   private handleOnline(): void {
-    // Signal already updated before this call
+    // Reset error count when back online
     this._consecutiveErrors.set(0);
 
-    // Dismiss offline toast
+    // ✅ FIX: Dismiss offline toast if it exists
     if (this.offlineToastId) {
       this.toast.dismiss(this.offlineToastId);
       this.offlineToastId = null;
-      this.toast.success('Connection restored.', 'Back online');
     }
 
-    // Dismiss health warning toast
+    // ✅ FIX: Dismiss health warning toast if it exists
     if (this.healthWarningToastId) {
       this.toast.dismiss(this.healthWarningToastId);
       this.healthWarningToastId = null;
     }
+
+    // ✅ FIX: Always show "back online" notification
+    this.toast.success(
+      'Your internet connection has been restored.',
+      'Back online'
+    );
   }
 
   private handleOffline(): void {
-    // Signal already updated before this call
-
-    // Dismiss health warning toast (no longer relevant)
+    // ✅ FIX: Dismiss health warning toast (no longer relevant when offline)
     if (this.healthWarningToastId) {
       this.toast.dismiss(this.healthWarningToastId);
       this.healthWarningToastId = null;
     }
 
-    // Show offline toast
+    // ✅ FIX: Show offline toast only if not already showing
     if (!this.offlineToastId) {
       this.offlineToastId = this.toast.error(
         'You appear to be offline. Please check your internet connection.',
@@ -235,24 +255,28 @@ export class NetworkService implements OnDestroy {
   }
 
   private handleHealthCheckSuccess(): void {
-    const hadErrors = this._consecutiveErrors() > 0;
+    const wasUnhealthy = !this.isHealthy(); // Check before resetting
 
     this._consecutiveErrors.set(0);
     this._lastCheck.set(new Date());
     this._checkCount.update(n => n + 1);
 
+    // ✅ Sync browser online state with our state
     if (navigator.onLine && !this._online()) {
       this._online.set(true);
       this.handleOnline();
+      return;
     }
 
-    if (this.healthWarningToastId && hadErrors) {
+    // ✅ FIX: Show recovery notification if we were previously unhealthy
+    if (this.healthWarningToastId && wasUnhealthy) {
       this.toast.dismiss(this.healthWarningToastId);
       this.healthWarningToastId = null;
 
-      if (hadErrors) {
-        this.toast.success('Server connection restored.', 'Connection restored');
-      }
+      this.toast.success(
+        'Connection to the server has been restored.',
+        'Server reconnected'
+      );
     }
   }
 
@@ -261,13 +285,16 @@ export class NetworkService implements OnDestroy {
     this._lastCheck.set(new Date());
     this._checkCount.update(n => n + 1);
 
+    // ✅ Sync browser offline state with our state
     if (!navigator.onLine && this._online()) {
       this._online.set(false);
       this.handleOffline();
+      return;
     }
 
     const isInGracePeriod = this._checkCount() <= STARTUP_GRACE_CHECKS;
 
+    // ✅ FIX: Show server unreachable notification when threshold is reached
     if (
       this._online() &&
       this._consecutiveErrors() >= this._maxAttempts() &&
@@ -284,15 +311,15 @@ export class NetworkService implements OnDestroy {
     }
 
     this.healthWarningToastId = this.toast.warning(
-      'We are having trouble reaching the server. We will keep trying in the background.',
-      'Connection issue',
-      0
+      'Unable to reach the server. This could be due to server maintenance or network issues. We\'ll keep trying in the background.',
+      'Server unreachable',
+      0 // Persistent
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Diagnostics
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   getDiagnostics() {
     return {
@@ -322,9 +349,5 @@ export class NetworkService implements OnDestroy {
       this.toast.dismiss(this.healthWarningToastId);
       this.healthWarningToastId = null;
     }
-  }
-
-  ngOnDestroy(): void {
-    this.teardown();
   }
 }

@@ -36,48 +36,8 @@ const CONFIG_BY_ENV: Record<Environment, SamplingRateConfig> = {
     rates: {},
     alwaysInclude: []
   },
+  
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Staging Configuration
-  // ═══════════════════════════════════════════════════════════════════
-  staging: {
-    enabled: true,        // Moderate sampling for testing
-    defaultRate: 0.5,     // 50% default
-
-    rates: {
-      // ─────────────────────────────────────────────────────────────
-      // Critical (always log)
-      // ─────────────────────────────────────────────────────────────
-      'error': 1.0,        // 100% of errors
-      'fatal': 1.0,        // 100% of fatal errors
-      'security': 1.0,     // 100% of security events
-
-      // ─────────────────────────────────────────────────────────────
-      // High priority
-      // ─────────────────────────────────────────────────────────────
-      'http': 0.8,         // 80% of HTTP logs
-      'navigation': 0.5,   // 50% of navigation
-      'auth': 0.8,         // 80% of authentication
-
-      // ─────────────────────────────────────────────────────────────
-      // Medium priority
-      // ─────────────────────────────────────────────────────────────
-      'application': 0.5,  // 50% of application logs
-      'performance': 0.5,  // 50% of performance logs
-
-      // ─────────────────────────────────────────────────────────────
-      // Low priority
-      // ─────────────────────────────────────────────────────────────
-      'debug': 0.3,        // 30% of debug logs
-      'trace': 0.1         // 10% of trace logs
-    },
-
-    alwaysInclude: ['error', 'fatal', 'security']
-  },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Production Configuration (Optimized for 1000+ Users)
-  // ═══════════════════════════════════════════════════════════════════
   prod: {
     enabled: true,        // Aggressive sampling for cost optimization
     defaultRate: 0.1,     // 10% default (reduce log volume by 90%)

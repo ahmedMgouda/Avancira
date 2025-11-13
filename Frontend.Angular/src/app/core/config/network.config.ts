@@ -18,20 +18,14 @@ export interface NetworkConfig {
 const CONFIG_BY_ENV: Record<Environment, NetworkConfig> = {
   dev: {
     healthEndpoint: 'https://localhost:9200/health',
-    checkInterval: 60000,    // 60 seconds (less frequent in dev)
-    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
-  },
-
-  staging: {
-    healthEndpoint: 'https://staging-api.avancira.com/health',
-    checkInterval: 30000,    // 30 seconds
-    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
+    checkInterval: 30000,    // ✅ CHANGED: 30 seconds (aligned with prod)
+    maxAttempts: 2           // ✅ CHANGED: 2 attempts for faster feedback
   },
 
   prod: {
     healthEndpoint: 'https://api.avancira.com/health',
     checkInterval: 30000,    // 30 seconds
-    maxAttempts: 3           // ✅ CHANGED: Allow 3 failures before warning
+    maxAttempts: 2           // ✅ CHANGED: 2 attempts for faster feedback
   }
 };
 
