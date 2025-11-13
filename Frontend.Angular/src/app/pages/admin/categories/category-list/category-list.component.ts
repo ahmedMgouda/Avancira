@@ -3,17 +3,14 @@ import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { catchError, debounceTime, distinctUntilChanged, of,Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
 import { Category, CategoryFilter } from '@models/category';
 
 import { LoadingService } from '@/core/loading/services/loading.service';
-// import { FileUploadComponent } from '@core/file-upload/components/file-upload.component';
-// import { FileUploadService } from '@core/file-upload/services/file-upload.service';
-import {ToastService} from '@core/toast/services/toast.service';
+import { ToastService } from '@core/toast/services/toast.service';
+import { DialogService } from '@core/dialogs';
 import { CategoryService } from '@services/category.service';
-
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
-
 import { FileMetadata, FileType } from '@/core/file-upload/models/file-upload.models';
 
 @Component({
@@ -29,21 +26,16 @@ export class CategoryListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly loadingService = inject(LoadingService);
-
-
-  // private readonly fileUploadService = inject(FileUploadService);
+  private readonly dialogService = inject(DialogService);
 
   // ────────────────────────────────────────────────────────────────
   // STATE SIGNALS
   // ────────────────────────────────────────────────────────────────
-  
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly deleting = signal<number | null>(null);
-
   readonly isRefresh = signal(false);
-
 
   // Use service's entities signal for consistent state
   readonly paginatedData = this.categoryService.entities;
@@ -59,7 +51,7 @@ export class CategoryListComponent implements OnInit {
   // ────────────────────────────────────────────────────────────────
   // PAGINATION STATE
   // ────────────────────────────────────────────────────────────────
-  readonly pageIndex = signal(0); // 0-based for backend
+  readonly pageIndex = signal(0);
   readonly pageSize = signal(25);
   readonly sortBy = signal<string>('sortOrder');
   readonly sortOrder = signal<'asc' | 'desc'>('asc');
@@ -75,7 +67,7 @@ export class CategoryListComponent implements OnInit {
   readonly categories = computed(() => this.paginatedData()?.items ?? []);
   readonly totalCount = computed(() => this.paginatedData()?.totalCount ?? 0);
   readonly totalPages = computed(() => this.paginatedData()?.totalPages ?? 0);
-  readonly currentPage = computed(() => (this.paginatedData()?.pageIndex ?? 0) + 1); // 1-based for UI
+  readonly currentPage = computed(() => (this.paginatedData()?.pageIndex ?? 0) + 1);
 
   readonly startIndex = computed(() => {
     const data = this.paginatedData();
@@ -132,8 +124,6 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
   }
 
-
-
   fileType = FileType.Image;
   files: FileMetadata[] = [];
   isValid = true;
@@ -145,23 +135,6 @@ export class CategoryListComponent implements OnInit {
   onFilesValidated(valid: boolean): void {
     this.isValid = valid;
   }
-
-  // async uploadImages(): Promise<void> {
-  //   try {
-  //     const urls = await this.fileUploadService.uploadFiles(
-  //       this.files,
-  //       '/api/products/upload-images'
-  //     );
-      
-     
-      
-  //     console.log('Uploaded URLs:', urls);
-  //     // Save URLs to your form or backend
-  //   } catch{
-  //   }
-  // }
-
-
 
   // ────────────────────────────────────────────────────────────────
   // PRIVATE HELPERS
@@ -278,7 +251,7 @@ export class CategoryListComponent implements OnInit {
     if (typeof page !== 'number') return;
     if (page < 1 || page > this.totalPages()) return;
     
-    this.pageIndex.set(page - 1); // Convert to 0-based
+    this.pageIndex.set(page - 1);
     this.loadCategories();
     this.scrollToTop();
   }
@@ -319,10 +292,8 @@ export class CategoryListComponent implements OnInit {
   // ────────────────────────────────────────────────────────────────
   onSort(field: string): void {
     if (this.sortBy() === field) {
-      // Toggle sort order
       this.sortOrder.set(this.sortOrder() === 'asc' ? 'desc' : 'asc');
     } else {
-      // New field, default to ascending
       this.sortBy.set(field);
       this.sortOrder.set('asc');
     }
@@ -349,10 +320,10 @@ export class CategoryListComponent implements OnInit {
     this.router.navigate(['/admin/categories', id]);
   }
 
-  onDelete(category: Category): void {
-    const confirmMessage = `Are you sure you want to delete "${category.name}"?\n\nThis action cannot be undone.`;
+  async onDelete(category: Category): Promise<void> {
+    const confirmed = await this.dialogService.confirmDelete(category.name);
     
-    if (!confirm(confirmMessage)) return;
+    if (!confirmed) return;
 
     this.deleting.set(category.id);
     this.error.set(null);
@@ -361,7 +332,9 @@ export class CategoryListComponent implements OnInit {
       .delete(category.id)
       .pipe(
         catchError((err: unknown) => {
-          this.error.set(this.extractErrorMessage(err));
+          const errorMessage = this.extractErrorMessage(err);
+          this.error.set(errorMessage);
+          this.toast.error(errorMessage, 'Delete Failed');
           this.deleting.set(null);
           return of(void 0);
         }),
@@ -369,8 +342,8 @@ export class CategoryListComponent implements OnInit {
       )
       .subscribe(() => {
         this.deleting.set(null);
+        this.toast.success(`"${category.name}" has been deleted.`, 'Category Deleted');
         
-        // If we deleted the last item on the page and not on first page, go back one page
         const currentData = this.paginatedData();
         if (currentData && currentData.items.length === 1 && this.pageIndex() > 0) {
           this.pageIndex.set(this.pageIndex() - 1);
@@ -396,18 +369,14 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
   }
 
-testLoading(): void {
-  this.isRefresh.set(true);
-  this.loadingService.showGlobal();
-  this.loadingService.updateGlobalMessage("Loading...");
-   console.log('Test spinner started');
-  setTimeout(() => {
-    this.isRefresh.set(false);
+  testLoading(): void {
+    this.isRefresh.set(true);
+    this.loadingService.showGlobal();
+    this.loadingService.updateGlobalMessage("Loading...");
+    console.log('Test spinner started');
+    setTimeout(() => {
+      this.isRefresh.set(false);
       this.loadingService.hideGlobal();
-
-    // this.toast.error('Loading Test Ended', 'The loading spinner test has completed.');
-    // console.log('Test spinner ended');
-  }, 3000); // ✅ Will complete properly now
-}
-
+    }, 3000);
+  }
 }
