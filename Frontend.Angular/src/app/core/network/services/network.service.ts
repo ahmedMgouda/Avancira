@@ -12,10 +12,8 @@ import {
   of,
   switchMap,
   tap,
-  timer,
   timeout,
-  TimeoutError
-} from 'rxjs';
+  timer} from 'rxjs';
 
 import { NETWORK_CONFIG, type NetworkConfig as AppNetworkConfig } from '../../config/network.config';
 import { type HealthCheckResponse } from '../models/health-check.model';
@@ -274,9 +272,6 @@ export class NetworkService {
   }
 
   private handleHealthCheckSuccess(): void {
-    const wasUnhealthy = !this.isHealthy();
-    const previousHealthyState = this._lastHealthyState();
-
     this._consecutiveErrors.set(0);
     this._lastCheck.set(new Date());
     this._checkCount.update(n => n + 1);
@@ -287,7 +282,7 @@ export class NetworkService {
     }
   }
 
-  private handleHealthCheckFailure(error?: Error): void {
+  private handleHealthCheckFailure(_error?: Error): void {
     this._consecutiveErrors.update(n => n + 1);
     this._lastCheck.set(new Date());
     this._checkCount.update(n => n + 1);

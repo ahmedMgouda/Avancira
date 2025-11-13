@@ -101,9 +101,9 @@ export class LoadingDirective {
       }
 
       .loading-overlay {
-        background: rgba(255, 255, 255, 0.85);
-        -webkit-backdrop-filter: blur(4px);
-        backdrop-filter: blur(4px);
+        background: rgba(255, 255, 255, 0.5);
+        -webkit-backdrop-filter: blur(0px);
+        backdrop-filter: blur(0px);
       }
 
       @media (prefers-color-scheme: dark) {
@@ -113,7 +113,7 @@ export class LoadingDirective {
         }
         
         .loading-overlay {
-          background: rgba(0, 0, 0, 0.6);
+          background: rgba(0, 0, 0, 0.5);
         }
       }
 

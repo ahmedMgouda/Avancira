@@ -4,13 +4,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
+import { DialogService } from '@core/dialogs';
 import { Category, CategoryFilter } from '@models/category';
 
 import { LoadingService } from '@/core/loading/services/loading.service';
-import { ToastService } from '@core/toast/services/toast.service';
-import { DialogService } from '@core/dialogs';
+import { ToastManager } from '@core/toast/services/toast-manager.service';
 import { CategoryService } from '@services/category.service';
+
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
+
 import { FileMetadata, FileType } from '@/core/file-upload/models/file-upload.models';
 
 @Component({
@@ -24,7 +26,7 @@ export class CategoryListComponent implements OnInit {
   private readonly categoryService = inject(CategoryService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly toast = inject(ToastService);
+  private readonly toast = inject(ToastManager);
   private readonly loadingService = inject(LoadingService);
   private readonly dialogService = inject(DialogService);
 

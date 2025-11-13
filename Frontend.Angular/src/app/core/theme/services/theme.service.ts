@@ -1,15 +1,14 @@
-import { Injectable, inject, signal, computed, DestroyRef, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { computed, DestroyRef, inject, Injectable, PLATFORM_ID,signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent, map, startWith } from 'rxjs';
-import { 
-  Theme, 
-  ActiveTheme, 
-  ThemeState, 
-  ThemeSource,
-  ThemeConfig 
-} from '../models/theme.model';
+
 import { THEME_CONFIG } from '../config/theme.config';
+import { 
+  ActiveTheme, 
+  Theme, 
+  ThemeSource,
+  ThemeState} from '../models/theme.model';
 
 /**
  * ThemeService

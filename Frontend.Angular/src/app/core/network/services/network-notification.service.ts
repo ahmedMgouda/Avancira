@@ -1,9 +1,9 @@
-import { Injectable, inject, effect, signal, computed, DestroyRef } from '@angular/core';
+import { DestroyRef,effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged,Subject } from 'rxjs';
 
-import { NetworkService } from './network.service';
 import { ToastManager } from '../../toast/services/toast-manager.service';
+import { NetworkService } from './network.service';
 import { NetworkStatus } from './network.service';
 
 /**

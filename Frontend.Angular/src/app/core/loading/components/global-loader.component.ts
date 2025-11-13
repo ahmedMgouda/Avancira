@@ -49,7 +49,7 @@ import { LoadingService } from '../services/loading.service';
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(0px);
       z-index: 9999;
     }
 
@@ -113,7 +113,7 @@ import { LoadingService } from '../services/loading.service';
 
     @media (prefers-color-scheme: dark) {
       .overlay {
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.5);
       }
       .loader {
         border-color: rgba(255, 255, 255, 0.1);

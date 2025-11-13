@@ -5,6 +5,7 @@
  */
 
 import { InjectionToken } from '@angular/core';
+
 import { ThemeConfig } from '../models/theme.model';
 
 /**
