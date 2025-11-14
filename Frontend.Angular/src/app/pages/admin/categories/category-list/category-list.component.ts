@@ -18,15 +18,15 @@ import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * CATEGORY LIST COMPONENT - WITH DRAG-DROP REORDERING
+ * CATEGORY LIST COMPONENT - WITH DRAG-DROP + MOVE TO POSITION
  * ═══════════════════════════════════════════════════════════════════════
  * 
  * FEATURES:
- * ✅ Drag-drop reordering with Angular CDK
+ * ✅ Drag-drop reordering (within current page)
+ * ✅ Move to position (works across pages)
  * ✅ Optimistic UI updates
  * ✅ Error rollback on failed reorder
- * ✅ Visual feedback during drag
- * ✅ All existing features preserved
+ * ✅ Visual feedback during operations
  */
 @Component({
   selector: 'app-category-list',
@@ -50,7 +50,7 @@ export class CategoryListComponent implements OnInit {
 
   readonly loading = signal(false);
   readonly deleting = signal<number | null>(null);
-  readonly reordering = signal(false); // NEW: Reorder in progress
+  readonly reordering = signal(false);
   readonly paginatedData = this.categoryService.entities;
 
   // ═══════════════════════════════════════════════════════════════════
@@ -129,7 +129,6 @@ export class CategoryListComponent implements OnInit {
   readonly hasResults = computed(() => !this.loading() && !this.isEmpty());
   readonly showEmptyState = computed(() => !this.loading() && this.isEmpty());
 
-  // NEW: Can drag when not loading, not reordering, and sorted by sortOrder
   readonly canDrag = computed(() => 
     !this.loading() && 
     !this.reordering() && 
@@ -207,47 +206,38 @@ export class CategoryListComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // DRAG-DROP REORDERING - NEW FEATURE
+  // REORDERING FEATURES
   // ═══════════════════════════════════════════════════════════════════
   
   /**
-   * Handle drag-drop event
-   * Reorders items locally (optimistic UI) then syncs with backend
+   * Drag-drop reordering (within current page)
    */
   onDrop(event: CdkDragDrop<Category[]>): void {
     if (event.previousIndex === event.currentIndex) {
-      return; // No change
+      return;
     }
 
-    // Get current categories array
     const currentCategories = [...this.categories()];
-    
-    // Save original order for rollback
     const originalOrder = currentCategories.map(c => c.id);
-
-    // Reorder array locally (optimistic update)
     moveItemInArray(currentCategories, event.previousIndex, event.currentIndex);
     const newOrder = currentCategories.map(c => c.id);
 
-    this.logger.info('Reordering categories', {
+    this.logger.info('Reordering categories via drag-drop', {
       previousIndex: event.previousIndex,
       currentIndex: event.currentIndex,
       originalOrder,
       newOrder
     });
 
-    // Update UI immediately
     this.reordering.set(true);
 
-    // Send to backend
     this.categoryService.reorder(newOrder)
       .pipe(
         catchError((error: StandardError) => {
-          // Rollback on error
           this.toast.error('Failed to reorder categories. Changes reverted.', 'Reorder Failed');
           this.logger.error('Reorder failed', { error, originalOrder, newOrder });
           this.reordering.set(false);
-          this.loadCategories(); // Reload to restore original order
+          this.loadCategories();
           return of(void 0);
         }),
         takeUntilDestroyed(this.destroyRef)
@@ -256,7 +246,81 @@ export class CategoryListComponent implements OnInit {
         this.reordering.set(false);
         this.toast.success('Categories reordered successfully.', 'Order Saved');
         this.logger.info('Reorder successful', { newOrder });
-        this.loadCategories(); // Refresh with new sortOrder values from backend
+        this.loadCategories();
+      });
+  }
+
+  /**
+   * Move category to specific position (works across pages)
+   * NEW: Solves the cross-page reordering problem
+   */
+  async onMoveToPosition(category: Category): Promise<void> {
+    const targetPosition = prompt(
+      `Move "${category.name}" to position:\n\n` +
+      `Current position: ${category.sortOrder}\n` +
+      `Total categories: ${this.totalCount()}\n\n` +
+      `Enter new position (e.g., 15, 25, 35):`,
+      category.sortOrder.toString()
+    );
+
+    if (!targetPosition) return; // User cancelled
+
+    const newSortOrder = parseInt(targetPosition, 10);
+
+    // Validate input
+    if (isNaN(newSortOrder) || newSortOrder < 0) {
+      this.toast.error('Please enter a valid positive number.', 'Invalid Position');
+      return;
+    }
+
+    if (newSortOrder === category.sortOrder) {
+      return; // No change
+    }
+
+    this.logger.info('Moving category to position', {
+      categoryId: category.id,
+      categoryName: category.name,
+      oldPosition: category.sortOrder,
+      newPosition: newSortOrder
+    });
+
+    this.reordering.set(true);
+
+    // Update the category with new sortOrder
+    const updateDto = {
+      id: category.id,
+      name: category.name,
+      description: category.description,
+      isActive: category.isActive,
+      isVisible: category.isVisible,
+      isFeatured: category.isFeatured,
+      sortOrder: newSortOrder
+    };
+
+    this.categoryService
+      .update(updateDto)
+      .pipe(
+        catchError((error: StandardError) => {
+          this.toast.error('Failed to move category.', 'Move Failed');
+          this.logger.error('Move to position failed', { error, updateDto });
+          this.reordering.set(false);
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((result) => {
+        if (result) {
+          this.reordering.set(false);
+          this.toast.success(
+            `"${category.name}" moved to position ${newSortOrder}.`,
+            'Position Updated'
+          );
+          this.logger.info('Move to position successful', {
+            categoryId: category.id,
+            newPosition: newSortOrder
+          });
+          this.loadCategories(); // Refresh to show new order
+        }
       });
   }
 
@@ -411,7 +475,6 @@ export class CategoryListComponent implements OnInit {
           status: 'success'
         });
         
-        // Navigate to previous page if we deleted the last item
         const currentData = this.paginatedData();
         if (currentData && currentData.items.length === 1 && this.pageIndex() > 0) {
           this.pageIndex.set(this.pageIndex() - 1);
