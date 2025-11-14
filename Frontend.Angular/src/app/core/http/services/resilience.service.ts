@@ -8,12 +8,13 @@ import { environment } from '../../../environments/environment';
 import { ErrorClassifier } from '../../utils/error-classifier.utility';
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * RESILIENCE SERVICE - FIXED
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * 
  * FIXES:
  * ✅ Replaced Math.random() with crypto.getRandomValues()
+ * ✅ Uses TraceContext (not TraceSnapshot) for consistency
  * ✅ Cryptographically secure jitter generation
  * ✅ Fallback to Math.random() in non-crypto environments
  */
@@ -58,9 +59,9 @@ export class ResilienceService {
   readonly maxDelay = computed(() => this._strategy().maxDelay);
   readonly mode = computed(() => this._strategy().mode);
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // Core Methods
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
 
   shouldRetry(error: HttpErrorResponse): boolean {
     const s = this._strategy();
@@ -87,7 +88,6 @@ export class ResilienceService {
 
     delay = Math.min(delay, maxDelay);
     
-    // FIX: Use crypto-secure random jitter
     const jitter = this.generateSecureJitter() * (delay * jitterFactor);
     return Math.max(0, delay + jitter);
   }
@@ -106,13 +106,16 @@ export class ResilienceService {
     return retry<T>(cfg);
   }
 
+  /**
+   * FIX: Accepts TraceContext (not TraceSnapshot)
+   */
   getRetryMetadata(
     attempt: number,
     maxAttempts: number,
     parentContext?: TraceContext
   ): RetryMetadata {
     const parent = parentContext ?? this.traceContext.getCurrentContext();
-    const child = this.traceContext.createChildSpan(parent, attempt);
+    const child = this.traceContext.createChildSpan(parent);
 
     return {
       attempt,
@@ -155,9 +158,9 @@ export class ResilienceService {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // Private Methods
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
 
   private getDelayObservable(
     error: unknown,
@@ -188,16 +191,12 @@ export class ResilienceService {
   /**
    * Generate cryptographically secure random jitter
    * Returns a value in range [-1, 1]
-   * 
-   * FIX: Uses Web Crypto API instead of Math.random()
    */
   private generateSecureJitter(): number {
     try {
-      // Try to use crypto.getRandomValues (available in browser & modern Node)
       if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
         const buffer = new Uint32Array(1);
         crypto.getRandomValues(buffer);
-        // Map [0, 2^32-1] to [-1, 1]
         return (buffer[0] / 0xffffffff) * 2 - 1;
       }
     } catch (e) {

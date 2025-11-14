@@ -9,10 +9,10 @@ import { IdGenerator } from '../utils/id-generator.utility';
  * ═══════════════════════════════════════════════════════════════════════
  * 
  * FIXES:
- * ✅ Added createChildSpan() method for ResilienceService
+ * ✅ TraceContext type properly aligned with TraceSnapshot
+ * ✅ Removed unused parameters (flags, attempt)
+ * ✅ Fixed union type access in createChildSpan
  * ✅ W3C traceparent format validation
- * ✅ Validates trace and span ID formats
- * ✅ Returns null on invalid input (graceful degradation)
  */
 
 export interface TraceContext {
@@ -37,9 +37,20 @@ export class TraceContextService {
   }
 
   /**
-   * Get current trace context
+   * Get current trace context as TraceContext (compatible with both types)
    */
-  getCurrentContext(): TraceSnapshot {
+  getCurrentContext(): TraceContext {
+    return {
+      traceId: this.currentTraceId,
+      spanId: this.currentSpanId,
+      parentSpanId: null
+    };
+  }
+
+  /**
+   * Get current trace snapshot (for TraceService compatibility)
+   */
+  getCurrentSnapshot(): TraceSnapshot {
     return {
       traceId: this.currentTraceId,
       activeSpan: {
@@ -52,13 +63,19 @@ export class TraceContextService {
   }
 
   /**
-   * FIX: Create child span for retry/nested operations
-   * Used by ResilienceService.getRetryMetadata()
+   * Create child span for retry/nested operations
+   * FIX: Proper type handling for union types
    */
-  createChildSpan(parentContext: TraceSnapshot | TraceContext, attempt?: number): TraceContext {
-    const parentSpanId = 'activeSpan' in parentContext 
-      ? parentContext.activeSpan?.spanId 
-      : parentContext.spanId;
+  createChildSpan(parentContext: TraceSnapshot | TraceContext): TraceContext {
+    let parentSpanId: string | undefined;
+    
+    // Type guard for TraceSnapshot
+    if ('activeSpan' in parentContext) {
+      parentSpanId = parentContext.activeSpan?.spanId;
+    } else {
+      // TraceContext
+      parentSpanId = parentContext.spanId;
+    }
 
     return {
       traceId: parentContext.traceId,
@@ -86,6 +103,8 @@ export class TraceContextService {
   /**
    * Parse W3C traceparent header with validation
    * Format: 00-traceId(32 hex)-spanId(16 hex)-flags(2 hex)
+   * 
+   * FIX: Removed unused 'flags' parameter with underscore prefix
    */
   parseTraceparent(traceparent: string): { traceId: string; spanId: string } | null {
     if (!traceparent || typeof traceparent !== 'string') {
@@ -99,7 +118,8 @@ export class TraceContextService {
       return null;
     }
 
-    const [, version, traceId, spanId, flags] = match;
+    // FIX: Use underscore prefix for unused destructured values
+    const [, version, traceId, spanId, _flags] = match;
 
     if (version !== '00') {
       return null;
