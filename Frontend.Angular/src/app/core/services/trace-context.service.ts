@@ -9,14 +9,17 @@ import { IdGenerator } from '../utils/id-generator.utility';
  * ═══════════════════════════════════════════════════════════════════════
  * 
  * FIXES:
- * ✅ Added W3C traceparent format validation
+ * ✅ Added createChildSpan() method for ResilienceService
+ * ✅ W3C traceparent format validation
  * ✅ Validates trace and span ID formats
  * ✅ Returns null on invalid input (graceful degradation)
- * 
- * W3C Trace Context spec:
- * version-traceId-spanId-flags
- * 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
  */
+
+export interface TraceContext {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class TraceContextService {
@@ -24,7 +27,6 @@ export class TraceContextService {
   private currentSpanId: string;
 
   // W3C Trace Context format regex
-  // Format: version(2)-traceId(32)-spanId(16)-flags(2)
   private readonly TRACEPARENT_REGEX = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
   private readonly TRACE_ID_ZERO = '00000000000000000000000000000000';
   private readonly SPAN_ID_ZERO = '0000000000000000';
@@ -50,6 +52,22 @@ export class TraceContextService {
   }
 
   /**
+   * FIX: Create child span for retry/nested operations
+   * Used by ResilienceService.getRetryMetadata()
+   */
+  createChildSpan(parentContext: TraceSnapshot | TraceContext, attempt?: number): TraceContext {
+    const parentSpanId = 'activeSpan' in parentContext 
+      ? parentContext.activeSpan?.spanId 
+      : parentContext.spanId;
+
+    return {
+      traceId: parentContext.traceId,
+      spanId: IdGenerator.generateSpanId(),
+      parentSpanId: parentSpanId || null
+    };
+  }
+
+  /**
    * Set trace and span IDs from external context
    */
   setContext(traceId: string, spanId: string): void {
@@ -68,8 +86,6 @@ export class TraceContextService {
   /**
    * Parse W3C traceparent header with validation
    * Format: 00-traceId(32 hex)-spanId(16 hex)-flags(2 hex)
-   * 
-   * Returns null if invalid format
    */
   parseTraceparent(traceparent: string): { traceId: string; spanId: string } | null {
     if (!traceparent || typeof traceparent !== 'string') {
@@ -80,23 +96,16 @@ export class TraceContextService {
     const match = this.TRACEPARENT_REGEX.exec(trimmed);
 
     if (!match) {
-      return null; // Invalid format
+      return null;
     }
 
     const [, version, traceId, spanId, flags] = match;
 
-    // Validate version (currently only 00 is defined)
     if (version !== '00') {
       return null;
     }
 
-    // Validate trace-id is not all zeros
-    if (traceId === this.TRACE_ID_ZERO) {
-      return null;
-    }
-
-    // Validate span-id is not all zeros
-    if (spanId === this.SPAN_ID_ZERO) {
+    if (traceId === this.TRACE_ID_ZERO || spanId === this.SPAN_ID_ZERO) {
       return null;
     }
 
@@ -105,7 +114,6 @@ export class TraceContextService {
 
   /**
    * Generate W3C compliant traceparent header
-   * Format: 00-traceId(32)-spanId(16)-01
    */
   generateTraceparent(): string {
     const traceId = this.currentTraceId.padEnd(32, '0').slice(0, 32);

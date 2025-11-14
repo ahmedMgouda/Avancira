@@ -4,23 +4,21 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, shareReplay, tap } from 'rxjs/operators';
 
 import { ErrorHandlerService } from '../../logging/services/error-handler.service';
-import { StandardError } from '../../logging/models/standard-error.model';
+import { StandardError, STANDARD_ERROR_BRAND } from '../../logging/models/standard-error.model';
 import { BaseFilter, PaginatedResult } from '../../models/base.model';
 import { CacheConfig, EntityCache } from '../../utils/entity-cache.utility';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * BASE HTTP SERVICE - IMPROVED
+ * BASE HTTP SERVICE - FIXED
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * IMPROVEMENTS:
- * ✅ Better StandardError type checking with symbol
- * ✅ Prevents false positives from duck-typing
+ * FIXES:
+ * ✅ Correct StandardError property checking (code, not errorCode)
+ * ✅ Correct timestamp type (Date, not string)
+ * ✅ Symbol added correctly without type errors
  * ✅ Type-safe error detection
  */
-
-// Type discriminator symbol for StandardError
-const STANDARD_ERROR_BRAND = Symbol('StandardError');
 
 export abstract class BaseHttpService<
   T extends { id: number },
@@ -107,65 +105,72 @@ export abstract class BaseHttpService<
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // ERROR HANDLING - IMPROVED
+  // ERROR HANDLING - FIXED
   // ═══════════════════════════════════════════════════════════════════
 
   private handleError(error: unknown, operation: string): Observable<never> {
-    // Check with improved type detection
+    // Check if already a StandardError
     if (this.isStandardError(error)) {
       return throwError(() => error);
     }
 
+    // Convert to StandardError
     const standardError = this.errorHandler.handle(error);
     
-    const errorWithContext: StandardError = {
+    // Add context and brand
+    const errorWithContext = {
       ...standardError,
       userMessage: `Failed to ${operation}: ${standardError.userMessage}`,
-      // Add brand for type checking
-      [STANDARD_ERROR_BRAND]: true as const
     };
 
-    return throwError(() => errorWithContext);
+    // Add symbol for type checking (runtime only, doesn't affect type)
+    Object.defineProperty(errorWithContext, STANDARD_ERROR_BRAND, {
+      value: true,
+      enumerable: false,
+      writable: false
+    });
+
+    return throwError(() => errorWithContext as StandardError);
   }
 
   /**
-   * Improved StandardError detection
-   * Uses multiple checks to avoid false positives:
-   * 1. Symbol brand (most reliable)
-   * 2. Comprehensive field checking (fallback)
+   * FIX: Correct StandardError detection
+   * - Checks for correct properties (code, not errorCode)
+   * - Checks correct timestamp type (Date, not string)
+   * - Uses symbol for most reliable check
    */
   private isStandardError(error: unknown): error is StandardError {
     if (!error || typeof error !== 'object') {
       return false;
     }
 
-    // Check for brand symbol (most reliable)
+    // FIX 1: Check for symbol first (most reliable)
     if (STANDARD_ERROR_BRAND in error) {
       return true;
     }
 
-    // Fallback: Comprehensive duck-typing
-    // Check ALL required fields to minimize false positives
+    // FIX 2: Fallback to comprehensive field checking with CORRECT property names
     const hasAllFields = (
       'errorId' in error &&
       'userMessage' in error &&
       'userTitle' in error &&
       'severity' in error &&
       'timestamp' in error &&
-      'errorCode' in error
+      'code' in error  // FIX: was 'errorCode'
     );
 
     if (!hasAllFields) {
       return false;
     }
 
-    // Validate field types
+    // FIX 3: Validate types correctly
     const err = error as any;
     return (
       typeof err.errorId === 'string' &&
       typeof err.userMessage === 'string' &&
       typeof err.userTitle === 'string' &&
-      typeof err.timestamp === 'string' &&
+      typeof err.code === 'string' &&  // FIX: was errorCode
+      err.timestamp instanceof Date &&  // FIX: was string check
       ['info', 'warning', 'error', 'critical'].includes(err.severity)
     );
   }
