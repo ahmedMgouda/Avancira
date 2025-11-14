@@ -10,23 +10,18 @@ import { CacheConfig, EntityCache } from '../../utils/entity-cache.utility';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * BASE HTTP SERVICE - IMPROVED ERROR HANDLING
+ * BASE HTTP SERVICE - IMPROVED
  * ═══════════════════════════════════════════════════════════════════════
  * 
  * IMPROVEMENTS:
- * ✅ Uses ErrorHandlerService (transforms + logs ONCE)
- * ✅ Returns StandardError (no raw errors to components)
- * ✅ NO duplicate logging (ErrorHandlerService logs internally)
- * ✅ Clean separation of concerns
- * 
- * ERROR FLOW:
- * 1. HTTP error occurs
- * 2. ErrorHandlerService.handle() transforms + logs
- * 3. StandardError returned to component
- * 4. Component shows toast
- * 
- * NO duplicate logging because ErrorHandlerService logs internally.
+ * ✅ Better StandardError type checking with symbol
+ * ✅ Prevents false positives from duck-typing
+ * ✅ Type-safe error detection
  */
+
+// Type discriminator symbol for StandardError
+const STANDARD_ERROR_BRAND = Symbol('StandardError');
+
 export abstract class BaseHttpService<
   T extends { id: number },
   TCreate = Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
@@ -112,41 +107,66 @@ export abstract class BaseHttpService<
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // ERROR HANDLING - NO DUPLICATE LOGGING
+  // ERROR HANDLING - IMPROVED
   // ═══════════════════════════════════════════════════════════════════
 
-  /**
-   * Handle errors using ErrorHandlerService
-   * 
-   * IMPORTANT: ErrorHandlerService.handle() logs internally,
-   * so we DON'T log here to avoid duplicates.
-   */
   private handleError(error: unknown, operation: string): Observable<never> {
-    // Check if already a StandardError (from upstream)
+    // Check with improved type detection
     if (this.isStandardError(error)) {
       return throwError(() => error);
     }
 
-    // Transform using ErrorHandlerService (logs internally)
     const standardError = this.errorHandler.handle(error);
     
-    // Add operation context to user message
     const errorWithContext: StandardError = {
       ...standardError,
       userMessage: `Failed to ${operation}: ${standardError.userMessage}`,
+      // Add brand for type checking
+      [STANDARD_ERROR_BRAND]: true as const
     };
 
-    // Return StandardError for component to handle
     return throwError(() => errorWithContext);
   }
 
-  private isStandardError(error: unknown): boolean {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
+  /**
+   * Improved StandardError detection
+   * Uses multiple checks to avoid false positives:
+   * 1. Symbol brand (most reliable)
+   * 2. Comprehensive field checking (fallback)
+   */
+  private isStandardError(error: unknown): error is StandardError {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    // Check for brand symbol (most reliable)
+    if (STANDARD_ERROR_BRAND in error) {
+      return true;
+    }
+
+    // Fallback: Comprehensive duck-typing
+    // Check ALL required fields to minimize false positives
+    const hasAllFields = (
       'errorId' in error &&
       'userMessage' in error &&
-      'severity' in error
+      'userTitle' in error &&
+      'severity' in error &&
+      'timestamp' in error &&
+      'errorCode' in error
+    );
+
+    if (!hasAllFields) {
+      return false;
+    }
+
+    // Validate field types
+    const err = error as any;
+    return (
+      typeof err.errorId === 'string' &&
+      typeof err.userMessage === 'string' &&
+      typeof err.userTitle === 'string' &&
+      typeof err.timestamp === 'string' &&
+      ['info', 'warning', 'error', 'critical'].includes(err.severity)
     );
   }
 
