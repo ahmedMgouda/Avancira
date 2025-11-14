@@ -1,5 +1,6 @@
 import { HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
 import { BaseHttpService } from '../core/http/services/base-http.service';
 
@@ -45,5 +46,16 @@ export class CategoryService extends BaseHttpService<
     }
 
     return params;
+  }
+
+  /**
+   * Reorder categories by sending new order to backend
+   * Backend will recalculate sortOrder values (10, 20, 30...)
+   * 
+   * @param categoryIds - Array of category IDs in new order
+   * @returns Observable<void>
+   */
+  reorder(categoryIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/reorder`, { categoryIds });
   }
 }
