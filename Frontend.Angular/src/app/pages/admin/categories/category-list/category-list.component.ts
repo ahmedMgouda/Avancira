@@ -1,3 +1,4 @@
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -17,22 +18,20 @@ import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * CATEGORY LIST COMPONENT - CLEAN ERROR HANDLING
+ * CATEGORY LIST COMPONENT - WITH DRAG-DROP REORDERING
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * ERROR HANDLING FLOW:
- * 1. Error occurs in API call
- * 2. BaseHttpService catches and transforms via ErrorHandlerService
- * 3. ErrorHandlerService logs ONCE
- * 4. Component receives StandardError
- * 5. Component shows toast
- * 
- * RESULT: No duplicate logging, clean separation
+ * FEATURES:
+ * ✅ Drag-drop reordering with Angular CDK
+ * ✅ Optimistic UI updates
+ * ✅ Error rollback on failed reorder
+ * ✅ Visual feedback during drag
+ * ✅ All existing features preserved
  */
 @Component({
   selector: 'app-category-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingDirective],
+  imports: [CommonModule, FormsModule, LoadingDirective, DragDropModule],
   templateUrl: './category-list.component.html',
   styleUrls: ['./category-list.component.scss', '../categories.styles.scss']
 })
@@ -51,6 +50,7 @@ export class CategoryListComponent implements OnInit {
 
   readonly loading = signal(false);
   readonly deleting = signal<number | null>(null);
+  readonly reordering = signal(false); // NEW: Reorder in progress
   readonly paginatedData = this.categoryService.entities;
 
   // ═══════════════════════════════════════════════════════════════════
@@ -129,6 +129,14 @@ export class CategoryListComponent implements OnInit {
   readonly hasResults = computed(() => !this.loading() && !this.isEmpty());
   readonly showEmptyState = computed(() => !this.loading() && this.isEmpty());
 
+  // NEW: Can drag when not loading, not reordering, and sorted by sortOrder
+  readonly canDrag = computed(() => 
+    !this.loading() && 
+    !this.reordering() && 
+    this.sortBy() === 'sortOrder' &&
+    this.sortOrder() === 'asc'
+  );
+
   // ═══════════════════════════════════════════════════════════════════
   // LIFECYCLE
   // ═══════════════════════════════════════════════════════════════════
@@ -137,7 +145,6 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
     
     this.logger.debug('CategoryListComponent initialized', {
-      // Custom business data
       component: 'CategoryList',
       initialFilter: this.buildFilter(),
       timestamp: Date.now()
@@ -179,7 +186,7 @@ export class CategoryListComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // LOAD DATA - SIMPLE ERROR HANDLING
+  // LOAD DATA
   // ═══════════════════════════════════════════════════════════════════
   loadCategories(): void {
     this.loading.set(true);
@@ -189,8 +196,6 @@ export class CategoryListComponent implements OnInit {
       .getAll(filter)
       .pipe(
         catchError((error: StandardError) => {
-          // Error already logged by BaseHttpService → ErrorHandlerService
-          // Just show toast to user
           this.toast.error(error.userMessage, error.userTitle);
           return of(null);
         }),
@@ -198,6 +203,60 @@ export class CategoryListComponent implements OnInit {
       )
       .subscribe(() => {
         this.loading.set(false);
+      });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // DRAG-DROP REORDERING - NEW FEATURE
+  // ═══════════════════════════════════════════════════════════════════
+  
+  /**
+   * Handle drag-drop event
+   * Reorders items locally (optimistic UI) then syncs with backend
+   */
+  onDrop(event: CdkDragDrop<Category[]>): void {
+    if (event.previousIndex === event.currentIndex) {
+      return; // No change
+    }
+
+    // Get current categories array
+    const currentCategories = [...this.categories()];
+    
+    // Save original order for rollback
+    const originalOrder = currentCategories.map(c => c.id);
+
+    // Reorder array locally (optimistic update)
+    moveItemInArray(currentCategories, event.previousIndex, event.currentIndex);
+    const newOrder = currentCategories.map(c => c.id);
+
+    this.logger.info('Reordering categories', {
+      previousIndex: event.previousIndex,
+      currentIndex: event.currentIndex,
+      originalOrder,
+      newOrder
+    });
+
+    // Update UI immediately
+    this.reordering.set(true);
+
+    // Send to backend
+    this.categoryService.reorder(newOrder)
+      .pipe(
+        catchError((error: StandardError) => {
+          // Rollback on error
+          this.toast.error('Failed to reorder categories. Changes reverted.', 'Reorder Failed');
+          this.logger.error('Reorder failed', { error, originalOrder, newOrder });
+          this.reordering.set(false);
+          this.loadCategories(); // Reload to restore original order
+          return of(void 0);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.reordering.set(false);
+        this.toast.success('Categories reordered successfully.', 'Order Saved');
+        this.logger.info('Reorder successful', { newOrder });
+        this.loadCategories(); // Refresh with new sortOrder values from backend
       });
   }
 
@@ -324,9 +383,7 @@ export class CategoryListComponent implements OnInit {
 
     this.deleting.set(category.id);
 
-    // ✅ Example of logging with custom business data
     this.logger.info('Deleting category', {
-      // Custom business data
       categoryId: category.id,
       categoryName: category.name,
       operation: 'delete',
@@ -337,8 +394,6 @@ export class CategoryListComponent implements OnInit {
       .delete(category.id)
       .pipe(
         catchError((error: StandardError) => {
-          // Error already logged by BaseHttpService → ErrorHandlerService
-          // Just show toast to user
           this.toast.error(error.userMessage, 'Delete Failed');
           this.deleting.set(null);
           return of(void 0);
@@ -349,7 +404,6 @@ export class CategoryListComponent implements OnInit {
         this.deleting.set(null);
         this.toast.success(`"${category.name}" has been deleted.`, 'Category Deleted');
         
-        // ✅ Example of logging success with custom data
         this.logger.info('Category deleted successfully', {
           categoryId: category.id,
           categoryName: category.name,
