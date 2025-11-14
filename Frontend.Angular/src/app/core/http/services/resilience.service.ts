@@ -4,6 +4,7 @@ import { Observable, throwError, timer } from 'rxjs';
 import { retry, RetryConfig } from 'rxjs/operators';
 
 import { TraceContext, TraceContextService } from '../../services/trace-context.service';
+
 import { environment } from '../../../environments/environment';
 import { ErrorClassifier } from '../../utils/error-classifier.utility';
 
@@ -199,7 +200,7 @@ export class ResilienceService {
         crypto.getRandomValues(buffer);
         return (buffer[0] / 0xffffffff) * 2 - 1;
       }
-    } catch (e) {
+    } catch {
       // Crypto API not available or failed
     }
 

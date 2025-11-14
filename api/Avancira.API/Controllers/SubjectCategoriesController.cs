@@ -53,4 +53,27 @@ public sealed class SubjectCategoriesController : ControllerBase
         await _subjectCategoryService.DeleteAsync(id);
         return NoContent();
     }
+
+    [HttpPut("reorder")]
+    public async Task<IActionResult> ReorderCategories([FromBody] ReorderRequest request)
+    {
+        const int SortOrderInterval = 10;
+
+        //for (int i = 0; i < request.CategoryIds.Length; i++)
+        //{
+        //    var category = await _context.Categories.FindAsync(request.CategoryIds[i]);
+        //    if (category != null)
+        //    {
+        //        category.SortOrder = (i + 1) * SortOrderInterval; // 10, 20, 30...
+        //    }
+        //}
+
+        //await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    public class ReorderRequest
+    {
+        public int[] CategoryIds { get; set; }
+    }
 }

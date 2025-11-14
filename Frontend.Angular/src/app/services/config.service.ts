@@ -65,7 +65,7 @@ export class ConfigService {
     }
 
     // Fetch from backend
-    return this.http.get<Config>(`${environment.apiUrl}/configs`)
+    return this.http.get<Config>(`${environment.bffBaseUrl}/configs`)
       .pipe(
         tap((config) => {
           this.config = config;

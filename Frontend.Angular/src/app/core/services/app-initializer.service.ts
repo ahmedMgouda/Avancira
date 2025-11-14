@@ -32,9 +32,6 @@ export class AppInitializerService {
     this.showLoader('Loading...');
 
     try {
-      // Explicitly initialize config
-      await this.configService.ensureInitialized();
-      
       this.network.getStatus();
       await this.restoreSession();
       this.logger.info('[AppInit] Initialization completed');

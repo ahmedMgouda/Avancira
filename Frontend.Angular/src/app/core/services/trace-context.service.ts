@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { type TraceSnapshot } from '../logging/services/trace.service';
+
 import { IdGenerator } from '../utils/id-generator.utility';
 
 /**

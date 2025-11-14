@@ -3,12 +3,6 @@
     <h1>{{ isEditMode() ? 'Edit' : 'Create' }} Category</h1>
   </div>
 
-  @if (error()) {
-    <div class="alert alert-error">
-      {{ error() }}
-    </div>
-  }
-
   @if (loading()) {
     <div class="loading">
       <div class="spinner"></div>
