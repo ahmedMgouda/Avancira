@@ -1,36 +1,16 @@
 /**
- * Logger Service - IMPROVED
+ * Logger Service - FIXED
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * IMPROVEMENTS:
- * ✅ Supports custom data in logs via flexible context parameter
- * ✅ No duplicate logging - single point of truth
- * ✅ Better API with LogContext type
- * ✅ Separates standard fields from custom data
- * ✅ More intuitive to use
- * 
- * USAGE EXAMPLES:
- * 
- * // Simple log
- * logger.info('User logged in');
- * 
- * // With custom data
- * logger.info('Order created', {
- *   orderId: 123,
- *   customerId: 456,
- *   amount: 99.99
- * });
- * 
- * // With both standard and custom data
- * logger.error('Payment failed', error, {
- *   http: { status_code: 500 },
- *   orderId: 123,
- *   paymentMethod: 'credit_card'
- * });
+ * FIXES:
+ * ✅ Added platform checks for beforeunload
+ * ✅ SSR-safe with proper guards
+ * ✅ Supports custom data in logs (already implemented)
  */
 
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, Injector, signal } from '@angular/core';
+import { inject, Injectable, Injector, PLATFORM_ID, signal } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 
 import { AuthService } from '../../auth/services/auth.service';
@@ -58,6 +38,8 @@ export class LoggerService {
   private readonly http = inject(HttpClient);
   private readonly injector = inject(Injector);
   private readonly resilience = inject(ResilienceService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   private readonly config = getLoggingConfig();
 
@@ -96,67 +78,35 @@ export class LoggerService {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Public Logging API - IMPROVED
+  // Public Logging API
   // ═══════════════════════════════════════════════════════════════════
 
-  /**
-   * Log trace level message
-   * @param message Log message
-   * @param context Optional context with standard and/or custom fields
-   */
   trace(message: string, context?: LogContext): void {
     this.log(LogLevel.TRACE, message, context);
   }
 
-  /**
-   * Log debug level message
-   * @param message Log message
-   * @param context Optional context with standard and/or custom fields
-   */
   debug(message: string, context?: LogContext): void {
     this.log(LogLevel.DEBUG, message, context);
   }
 
-  /**
-   * Log info level message
-   * @param message Log message
-   * @param context Optional context with standard and/or custom fields
-   */
   info(message: string, context?: LogContext): void {
     this.log(LogLevel.INFO, message, context);
   }
 
-  /**
-   * Log warning level message
-   * @param message Log message
-   * @param context Optional context with standard and/or custom fields
-   */
   warn(message: string, context?: LogContext): void {
     this.log(LogLevel.WARN, message, context);
   }
 
-  /**
-   * Log error level message
-   * @param message Log message
-   * @param error Optional error object
-   * @param context Optional context with standard and/or custom fields
-   */
   error(message: string, error?: unknown, context?: LogContext): void {
     this.log(LogLevel.ERROR, message, context, error);
   }
 
-  /**
-   * Log fatal level message
-   * @param message Log message
-   * @param error Optional error object
-   * @param context Optional context with standard and/or custom fields
-   */
   fatal(message: string, error?: unknown, context?: LogContext): void {
     this.log(LogLevel.FATAL, message, context, error);
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Core Logging Logic - IMPROVED
+  // Core Logging Logic
   // ═══════════════════════════════════════════════════════════════════
 
   private log(
@@ -167,7 +117,6 @@ export class LoggerService {
   ): void {
     const logType = context?.log?.type || 'application';
 
-    // Step 1: Check sampling FIRST (cheapest check)
     if (!this.sampling.shouldSample(logType)) {
       this.sampling.recordDecision(logType, false);
       return;
@@ -175,27 +124,21 @@ export class LoggerService {
 
     this.sampling.recordDecision(logType, true);
 
-    // Step 2: Create log entry
     const entry = this.createBaseEntry(level, message, context, error);
 
-    // Step 3: Check deduplication
     if (this.dedup.check(entry)) {
-      return; // Duplicate, skip
+      return;
     }
 
-    // Step 4: Log to console
     if (this.config.console.enabled) {
       this.logToConsole(entry);
     }
 
-    // Step 5: Broadcast to dev monitor
     this.logMonitor.broadcast(entry);
 
-    // Step 6: Add to buffer
     this.buffer.add(entry);
     this.bufferSize.set(this.buffer.size());
 
-    // Step 7: Auto-flush if batch size reached
     if (this.buffer.size() >= this.config.remote.batchSize) {
       this.flush();
     }
@@ -212,7 +155,6 @@ export class LoggerService {
     const source = context?.log?.source || SourceExtractor.extract(5);
     const type = context?.log?.type || 'application';
 
-    // Create base entry with required fields
     const entry: BaseLogEntry = {
       '@timestamp': now.toISOString(),
       '@version': '1.0',
@@ -243,13 +185,12 @@ export class LoggerService {
       },
 
       client: {
-        url: window.location.href,
-        route: window.location.pathname,
-        user_agent: navigator.userAgent
+        url: this.isBrowser ? window.location.href : 'ssr',
+        route: this.isBrowser ? window.location.pathname : '/',
+        user_agent: this.isBrowser ? navigator.userAgent : 'SSR'
       }
     };
 
-    // Add session tracking
     const sessionId = this.getSessionId();
     const userId = this.getUserId();
 
@@ -260,9 +201,6 @@ export class LoggerService {
       };
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Add standard context fields
-    // ═══════════════════════════════════════════════════════════════════
     if (context?.http) {
       entry.http = this.sanitizeHttpData(context.http);
     }
@@ -275,17 +213,13 @@ export class LoggerService {
       entry.navigation = context.navigation;
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // ✅ Add custom fields from context
-    // This is the key improvement - allows arbitrary custom data
-    // ═══════════════════════════════════════════════════════════════════
+    // Add custom fields
     if (context) {
       const standardFields = new Set([
         '@timestamp', '@version', 'log', 'service', 'trace', 
         'client', 'session', 'http', 'error', 'navigation'
       ]);
 
-      // Add any custom fields that aren't standard fields
       Object.keys(context).forEach(key => {
         if (!standardFields.has(key)) {
           entry[key] = context[key];
@@ -336,7 +270,7 @@ export class LoggerService {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Initialization
+  // Initialization - FIXED
   // ═══════════════════════════════════════════════════════════════════
 
   private initializeAnonymousSession(): void {
@@ -362,7 +296,8 @@ export class LoggerService {
   }
 
   private setupUnloadHandler(): void {
-    if (!this.config.remote.enabled) {
+    // FIX: Guard with platform check
+    if (!this.isBrowser || !this.config.remote.enabled) {
       return;
     }
 
@@ -406,7 +341,6 @@ export class LoggerService {
     const style = this.getConsoleStyle(level);
     const prefix = `[${level}] [${entry.log.source}]`;
 
-    // Extract standard fields
     const { 
       '@timestamp': timestamp, 
       '@version': version, 
@@ -418,7 +352,6 @@ export class LoggerService {
       ...customFields 
     } = entry;
 
-    // Log with custom fields highlighted
     console.log(
       `%c${prefix}%c ${entry.log.message}`,
       style,
@@ -430,7 +363,6 @@ export class LoggerService {
         ...entry.http,
         ...entry.error,
         ...entry.navigation,
-        // Show custom fields separately for clarity
         ...(Object.keys(customFields).length > 0 ? { custom: customFields } : {})
       }
     );

@@ -1,78 +1,115 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 
-import { TraceService } from '../logging/services/trace.service';
-
+import { type TraceSnapshot } from '../logging/services/trace.service';
 import { IdGenerator } from '../utils/id-generator.utility';
 
 /**
- * W3C Trace Context Implementation
- * Format: 00-{trace-id}-{span-id}-{flags}
- * Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+ * ═══════════════════════════════════════════════════════════════════════
+ * TRACE CONTEXT SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Added W3C traceparent format validation
+ * ✅ Validates trace and span ID formats
+ * ✅ Returns null on invalid input (graceful degradation)
+ * 
+ * W3C Trace Context spec:
+ * version-traceId-spanId-flags
+ * 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
  */
-export interface TraceContext {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  sampled: boolean;
-  retryAttempt?: number;
-}
 
 @Injectable({ providedIn: 'root' })
 export class TraceContextService {
-  private readonly traceService = inject(TraceService);
+  private currentTraceId: string;
+  private currentSpanId: string;
 
-  /** Generate W3C traceparent header */
-  generateTraceparent(context?: Partial<TraceContext>): string {
-    const version = '00';
-    const traceId = context?.traceId || this.traceService.getCurrentTraceId() || IdGenerator.generateTraceId();
-    const spanId = context?.spanId || IdGenerator.generateSpanId();
-    const flags = context?.sampled !== false ? '01' : '00';
+  // W3C Trace Context format regex
+  // Format: version(2)-traceId(32)-spanId(16)-flags(2)
+  private readonly TRACEPARENT_REGEX = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
+  private readonly TRACE_ID_ZERO = '00000000000000000000000000000000';
+  private readonly SPAN_ID_ZERO = '0000000000000000';
 
-    return `${version}-${traceId}-${spanId}-${flags}`;
+  constructor() {
+    this.currentTraceId = IdGenerator.generateTraceId();
+    this.currentSpanId = IdGenerator.generateSpanId();
   }
 
-  /** Generate tracestate header (vendor-specific metadata) */
-  generateTracestate(retryAttempt?: number): string | null {
-    return retryAttempt !== undefined ? `avancira=retry:${retryAttempt}` : null;
-  }
-
-  /** Parse incoming traceparent header */
-  parseTraceparent(traceparent: string): TraceContext | null {
-    const parts = traceparent.split('-');
-    if (parts.length !== 4) return null;
-
-    const [version, traceId, spanId, flags] = parts;
-    if (version !== '00') return null;
-
+  /**
+   * Get current trace context
+   */
+  getCurrentContext(): TraceSnapshot {
     return {
-      traceId,
-      spanId,
-      sampled: flags === '01'
+      traceId: this.currentTraceId,
+      activeSpan: {
+        spanId: this.currentSpanId,
+        name: 'current',
+        startTime: new Date(),
+        status: 'active'
+      }
     };
   }
 
-  /** Create a child span (for retries, nested calls, etc.) */
-  createChildSpan(parentContext: TraceContext, retryAttempt?: number): TraceContext {
-    return {
-      traceId: parentContext.traceId,
-      spanId: IdGenerator.generateSpanId(),
-      parentSpanId: parentContext.spanId,
-      sampled: parentContext.sampled,
-      retryAttempt
-    };
+  /**
+   * Set trace and span IDs from external context
+   */
+  setContext(traceId: string, spanId: string): void {
+    this.currentTraceId = traceId;
+    this.currentSpanId = spanId;
   }
 
-  /** Get the currently active trace context (or create one) */
-  getCurrentContext(): TraceContext {
-    const traceId =
-      this.traceService.getCurrentTraceId() || IdGenerator.generateTraceId();
-    const activeSpans = this.traceService.getAllSpans().filter(s => s.status === 'active');
-    const activeSpan = activeSpans.at(-1);
+  /**
+   * Start a new trace context
+   */
+  startNewTrace(): void {
+    this.currentTraceId = IdGenerator.generateTraceId();
+    this.currentSpanId = IdGenerator.generateSpanId();
+  }
 
-    return {
-      traceId,
-      spanId: activeSpan?.spanId || IdGenerator.generateSpanId(),
-      sampled: true
-    };
+  /**
+   * Parse W3C traceparent header with validation
+   * Format: 00-traceId(32 hex)-spanId(16 hex)-flags(2 hex)
+   * 
+   * Returns null if invalid format
+   */
+  parseTraceparent(traceparent: string): { traceId: string; spanId: string } | null {
+    if (!traceparent || typeof traceparent !== 'string') {
+      return null;
+    }
+
+    const trimmed = traceparent.trim().toLowerCase();
+    const match = this.TRACEPARENT_REGEX.exec(trimmed);
+
+    if (!match) {
+      return null; // Invalid format
+    }
+
+    const [, version, traceId, spanId, flags] = match;
+
+    // Validate version (currently only 00 is defined)
+    if (version !== '00') {
+      return null;
+    }
+
+    // Validate trace-id is not all zeros
+    if (traceId === this.TRACE_ID_ZERO) {
+      return null;
+    }
+
+    // Validate span-id is not all zeros
+    if (spanId === this.SPAN_ID_ZERO) {
+      return null;
+    }
+
+    return { traceId, spanId };
+  }
+
+  /**
+   * Generate W3C compliant traceparent header
+   * Format: 00-traceId(32)-spanId(16)-01
+   */
+  generateTraceparent(): string {
+    const traceId = this.currentTraceId.padEnd(32, '0').slice(0, 32);
+    const spanId = this.currentSpanId.padEnd(16, '0').slice(0, 16);
+    return `00-${traceId}-${spanId}-01`;
   }
 }

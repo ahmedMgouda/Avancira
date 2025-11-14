@@ -1,19 +1,19 @@
-// core/logging/services/trace.service.ts
-/**
- * Trace Service - MERGED
- * ═══════════════════════════════════════════════════════════════════════
- * Unified trace and span management
- * 
- * CHANGES FROM ORIGINAL:
- * ✅ Merged TraceManagerService + SpanManagerService
- * ✅ Single import for trace management
- * ✅ Atomic operations (no race conditions)
- * ✅ 120 → 90 lines (-25%)
- */
-
 import { Injectable } from '@angular/core';
 
 import { IdGenerator } from '../../utils/id-generator.utility';
+import { CleanupManager } from '../../utils/cleanup-manager.utility';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * TRACE SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Automatic span cleanup (no memory leak)
+ * ✅ TTL-based eviction (1 hour default)
+ * ✅ Max size limit with LRU eviction
+ * ✅ Uses CleanupManager utility
+ */
 
 export interface Span {
   spanId: string;
@@ -28,26 +28,41 @@ export interface TraceSnapshot  {
   activeSpan?: Span;
 }
 
+const DEFAULT_SPAN_TTL = 60 * 60 * 1000; // 1 hour
+const DEFAULT_MAX_SPANS = 1000; // Max spans to keep
+const CLEANUP_INTERVAL = 15 * 60 * 1000; // Cleanup every 15 minutes
+
 @Injectable({ providedIn: 'root' })
 export class TraceService {
   private currentTraceId: string | null = null;
   private spans = new Map<string, Span>();
+  private spanTimestamps = new Map<string, number>();
+  private cleanupManager: CleanupManager<string>;
+
+  constructor() {
+    // Initialize cleanup manager
+    this.cleanupManager = new CleanupManager<string>({
+      ttl: DEFAULT_SPAN_TTL,
+      maxSize: DEFAULT_MAX_SPANS,
+      cleanupInterval: CLEANUP_INTERVAL,
+      onCleanup: (spanIds) => {
+        spanIds.forEach(spanId => {
+          this.spans.delete(spanId);
+          this.spanTimestamps.delete(spanId);
+        });
+      }
+    });
+  }
 
   // ═══════════════════════════════════════════════════════════════════
   // Trace Management
   // ═══════════════════════════════════════════════════════════════════
 
-  /**
-   * Start a new trace
-   */
   startTrace(): string {
     this.currentTraceId = IdGenerator.generateTraceId();
     return this.currentTraceId;
   }
 
-  /**
-   * Get current trace ID (creates new if none exists)
-   */
   getCurrentTraceId(): string {
     if (!this.currentTraceId) {
       this.currentTraceId = IdGenerator.generateTraceId();
@@ -55,28 +70,19 @@ export class TraceService {
     return this.currentTraceId;
   }
 
-  /**
-   * End current trace and clear all spans
-   */
   endTrace(): void {
     this.currentTraceId = null;
-    this.spans.clear();
+    // Don't clear spans immediately - let cleanup manager handle it
   }
 
-  /**
-   * Check if there's an active trace
-   */
   hasActiveTrace(): boolean {
     return this.currentTraceId !== null;
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Span Management
+  // Span Management - WITH CLEANUP
   // ═══════════════════════════════════════════════════════════════════
 
-  /**
-   * Create a new span
-   */
   createSpan(name: string): Span {
     const span: Span = {
       spanId: IdGenerator.generateSpanId(),
@@ -86,38 +92,40 @@ export class TraceService {
     };
 
     this.spans.set(span.spanId, span);
+    this.spanTimestamps.set(span.spanId, Date.now());
+    
+    // Register with cleanup manager
+    this.cleanupManager.add(span.spanId);
+
     return span;
   }
 
-  /**
-   * End a span
-   */
   endSpan(spanId: string, options?: { error?: Error }): void {
     const span = this.spans.get(spanId);
 
     if (span) {
       span.endTime = new Date();
       span.status = options?.error ? 'error' : 'ended';
+      
+      // Update timestamp for LRU
+      this.spanTimestamps.set(spanId, Date.now());
+      this.cleanupManager.touch(spanId);
     }
   }
 
-  /**
-   * Get a specific span
-   */
   getSpan(spanId: string): Span | undefined {
-    return this.spans.get(spanId);
+    const span = this.spans.get(spanId);
+    if (span) {
+      // Touch for LRU
+      this.cleanupManager.touch(spanId);
+    }
+    return span;
   }
 
-  /**
-   * Get all spans
-   */
   getAllSpans(): Span[] {
     return Array.from(this.spans.values());
   }
 
-  /**
-   * Get active span (if any)
-   */
   getActiveSpan(): Span | undefined {
     return Array.from(this.spans.values()).find(s => s.status === 'active');
   }
@@ -126,9 +134,6 @@ export class TraceService {
   // Context Management
   // ═══════════════════════════════════════════════════════════════════
 
-  /**
-   * Get current trace context (trace + active span)
-   */
   getCurrentContext(): TraceSnapshot  {
     const traceId = this.getCurrentTraceId();
     const activeSpan = this.getActiveSpan();
@@ -139,19 +144,15 @@ export class TraceService {
     };
   }
 
-  /**
-   * Clear all spans (keep trace)
-   */
   clearSpans(): void {
     this.spans.clear();
+    this.spanTimestamps.clear();
+    this.cleanupManager.clear();
   }
 
-  /**
-   * Clear everything (trace + spans)
-   */
   clearAll(): void {
     this.currentTraceId = null;
-    this.spans.clear();
+    this.clearSpans();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -162,7 +163,19 @@ export class TraceService {
     return {
       traceId: this.currentTraceId,
       activeSpans: Array.from(this.spans.values()).filter(s => s.status === 'active').length,
-      totalSpans: this.spans.size
+      totalSpans: this.spans.size,
+      cleanup: this.cleanupManager.getStats()
     };
+  }
+
+  /**
+   * Manual cleanup (for testing or forced cleanup)
+   */
+  forceCleanup(): void {
+    this.cleanupManager.forceCleanup();
+  }
+
+  ngOnDestroy(): void {
+    this.cleanupManager.destroy();
   }
 }
