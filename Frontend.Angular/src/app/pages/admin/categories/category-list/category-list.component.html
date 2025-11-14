@@ -65,7 +65,7 @@
   <!-- Drag-Drop Info Message -->
   @if (!canDrag() && hasResults() && !loading()) {
   <div class="info-message">
-    💡 <strong>Tip:</strong> To reorder categories, sort by "Sort Order" in ascending order.
+    💡 <strong>Tip:</strong> To drag-and-drop reorder, sort by "Sort Order" in ascending order. Or use the "⇅" Move button.
   </div>
   }
 
@@ -165,6 +165,8 @@
             }
           </td>
           <td class="actions">
+            <button class="btn btn-sm btn-warning" title="Move to Position" (click)="onMoveToPosition(category)"
+              [disabled]="isDeleting(category.id) || reordering()">⇅</button>
             <button class="btn btn-sm btn-info" title="View Details" (click)="onView(category.id)"
               [disabled]="isDeleting(category.id)">👁</button>
             <button class="btn btn-sm btn-primary" title="Edit" (click)="onEdit(category.id)"
