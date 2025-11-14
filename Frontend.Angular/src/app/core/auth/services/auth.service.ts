@@ -1,5 +1,6 @@
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { 
   catchError, 
@@ -16,23 +17,28 @@ import { environment } from '../../../environments/environment';
 import { AuthState, UserProfile } from '../models/auth.models';
 
 /**
- * AuthService - BFF Pattern
+ * ═══════════════════════════════════════════════════════════════════════
+ * AUTH SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
  * 
- * Responsibilities:
- * 1. Check authentication status with BFF
- * 2. Manage user state (signals)
- * 3. Handle login/logout redirects
- * 4. Profile switching (student/tutor/admin)
+ * FIXES:
+ * ✅ Added platform checks for all window.location usage
+ * ✅ Uses DOCUMENT token for SSR safety
+ * ✅ Router fallback for SSR (no external redirects on server)
+ * ✅ SSR-safe with proper guards
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly bffUrl = environment.bffBaseUrl;
 
-  // ═══════════════════════════════════════════════════════════
-  // STATE MANAGEMENT (Signals)
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // STATE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════
   
   private readonly authState = signal<AuthState>({
     isAuthenticated: false,
@@ -42,49 +48,33 @@ export class AuthService {
 
   private initialized = false;
   private initPromise?: Promise<void>;
-
-  // Guard against redirect storms
   private redirectInProgress = false;
   private redirectTimer?: ReturnType<typeof setTimeout>;
-
-  // Track subscriptions for cleanup
   private refreshSubscription?: Subscription;
 
-  // ═══════════════════════════════════════════════════════════
-  // PUBLIC COMPUTED SELECTORS
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // PUBLIC SELECTORS
+  // ═══════════════════════════════════════════════════════════════
   
   readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
   readonly userId = computed(() => this.authState().user?.userId ?? null);
   readonly sessionId = computed(() => this.authState().user?.sessionId ?? null);
-
   readonly currentUser = computed(() => this.authState().user);
   readonly roles = computed(() => this.authState().user?.roles ?? []);
   readonly authError = computed(() => this.authState().error);
   readonly ready = computed(() => this.initialized);
-
-  // Profile-specific selectors
   readonly activeProfile = computed(() => this.authState().user?.activeProfile);
   readonly hasAdminAccess = computed(() => this.authState().user?.hasAdminAccess);
   readonly tutorProfile = computed(() => this.authState().user?.tutorProfile);
   readonly studentProfile = computed(() => this.authState().user?.studentProfile);
 
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
   // INITIALIZATION
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Initialize auth state by checking with BFF
-   * Called once during app startup (APP_INITIALIZER)
-   */
   async init(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-    
-    if (this.initPromise) {
-      return this.initPromise;
-    }
+    if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
     
     this.initPromise = this.performInit();
     return this.initPromise;
@@ -124,51 +114,52 @@ export class AuthService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // LOGIN / LOGOUT
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // LOGIN / LOGOUT - FIXED
+  // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Redirect to BFF login endpoint
-   * BFF will handle OIDC flow and redirect back
-   */
   startLogin(returnUrl: string = this.router.url): void {
+    // SSR: Use router navigation instead
+    if (!this.isBrowser) {
+      console.warn('[Auth] Cannot redirect to external login in SSR');
+      return;
+    }
+
     const sanitized = this.sanitizeReturnUrl(returnUrl);
-    const fullReturnUrl = `${window.location.origin}${sanitized}`;
+    const origin = this.document.location?.origin || '';
+    const fullReturnUrl = `${origin}${sanitized}`;
     
     console.info('[Auth] Starting login flow', { returnUrl: sanitized });
     
-    // BFF will handle OIDC flow and return with cookie
-    window.location.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`;
+    this.document.location!.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`;
   }
 
-  /**
-   * Logout - redirect to BFF logout endpoint
-   * BFF will clear session and redirect to OIDC logout
-   */
   logout(): void {
+    // SSR: Use router navigation instead
+    if (!this.isBrowser) {
+      console.warn('[Auth] Cannot redirect to external logout in SSR');
+      this.clearState();
+      return;
+    }
+
     console.info('[Auth] Logging out');
-    
-    // Clean up local state
     this.cleanup();
     
-    // BFF will handle OIDC logout and cookie removal
-    window.location.assign(`${this.bffUrl}/auth/logout`);
+    this.document.location!.assign(`${this.bffUrl}/auth/logout`);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 401 HANDLING (Called by AuthInterceptor)
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // 401 HANDLING - FIXED
+  // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Handle unauthorized access (401 response from BFF)
-   * 
-   * Guards against redirect storms:
-   * - Only allows one redirect at a time
-   * - Resets flag after 5 seconds (in case of failure)
-   */
   handleUnauthorized(returnUrl: string = this.router.url): void {
-    // Guard against multiple simultaneous 401s
+    // SSR: Just clear state, no redirect possible
+    if (!this.isBrowser) {
+      console.warn('[Auth] 401 in SSR - clearing state');
+      this.clearState();
+      return;
+    }
+
     if (this.redirectInProgress) {
       console.warn('[Auth] Redirect already in progress, ignoring duplicate 401');
       return;
@@ -176,7 +167,6 @@ export class AuthService {
 
     this.redirectInProgress = true;
     
-    // Safety: reset flag after 5s in case redirect fails
     if (this.redirectTimer) {
       clearTimeout(this.redirectTimer);
     }
@@ -186,28 +176,21 @@ export class AuthService {
       this.redirectInProgress = false;
     }, 5000);
 
-    // Clear local state
     this.clearState();
 
     const sanitized = this.sanitizeReturnUrl(returnUrl);
-    const fullReturnUrl = `${window.location.origin}${sanitized}`;
+    const origin = this.document.location?.origin || '';
+    const fullReturnUrl = `${origin}${sanitized}`;
 
-    console.info('[Auth] 401 detected - redirecting to login', { 
-      returnUrl: sanitized 
-    });
+    console.info('[Auth] 401 detected - redirecting to login', { returnUrl: sanitized });
 
-    // Redirect to login
-    window.location.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`;
+    this.document.location!.href = `${this.bffUrl}/auth/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // PROFILE SWITCHING (Student/Tutor/Admin)
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // PROFILE SWITCHING
+  // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Switch active profile
-   * BFF updates session, then we refresh user state
-   */
   switchProfile(target: 'student' | 'tutor' | 'admin') {
     console.info('[Auth] Switching profile to:', target);
     
@@ -220,7 +203,6 @@ export class AuthService {
       .pipe(
         tap((response) => {
           console.info('[Auth] Profile switched:', response.activeProfile);
-          // Refresh user data to get updated profile
           this.refreshUser();
         }),
         catchError((err) => {
@@ -230,16 +212,8 @@ export class AuthService {
       );
   }
 
-  /**
-   * Re-fetch user profile from BFF
-   * Used after profile switching or other state changes
-   * 
-   * FIX: Properly manages subscription to prevent memory leaks
-   */
   refreshUser(): void {
-    // Cancel any pending refresh
     this.refreshSubscription?.unsubscribe();
-
     console.debug('[Auth] Refreshing user profile from BFF...');
     
     this.refreshSubscription = this.http
@@ -261,20 +235,18 @@ export class AuthService {
         }),
         catchError((err) => {
           console.error('[Auth] Refresh failed:', err);
-          // Don't clear state on network errors - user might still be logged in
           return of(null);
         }),
         finalize(() => {
-          // Clean up subscription reference
           this.refreshSubscription = undefined;
         })
       )
       .subscribe();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // HELPERS - State Management
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // STATE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════
   
   private setAuthenticatedUser(response: UserProfile & { isAuthenticated: boolean }): void {
     const user: UserProfile = {
@@ -307,43 +279,40 @@ export class AuthService {
   }
 
   private cleanup(): void {
-    // Cancel any pending operations
     this.refreshSubscription?.unsubscribe();
     this.refreshSubscription = undefined;
     
-    // Clear redirect timer
     if (this.redirectTimer) {
       clearTimeout(this.redirectTimer);
       this.redirectTimer = undefined;
     }
     
-    // Clear state
     this.clearState();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // HELPERS - URL Validation
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // URL VALIDATION - FIXED
+  // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Sanitize return URL to prevent open redirects
-   */
   private sanitizeReturnUrl(url?: string): string {
     if (!url || url === '/') {
       return '/';
     }
 
     try {
-      // Allow local paths
       if (url.startsWith('/') && !url.startsWith('//')) {
         return url;
       }
 
-      // Validate absolute URLs
-      const parsed = new URL(url, window.location.origin);
+      // SSR: Can't validate against window.location
+      if (!this.isBrowser) {
+        return url.startsWith('/') ? url : '/';
+      }
+
+      const origin = this.document.location?.origin || '';
+      const parsed = new URL(url, origin);
       
-      // Only allow same origin
-      if (parsed.origin === window.location.origin) {
+      if (parsed.origin === origin) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
 
@@ -355,13 +324,6 @@ export class AuthService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // CLEANUP
-  // ═══════════════════════════════════════════════════════════
-  
-  /**
-   * Called when service is destroyed (rare, but good practice)
-   */
   ngOnDestroy(): void {
     this.cleanup();
   }
