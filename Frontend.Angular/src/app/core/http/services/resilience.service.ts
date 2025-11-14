@@ -1,22 +1,22 @@
-// core/http/services/resilience.service.ts
-/**
- * Resilience Service - UPDATED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * CHANGES:
- * ✅ Uses TraceService (merged service) via TraceContextService
- * ✅ Uses ErrorClassifier for error detection
- */
-
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, throwError, timer } from 'rxjs';
 import { retry, RetryConfig } from 'rxjs/operators';
 
 import { TraceContext, TraceContextService } from '../../services/trace-context.service';
-
 import { environment } from '../../../environments/environment';
 import { ErrorClassifier } from '../../utils/error-classifier.utility';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * RESILIENCE SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Replaced Math.random() with crypto.getRandomValues()
+ * ✅ Cryptographically secure jitter generation
+ * ✅ Fallback to Math.random() in non-crypto environments
+ */
 
 export type RetryMode = 'exponential' | 'linear' | 'constant';
 
@@ -58,11 +58,13 @@ export class ResilienceService {
   readonly maxDelay = computed(() => this._strategy().maxDelay);
   readonly mode = computed(() => this._strategy().mode);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Core Methods
+  // ═══════════════════════════════════════════════════════════════════════════
+
   shouldRetry(error: HttpErrorResponse): boolean {
     const s = this._strategy();
     if (s.excludedStatusCodes.includes(error.status)) return false;
-    
-    // Use ErrorClassifier
     return ErrorClassifier.isTransient(error);
   }
 
@@ -84,7 +86,9 @@ export class ResilienceService {
     }
 
     delay = Math.min(delay, maxDelay);
-    const jitter = (Math.random() * 2 - 1) * (delay * jitterFactor);
+    
+    // FIX: Use crypto-secure random jitter
+    const jitter = this.generateSecureJitter() * (delay * jitterFactor);
     return Math.max(0, delay + jitter);
   }
 
@@ -100,32 +104,6 @@ export class ResilienceService {
   withRetry<T>(custom?: Partial<RetryStrategy>) {
     const cfg = this.getRetryConfig(custom);
     return retry<T>(cfg);
-  }
-
-  private getDelayObservable(
-    error: unknown,
-    attempt: number,
-    strategy: RetryStrategy
-  ): Observable<number> {
-    if (!(error instanceof HttpErrorResponse) || !this.shouldRetry(error)) {
-      return throwError(() => error);
-    }
-
-    const delay = this.calculateDelay(attempt, strategy);
-
-    if (!environment.production) {
-      console.info(`[Resilience] Retry ${attempt}/${strategy.maxRetries} after ${delay}ms`, {
-        status: error.status,
-        url: error.url,
-      });
-    }
-
-    return timer(delay);
-  }
-
-  getRetryDelay(error: HttpErrorResponse, attempt: number): Observable<number> {
-    const delay = this.calculateDelay(attempt);
-    return timer(delay);
   }
 
   getRetryMetadata(
@@ -175,5 +153,58 @@ export class ResilienceService {
         attempt3: this.calculateDelay(3),
       }
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Private Methods
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  private getDelayObservable(
+    error: unknown,
+    attempt: number,
+    strategy: RetryStrategy
+  ): Observable<number> {
+    if (!(error instanceof HttpErrorResponse) || !this.shouldRetry(error)) {
+      return throwError(() => error);
+    }
+
+    const delay = this.calculateDelay(attempt, strategy);
+
+    if (!environment.production) {
+      console.info(`[Resilience] Retry ${attempt}/${strategy.maxRetries} after ${delay}ms`, {
+        status: error.status,
+        url: error.url,
+      });
+    }
+
+    return timer(delay);
+  }
+
+  getRetryDelay(error: HttpErrorResponse, attempt: number): Observable<number> {
+    const delay = this.calculateDelay(attempt);
+    return timer(delay);
+  }
+
+  /**
+   * Generate cryptographically secure random jitter
+   * Returns a value in range [-1, 1]
+   * 
+   * FIX: Uses Web Crypto API instead of Math.random()
+   */
+  private generateSecureJitter(): number {
+    try {
+      // Try to use crypto.getRandomValues (available in browser & modern Node)
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const buffer = new Uint32Array(1);
+        crypto.getRandomValues(buffer);
+        // Map [0, 2^32-1] to [-1, 1]
+        return (buffer[0] / 0xffffffff) * 2 - 1;
+      }
+    } catch (e) {
+      // Crypto API not available or failed
+    }
+
+    // Fallback to Math.random() in non-crypto environments
+    return Math.random() * 2 - 1;
   }
 }
