@@ -51,11 +51,26 @@ export class CategoryService extends BaseHttpService<
   /**
    * Reorder categories by sending new order to backend
    * Backend will recalculate sortOrder values (10, 20, 30...)
+   * Ensures all sortOrder values are unique
    * 
    * @param categoryIds - Array of category IDs in new order
    * @returns Observable<void>
    */
   reorder(categoryIds: number[]): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/reorder`, { categoryIds });
+  }
+
+  /**
+   * Move category to specific position (swap if position taken)
+   * If target sortOrder is already used, backend will swap the two categories
+   * 
+   * @param categoryId - ID of category to move
+   * @param targetSortOrder - Desired sortOrder position
+   * @returns Observable<void>
+   */
+  moveToPosition(categoryId: number, targetSortOrder: number): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${categoryId}/move`, { 
+      targetSortOrder 
+    });
   }
 }
