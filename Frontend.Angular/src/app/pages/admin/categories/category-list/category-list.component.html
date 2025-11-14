@@ -1,21 +1,4 @@
 <div class="container">
-
-  <!-- Test Loading Button -->
-  <!-- <button class="btn btn-secondary" [appLoading]="isRefresh()" mode loadingSize="small"
-    loadingPosition="right" (click)="testLoading()">
-    Test Loading
-  </button> -->
-
-  <button [loading]="isRefresh()" mode="button" size="sm" (click)="testLoading()">
-    Save Changes
-  </button>
-
-
-  <!-- <app-file-upload [fileType]="fileType" (filesChanged)="onFilesChanged($event)"
-    (filesValidated)="onFilesValidated($event)">
-  </app-file-upload> -->
-
-  <!-- Header -->
   <div class="header">
     <h1>Categories</h1>
     <div class="header-actions">
@@ -78,13 +61,6 @@
       }
     </div>
   </div>
-
-  <!-- Error Alert -->
-  @if (error()) {
-  <div class="alert alert-error">
-    <strong>Error:</strong> {{ error() }}
-  </div>
-  }
 
   <!-- Results Section -->
   <div class="table-container" [loading]="loading()" mode="overlay" size="lg">

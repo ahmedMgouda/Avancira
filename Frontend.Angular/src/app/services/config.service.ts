@@ -1,47 +1,106 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { catchError, Observable, of, tap, throwError } from 'rxjs';
 
-/**
- * ═══════════════════════════════════════════════════════════════════════
- * CONFIG SERVICE - UPDATED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * FIXES:
- * ✅ Added explicit ensureInitialized() method
- * ✅ No more relying on constructor side effects
- * ✅ Clearer initialization contract
- */
-@Injectable({ providedIn: 'root' })
+import { environment } from '../environments/environment';
+
+
+export interface Config {
+  stripePublishableKey: string;
+  payPalClientId: string;
+  googleMapsApiKey: string;
+  googleClientId: string;
+  googleClientSecret: string;
+  facebookAppId: string;
+  [key: string]: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 export class ConfigService {
-  private initialized = false;
-  private initPromise: Promise<void> | null = null;
+  private config: any = null;
 
-  constructor() {
-    // Constructor no longer does heavy initialization
-  }
+  constructor(private http: HttpClient) { }
 
-  /**
-   * Explicit initialization method
-   * Can be called multiple times safely (returns same promise)
-   */
-  async ensureInitialized(): Promise<void> {
-    if (this.initialized) {
-      return;
+  // Check if configuration is valid (all required keys are present and not all empty)
+  private isConfigValid(config: Config): boolean {
+    if (!config) {
+      return false;
     }
 
-    if (this.initPromise) {
-      return this.initPromise;
-    }
+    // Define the required configuration keys that should be loaded from API
+    const requiredKeys = [
+      'stripePublishableKey',
+      'payPalClientId',
+      'googleMapsApiKey',
+      'googleClientId',
+      'googleClientSecret',
+      'facebookAppId'
+    ];
 
-    this.initPromise = this.doInitialize();
-    await this.initPromise;
-  }
-
-  private async doInitialize(): Promise<void> {
-    // Load configuration from server/environment
-    // TODO: Implement actual config loading logic
+    // Check if all required keys exist in the config object
+    const allKeysExist = requiredKeys.every(key => key in config);
     
-    this.initialized = true;
+    // Check if all values are empty strings (this should trigger a reload)
+    const allValuesEmpty = requiredKeys.every(key => config[key] === '');
+    
+    // Config is valid if all keys exist AND not all values are empty
+    return allKeysExist && !allValuesEmpty;
   }
 
-  // ... rest of ConfigService methods
+  // Load configuration from backend API
+  loadConfig(): Observable<Config> {
+    // Check if we have a valid config with all required keys
+    if (this.config && this.isConfigValid(this.config)) {
+      return of(this.config);
+    }
+
+    const storedConfig = localStorage.getItem('config');
+    if (storedConfig) {
+      const parsedConfig = JSON.parse(storedConfig) as Config;
+      if (this.isConfigValid(parsedConfig)) {
+        this.config = parsedConfig;
+        return of(this.config);
+      }
+      // If stored config is invalid, remove it and fetch fresh
+      localStorage.removeItem('config');
+    }
+
+    return this.http.get<Config>(`${environment.apiUrl}/configs`)
+      .pipe(
+        tap((config) => {
+          this.config = config;
+          localStorage.setItem('config', JSON.stringify(config));
+          console.log('Config loaded:', this.config);
+        }),
+        catchError((error) => {
+          console.error('Failed to load configuration:', error);
+          return throwError(() => new Error('Failed to load configuration.'));
+        })
+      );
+  }
+
+  // Retrieve a specific key from the config
+  get(key: string): string {
+    return this.getConfig()[key];
+  }
+
+  // Optional: Retrieve the entire configuration object
+  getConfig(): Config {
+    // If config is already loaded in memory, return it
+    if (this.config) {
+      return this.config;
+    }
+  
+    // Try loading from localStorage if not in memory
+    const storedConfig = localStorage.getItem('config');
+    if (storedConfig) {
+      this.config = JSON.parse(storedConfig) as Config;
+      return this.config;
+    }
+  
+    // If still not found, throw an error
+    throw new Error('Configuration not loaded. Please call loadConfig() first.');
+  }
 }

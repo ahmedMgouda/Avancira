@@ -4,14 +4,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
-
-import { Category, CategoryFilter } from '@models/category';
-import { LoadingService } from '@/core/loading/services/loading.service';
-import { ToastService } from '@core/toast/services/toast.service';
 import { DialogService } from '@core/dialogs';
 import { StandardError } from '@core/logging/models/standard-error.model';
+import { Category, CategoryFilter } from '@models/category';
+
+import { LoadingService } from '@/core/loading/services/loading.service';
 import { LoggerService } from '@core/logging/services/logger.service';
+import { ToastManager } from '@core/toast/services/toast-manager.service';
 import { CategoryService } from '@services/category.service';
+
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
@@ -39,7 +40,7 @@ export class CategoryListComponent implements OnInit {
   private readonly categoryService = inject(CategoryService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly toast = inject(ToastService);
+  private readonly toast = inject(ToastManager);
   private readonly loadingService = inject(LoadingService);
   private readonly dialogService = inject(DialogService);
   private readonly logger = inject(LoggerService);
@@ -135,7 +136,6 @@ export class CategoryListComponent implements OnInit {
     this.setupSearchDebounce();
     this.loadCategories();
     
-    // ✅ Example of logging with custom data
     this.logger.debug('CategoryListComponent initialized', {
       // Custom business data
       component: 'CategoryList',
@@ -381,19 +381,5 @@ export class CategoryListComponent implements OnInit {
   refreshList(): void {
     this.categoryService.clearCache();
     this.loadCategories();
-    this.toast.info('Category list refreshed');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // TESTING / DEBUG
-  // ═══════════════════════════════════════════════════════════════════
-  testLoading(): void {
-    this.loadingService.showGlobal();
-    this.loadingService.updateGlobalMessage('Testing loading overlay...');
-    
-    setTimeout(() => {
-      this.loadingService.hideGlobal();
-      this.toast.success('Loading test completed');
-    }, 3000);
   }
 }
