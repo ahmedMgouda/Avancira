@@ -17,16 +17,16 @@ import { CategoryService } from '@services/category.service';
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
- * ═══════════════════════════════════════════════════════════════════════
- * CATEGORY LIST COMPONENT - WITH DRAG-DROP + MOVE TO POSITION
- * ═══════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CATEGORY LIST COMPONENT - WITH UNIQUE SORTORDER + SWAP LOGIC
+ * ═══════════════════════════════════════════════════════════════════════════
  * 
  * FEATURES:
  * ✅ Drag-drop reordering (within current page)
- * ✅ Move to position (works across pages)
- * ✅ Optimistic UI updates
- * ✅ Error rollback on failed reorder
- * ✅ Visual feedback during operations
+ * ✅ Move to position with swap (works across pages)
+ * ✅ Ensures unique sortOrder (no duplicates)
+ * ✅ Uses existing cross-cutting services
+ * ✅ Optimistic UI updates with rollback
  */
 @Component({
   selector: 'app-category-list',
@@ -44,39 +44,39 @@ export class CategoryListComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly logger = inject(LoggerService);
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // STATE SIGNALS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
 
   readonly loading = signal(false);
   readonly deleting = signal<number | null>(null);
   readonly reordering = signal(false);
   readonly paginatedData = this.categoryService.entities;
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // FILTER STATE
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   readonly searchTerm = signal('');
   readonly filterActive = signal<boolean | undefined>(undefined);
   readonly filterVisible = signal<boolean | undefined>(undefined);
   readonly filterFeatured = signal<boolean | undefined>(undefined);
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // PAGINATION STATE
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   readonly pageIndex = signal(0);
   readonly pageSize = signal(25);
   readonly sortBy = signal<string>('sortOrder');
   readonly sortOrder = signal<'asc' | 'desc'>('asc');
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // DEBOUNCE SEARCH
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   private readonly searchSubject = new Subject<string>();
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // COMPUTED VALUES
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   readonly categories = computed(() => this.paginatedData()?.items ?? []);
   readonly totalCount = computed(() => this.paginatedData()?.totalCount ?? 0);
   readonly totalPages = computed(() => this.paginatedData()?.totalPages ?? 0);
@@ -136,9 +136,9 @@ export class CategoryListComponent implements OnInit {
     this.sortOrder() === 'asc'
   );
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // LIFECYCLE
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   ngOnInit(): void {
     this.setupSearchDebounce();
     this.loadCategories();
@@ -150,9 +150,9 @@ export class CategoryListComponent implements OnInit {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // PRIVATE HELPERS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   private setupSearchDebounce(): void {
     this.searchSubject
       .pipe(
@@ -184,9 +184,9 @@ export class CategoryListComponent implements OnInit {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // LOAD DATA
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   loadCategories(): void {
     this.loading.set(true);
     const filter = this.buildFilter();
@@ -205,12 +205,13 @@ export class CategoryListComponent implements OnInit {
       });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // REORDERING FEATURES
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REORDERING FEATURES - WITH UNIQUE SORTORDER CONSTRAINT
+  // ═══════════════════════════════════════════════════════════════════════════
   
   /**
    * Drag-drop reordering (within current page)
+   * Backend ensures all sortOrder values remain unique
    */
   onDrop(event: CdkDragDrop<Category[]>): void {
     if (event.previousIndex === event.currentIndex) {
@@ -234,7 +235,7 @@ export class CategoryListComponent implements OnInit {
     this.categoryService.reorder(newOrder)
       .pipe(
         catchError((error: StandardError) => {
-          this.toast.error('Failed to reorder categories. Changes reverted.', 'Reorder Failed');
+          this.toast.error('Failed to reorder. Changes reverted.', 'Reorder Failed');
           this.logger.error('Reorder failed', { error, originalOrder, newOrder });
           this.reordering.set(false);
           this.loadCategories();
@@ -244,22 +245,28 @@ export class CategoryListComponent implements OnInit {
       )
       .subscribe(() => {
         this.reordering.set(false);
-        this.toast.success('Categories reordered successfully.', 'Order Saved');
+        this.toast.success('Order saved successfully.', 'Reordered');
         this.logger.info('Reorder successful', { newOrder });
         this.loadCategories();
       });
   }
 
   /**
-   * Move category to specific position (works across pages)
-   * NEW: Solves the cross-page reordering problem
+   * Move category to specific position with swap logic
+   * If target sortOrder is taken, backend swaps with existing category
+   * 
+   * NOTE: Currently uses browser prompt()
+   * TODO: Replace with custom DialogService method for better UX
    */
   async onMoveToPosition(category: Category): Promise<void> {
+    // TODO: Replace prompt() with custom dialog component
+    // Should use DialogService to create a proper input dialog
     const targetPosition = prompt(
       `Move "${category.name}" to position:\n\n` +
       `Current position: ${category.sortOrder}\n` +
       `Total categories: ${this.totalCount()}\n\n` +
-      `Enter new position (e.g., 15, 25, 35):`,
+      `Note: If position is taken, categories will swap.\n\n` +
+      `Enter new position:`,
       category.sortOrder.toString()
     );
 
@@ -277,7 +284,7 @@ export class CategoryListComponent implements OnInit {
       return; // No change
     }
 
-    this.logger.info('Moving category to position', {
+    this.logger.info('Moving category to position (with swap if needed)', {
       categoryId: category.id,
       categoryName: category.name,
       oldPosition: category.sortOrder,
@@ -286,47 +293,38 @@ export class CategoryListComponent implements OnInit {
 
     this.reordering.set(true);
 
-    // Update the category with new sortOrder
-    const updateDto = {
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      isActive: category.isActive,
-      isVisible: category.isVisible,
-      isFeatured: category.isFeatured,
-      sortOrder: newSortOrder
-    };
-
+    // Use dedicated moveToPosition endpoint (handles swap logic)
     this.categoryService
-      .update(updateDto)
+      .moveToPosition(category.id, newSortOrder)
       .pipe(
         catchError((error: StandardError) => {
-          this.toast.error('Failed to move category.', 'Move Failed');
-          this.logger.error('Move to position failed', { error, updateDto });
+          this.toast.error(
+            error.userMessage || 'Failed to move category.',
+            'Move Failed'
+          );
+          this.logger.error('Move to position failed', { error, categoryId: category.id, newSortOrder });
           this.reordering.set(false);
-          return of(null);
+          return of(void 0);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((result) => {
-        if (result) {
-          this.reordering.set(false);
-          this.toast.success(
-            `"${category.name}" moved to position ${newSortOrder}.`,
-            'Position Updated'
-          );
-          this.logger.info('Move to position successful', {
-            categoryId: category.id,
-            newPosition: newSortOrder
-          });
-          this.loadCategories(); // Refresh to show new order
-        }
+      .subscribe(() => {
+        this.reordering.set(false);
+        this.toast.success(
+          `"${category.name}" moved to position ${newSortOrder}.`,
+          'Position Updated'
+        );
+        this.logger.info('Move to position successful', {
+          categoryId: category.id,
+          newPosition: newSortOrder
+        });
+        this.loadCategories(); // Refresh to show new order
       });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // SEARCH & FILTER HANDLERS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   onSearchInput(term: string): void {
     this.searchSubject.next(term);
   }
@@ -359,9 +357,9 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // PAGINATION HANDLERS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   onPageSizeChange(size: number): void {
     this.pageSize.set(size);
     this.resetToFirstPage();
@@ -408,9 +406,9 @@ export class CategoryListComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // SORTING HANDLERS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   onSort(field: string): void {
     if (this.sortBy() === field) {
       this.sortOrder.set(this.sortOrder() === 'asc' ? 'desc' : 'asc');
@@ -426,9 +424,9 @@ export class CategoryListComponent implements OnInit {
     return this.sortOrder() === 'asc' ? '↑' : '↓';
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // CRUD OPERATIONS
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   onCreate(): void {
     this.router.navigate(['/admin/categories/create']);
   }
@@ -488,9 +486,9 @@ export class CategoryListComponent implements OnInit {
     return this.deleting() === categoryId;
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // UTILITY
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   trackByCategory(_index: number, category: Category): number {
     return category.id;
   }
