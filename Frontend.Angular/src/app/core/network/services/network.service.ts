@@ -1,5 +1,6 @@
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   catchError,
@@ -20,31 +21,15 @@ import { type HealthCheckResponse } from '../models/health-check.model';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * NETWORK SERVICE
+ * NETWORK SERVICE - FIXED
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * Single Responsibility: Monitor network health and track connectivity
- * 
- * RESPONSIBILITIES:
- * ----------------
- * ✅ Monitor browser online/offline events
- * ✅ Perform periodic health checks
- * ✅ Track consecutive errors
- * ✅ Expose network state via signals
- * ✅ Provide immediate health check capability
- * 
- * DOES NOT:
- * ---------
- * ❌ Show user notifications (NetworkNotificationService's job)
- * ❌ Classify HTTP errors (ErrorClassifier's job)
- * ❌ Log errors (Logger's job)
- * 
- * RETRY STRATEGY:
- * ---------------
- * - 2 retries with progressive timeouts: 1s → 3s
- * - Total time: 1-4 seconds before marking unhealthy
- * - Adaptive intervals: 30s when healthy, 10s when unhealthy
- * - Grace period: First 2 checks don't update state
+ * FIXES:
+ * ✅ Added platform checks for navigator.onLine
+ * ✅ Added platform checks for window events
+ * ✅ Fixed health-check interval override issue
+ * ✅ SSR-safe with fallback behavior (assumes online on server)
+ * ✅ Respects user-provided checkInterval config
  */
 
 const DEFAULT_HEALTHY_INTERVAL = 30000;
@@ -53,6 +38,8 @@ const DEFAULT_MAX_ATTEMPTS = 2;
 const INITIAL_CHECK_DELAY = 500;
 const STARTUP_GRACE_CHECKS = 2;
 const HEALTH_CHECK_TIMEOUTS = [1000, 3000];
+const MIN_CHECK_INTERVAL = 5000; // 5 seconds minimum
+const MAX_CHECK_INTERVAL = 300000; // 5 minutes maximum
 
 interface NormalizedNetworkConfig {
   healthEndpoint: string;
@@ -75,17 +62,19 @@ export class NetworkService {
   private readonly http = inject(HttpClient);
   private readonly providedConfig = inject(NETWORK_CONFIG, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   // ═══════════════════════════════════════════════════════════════════════
   // State Signals
   // ═══════════════════════════════════════════════════════════════════════
 
-  private readonly _online = signal(navigator.onLine);
+  private readonly _online = signal(this.getInitialOnlineStatus());
   private readonly _consecutiveErrors = signal(0);
   private readonly _lastCheck = signal<Date | null>(null);
   private readonly _maxAttempts = signal(DEFAULT_MAX_ATTEMPTS);
   private readonly _checkCount = signal(0);
-  private readonly _lastOnlineState = signal(navigator.onLine);
+  private readonly _lastOnlineState = signal(this.getInitialOnlineStatus());
   private readonly _lastHealthyState = signal(true);
   private readonly _currentCheckInterval = signal(DEFAULT_HEALTHY_INTERVAL);
 
@@ -149,10 +138,6 @@ export class NetworkService {
     }
   }
 
-  /**
-   * Perform immediate health check (for manual retry)
-   * Returns promise that resolves with health check result
-   */
   async performImmediateHealthCheck(): Promise<boolean> {
     if (!this.normalizedConfig) {
       return false;
@@ -188,8 +173,16 @@ export class NetworkService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Private Methods - Health Check Logic
+  // Private Methods - Platform-Safe
   // ═══════════════════════════════════════════════════════════════════════
+
+  private getInitialOnlineStatus(): boolean {
+    // SSR: Assume online
+    if (!this.isBrowser) {
+      return true;
+    }
+    return navigator.onLine;
+  }
 
   private scheduleNextCheck(config: NormalizedNetworkConfig): void {
     const interval = this.isHealthy() 
@@ -228,6 +221,11 @@ export class NetworkService {
   }
 
   private monitorBrowserStatus(): void {
+    // SSR: Skip browser event monitoring
+    if (!this.isBrowser) {
+      return;
+    }
+
     const status$ = merge(
       fromEvent(window, 'online').pipe(map(() => true)),
       fromEvent(window, 'offline').pipe(map(() => false)),
@@ -263,9 +261,27 @@ export class NetworkService {
       return null;
     }
 
+    // FIX: Respect user-provided checkInterval, with bounds validation
+    let checkInterval = config.checkInterval ?? DEFAULT_HEALTHY_INTERVAL;
+    
+    // Validate bounds
+    if (checkInterval < MIN_CHECK_INTERVAL) {
+      console.warn(
+        `[NetworkService] checkInterval ${checkInterval}ms is below minimum ${MIN_CHECK_INTERVAL}ms. Using minimum.`
+      );
+      checkInterval = MIN_CHECK_INTERVAL;
+    }
+    
+    if (checkInterval > MAX_CHECK_INTERVAL) {
+      console.warn(
+        `[NetworkService] checkInterval ${checkInterval}ms exceeds maximum ${MAX_CHECK_INTERVAL}ms. Using maximum.`
+      );
+      checkInterval = MAX_CHECK_INTERVAL;
+    }
+
     return {
       healthEndpoint: endpoint,
-      healthyCheckInterval: config.checkInterval ?? DEFAULT_HEALTHY_INTERVAL,
+      healthyCheckInterval: checkInterval,
       unhealthyCheckInterval: DEFAULT_UNHEALTHY_INTERVAL,
       maxAttempts: config.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
     };
@@ -277,7 +293,7 @@ export class NetworkService {
     this._checkCount.update(n => n + 1);
     this._lastHealthyState.set(true);
 
-    if (navigator.onLine && !this._online()) {
+    if (this.isBrowser && navigator.onLine && !this._online()) {
       this._online.set(true);
     }
   }
@@ -287,7 +303,7 @@ export class NetworkService {
     this._lastCheck.set(new Date());
     this._checkCount.update(n => n + 1);
 
-    if (!navigator.onLine && this._online()) {
+    if (this.isBrowser && !navigator.onLine && this._online()) {
       this._online.set(false);
     }
 
@@ -307,7 +323,7 @@ export class NetworkService {
   getDiagnostics() {
     return {
       status: this.getStatus(),
-      browserOnline: navigator.onLine,
+      browserOnline: this.isBrowser ? navigator.onLine : 'N/A (SSR)',
       healthCheckActive: !!this.healthCheckSubscription,
       checkCount: this._checkCount(),
       currentInterval: this._currentCheckInterval(),
