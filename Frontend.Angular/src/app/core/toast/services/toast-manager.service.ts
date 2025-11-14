@@ -1,170 +1,139 @@
 import { inject, Injectable } from '@angular/core';
 
 import { ToastService } from './toast.service';
-
 import { getToastDeduplicationConfig } from '../../config/toast.config';
 import { ToastAction, ToastRecord, ToastRequest, ToastType } from '../models/toast.model';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * TOAST MANAGER - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Added onDismiss callback support to all methods
+ * ✅ Deduplication window no longer extends indefinitely
+ * ✅ Uses firstShown timestamp for window calculation
+ */
 
 @Injectable({ providedIn: 'root' })
 export class ToastManager {
   private readonly toastService = inject(ToastService);
   private readonly config = getToastDeduplicationConfig();
 
-  // Time-window based tracking
   private readonly recentToasts = new Map<string, ToastRecord>();
+  private readonly dismissCallbacks = new Map<string, () => void>();
   private cleanupTimer?: ReturnType<typeof setInterval>;
 
   constructor() {
     this.initializeCleanup();
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Public API
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
+  // Public API - IMPROVED
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Show a toast with deduplication
-   */
-  show(request: ToastRequest): string | null {
+  show(request: ToastRequest, onDismiss?: () => void): string | null {
     if (!this.config.enabled) {
-      return this.toastService.show(
-        request.type,
-        request.message,
-        request.title,
-        request.duration,
-        request.action,
-        request.dismissible
-      );
+      return this.showDirectly(request, onDismiss);
     }
 
     const hash = this.createHash(request);
     const recent = this.recentToasts.get(hash);
 
-    // Check if shown recently (within time window)
-    if (recent && this.isWithinWindow(recent.lastShown)) {
+    // FIX: Use firstShown for window calculation
+    if (recent && this.isWithinWindow(recent.firstShown)) {
       return this.handleDuplicate(request, recent);
     }
 
-    // Show new toast
-    return this.showNewToast(request, hash);
+    return this.showNewToast(request, hash, onDismiss);
   }
 
-  /**
-   * Show success toast
-   */
-  success(message: string, title?: string, duration?: number): string | null {
-    return this.show({ type: 'success', message, title, duration });
+  // FIX: Added onDismiss parameter
+  success(message: string, title?: string, duration?: number, onDismiss?: () => void): string | null {
+    return this.show({ type: 'success', message, title, duration }, onDismiss);
   }
 
-  /**
-   * Show error toast
-   */
-  error(message: string, title?: string, duration?: number): string | null {
-    return this.show({ type: 'error', message, title, duration });
+  // FIX: Added onDismiss parameter
+  error(message: string, title?: string, duration?: number, onDismiss?: () => void): string | null {
+    return this.show({ type: 'error', message, title, duration }, onDismiss);
   }
 
-  /**
-   * Show warning toast
-   */
-  warning(message: string, title?: string, duration?: number): string | null {
-    return this.show({ type: 'warning', message, title, duration });
+  // FIX: Added onDismiss parameter
+  warning(message: string, title?: string, duration?: number, onDismiss?: () => void): string | null {
+    return this.show({ type: 'warning', message, title, duration }, onDismiss);
   }
 
-  /**
-   * Show info toast
-   */
-  info(message: string, title?: string, duration?: number): string | null {
-    return this.show({ type: 'info', message, title, duration });
+  // FIX: Added onDismiss parameter
+  info(message: string, title?: string, duration?: number, onDismiss?: () => void): string | null {
+    return this.show({ type: 'info', message, title, duration }, onDismiss);
   }
 
-  /**
-   * Show toast with action button
-   */
+  // FIX: Added onDismiss parameter
   showWithAction(
     type: ToastType,
     message: string,
     action: ToastAction,
     title?: string,
-    duration?: number
+    duration?: number,
+    onDismiss?: () => void
   ): string | null {
-    return this.show({ type, message, title, duration, action });
+    return this.show({ type, message, title, duration, action }, onDismiss);
   }
 
-  /**
-   * Dismiss a specific toast
-   */
   dismiss(id: string): void {
+    // Trigger callback if exists
+    const callback = this.dismissCallbacks.get(id);
+    if (callback) {
+      callback();
+      this.dismissCallbacks.delete(id);
+    }
+
     this.toastService.dismiss(id);
   }
 
-  /**
-   * Dismiss all toasts
-   */
   dismissAll(): void {
+    // Trigger all callbacks
+    this.dismissCallbacks.forEach(callback => callback());
+    this.dismissCallbacks.clear();
+
     this.toastService.dismissAll();
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Private Methods - Deduplication Logic
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
+  // Private Methods - IMPROVED
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Create hash for deduplication
-   * Based on: type + title + message (what user sees)
-   */
   private createHash(request: ToastRequest): string {
     return `${request.type}:${request.title || ''}:${request.message}`;
   }
 
-  /**
-   * Check if toast was shown within time window
-   */
-  private isWithinWindow(lastShown: Date): boolean {
-    const elapsed = Date.now() - lastShown.getTime();
+  private isWithinWindow(firstShown: Date): boolean {
+    const elapsed = Date.now() - firstShown.getTime();
     return elapsed < this.config.windowMs;
   }
 
-  /**
-   * Handle duplicate toast
-   */
+  // FIX: No longer updates lastShown - uses firstShown for window
   private handleDuplicate(request: ToastRequest, record: ToastRecord): string | null {
-    // Update last shown time
-    record.lastShown = new Date();
-    
-    // Increment suppression counter
     record.suppressedCount++;
 
-    // After threshold, show summary toast
     if (record.suppressedCount >= this.config.maxSuppressedBeforeShow) {
       const summaryId = this.showSuppressedSummary(request, record.suppressedCount);
-      
-      // Reset counter after showing summary
       record.suppressedCount = 0;
-      
       return summaryId;
     }
 
-    // Silently suppressed
     return null;
   }
 
-  /**
-   * Show new toast and record it
-   */
-  private showNewToast(request: ToastRequest, hash: string): string {
-    const toastId = this.toastService.show(
-      request.type,
-      request.message,
-      request.title,
-      request.duration,
-      request.action,
-      request.dismissible
-    );
+  private showNewToast(request: ToastRequest, hash: string, onDismiss?: () => void): string {
+    const toastId = this.showDirectly(request, onDismiss);
 
-    // Record this toast
+    // FIX: Track firstShown timestamp (never updated)
+    const now = new Date();
     this.recentToasts.set(hash, {
       hash,
-      lastShown: new Date(),
+      firstShown: now,
+      lastShown: now,
       suppressedCount: 0,
       type: request.type,
       message: request.message,
@@ -174,13 +143,25 @@ export class ToastManager {
     return toastId;
   }
 
-  /**
-   * Show summary toast for suppressed notifications
-   */
-  private showSuppressedSummary(
-    request: ToastRequest,
-    count: number
-  ): string | null {
+  private showDirectly(request: ToastRequest, onDismiss?: () => void): string {
+    const toastId = this.toastService.show(
+      request.type,
+      request.message,
+      request.title,
+      request.duration,
+      request.action,
+      request.dismissible
+    );
+
+    // Store callback if provided
+    if (onDismiss) {
+      this.dismissCallbacks.set(toastId, onDismiss);
+    }
+
+    return toastId;
+  }
+
+  private showSuppressedSummary(request: ToastRequest, count: number): string | null {
     if (!this.config.showSuppressedCount) {
       return null;
     }
@@ -197,40 +178,32 @@ export class ToastManager {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Cleanup Management
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
+  // Cleanup Management - IMPROVED
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Initialize periodic cleanup of old records
-   */
   private initializeCleanup(): void {
     this.cleanupTimer = setInterval(() => {
       this.cleanupOldRecords();
     }, this.config.cleanupIntervalMs);
   }
 
-  /**
-   * Remove records outside time window
-   */
+  // FIX: Uses firstShown for cleanup (not lastShown)
   private cleanupOldRecords(): void {
     const now = Date.now();
     const cutoff = now - this.config.windowMs;
 
     for (const [hash, record] of this.recentToasts.entries()) {
-      if (record.lastShown.getTime() < cutoff) {
+      if (record.firstShown.getTime() < cutoff) {
         this.recentToasts.delete(hash);
       }
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Diagnostics
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Get diagnostic information
-   */
   getDiagnostics() {
     const totalSuppressed = Array.from(this.recentToasts.values())
       .reduce((sum, record) => sum + record.suppressedCount, 0);
@@ -245,16 +218,15 @@ export class ToastManager {
       recentToastsTracked: this.recentToasts.size,
       totalSuppressed,
       suppressionsByType,
+      activeCallbacks: this.dismissCallbacks.size,
       config: this.config,
       toastService: this.toastService.getDiagnostics()
     };
   }
 
-  /**
-   * Get suppression stats for specific toast
-   */
   getSuppressionStats(type: ToastType, message: string, title?: string): {
     suppressedCount: number;
+    firstShown: Date | null;
     lastShown: Date | null;
   } {
     const hash = this.createHash({ type, message, title });
@@ -262,16 +234,15 @@ export class ToastManager {
 
     return {
       suppressedCount: record?.suppressedCount || 0,
+      firstShown: record?.firstShown || null,
       lastShown: record?.lastShown || null
     };
   }
 
-  /**
-   * Cleanup on destroy
-   */
   ngOnDestroy(): void {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
     }
+    this.dismissCallbacks.clear();
   }
 }

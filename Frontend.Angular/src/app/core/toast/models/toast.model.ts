@@ -32,10 +32,13 @@ export interface ToastConfig {
 }
 
 /**
- * Internal model for tracking recent toasts
+ * Internal model for tracking recent toasts - UPDATED
  */
 export interface ToastRecord {
   hash: string;
+  /** First time this toast was shown (for window calculation) */
+  firstShown: Date;
+  /** Last time this toast was shown (for diagnostics) */
   lastShown: Date;
   suppressedCount: number;
   type: ToastType;

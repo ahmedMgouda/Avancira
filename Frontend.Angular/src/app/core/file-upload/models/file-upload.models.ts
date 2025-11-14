@@ -92,6 +92,27 @@ export interface FileUploadDto {
 }
 
 /**
+ * Result from uploading multiple files
+ * Provides detailed success and failure information
+ */
+export interface FileUploadResult {
+  /** Successfully uploaded files */
+  successful: Array<{
+    fileId: string;
+    fileName: string;
+    url: string;
+  }>;
+  /** Failed uploads with error details */
+  failed: Array<{
+    fileId: string;
+    fileName: string;
+    error: string;
+  }>;
+  /** Total number of files attempted */
+  totalFiles: number;
+}
+
+/**
  * Default file upload configurations
  */
 export const DEFAULT_FILE_CONFIGS: Record<FileType, FileUploadConfig> = {
