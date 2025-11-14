@@ -17,17 +17,14 @@ import {
 } from '../models/dialog.models';
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- * DIALOG SERVICE
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
+ * DIALOG SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
  * 
- * Centralized service for managing application dialogs with:
- * - Deduplication (prevents duplicate dialogs)
- * - Queue management (sequential dialogs)
- * - Max dialog limit (prevents dialog spam)
- * - Loading dialogs with progress
- * - Strong type safety
- * - Promise-based API
+ * FIXES:
+ * ✅ setInterval cleanup handle stored
+ * ✅ Cleaned up in destroyRef.onDestroy
+ * ✅ No memory leaks from interval timer
  */
 
 interface DialogTracker {
@@ -43,42 +40,47 @@ export class DialogService {
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // State Management
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   
-  private readonly MAX_DIALOGS = 3; // Maximum concurrent dialogs
-  private readonly DEDUP_WINDOW_MS = 500; // Deduplication time window
+  private readonly MAX_DIALOGS = 3;
+  private readonly DEDUP_WINDOW_MS = 500;
   
   private readonly recentDialogs = new Map<string, DialogTracker>();
   private readonly dialogQueue: Array<() => Promise<any>> = [];
   private readonly _isProcessingQueue = signal(false);
   private readonly _loadingDialogRef = signal<MatDialogRef<any> | null>(null);
 
+  // FIX: Store cleanup interval handle
+  private cleanupIntervalHandle?: ReturnType<typeof setInterval>;
+
   readonly isProcessingQueue = this._isProcessingQueue.asReadonly();
 
   constructor() {
-    // Cleanup recent dialogs periodically
     this.setupCleanup();
+    
+    // FIX: Register cleanup on destroy
+    this.destroyRef.onDestroy(() => {
+      if (this.cleanupIntervalHandle) {
+        clearInterval(this.cleanupIntervalHandle);
+        this.cleanupIntervalHandle = undefined;
+      }
+    });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Core Dialog Methods
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Display a confirmation dialog
-   */
   async confirm(config: ConfirmDialogConfig | string): Promise<boolean> {
     const dialogConfig = this.normalizeConfirmConfig(config);
     const hash = this.createHash('confirm', dialogConfig);
 
-    // Check for duplicate
     if (this.isDuplicate(hash)) {
       return false;
     }
 
-    // Check max dialogs limit
     if (this.hasReachedMaxDialogs()) {
       console.warn('[DialogService] Maximum dialogs reached. Dialog queued.');
       return this.queueDialog(() => this.confirm(config));
@@ -106,9 +108,6 @@ export class DialogService {
     return result?.confirmed ?? false;
   }
 
-  /**
-   * Display an alert dialog
-   */
   async alert(config: AlertDialogConfig | string): Promise<void> {
     const dialogConfig = this.normalizeAlertConfig(config);
     const hash = this.createHash('alert', dialogConfig);
@@ -142,9 +141,6 @@ export class DialogService {
     this.removeFromTracker(hash);
   }
 
-  /**
-   * Display a prompt dialog
-   */
   async prompt(config: PromptDialogConfig | string): Promise<string | null> {
     const dialogConfig = this.normalizePromptConfig(config);
     const hash = this.createHash('prompt', dialogConfig);
@@ -180,9 +176,6 @@ export class DialogService {
     return result?.submitted ? (result.value ?? null) : null;
   }
 
-  /**
-   * Show loading dialog with optional progress
-   */
   async showLoading(config: LoadingDialogConfig | string): Promise<MatDialogRef<any>> {
     const dialogConfig = typeof config === 'string' 
       ? { message: config } 
@@ -206,9 +199,6 @@ export class DialogService {
     return dialogRef;
   }
 
-  /**
-   * Update loading dialog message or progress
-   */
   updateLoading(message?: string, progress?: number): void {
     const ref = this._loadingDialogRef();
     if (ref?.componentInstance) {
@@ -221,9 +211,6 @@ export class DialogService {
     }
   }
 
-  /**
-   * Hide loading dialog
-   */
   hideLoading(): void {
     const ref = this._loadingDialogRef();
     if (ref) {
@@ -232,9 +219,6 @@ export class DialogService {
     }
   }
 
-  /**
-   * Open a custom dialog
-   */
   openCustom<T, R = any>(config: CustomDialogConfig<T>): Observable<R | undefined> {
     if (this.hasReachedMaxDialogs()) {
       console.warn('[DialogService] Maximum dialogs reached.');
@@ -248,16 +232,13 @@ export class DialogService {
     return dialogRef.afterClosed();
   }
 
-  /**
-   * Open custom dialog as promise
-   */
   async openCustomAsync<T, R = any>(config: CustomDialogConfig<T>): Promise<R | undefined> {
     return firstValueFrom(this.openCustom<T, R>(config));
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Semantic Preset Methods
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
+  // Semantic Presets
+  // ═══════════════════════════════════════════════════════════════════════
 
   async confirmDelete(itemName?: string): Promise<boolean> {
     return this.confirm({
@@ -318,9 +299,9 @@ export class DialogService {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Dialog Management
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   closeAll(): void {
     this.dialog.closeAll();
@@ -337,9 +318,9 @@ export class DialogService {
     return this.dialog.openDialogs.length;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Deduplication & Queue Management
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
+  // Deduplication & Queue
+  // ═══════════════════════════════════════════════════════════════════════
 
   private createHash(type: string, config: any): string {
     const message = config.message || '';
@@ -362,7 +343,6 @@ export class DialogService {
       timestamp: Date.now(),
     });
 
-    // Remove from tracker when closed
     ref.afterClosed()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -418,14 +398,17 @@ export class DialogService {
 
     this._isProcessingQueue.set(false);
 
-    // Process next in queue if available
     if (this.dialogQueue.length > 0 && !this.hasReachedMaxDialogs()) {
       setTimeout(() => this.processQueue(), 100);
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // Cleanup - FIXED
+  // ═══════════════════════════════════════════════════════════════════════
+
   private setupCleanup(): void {
-    setInterval(() => {
+    this.cleanupIntervalHandle = setInterval(() => {
       const now = Date.now();
       for (const [hash, tracker] of this.recentDialogs.entries()) {
         if (now - tracker.timestamp > this.DEDUP_WINDOW_MS) {
@@ -435,9 +418,9 @@ export class DialogService {
     }, this.DEDUP_WINDOW_MS);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Config Normalizers
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   private normalizeConfirmConfig(config: ConfirmDialogConfig | string): ConfirmDialogConfig {
     if (typeof config === 'string') {
@@ -484,9 +467,9 @@ export class DialogService {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // Diagnostics
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
 
   getDiagnostics() {
     return {
@@ -496,6 +479,7 @@ export class DialogService {
       isProcessingQueue: this._isProcessingQueue(),
       maxDialogs: this.MAX_DIALOGS,
       hasLoadingDialog: !!this._loadingDialogRef(),
+      hasCleanupInterval: !!this.cleanupIntervalHandle,
     };
   }
 }

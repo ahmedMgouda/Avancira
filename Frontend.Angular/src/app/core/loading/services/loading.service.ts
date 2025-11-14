@@ -1,6 +1,17 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
 
 import { getLoadingConfig } from '../../config/loading.config';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * LOADING SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Implements ngOnDestroy to clear all timers
+ * ✅ No memory leaks from setTimeout handles
+ * ✅ Proper cleanup on service destruction
+ */
 
 interface GlobalLoadingState {
   active: boolean;
@@ -14,7 +25,7 @@ interface RouteLoadingState {
 }
 
 @Injectable({ providedIn: 'root' })
-export class LoadingService {
+export class LoadingService implements OnDestroy {
   private readonly config = getLoadingConfig();
 
   // State
@@ -23,7 +34,7 @@ export class LoadingService {
   private readonly activeRequests = new Set<string>();
   private readonly _activeCount = signal(0);
 
-  // Timers
+  // Timers - FIX: Track all timers for cleanup
   private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly timeoutTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -135,5 +146,13 @@ export class LoadingService {
     this.debounceTimers.clear();
     this.timeoutTimers.forEach(t => clearTimeout(t));
     this.timeoutTimers.clear();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CLEANUP - FIX: Implement ngOnDestroy
+  // ═══════════════════════════════════════════════════════════════════════
+
+  ngOnDestroy(): void {
+    this.clearAll();
   }
 }
