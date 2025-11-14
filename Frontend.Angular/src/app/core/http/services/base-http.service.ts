@@ -10,15 +10,22 @@ import { CacheConfig, EntityCache } from '../../utils/entity-cache.utility';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * BASE HTTP SERVICE - IMPROVED
+ * BASE HTTP SERVICE - IMPROVED ERROR HANDLING
  * ═══════════════════════════════════════════════════════════════════════
  * 
  * IMPROVEMENTS:
- * ✅ Uses ErrorHandlerService for all error handling
- * ✅ Returns StandardError in catchError (no manual handling in components)
- * ✅ Single place for error logging (no duplicates)
- * ✅ Components receive clean StandardError objects
- * ✅ Removed duplicate logging code
+ * ✅ Uses ErrorHandlerService (transforms + logs ONCE)
+ * ✅ Returns StandardError (no raw errors to components)
+ * ✅ NO duplicate logging (ErrorHandlerService logs internally)
+ * ✅ Clean separation of concerns
+ * 
+ * ERROR FLOW:
+ * 1. HTTP error occurs
+ * 2. ErrorHandlerService.handle() transforms + logs
+ * 3. StandardError returned to component
+ * 4. Component shows toast
+ * 
+ * NO duplicate logging because ErrorHandlerService logs internally.
  */
 export abstract class BaseHttpService<
   T extends { id: number },
@@ -40,9 +47,9 @@ export abstract class BaseHttpService<
     this.cache = new EntityCache<T>(cacheConfig);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // CRUD METHODS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
 
   getAll(filter: TFilter = {} as TFilter): Observable<PaginatedResult<T>> {
     const params = this.buildHttpParams(filter);
@@ -104,34 +111,48 @@ export abstract class BaseHttpService<
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // ERROR HANDLING - CENTRALIZED
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
+  // ERROR HANDLING - NO DUPLICATE LOGGING
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Handle errors using ErrorHandlerService
-   * This ensures:
-   * - Errors are logged once (no duplicates)
-   * - Errors are transformed to StandardError
-   * - Components receive clean error objects
+   * 
+   * IMPORTANT: ErrorHandlerService.handle() logs internally,
+   * so we DON'T log here to avoid duplicates.
    */
   private handleError(error: unknown, operation: string): Observable<never> {
-    // Use ErrorHandlerService to transform and log error
+    // Check if already a StandardError (from upstream)
+    if (this.isStandardError(error)) {
+      return throwError(() => error);
+    }
+
+    // Transform using ErrorHandlerService (logs internally)
     const standardError = this.errorHandler.handle(error);
     
-    // Add operation context
+    // Add operation context to user message
     const errorWithContext: StandardError = {
       ...standardError,
       userMessage: `Failed to ${operation}: ${standardError.userMessage}`,
     };
 
-    // Return as StandardError for components to handle
+    // Return StandardError for component to handle
     return throwError(() => errorWithContext);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  private isStandardError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'errorId' in error &&
+      'userMessage' in error &&
+      'severity' in error
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // UTILITIES
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
 
   protected buildHttpParams(filter: TFilter): HttpParams {
     let params = new HttpParams()

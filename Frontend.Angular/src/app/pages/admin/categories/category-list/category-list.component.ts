@@ -10,20 +10,23 @@ import { LoadingService } from '@/core/loading/services/loading.service';
 import { ToastService } from '@core/toast/services/toast.service';
 import { DialogService } from '@core/dialogs';
 import { StandardError } from '@core/logging/models/standard-error.model';
+import { LoggerService } from '@core/logging/services/logger.service';
 import { CategoryService } from '@services/category.service';
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * CATEGORY LIST COMPONENT - IMPROVED ERROR HANDLING
+ * CATEGORY LIST COMPONENT - CLEAN ERROR HANDLING
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * IMPROVEMENTS:
- * ✅ No manual error handling - BaseHttpService handles it
- * ✅ Receives StandardError directly from service
- * ✅ Just shows toast - no error transformation needed
- * ✅ Clean, simple error handling
- * ✅ No duplicate logging
+ * ERROR HANDLING FLOW:
+ * 1. Error occurs in API call
+ * 2. BaseHttpService catches and transforms via ErrorHandlerService
+ * 3. ErrorHandlerService logs ONCE
+ * 4. Component receives StandardError
+ * 5. Component shows toast
+ * 
+ * RESULT: No duplicate logging, clean separation
  */
 @Component({
   selector: 'app-category-list',
@@ -39,39 +42,40 @@ export class CategoryListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly loadingService = inject(LoadingService);
   private readonly dialogService = inject(DialogService);
+  private readonly logger = inject(LoggerService);
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // STATE SIGNALS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
 
   readonly loading = signal(false);
   readonly deleting = signal<number | null>(null);
   readonly paginatedData = this.categoryService.entities;
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // FILTER STATE
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   readonly searchTerm = signal('');
   readonly filterActive = signal<boolean | undefined>(undefined);
   readonly filterVisible = signal<boolean | undefined>(undefined);
   readonly filterFeatured = signal<boolean | undefined>(undefined);
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // PAGINATION STATE
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   readonly pageIndex = signal(0);
   readonly pageSize = signal(25);
   readonly sortBy = signal<string>('sortOrder');
   readonly sortOrder = signal<'asc' | 'desc'>('asc');
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // DEBOUNCE SEARCH
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   private readonly searchSubject = new Subject<string>();
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // COMPUTED VALUES
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   readonly categories = computed(() => this.paginatedData()?.items ?? []);
   readonly totalCount = computed(() => this.paginatedData()?.totalCount ?? 0);
   readonly totalPages = computed(() => this.paginatedData()?.totalPages ?? 0);
@@ -124,17 +128,25 @@ export class CategoryListComponent implements OnInit {
   readonly hasResults = computed(() => !this.loading() && !this.isEmpty());
   readonly showEmptyState = computed(() => !this.loading() && this.isEmpty());
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // LIFECYCLE
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   ngOnInit(): void {
     this.setupSearchDebounce();
     this.loadCategories();
+    
+    // ✅ Example of logging with custom data
+    this.logger.debug('CategoryListComponent initialized', {
+      // Custom business data
+      component: 'CategoryList',
+      initialFilter: this.buildFilter(),
+      timestamp: Date.now()
+    });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // PRIVATE HELPERS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   private setupSearchDebounce(): void {
     this.searchSubject
       .pipe(
@@ -166,9 +178,9 @@ export class CategoryListComponent implements OnInit {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LOAD DATA - SIMPLIFIED ERROR HANDLING
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
+  // LOAD DATA - SIMPLE ERROR HANDLING
+  // ═══════════════════════════════════════════════════════════════════
   loadCategories(): void {
     this.loading.set(true);
     const filter = this.buildFilter();
@@ -177,7 +189,7 @@ export class CategoryListComponent implements OnInit {
       .getAll(filter)
       .pipe(
         catchError((error: StandardError) => {
-          // Error is already handled and logged by BaseHttpService
+          // Error already logged by BaseHttpService → ErrorHandlerService
           // Just show toast to user
           this.toast.error(error.userMessage, error.userTitle);
           return of(null);
@@ -189,9 +201,9 @@ export class CategoryListComponent implements OnInit {
       });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // SEARCH & FILTER HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   onSearchInput(term: string): void {
     this.searchSubject.next(term);
   }
@@ -224,9 +236,9 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // PAGINATION HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   onPageSizeChange(size: number): void {
     this.pageSize.set(size);
     this.resetToFirstPage();
@@ -273,9 +285,9 @@ export class CategoryListComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // SORTING HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   onSort(field: string): void {
     if (this.sortBy() === field) {
       this.sortOrder.set(this.sortOrder() === 'asc' ? 'desc' : 'asc');
@@ -291,9 +303,9 @@ export class CategoryListComponent implements OnInit {
     return this.sortOrder() === 'asc' ? '↑' : '↓';
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CRUD OPERATIONS - SIMPLIFIED ERROR HANDLING
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
+  // CRUD OPERATIONS
+  // ═══════════════════════════════════════════════════════════════════
   onCreate(): void {
     this.router.navigate(['/admin/categories/create']);
   }
@@ -312,11 +324,20 @@ export class CategoryListComponent implements OnInit {
 
     this.deleting.set(category.id);
 
+    // ✅ Example of logging with custom business data
+    this.logger.info('Deleting category', {
+      // Custom business data
+      categoryId: category.id,
+      categoryName: category.name,
+      operation: 'delete',
+      initiatedBy: 'user'
+    });
+
     this.categoryService
       .delete(category.id)
       .pipe(
         catchError((error: StandardError) => {
-          // Error is already handled and logged by BaseHttpService
+          // Error already logged by BaseHttpService → ErrorHandlerService
           // Just show toast to user
           this.toast.error(error.userMessage, 'Delete Failed');
           this.deleting.set(null);
@@ -327,6 +348,14 @@ export class CategoryListComponent implements OnInit {
       .subscribe(() => {
         this.deleting.set(null);
         this.toast.success(`"${category.name}" has been deleted.`, 'Category Deleted');
+        
+        // ✅ Example of logging success with custom data
+        this.logger.info('Category deleted successfully', {
+          categoryId: category.id,
+          categoryName: category.name,
+          operation: 'delete',
+          status: 'success'
+        });
         
         // Navigate to previous page if we deleted the last item
         const currentData = this.paginatedData();
@@ -342,9 +371,9 @@ export class CategoryListComponent implements OnInit {
     return this.deleting() === categoryId;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // UTILITY
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   trackByCategory(_index: number, category: Category): number {
     return category.id;
   }
@@ -355,9 +384,9 @@ export class CategoryListComponent implements OnInit {
     this.toast.info('Category list refreshed');
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   // TESTING / DEBUG
-  // ═══════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════
   testLoading(): void {
     this.loadingService.showGlobal();
     this.loadingService.updateGlobalMessage('Testing loading overlay...');

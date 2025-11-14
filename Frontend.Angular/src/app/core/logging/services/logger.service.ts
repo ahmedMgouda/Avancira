@@ -1,15 +1,32 @@
-// core/logging/services/logger.service.ts
 /**
- * Logger Service - REFACTORED
+ * Logger Service - IMPROVED
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * CHANGES FROM ORIGINAL (850 → 450 lines, -47%):
- * ✅ Uses DedupManager (removed inline deduplication)
- * ✅ Uses SamplingManager (removed inline sampling)
- * ✅ Uses BufferManager (removed inline buffer logic)
- * ✅ Uses getLoggingConfig() (environment-aware)
- * ✅ Removed user type configs (treat all users same)
- * ✅ Simplified configuration
+ * IMPROVEMENTS:
+ * ✅ Supports custom data in logs via flexible context parameter
+ * ✅ No duplicate logging - single point of truth
+ * ✅ Better API with LogContext type
+ * ✅ Separates standard fields from custom data
+ * ✅ More intuitive to use
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * // Simple log
+ * logger.info('User logged in');
+ * 
+ * // With custom data
+ * logger.info('Order created', {
+ *   orderId: 123,
+ *   customerId: 456,
+ *   amount: 99.99
+ * });
+ * 
+ * // With both standard and custom data
+ * logger.error('Payment failed', error, {
+ *   http: { status_code: 500 },
+ *   orderId: 123,
+ *   paymentMethod: 'credit_card'
+ * });
  */
 
 import { HttpClient } from '@angular/common/http';
@@ -29,7 +46,7 @@ import { BufferManager } from '../../utils/buffer-manager.utility';
 import { DedupManager } from '../../utils/dedup-manager.utility';
 import { IdGenerator } from '../../utils/id-generator.utility';
 import { SamplingManager } from '../../utils/sampling-manager.utility';
-import { BaseLogEntry } from '../models/base-log-entry.model';
+import { BaseLogEntry, LogContext } from '../models/base-log-entry.model';
 import { LogLevel } from '../models/log-level.model';
 import { DataSanitizer } from '../utils/data-sanitizer.utility';
 import { SourceExtractor } from '../utils/source-extractor.utility';
@@ -42,10 +59,8 @@ export class LoggerService {
   private readonly injector = inject(Injector);
   private readonly resilience = inject(ResilienceService);
 
-  // ✅ Environment-aware configuration
   private readonly config = getLoggingConfig();
 
-  // ✅ Utility instances
   private readonly dedup = new DedupManager<BaseLogEntry>({
     ...getDeduplicationConfig().logging,
     hashFn: (log) => `${log.log.level}-${log.log.message}-${log.log.type}`
@@ -81,46 +96,78 @@ export class LoggerService {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Public Logging API
+  // Public Logging API - IMPROVED
   // ═══════════════════════════════════════════════════════════════════
 
-  trace(message: string, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log trace level message
+   * @param message Log message
+   * @param context Optional context with standard and/or custom fields
+   */
+  trace(message: string, context?: LogContext): void {
     this.log(LogLevel.TRACE, message, context);
   }
 
-  debug(message: string, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log debug level message
+   * @param message Log message
+   * @param context Optional context with standard and/or custom fields
+   */
+  debug(message: string, context?: LogContext): void {
     this.log(LogLevel.DEBUG, message, context);
   }
 
-  info(message: string, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log info level message
+   * @param message Log message
+   * @param context Optional context with standard and/or custom fields
+   */
+  info(message: string, context?: LogContext): void {
     this.log(LogLevel.INFO, message, context);
   }
 
-  warn(message: string, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log warning level message
+   * @param message Log message
+   * @param context Optional context with standard and/or custom fields
+   */
+  warn(message: string, context?: LogContext): void {
     this.log(LogLevel.WARN, message, context);
   }
 
-  error(message: string, error?: unknown, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log error level message
+   * @param message Log message
+   * @param error Optional error object
+   * @param context Optional context with standard and/or custom fields
+   */
+  error(message: string, error?: unknown, context?: LogContext): void {
     this.log(LogLevel.ERROR, message, context, error);
   }
 
-  fatal(message: string, error?: unknown, context?: Partial<BaseLogEntry>): void {
+  /**
+   * Log fatal level message
+   * @param message Log message
+   * @param error Optional error object
+   * @param context Optional context with standard and/or custom fields
+   */
+  fatal(message: string, error?: unknown, context?: LogContext): void {
     this.log(LogLevel.FATAL, message, context, error);
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Core Logging Logic
+  // Core Logging Logic - IMPROVED
   // ═══════════════════════════════════════════════════════════════════
 
   private log(
     level: LogLevel,
     message: string,
-    context?: Partial<BaseLogEntry>,
+    context?: LogContext,
     error?: unknown
   ): void {
     const logType = context?.log?.type || 'application';
 
-    // ✅ Step 1: Check sampling FIRST (cheapest check)
+    // Step 1: Check sampling FIRST (cheapest check)
     if (!this.sampling.shouldSample(logType)) {
       this.sampling.recordDecision(logType, false);
       return;
@@ -128,27 +175,27 @@ export class LoggerService {
 
     this.sampling.recordDecision(logType, true);
 
-    // ✅ Step 2: Create log entry (expensive operation)
+    // Step 2: Create log entry
     const entry = this.createBaseEntry(level, message, context, error);
 
-    // ✅ Step 3: Check deduplication (after sampling)
+    // Step 3: Check deduplication
     if (this.dedup.check(entry)) {
       return; // Duplicate, skip
     }
 
-    // ✅ Step 4: Log to console
+    // Step 4: Log to console
     if (this.config.console.enabled) {
       this.logToConsole(entry);
     }
 
-    // ✅ Step 5: Broadcast to dev monitor
+    // Step 5: Broadcast to dev monitor
     this.logMonitor.broadcast(entry);
 
-    // ✅ Step 6: Add to buffer
+    // Step 6: Add to buffer
     this.buffer.add(entry);
     this.bufferSize.set(this.buffer.size());
 
-    // ✅ Step 7: Auto-flush if batch size reached
+    // Step 7: Auto-flush if batch size reached
     if (this.buffer.size() >= this.config.remote.batchSize) {
       this.flush();
     }
@@ -157,7 +204,7 @@ export class LoggerService {
   private createBaseEntry(
     level: LogLevel,
     message: string,
-    context?: Partial<BaseLogEntry>,
+    context?: LogContext,
     _error?: unknown
   ): BaseLogEntry {
     const now = new Date();
@@ -165,6 +212,7 @@ export class LoggerService {
     const source = context?.log?.source || SourceExtractor.extract(5);
     const type = context?.log?.type || 'application';
 
+    // Create base entry with required fields
     const entry: BaseLogEntry = {
       '@timestamp': now.toISOString(),
       '@version': '1.0',
@@ -208,15 +256,13 @@ export class LoggerService {
     if (sessionId) {
       entry.session = {
         id: sessionId,
-        user: userId ? { id: userId } : undefined as any
+        user: userId ? { id: userId } : undefined
       };
-
-      if (!userId) {
-        delete (entry.session as any).user;
-      }
     }
 
-    // Add context-specific data
+    // ═══════════════════════════════════════════════════════════════════
+    // Add standard context fields
+    // ═══════════════════════════════════════════════════════════════════
     if (context?.http) {
       entry.http = this.sanitizeHttpData(context.http);
     }
@@ -229,6 +275,24 @@ export class LoggerService {
       entry.navigation = context.navigation;
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // ✅ Add custom fields from context
+    // This is the key improvement - allows arbitrary custom data
+    // ═══════════════════════════════════════════════════════════════════
+    if (context) {
+      const standardFields = new Set([
+        '@timestamp', '@version', 'log', 'service', 'trace', 
+        'client', 'session', 'http', 'error', 'navigation'
+      ]);
+
+      // Add any custom fields that aren't standard fields
+      Object.keys(context).forEach(key => {
+        if (!standardFields.has(key)) {
+          entry[key] = context[key];
+        }
+      });
+    }
+
     return entry;
   }
 
@@ -236,7 +300,7 @@ export class LoggerService {
   // Remote Transmission
   // ═══════════════════════════════════════════════════════════════════
 
-  private flush(): void {
+  flush(): void {
     if (!this.config.remote.enabled) {
       return;
     }
@@ -342,17 +406,32 @@ export class LoggerService {
     const style = this.getConsoleStyle(level);
     const prefix = `[${level}] [${entry.log.source}]`;
 
+    // Extract standard fields
+    const { 
+      '@timestamp': timestamp, 
+      '@version': version, 
+      log, 
+      service, 
+      trace, 
+      client, 
+      session,
+      ...customFields 
+    } = entry;
+
+    // Log with custom fields highlighted
     console.log(
       `%c${prefix}%c ${entry.log.message}`,
       style,
       'color: inherit',
       {
-        trace_id: entry.trace.id,
-        span_id: entry.trace.span?.id,
-        type: entry.log.type,
+        trace_id: trace.id,
+        span_id: trace.span?.id,
+        type: log.type,
         ...entry.http,
         ...entry.error,
-        ...entry.navigation
+        ...entry.navigation,
+        // Show custom fields separately for clarity
+        ...(Object.keys(customFields).length > 0 ? { custom: customFields } : {})
       }
     );
   }
