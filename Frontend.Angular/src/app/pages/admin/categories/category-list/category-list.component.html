@@ -62,11 +62,27 @@
     </div>
   </div>
 
+  <!-- Drag-Drop Info Message -->
+  @if (!canDrag() && hasResults() && !loading()) {
+  <div class="info-message">
+    💡 <strong>Tip:</strong> To reorder categories, sort by "Sort Order" in ascending order.
+  </div>
+  }
+
+  @if (reordering()) {
+  <div class="info-message info-warning">
+    ⏳ Saving new order...
+  </div>
+  }
+
   <!-- Results Section -->
   <div class="table-container" [loading]="loading()" mode="overlay" size="lg">
     <table class="table">
       <thead>
         <tr>
+          @if (canDrag()) {
+          <th class="drag-col" title="Drag to reorder">☼</th>
+          }
           <th (click)="onSort('name')" class="sortable">
             Name {{ getSortIcon('name') }}
           </th>
@@ -87,10 +103,13 @@
         </tr>
       </thead>
 
-      <tbody>
+      <tbody 
+        cdkDropList
+        [cdkDropListDisabled]="!canDrag()"
+        (cdkDropListDropped)="onDrop($event)">
         @if (showEmptyState()) {
         <tr>
-          <td colspan="7" class="text-center empty-state">
+          <td [attr.colspan]="canDrag() ? 8 : 7" class="text-center empty-state">
             <div class="empty-state-content">
               <p class="empty-state-icon">📁</p>
               <p class="empty-state-message">
@@ -115,7 +134,16 @@
         </tr>
         } @else {
         @for (category of categories(); track trackByCategory($index, category)) {
-        <tr [class.deleting]="isDeleting(category.id)">
+        <tr 
+          cdkDrag
+          [cdkDragDisabled]="!canDrag() || isDeleting(category.id)"
+          [class.deleting]="isDeleting(category.id)"
+          [class.dragging]="canDrag()">
+          @if (canDrag()) {
+          <td class="drag-handle" cdkDragHandle title="Drag to reorder">
+            <span class="drag-icon">☰</span>
+          </td>
+          }
           <td class="category-name"><strong>{{ category.name }}</strong></td>
           <td class="description">{{ category.description || '—' }}</td>
           <td class="text-center"><span class="sort-order-badge">{{ category.sortOrder }}</span></td>
