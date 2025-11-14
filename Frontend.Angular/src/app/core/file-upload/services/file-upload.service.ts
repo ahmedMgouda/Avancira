@@ -1,25 +1,11 @@
-// shared/services/file-upload.service.ts
-/**
- * File Upload Service - FIXED & ALIGNED
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * IMPROVEMENTS:
- *   ✅ Uses IdGenerator from core/utils
- *   ✅ Integrated with LoggerService for tracking
- *   ✅ Better error handling with ErrorHandlerService
- *   ✅ Toast notifications via ToastManager
- *   ✅ Proper cleanup of blob URLs
- *   ✅ Signal-based state management
- */
-
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { Subject } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 import { LoggerService } from '../../logging/services/logger.service';
 import { ToastManager } from '../../toast/services/toast-manager.service';
-
 import { IdGenerator } from '../../utils/id-generator.utility';
 import {
   DEFAULT_FILE_CONFIGS,
@@ -29,38 +15,49 @@ import {
   FileUploadDto,
   FileUploadEvent,
   FileValidationResult,
+  FileUploadResult,
 } from '../models/file-upload.models';
 
-@Injectable({
-  providedIn: 'root',
-})
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * FILE UPLOAD SERVICE - FIXED
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * FIXES:
+ * ✅ Added platform checks for all DOM API usage
+ * ✅ SSR-safe with proper guards
+ * ✅ uploadFiles() now returns detailed results (success + failures)
+ * ✅ Callers can retry failed uploads
+ * ✅ No silent error swallowing
+ */
+
+@Injectable({ providedIn: 'root' })
 export class FileUploadService {
   private readonly http = inject(HttpClient);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastManager);
+  private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   
   private readonly fileSubject = new Subject<FileUploadEvent>();
-  
-  // Track blob URLs for cleanup
   private readonly activeBlobUrls = new Set<string>();
 
-  // Observable for file events
   public fileEvents$ = this.fileSubject.asObservable();
 
-  /**
-   * Validate a single file against configuration
-   */
+  // ═══════════════════════════════════════════════════════════════════════
+  // VALIDATION
+  // ═══════════════════════════════════════════════════════════════════════
+
   validateFile(file: File, config: FileUploadConfig): FileValidationResult {
     const errors: string[] = [];
 
-    // Check file size
     if (config.maxSize && file.size > config.maxSize) {
       errors.push(
-        `File size (${this.formatFileSize(file.size)}) exceeds maximum allowed size (${this.formatFileSize(config.maxSize)})`
+        `File size (${this.formatFileSize(file.size)}) exceeds maximum (${this.formatFileSize(config.maxSize)})`
       );
     }
 
-    // Check file extension
     const extension = this.getFileExtension(file.name);
     if (
       config.allowedExtensions &&
@@ -68,20 +65,18 @@ export class FileUploadService {
       !config.allowedExtensions.includes(extension.toLowerCase())
     ) {
       errors.push(
-        `File type "${extension}" is not allowed. Allowed types: ${config.allowedExtensions.join(', ')}`
+        `File type "${extension}" not allowed. Allowed: ${config.allowedExtensions.join(', ')}`
       );
     }
 
-    // Check MIME type
     if (
       config.allowedMimeTypes &&
       config.allowedMimeTypes.length > 0 &&
       !config.allowedMimeTypes.includes(file.type)
     ) {
-      errors.push(`File MIME type "${file.type}" is not allowed.`);
+      errors.push(`MIME type "${file.type}" not allowed.`);
     }
 
-    // ✅ Log validation failures
     if (errors.length > 0) {
       this.logger.warn('File validation failed', {
         log: { source: 'FileUploadService', type: 'application' },
@@ -100,25 +95,17 @@ export class FileUploadService {
       });
     }
 
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
+    return { valid: errors.length === 0, errors };
   }
 
-  /**
-   * Validate multiple files
-   */
   validateFiles(files: File[], config: FileUploadConfig): FileValidationResult {
     const errors: string[] = [];
 
-    // Check number of files
     if (config.maxFiles && files.length > config.maxFiles) {
-      errors.push(`Maximum ${config.maxFiles} file(s) allowed. You selected ${files.length} file(s).`);
+      errors.push(`Maximum ${config.maxFiles} file(s) allowed. Selected: ${files.length}`);
       return { valid: false, errors };
     }
 
-    // Validate each file
     files.forEach((file, index) => {
       const validation = this.validateFile(file, config);
       if (!validation.valid) {
@@ -126,15 +113,13 @@ export class FileUploadService {
       }
     });
 
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
+    return { valid: errors.length === 0, errors };
   }
 
-  /**
-   * Process files and create metadata with previews
-   */
+  // ═══════════════════════════════════════════════════════════════════════
+  // FILE PROCESSING - FIXED (SSR-safe)
+  // ═══════════════════════════════════════════════════════════════════════
+
   async processFiles(files: FileList | File[], config: FileUploadConfig): Promise<FileMetadata[]> {
     const fileArray = Array.from(files);
     const metadata: FileMetadata[] = [];
@@ -148,8 +133,6 @@ export class FileUploadService {
         this.logger.error('Failed to process file', error, {
           log: { source: 'FileUploadService', type: 'application' }
         });
-        
-        // ✅ Show error toast
         this.toast.error(`Failed to process file: ${file.name}`);
       }
     }
@@ -157,12 +140,8 @@ export class FileUploadService {
     return metadata;
   }
 
-  /**
-   * Create file metadata with preview
-   * ✅ Uses IdGenerator for unique IDs
-   */
   private async createFileMetadata(file: File, config: FileUploadConfig): Promise<FileMetadata> {
-    const id = IdGenerator.generateUUID(); // ✅ Use centralized ID generation
+    const id = IdGenerator.generateUUID();
     const extension = this.getFileExtension(file.name);
     
     const metadata: FileMetadata = {
@@ -177,18 +156,20 @@ export class FileUploadService {
       uploaded: false,
     };
 
-    // Generate preview for images
+    // Generate preview (SSR-safe)
     if (this.isImage(file) && config.generateThumbnails) {
-      try {
-        metadata.preview = await this.generateImagePreview(file, config);
-        // ✅ Track blob URL for cleanup
-        if (metadata.preview.startsWith('blob:')) {
-          this.activeBlobUrls.add(metadata.preview);
+      // FIX: Guard DOM operations
+      if (this.isBrowser) {
+        try {
+          metadata.preview = await this.generateImagePreview(file, config);
+          if (metadata.preview.startsWith('blob:')) {
+            this.activeBlobUrls.add(metadata.preview);
+          }
+        } catch {
+          this.logger.warn('Failed to generate image preview', {
+            log: { source: 'FileUploadService', type: 'application' }
+          });
         }
-      } catch {
-        this.logger.warn('Failed to generate image preview', {
-          log: { source: 'FileUploadService', type: 'application' }
-        });
       }
     } else if (file.type === 'application/pdf') {
       metadata.preview = 'assets/icons/pdf-icon.svg';
@@ -197,10 +178,12 @@ export class FileUploadService {
     return metadata;
   }
 
-  /**
-   * Generate image preview/thumbnail
-   */
+  // FIX: SSR-safe image preview generation
   private async generateImagePreview(file: File, config: FileUploadConfig): Promise<string> {
+    if (!this.isBrowser) {
+      throw new Error('Preview generation not available in SSR');
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -208,8 +191,7 @@ export class FileUploadService {
         const img = new Image();
         img.onload = () => {
           try {
-            // Create canvas for thumbnail
-            const canvas = document.createElement('canvas');
+            const canvas = this.document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
             if (!ctx) {
@@ -217,7 +199,6 @@ export class FileUploadService {
               return;
             }
 
-            // Calculate dimensions
             let width = img.width;
             let height = img.height;
             const maxWidth = config.thumbnailMaxWidth || 300;
@@ -231,11 +212,8 @@ export class FileUploadService {
 
             canvas.width = width;
             canvas.height = height;
-
-            // Draw image
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Get data URL
             resolve(canvas.toDataURL(file.type, config.compressionQuality || 0.8));
           } catch (error) {
             reject(error);
@@ -251,9 +229,10 @@ export class FileUploadService {
     });
   }
 
-  /**
-   * Convert file to base64 for backend
-   */
+  // ═══════════════════════════════════════════════════════════════════════
+  // FILE CONVERSION
+  // ═══════════════════════════════════════════════════════════════════════
+
   async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -263,10 +242,12 @@ export class FileUploadService {
     });
   }
 
-  /**
-   * Compress image before upload
-   */
+  // FIX: SSR-safe image compression
   async compressImage(file: File, quality: number = 0.8): Promise<Blob> {
+    if (!this.isBrowser) {
+      return file; // Return original in SSR
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -274,7 +255,7 @@ export class FileUploadService {
         const img = new Image();
         img.onload = () => {
           try {
-            const canvas = document.createElement('canvas');
+            const canvas = this.document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
             if (!ctx) {
@@ -287,13 +268,7 @@ export class FileUploadService {
             ctx.drawImage(img, 0, 0);
 
             canvas.toBlob(
-              (blob) => {
-                if (blob) {
-                  resolve(blob);
-                } else {
-                  resolve(file);
-                }
-              },
+              (blob) => resolve(blob || file),
               file.type,
               quality
             );
@@ -311,35 +286,28 @@ export class FileUploadService {
     });
   }
 
-  /**
-   * Upload file to backend
-   * ✅ Better error handling and logging
-   */
-  async uploadFile(
-    metadata: FileMetadata,
-    endpoint: string
-  ): Promise<string> {
+  // ═══════════════════════════════════════════════════════════════════════
+  // UPLOAD - IMPROVED
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async uploadFile(metadata: FileMetadata, endpoint: string): Promise<string> {
     try {
       metadata.uploading = true;
       metadata.progress = 0;
       this.fileSubject.next({ type: 'progress', file: metadata });
 
-      // ✅ Log upload start
       this.logger.info(`Starting file upload: ${metadata.name}`, {
         log: { source: 'FileUploadService', type: 'application' }
       });
 
-      // Get base64 data
       const base64Data = await this.fileToBase64(metadata.file);
 
-      // Prepare DTO matching backend
       const dto: FileUploadDto = {
         name: metadata.name,
         extension: metadata.extension,
         data: base64Data,
       };
 
-      // Upload
       const response = await this.http
         .post<{ url: string }>(endpoint, dto, {
           reportProgress: true,
@@ -364,14 +332,11 @@ export class FileUploadService {
             metadata.uploading = false;
             this.fileSubject.next({ type: 'error', file: metadata });
             
-            // ✅ Log error
             this.logger.error(`File upload failed: ${metadata.name}`, error, {
               log: { source: 'FileUploadService', type: 'application' }
             });
             
-            // ✅ Show error toast
             this.toast.error(`Failed to upload ${metadata.name}`, 'Upload Error');
-            
             throw error;
           })
         )
@@ -384,12 +349,10 @@ export class FileUploadService {
       metadata.progress = 100;
       this.fileSubject.next({ type: 'complete', file: metadata });
 
-      // ✅ Log success
       this.logger.info(`File uploaded successfully: ${metadata.name}`, {
         log: { source: 'FileUploadService', type: 'application' }
       });
       
-      // ✅ Show success toast
       this.toast.success(`${metadata.name} uploaded successfully`);
 
       return url;
@@ -402,42 +365,75 @@ export class FileUploadService {
   }
 
   /**
-   * Upload multiple files
+   * Upload multiple files - FIXED
+   * Returns detailed results with both successes and failures
    */
   async uploadFiles(
     files: FileMetadata[],
     endpoint: string,
-  ): Promise<string[]> {
-    const urls: string[] = [];
+  ): Promise<FileUploadResult> {
+    const results: FileUploadResult = {
+      successful: [],
+      failed: [],
+      totalFiles: files.length,
+    };
 
     for (const file of files) {
-      if (!file.uploaded) {
-        try {
-          const url = await this.uploadFile(file, endpoint);
-          urls.push(url);
-        } catch{
-          // Continue with other files even if one fails
-          this.logger.warn(`Skipping failed upload: ${file.name}`, {
-            log: { source: 'FileUploadService', type: 'application' }
-          });
-        }
-      } else if (file.url) {
-        urls.push(file.url);
+      if (file.uploaded && file.url) {
+        // Already uploaded
+        results.successful.push({
+          fileId: file.id,
+          fileName: file.name,
+          url: file.url,
+        });
+        continue;
+      }
+
+      try {
+        const url = await this.uploadFile(file, endpoint);
+        results.successful.push({
+          fileId: file.id,
+          fileName: file.name,
+          url,
+        });
+      } catch (error) {
+        // FIX: Capture error details instead of swallowing
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        
+        results.failed.push({
+          fileId: file.id,
+          fileName: file.name,
+          error: errorMessage,
+        });
+
+        this.logger.warn(`Upload failed for ${file.name}: ${errorMessage}`, {
+          log: { source: 'FileUploadService', type: 'application' }
+        });
       }
     }
 
-    return urls;
+    // Log summary
+    if (results.failed.length > 0) {
+      this.logger.warn(
+        `Upload completed with ${results.failed.length}/${results.totalFiles} failures`,
+        {
+          log: { source: 'FileUploadService', type: 'application' }
+        }
+      );
+    }
+
+    return results;
   }
 
-  /**
-   * Remove file from list
-   * ✅ Proper blob URL cleanup
-   */
+  // ═══════════════════════════════════════════════════════════════════════
+  // FILE MANAGEMENT - FIXED (SSR-safe)
+  // ═══════════════════════════════════════════════════════════════════════
+
   removeFile(files: FileMetadata[], fileId: string): FileMetadata[] {
     const file = files.find((f) => f.id === fileId);
     if (file) {
-      // ✅ Cleanup blob URL
-      if (file.preview && this.activeBlobUrls.has(file.preview)) {
+      // FIX: Guard blob URL operations
+      if (this.isBrowser && file.preview && this.activeBlobUrls.has(file.preview)) {
         URL.revokeObjectURL(file.preview);
         this.activeBlobUrls.delete(file.preview);
       }
@@ -446,11 +442,9 @@ export class FileUploadService {
     return files.filter((f) => f.id !== fileId);
   }
 
-  /**
-   * Clear all files and revoke URLs
-   * ✅ Comprehensive cleanup
-   */
   clearFiles(files: FileMetadata[]): void {
+    if (!this.isBrowser) return;
+
     files.forEach((file) => {
       if (file.preview && this.activeBlobUrls.has(file.preview)) {
         URL.revokeObjectURL(file.preview);
@@ -459,11 +453,9 @@ export class FileUploadService {
     });
   }
 
-  /**
-   * ✅ NEW: Cleanup all resources (call in service destroy)
-   */
   cleanup(): void {
-    // Revoke all active blob URLs
+    if (!this.isBrowser) return;
+
     this.activeBlobUrls.forEach(url => {
       try {
         URL.revokeObjectURL(url);
@@ -474,24 +466,18 @@ export class FileUploadService {
       }
     });
     this.activeBlobUrls.clear();
-    
-    // Complete subject
     this.fileSubject.complete();
   }
 
-  // ===== Utility Methods =====
+  // ═══════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Get file extension including the dot
-   */
   private getFileExtension(fileName: string): string {
     const lastDot = fileName.lastIndexOf('.');
     return lastDot === -1 ? '' : fileName.substring(lastDot);
   }
 
-  /**
-   * Sanitize file name (remove special characters)
-   */
   private sanitizeFileName(fileName: string): string {
     const extension = this.getFileExtension(fileName);
     const nameWithoutExt = fileName.substring(0, fileName.length - extension.length);
@@ -505,16 +491,10 @@ export class FileUploadService {
     return sanitized + extension;
   }
 
-  /**
-   * Check if file is an image
-   */
   private isImage(file: File): boolean {
     return file.type.startsWith('image/');
   }
 
-  /**
-   * Format file size for display
-   */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -523,9 +503,6 @@ export class FileUploadService {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
-  /**
-   * Get default config for file type
-   */
   getDefaultConfig(fileType: FileType): FileUploadConfig {
     return { ...DEFAULT_FILE_CONFIGS[fileType] };
   }
