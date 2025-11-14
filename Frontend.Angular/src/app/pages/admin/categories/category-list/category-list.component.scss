@@ -1,3 +1,80 @@
 :host {
   display: block;
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// DRAG-DROP STYLES
+// ═══════════════════════════════════════════════════════════════════════
+
+.drag-col {
+  width: 40px;
+  text-align: center;
+  color: #999;
+  font-size: 1.2em;
+}
+
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  text-align: center;
+  padding: 0.5rem;
+  color: #999;
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.drag-icon {
+  font-size: 1.2em;
+  display: inline-block;
+  transition: color 0.2s;
+}
+
+tr.dragging:hover .drag-icon {
+  color: #333;
+}
+
+// CDK drag states
+tr.cdk-drag-preview {
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+  
+  td {
+    border: 1px solid #ddd;
+  }
+}
+
+tr.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+tbody.cdk-drop-list-dragging tr:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+tr.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+// Info messages
+.info-message {
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  background: #e8f4f8;
+  color: #0c5460;
+  border-left: 4px solid #17a2b8;
+  font-size: 0.9rem;
+  
+  strong {
+    font-weight: 600;
+  }
+}
+
+.info-warning {
+  background: #fff3cd;
+  color: #856404;
+  border-left-color: #ffc107;
+}
