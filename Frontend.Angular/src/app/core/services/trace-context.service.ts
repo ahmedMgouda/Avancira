@@ -10,6 +10,7 @@ import { IdGenerator } from '../utils/id-generator.utility';
  * 
  * FIXES:
  * ✅ TraceContext type properly aligned with TraceSnapshot
+ * ✅ Type guards for safe union type access
  * ✅ Removed unused parameters (flags, attempt)
  * ✅ Fixed union type access in createChildSpan
  * ✅ W3C traceparent format validation
@@ -64,18 +65,18 @@ export class TraceContextService {
 
   /**
    * Create child span for retry/nested operations
-   * FIX: Proper type handling for union types
+   * FIX: Type guard to safely handle union types
    */
   createChildSpan(parentContext: TraceSnapshot | TraceContext): TraceContext {
-    let parentSpanId: string | undefined;
-    
-    // Type guard for TraceSnapshot
-    if ('activeSpan' in parentContext) {
-      parentSpanId = parentContext.activeSpan?.spanId;
-    } else {
-      // TraceContext
-      parentSpanId = parentContext.spanId;
-    }
+    // Type guard: Check if it's a TraceSnapshot (has activeSpan property)
+    const isTraceSnapshot = (ctx: TraceSnapshot | TraceContext): ctx is TraceSnapshot => {
+      return 'activeSpan' in ctx;
+    };
+
+    // Extract spanId based on type
+    const parentSpanId = isTraceSnapshot(parentContext)
+      ? parentContext.activeSpan?.spanId
+      : parentContext.spanId;
 
     return {
       traceId: parentContext.traceId,
