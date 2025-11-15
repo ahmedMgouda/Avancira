@@ -17,15 +17,15 @@ import { CategoryService } from '@services/category.service';
 import { LoadingDirective } from '@/core/loading/directives/loading.directive';
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════════════════════════════════════
  * CATEGORY LIST COMPONENT - WITH UNIQUE SORTORDER + SWAP LOGIC
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════════════════════════════════════
  * 
  * FEATURES:
  * ✅ Drag-drop reordering (within current page)
  * ✅ Move to position with swap (works across pages)
  * ✅ Ensures unique sortOrder (no duplicates)
- * ✅ Uses existing cross-cutting services
+ * ✅ Uses Material Dialog (not browser prompt)
  * ✅ Optimistic UI updates with rollback
  */
 @Component({
@@ -44,39 +44,39 @@ export class CategoryListComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly logger = inject(LoggerService);
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // STATE SIGNALS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
 
   readonly loading = signal(false);
   readonly deleting = signal<number | null>(null);
   readonly reordering = signal(false);
   readonly paginatedData = this.categoryService.entities;
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // FILTER STATE
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   readonly searchTerm = signal('');
   readonly filterActive = signal<boolean | undefined>(undefined);
   readonly filterVisible = signal<boolean | undefined>(undefined);
   readonly filterFeatured = signal<boolean | undefined>(undefined);
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // PAGINATION STATE
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   readonly pageIndex = signal(0);
   readonly pageSize = signal(25);
   readonly sortBy = signal<string>('sortOrder');
   readonly sortOrder = signal<'asc' | 'desc'>('asc');
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // DEBOUNCE SEARCH
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   private readonly searchSubject = new Subject<string>();
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // COMPUTED VALUES
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   readonly categories = computed(() => this.paginatedData()?.items ?? []);
   readonly totalCount = computed(() => this.paginatedData()?.totalCount ?? 0);
   readonly totalPages = computed(() => this.paginatedData()?.totalPages ?? 0);
@@ -136,9 +136,9 @@ export class CategoryListComponent implements OnInit {
     this.sortOrder() === 'asc'
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // LIFECYCLE
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   ngOnInit(): void {
     this.setupSearchDebounce();
     this.loadCategories();
@@ -150,9 +150,9 @@ export class CategoryListComponent implements OnInit {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // PRIVATE HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   private setupSearchDebounce(): void {
     this.searchSubject
       .pipe(
@@ -184,9 +184,9 @@ export class CategoryListComponent implements OnInit {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // LOAD DATA
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   loadCategories(): void {
     this.loading.set(true);
     const filter = this.buildFilter();
@@ -205,9 +205,9 @@ export class CategoryListComponent implements OnInit {
       });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REORDERING FEATURES - WITH UNIQUE SORTORDER CONSTRAINT
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
+  // REORDERING FEATURES - WITH MATERIAL DIALOG
+  // ═════════════════════════════════════════════════════════════════════════
   
   /**
    * Drag-drop reordering (within current page)
@@ -253,32 +253,19 @@ export class CategoryListComponent implements OnInit {
 
   /**
    * Move category to specific position with swap logic
+   * Uses Material Dialog instead of browser prompt
    * If target sortOrder is taken, backend swaps with existing category
-   * 
-   * NOTE: Currently uses browser prompt()
-   * TODO: Replace with custom DialogService method for better UX
    */
   async onMoveToPosition(category: Category): Promise<void> {
-    // TODO: Replace prompt() with custom dialog component
-    // Should use DialogService to create a proper input dialog
-    const targetPosition = prompt(
-      `Move "${category.name}" to position:\n\n` +
-      `Current position: ${category.sortOrder}\n` +
-      `Total categories: ${this.totalCount()}\n\n` +
-      `Note: If position is taken, categories will swap.\n\n` +
-      `Enter new position:`,
-      category.sortOrder.toString()
-    );
+    // NEW: Use Material Dialog instead of browser prompt
+    const newSortOrder = await this.dialogService.promptMoveToPosition({
+      itemName: category.name,
+      currentPosition: category.sortOrder,
+      totalItems: this.totalCount(),
+      min: 1
+    });
 
-    if (!targetPosition) return; // User cancelled
-
-    const newSortOrder = parseInt(targetPosition, 10);
-
-    // Validate input
-    if (isNaN(newSortOrder) || newSortOrder < 0) {
-      this.toast.error('Please enter a valid positive number.', 'Invalid Position');
-      return;
-    }
+    if (newSortOrder === null) return; // User cancelled
 
     if (newSortOrder === category.sortOrder) {
       return; // No change
@@ -322,9 +309,9 @@ export class CategoryListComponent implements OnInit {
       });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // SEARCH & FILTER HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   onSearchInput(term: string): void {
     this.searchSubject.next(term);
   }
@@ -357,9 +344,9 @@ export class CategoryListComponent implements OnInit {
     this.loadCategories();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // PAGINATION HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   onPageSizeChange(size: number): void {
     this.pageSize.set(size);
     this.resetToFirstPage();
@@ -406,9 +393,9 @@ export class CategoryListComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // SORTING HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   onSort(field: string): void {
     if (this.sortBy() === field) {
       this.sortOrder.set(this.sortOrder() === 'asc' ? 'desc' : 'asc');
@@ -424,9 +411,9 @@ export class CategoryListComponent implements OnInit {
     return this.sortOrder() === 'asc' ? '↑' : '↓';
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // CRUD OPERATIONS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   onCreate(): void {
     this.router.navigate(['/admin/categories/create']);
   }
@@ -486,9 +473,9 @@ export class CategoryListComponent implements OnInit {
     return this.deleting() === categoryId;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // UTILITY
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   trackByCategory(_index: number, category: Category): number {
     return category.id;
   }
