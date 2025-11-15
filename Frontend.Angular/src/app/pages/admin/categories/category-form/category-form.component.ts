@@ -11,6 +11,7 @@ import { LoadingService } from '@/core/loading/services/loading.service';
 import { LoggerService } from '@core/logging/services/logger.service';
 import { NetworkService } from '@core/network/services/network.service';
 import { ToastManager } from '@core/toast/services/toast-manager.service';
+import { DialogService } from '@core/dialogs/services/dialog.service';
 import { CategoryService } from '@services/category.service';
 import { CategoryValidatorService } from '@services/category-validator.service';
 
@@ -24,6 +25,7 @@ import { CategoryValidatorService } from '@services/category-validator.service';
  * - Added insertPosition selector (create only)
  * - Added customPosition input (when insertPosition is 'custom')
  * - Users reorder after creation using drag-drop/move buttons
+ * - Uses Material Dialog for unsaved changes (not browser confirm)
  */
 @Component({
   selector: 'app-category-form',
@@ -46,6 +48,7 @@ export class CategoryFormComponent implements OnInit {
   private readonly logger = inject(LoggerService);
   private readonly network = inject(NetworkService);
   private readonly loadingService = inject(LoadingService);
+  private readonly dialog = inject(DialogService); // NEW: Material dialog
 
   // ═══════════════════════════════════════════════════════════════════
   // STATE SIGNALS
@@ -246,12 +249,13 @@ export class CategoryFormComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // NAVIGATION
+  // NAVIGATION - WITH MATERIAL DIALOG
   // ═══════════════════════════════════════════════════════════════════
-  onCancel(): void {
+  async onCancel(): Promise<void> {
     if (this.categoryForm.dirty) {
-      const confirmMessage = 'You have unsaved changes. Are you sure you want to leave?';
-      if (!confirm(confirmMessage)) return;
+      // NEW: Use Material Dialog instead of browser confirm
+      const confirmed = await this.dialog.confirmUnsaved();
+      if (!confirmed) return;
     }
     this.navigateToList();
   }
