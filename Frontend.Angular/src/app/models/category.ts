@@ -1,35 +1,51 @@
-import { BaseFilter } from "../core/models/base.model";
+// ════════════════════════════════════════════════════════════════════════════════
+// CATEGORY MODELS - UPDATED WITH AUTO-SORTORDER
+// ════════════════════════════════════════════════════════════════════════════════
 
 export interface Category {
   id: number;
   name: string;
-  description?: string | null;
+  description?: string;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
-  sortOrder: number;
-  createdAt?: string | Date | null;
-  updatedAt?: string | Date | null;
+  sortOrder: number; // Read-only, managed by backend
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-/** DTO for creating a category */
 export interface CategoryCreateDto {
   name: string;
-  description?: string | null;
+  description?: string;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
-  sortOrder: number;
+  
+  // NEW: Position control (optional)
+  insertPosition?: 'start' | 'end' | 'custom';
+  customPosition?: number;
+  
+  // REMOVED: sortOrder - auto-assigned by backend
 }
 
-/** DTO for updating a category */
-export interface CategoryUpdateDto extends CategoryCreateDto {
+export interface CategoryUpdateDto {
   id: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  isVisible: boolean;
+  isFeatured: boolean;
+  
+  // REMOVED: sortOrder - changed via reorder/move only
 }
 
-/** Optional filter for category listing */
-export interface CategoryFilter extends BaseFilter {
+export interface CategoryFilter {
+  searchTerm?: string;
   isActive?: boolean;
   isVisible?: boolean;
   isFeatured?: boolean;
+  pageIndex: number;
+  pageSize: number;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
 }
