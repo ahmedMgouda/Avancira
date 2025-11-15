@@ -18,7 +18,7 @@ public class SubjectCategoryUpdateDtoValidator : AbstractValidator<SubjectCatego
             .MaximumLength(255).WithMessage("Description cannot exceed 255 characters.")
             .When(x => !string.IsNullOrWhiteSpace(x.Description));
 
-        RuleFor(x => x.SortOrder)
-            .GreaterThanOrEqualTo(0).WithMessage("Sort order cannot be negative.");
+        // REMOVED: SortOrder validation
+        // SortOrder is not editable via update - use Reorder/Move endpoints
     }
 }
