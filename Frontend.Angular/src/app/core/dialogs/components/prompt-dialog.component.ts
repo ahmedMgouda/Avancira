@@ -1,6 +1,11 @@
 /**
  * Prompt Dialog Component
  * Dialog for collecting user input with validation support
+ * 
+ * ENHANCEMENTS:
+ * ✅ Number input min/max/step validation
+ * ✅ Helper text support
+ * ✅ Better error messages
  */
 
 import { Component, inject, OnInit } from '@angular/core';
@@ -55,8 +60,18 @@ import { PromptDialogConfig, PromptDialogResult } from '../models/dialog.models'
                 [type]="data.inputType || 'text'"
                 [formControl]="inputControl"
                 [placeholder]="data.placeholder || ''"
+                [min]="data.min"
+                [max]="data.max"
+                [step]="data.step"
                 cdkFocusInitial />
             }
+            
+            <!-- Helper text -->
+            @if (data.helperText) {
+              <mat-hint>{{ data.helperText }}</mat-hint>
+            }
+            
+            <!-- Error messages -->
             @if (inputControl.hasError('required')) {
               <mat-error>This field is required</mat-error>
             }
@@ -68,6 +83,16 @@ import { PromptDialogConfig, PromptDialogResult } from '../models/dialog.models'
             @if (inputControl.hasError('maxlength')) {
               <mat-error>
                 Maximum length is {{ data.maxLength }} characters
+              </mat-error>
+            }
+            @if (inputControl.hasError('min')) {
+              <mat-error>
+                Minimum value is {{ data.min }}
+              </mat-error>
+            }
+            @if (inputControl.hasError('max')) {
+              <mat-error>
+                Maximum value is {{ data.max }}
               </mat-error>
             }
             @if (inputControl.hasError('pattern')) {
@@ -181,6 +206,15 @@ export class PromptDialogComponent implements OnInit {
 
     if (this.data.maxLength) {
       validators.push(Validators.maxLength(this.data.maxLength));
+    }
+
+    // NEW: Number validation
+    if (this.data.min !== undefined) {
+      validators.push(Validators.min(this.data.min));
+    }
+
+    if (this.data.max !== undefined) {
+      validators.push(Validators.max(this.data.max));
     }
 
     if (this.data.pattern) {
