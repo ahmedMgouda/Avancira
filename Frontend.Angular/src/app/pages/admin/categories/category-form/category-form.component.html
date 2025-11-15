@@ -1,6 +1,6 @@
 <div class="container">
   <div class="header">
-    <h1>{{ isEditMode() ? 'Edit' : 'Create' }} Category</h1>
+    <h1>{{ getFormTitle() }}</h1>
   </div>
 
   @if (loading()) {
@@ -12,6 +12,7 @@
 
   @if (!loading()) {
     <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="form">
+      <!-- Name Field -->
       <div class="form-row">
         <div class="form-group full-width">
           <label for="name" class="required">Name</label>
@@ -29,6 +30,7 @@
         </div>
       </div>
 
+      <!-- Description Field -->
       <div class="form-row">
         <div class="form-group full-width">
           <label for="description">Description</label>
@@ -46,24 +48,59 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sortOrder" class="required">Sort Order</label>
-          <input
-            id="sortOrder"
-            type="number"
-            formControlName="sortOrder"
-            class="form-control"
-            [class.invalid]="isFieldInvalid('sortOrder')"
-            min="0"
-            placeholder="0"
-          />
-          @if (getFieldError('sortOrder')) {
-            <span class="error-message">{{ getFieldError('sortOrder') }}</span>
-          }
+      <!-- NEW: Position Selector (Only for CREATE mode) -->
+      @if (!isEditMode()) {
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="insertPosition">Add at position</label>
+            <select
+              id="insertPosition"
+              formControlName="insertPosition"
+              class="form-control"
+            >
+              <option value="start">At the beginning (first position)</option>
+              <option value="end">At the end (last position) - Default</option>
+              <option value="custom">At specific position...</option>
+            </select>
+            <small class="help-text">
+              Choose where to place this category. You can reorder it later using drag-drop or move buttons.
+            </small>
+          </div>
         </div>
-      </div>
 
+        <!-- Custom Position Input (Only when 'custom' selected) -->
+        @if (categoryForm.get('insertPosition')?.value === 'custom') {
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="customPosition" class="required">Position number</label>
+              <input
+                id="customPosition"
+                type="number"
+                formControlName="customPosition"
+                class="form-control"
+                [class.invalid]="isFieldInvalid('customPosition')"
+                min="1"
+                placeholder="Enter position (e.g., 10, 20, 30...)"
+              />
+              @if (getFieldError('customPosition')) {
+                <span class="error-message">{{ getFieldError('customPosition') }}</span>
+              }
+              <small class="help-text">
+                Enter the exact position number. If this position is already taken, the backend will find the next available position.
+              </small>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Info message for edit mode -->
+      @if (isEditMode()) {
+        <div class="info-message">
+          💡 <strong>Tip:</strong> To change the order of this category, use the drag-drop or move buttons in the category list.
+        </div>
+      }
+
+      <!-- Checkbox Fields -->
       <div class="form-row">
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
@@ -90,6 +127,7 @@
         </div>
       </div>
 
+      <!-- Form Actions -->
       <div class="form-actions">
         <button
           type="button"
@@ -102,13 +140,13 @@
         <button
           type="submit"
           class="btn btn-primary"
-          [disabled]="submitting() || categoryForm.invalid"
+          [disabled]="!canSubmit()"
         >
           @if (submitting()) {
             <span class="spinner-small"></span>
-            <span>{{ isEditMode() ? 'Updating...' : 'Creating...' }}</span>
+            <span>{{ getSubmitButtonText() }}</span>
           } @else {
-            <span>{{ isEditMode() ? 'Update' : 'Create' }} Category</span>
+            <span>{{ getSubmitButtonText() }}</span>
           }
         </button>
       </div>
