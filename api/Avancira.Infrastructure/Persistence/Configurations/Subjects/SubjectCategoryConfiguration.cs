@@ -29,7 +29,10 @@ public class SubjectCategoryConfiguration : IEntityTypeConfiguration<SubjectCate
             .HasDefaultValue(false);
 
         builder.Property(category => category.SortOrder)
-            .HasDefaultValue(0);
+               .IsRequired();
+
+        builder.HasIndex(category => category.SortOrder)
+               .IsUnique();
 
         builder.HasMany(category => category.Subjects)
             .WithOne(subject => subject.Category)

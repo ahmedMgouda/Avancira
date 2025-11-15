@@ -10,4 +10,6 @@ public interface ISubjectCategoryService
     Task<SubjectCategoryDto> CreateAsync(SubjectCategoryCreateDto request);
     Task<SubjectCategoryDto> UpdateAsync(SubjectCategoryUpdateDto request);
     Task DeleteAsync(int id);
+    Task ReorderAsync(int[] categoryIds);
+    Task MoveToPositionAsync(int id, int targetSortOrder);
 }

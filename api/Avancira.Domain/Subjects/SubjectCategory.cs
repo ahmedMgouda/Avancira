@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Avancira.Domain.Common;
 using Avancira.Domain.Common.Contracts;
+using Avancira.Domain.Common.Exceptions;
 
 namespace Avancira.Domain.Subjects;
 
@@ -58,4 +59,12 @@ public class SubjectCategory : BaseEntity<int>, IAggregateRoot
         IsFeatured = isFeatured;
         SortOrder = sortOrder;
     }
+
+    public void UpdateSortOrder(int sortOrder)
+    {
+        if (sortOrder <= 0) throw new AvanciraDomainException("Sort order must be greater than zero.");
+
+        SortOrder = sortOrder;
+    }
+
 }

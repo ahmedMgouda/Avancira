@@ -1,4 +1,3 @@
-using Avancira.Application.Common.Models;
 using Avancira.Application.SubjectCategories;
 using Avancira.Application.SubjectCategories.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -54,26 +53,29 @@ public sealed class SubjectCategoriesController : ControllerBase
         return NoContent();
     }
 
+
     [HttpPut("reorder")]
     public async Task<IActionResult> ReorderCategories([FromBody] ReorderRequest request)
     {
-        const int SortOrderInterval = 10;
-
-        //for (int i = 0; i < request.CategoryIds.Length; i++)
-        //{
-        //    var category = await _context.Categories.FindAsync(request.CategoryIds[i]);
-        //    if (category != null)
-        //    {
-        //        category.SortOrder = (i + 1) * SortOrderInterval; // 10, 20, 30...
-        //    }
-        //}
-
-        //await _context.SaveChangesAsync();
+        await _subjectCategoryService.ReorderAsync(request.CategoryIds);
         return NoContent();
     }
 
-    public class ReorderRequest
+    [HttpPut("{id:int}/move")]
+    public async Task<IActionResult> MoveCategory(int id, [FromBody] MoveRequest request)
     {
-        public int[] CategoryIds { get; set; }
+        await _subjectCategoryService.MoveToPositionAsync(id, request.TargetSortOrder);
+        return NoContent();
     }
+
+}
+
+public class ReorderRequest
+{
+    public int[] CategoryIds { get; set; } = default!;
+}
+
+public class MoveRequest
+{
+    public int TargetSortOrder { get; set; }
 }
