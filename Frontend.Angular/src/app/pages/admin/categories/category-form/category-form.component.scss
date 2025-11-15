@@ -1,3 +1,18 @@
 :host {
   display: block;
 }
+
+// Info message styling (for edit mode tip)
+.info-message {
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  background: #e8f4f8;
+  color: #0c5460;
+  border-left: 4px solid #17a2b8;
+  font-size: 0.9rem;
+  
+  strong {
+    font-weight: 600;
+  }
+}
