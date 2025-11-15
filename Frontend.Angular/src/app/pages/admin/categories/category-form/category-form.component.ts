@@ -4,10 +4,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
-import { StandardError } from '@core/logging/models/standard-error.model';
 import { CategoryCreateDto, CategoryUpdateDto } from '@models/category';
 
 import { LoadingService } from '@/core/loading/services/loading.service';
+import { StandardError } from '@core/logging/models/standard-error.model';
 import { LoggerService } from '@core/logging/services/logger.service';
 import { NetworkService } from '@core/network/services/network.service';
 import { ToastManager } from '@core/toast/services/toast-manager.service';
@@ -16,16 +16,14 @@ import { CategoryValidatorService } from '@services/category-validator.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * CATEGORY FORM - ENHANCED WITH CROSS-CUTTING SERVICES
+ * CATEGORY FORM - AUTO-SORTORDER (NO MANUAL ENTRY)
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * IMPROVEMENTS:
- * ✅ Custom validators (name format, async uniqueness)
- * ✅ Network awareness (disable when offline)
- * ✅ Better error handling with StandardError
- * ✅ Toast notifications
- * ✅ Loading states
- * ✅ Logging integration
+ * CHANGES:
+ * - Removed sortOrder field (auto-assigned by backend)
+ * - Added insertPosition selector (create only)
+ * - Added customPosition input (when insertPosition is 'custom')
+ * - Users reorder after creation using drag-drop/move buttons
  */
 @Component({
   selector: 'app-category-form',
@@ -69,7 +67,7 @@ export class CategoryFormComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // FORM INITIALIZATION WITH ENHANCED VALIDATORS
+  // FORM INITIALIZATION - NO SORTORDER FIELD
   // ═══════════════════════════════════════════════════════════════════
   private initForm(): void {
     this.categoryForm = this.fb.group({
@@ -78,22 +76,20 @@ export class CategoryFormComponent implements OnInit {
         [
           Validators.required,
           Validators.maxLength(200),
-          this.validatorService.validName() // Custom validator
+          this.validatorService.validName()
         ],
-        [this.validatorService.uniqueName(this.categoryId())] // Async validator
+        [this.validatorService.uniqueName(this.categoryId())]
       ],
       description: ['', [Validators.maxLength(500)]],
       isActive: [true],
       isVisible: [true],
       isFeatured: [false],
-      sortOrder: [
-        0,
-        [
-          Validators.required,
-          Validators.min(0),
-          this.validatorService.positiveSortOrder() // Custom validator
-        ]
-      ],
+      
+      // NEW: Position controls (only for create mode)
+      insertPosition: ['end'], // 'start' | 'end' | 'custom'
+      customPosition: [null, [Validators.min(1)]]
+      
+      // REMOVED: sortOrder field - auto-assigned by backend!
     });
   }
 
@@ -111,7 +107,7 @@ export class CategoryFormComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // LOAD CATEGORY FOR EDITING - WITH ERROR HANDLING
+  // LOAD CATEGORY FOR EDITING
   // ═══════════════════════════════════════════════════════════════════
   private loadCategory(id: number): void {
     this.loading.set(true);
@@ -135,26 +131,28 @@ export class CategoryFormComponent implements OnInit {
             isActive: category.isActive,
             isVisible: category.isVisible,
             isFeatured: category.isFeatured,
-            sortOrder: category.sortOrder,
+            // Note: sortOrder is NOT loaded into form (read-only)
           });
           
-          this.logger.debug('Category loaded for editing', { categoryId: id, categoryName: category.name });
+          this.logger.debug('Category loaded for editing', { 
+            categoryId: id, 
+            categoryName: category.name,
+            currentSortOrder: category.sortOrder // Log but don't edit
+          });
         }
         this.loading.set(false);
       });
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // FORM SUBMISSION - WITH NETWORK CHECK
+  // FORM SUBMISSION
   // ═══════════════════════════════════════════════════════════════════
   onSubmit(): void {
-    // Check network first
     if (!this.network.isHealthy()) {
       this.toast.warning('No internet connection. Please check your network and try again.', 'Offline');
       return;
     }
 
-    // Validate form
     if (this.categoryForm.invalid) {
       this.categoryForm.markAllAsTouched();
       this.toast.warning('Please fix the validation errors before submitting.', 'Validation Error');
@@ -171,9 +169,25 @@ export class CategoryFormComponent implements OnInit {
     }
   }
 
-  private createCategory(formValue: CategoryCreateDto): void {
+  private createCategory(formValue: any): void {
+    const dto: CategoryCreateDto = {
+      name: formValue.name,
+      description: formValue.description || undefined,
+      isActive: formValue.isActive,
+      isVisible: formValue.isVisible,
+      isFeatured: formValue.isFeatured,
+      
+      // NEW: Include position preference
+      insertPosition: formValue.insertPosition || 'end',
+      customPosition: formValue.insertPosition === 'custom' 
+        ? formValue.customPosition 
+        : undefined
+      
+      // REMOVED: sortOrder - auto-assigned by backend!
+    };
+
     this.categoryService
-      .create(formValue)
+      .create(dto)
       .pipe(
         catchError((error: StandardError) => {
           this.toast.error(error.userMessage, 'Failed to Create');
@@ -185,17 +199,30 @@ export class CategoryFormComponent implements OnInit {
       )
       .subscribe(result => {
         if (result) {
-          this.toast.success(`"${formValue.name}" has been created.`, 'Category Created');
-          this.logger.info('Category created', { categoryId: result.id, categoryName: result.name });
+          this.toast.success(
+            `"${formValue.name}" has been created at position ${result.sortOrder}.`,
+            'Category Created'
+          );
+          this.logger.info('Category created', { 
+            categoryId: result.id, 
+            categoryName: result.name,
+            assignedPosition: result.sortOrder
+          });
           this.navigateToList();
         }
       });
   }
 
-  private updateCategory(formValue: CategoryCreateDto): void {
+  private updateCategory(formValue: any): void {
     const dto: CategoryUpdateDto = {
       id: this.categoryId()!,
-      ...formValue,
+      name: formValue.name,
+      description: formValue.description || undefined,
+      isActive: formValue.isActive,
+      isVisible: formValue.isVisible,
+      isFeatured: formValue.isFeatured
+      
+      // REMOVED: sortOrder - changed via reorder/move endpoints only!
     };
 
     this.categoryService
@@ -234,7 +261,7 @@ export class CategoryFormComponent implements OnInit {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // VALIDATION HELPERS - ENHANCED ERROR MESSAGES
+  // VALIDATION HELPERS
   // ═══════════════════════════════════════════════════════════════════
   getFieldError(fieldName: string): string {
     const control = this.categoryForm.get(fieldName);
@@ -245,7 +272,6 @@ export class CategoryFormComponent implements OnInit {
 
     const errors = control.errors;
 
-    // Standard validators
     if (errors['required']) {
       return `${this.getFieldLabel(fieldName)} is required.`;
     }
@@ -259,13 +285,8 @@ export class CategoryFormComponent implements OnInit {
       return `${this.getFieldLabel(fieldName)} must be at least ${errors['min'].min}.`;
     }
 
-    // Custom validators
     if (errors['invalidName']) {
       return errors['invalidName'].message;
-    }
-
-    if (errors['negativeSortOrder']) {
-      return errors['negativeSortOrder'].message;
     }
 
     if (errors['nameExists']) {
@@ -280,14 +301,14 @@ export class CategoryFormComponent implements OnInit {
     return !!(control && control.invalid && control.touched);
   }
 
-  private getFieldLabel(fieldName: string): string {
+  private getFieldLabel(fieldName: string): Record<string, string> {
     const labels: Record<string, string> = {
       name: 'Name',
       description: 'Description',
-      sortOrder: 'Sort Order',
       isActive: 'Active',
       isVisible: 'Visible',
       isFeatured: 'Featured',
+      customPosition: 'Position'
     };
 
     return labels[fieldName] || fieldName;
