@@ -11,11 +11,13 @@ namespace Avancira.Application.SubjectCategories;
 public sealed class SubjectCategoryService : ISubjectCategoryService
 {
     private readonly IRepository<SubjectCategory> _repository;
+    private const int SortOrderInterval = 10; // Spacing between items: 10, 20, 30...
 
     public SubjectCategoryService(IRepository<SubjectCategory> repository)
     {
         _repository = repository;
     }
+
     public async Task<PaginatedResult<SubjectCategoryDto>> GetAllAsync(SubjectCategoryFilter filter)
     {
         ArgumentNullException.ThrowIfNull(filter);
@@ -45,13 +47,18 @@ public sealed class SubjectCategoryService : ISubjectCategoryService
 
     public async Task<SubjectCategoryDto> CreateAsync(SubjectCategoryCreateDto request)
     {
+        // ============================================================
+        // AUTO-ASSIGN SORTORDER BASED ON INSERT POSITION
+        // ============================================================
+        int newSortOrder = await DetermineInsertPosition(request);
+
         var entity = SubjectCategory.Create(
             request.Name,
             request.Description,
             request.IsActive,
             request.IsVisible,
             request.IsFeatured,
-            request.SortOrder);
+            newSortOrder); // Auto-assigned!
 
         await _repository.AddAsync(entity);
         return entity.Adapt<SubjectCategoryDto>();
@@ -62,13 +69,15 @@ public sealed class SubjectCategoryService : ISubjectCategoryService
         var entity = await _repository.GetByIdAsync(request.Id)
             ?? throw new AvanciraNotFoundException($"Subject category '{request.Id}' not found.");
 
+        // Update everything EXCEPT sortOrder
+        // SortOrder is only changed via Reorder/Move endpoints
         entity.Update(
             request.Name,
             request.Description,
             request.IsActive,
             request.IsVisible,
             request.IsFeatured,
-            request.SortOrder);
+            entity.SortOrder); // Keep existing sortOrder!
 
         await _repository.UpdateAsync(entity);
         return entity.Adapt<SubjectCategoryDto>();
@@ -87,14 +96,19 @@ public sealed class SubjectCategoryService : ISubjectCategoryService
         var spec = new CategoryByIdsSpec(categoryIds);
         var items = await _repository.ListAsync(spec);
 
+        // Reorder based on the provided array order
         items = items.OrderBy(c => Array.IndexOf(categoryIds, c.Id)).ToList();
 
+        // ============================================================
+        // FIX: Assign 10, 20, 30... instead of 1, 2, 3
+        // ============================================================
         for (int i = 0; i < items.Count; i++)
         {
-            items[i].UpdateSortOrder(i + 1);
+            items[i].UpdateSortOrder((i + 1) * SortOrderInterval); // 10, 20, 30, 40...
             await _repository.UpdateAsync(items[i]);
         }
     }
+
     public async Task MoveToPositionAsync(int id, int targetSortOrder)
     {
         var item = await _repository.GetByIdAsync(id)
@@ -102,11 +116,13 @@ public sealed class SubjectCategoryService : ISubjectCategoryService
 
         var current = item.SortOrder;
 
+        // Check if target position is already taken
         var conflictSpec = new CategoryBySortOrderSpec(targetSortOrder);
         var conflict = await _repository.FirstOrDefaultAsync(conflictSpec);
 
-        if (conflict != null)
+        if (conflict != null && conflict.Id != id)
         {
+            // SWAP: Exchange sortOrder values
             conflict.UpdateSortOrder(current);
             item.UpdateSortOrder(targetSortOrder);
 
@@ -115,9 +131,85 @@ public sealed class SubjectCategoryService : ISubjectCategoryService
         }
         else
         {
+            // Target is free, just move
             item.UpdateSortOrder(targetSortOrder);
             await _repository.UpdateAsync(item);
         }
     }
 
+    // ============================================================
+    // PRIVATE HELPER METHODS - AUTO-ASSIGNMENT LOGIC
+    // ============================================================
+
+    /// <summary>
+    /// Determines the sortOrder for a new category based on the requested insert position.
+    /// </summary>
+    private async Task<int> DetermineInsertPosition(SubjectCategoryCreateDto request)
+    {
+        switch (request.InsertPosition?.ToLower())
+        {
+            case "start":
+                // Insert at the beginning
+                var minSpec = new SortOrderRangeSpec(ascending: true, take: 1);
+                var firstItem = await _repository.FirstOrDefaultAsync(minSpec);
+
+                if (firstItem == null)
+                {
+                    return SortOrderInterval; // First item ever
+                }
+
+                return Math.Max(SortOrderInterval, firstItem.SortOrder - SortOrderInterval);
+
+            case "custom" when request.CustomPosition.HasValue:
+                // User specified exact position
+                var targetPosition = request.CustomPosition.Value;
+
+                // Check if position is taken
+                var conflictSpec = new CategoryBySortOrderSpec(targetPosition);
+                var existing = await _repository.FirstOrDefaultAsync(conflictSpec);
+
+                if (existing != null)
+                {
+                    // Find next available position
+                    return await FindNextAvailablePosition(targetPosition);
+                }
+
+                return targetPosition;
+
+            case "end":
+            default:
+                // Insert at the end (default)
+                var maxSpec = new SortOrderRangeSpec(ascending: false, take: 1);
+                var lastItem = await _repository.FirstOrDefaultAsync(maxSpec);
+
+                if (lastItem == null)
+                {
+                    return SortOrderInterval; // First item ever
+                }
+
+                return lastItem.SortOrder + SortOrderInterval;
+        }
+    }
+
+    /// <summary>
+    /// Finds the next available sortOrder position starting from the desired position.
+    /// </summary>
+    private async Task<int> FindNextAvailablePosition(int desiredPosition)
+    {
+        int position = desiredPosition;
+
+        // Keep incrementing until we find an available position
+        while (true)
+        {
+            var spec = new CategoryBySortOrderSpec(position);
+            var existing = await _repository.FirstOrDefaultAsync(spec);
+
+            if (existing == null)
+            {
+                return position; // Found available position
+            }
+
+            position += SortOrderInterval;
+        }
+    }
 }
