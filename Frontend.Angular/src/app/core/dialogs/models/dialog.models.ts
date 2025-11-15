@@ -44,6 +44,14 @@ export interface PromptDialogConfig extends BaseDialogConfig {
   pattern?: string;
   confirmText?: string;
   cancelText?: string;
+  
+  // NEW: Number input validation
+  min?: number;
+  max?: number;
+  step?: number;
+  
+  // NEW: Helper text
+  helperText?: string;
 }
 
 export interface LoadingDialogConfig {
@@ -107,6 +115,15 @@ export const DIALOG_PRESETS = {
     icon: { name: 'logout', color: '#2196f3' },
     confirmText: 'Logout',
     cancelText: 'Cancel',
+  },
+  confirmUnsaved: {
+    title: 'Unsaved Changes',
+    message: 'You have unsaved changes. Are you sure you want to leave?',
+    type: 'warning' as DialogType,
+    icon: { name: 'warning', color: '#ff9800' },
+    confirmText: 'Leave',
+    cancelText: 'Stay',
+    confirmColor: 'warn' as const,
   },
   success: {
     title: 'Success',
