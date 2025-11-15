@@ -18,13 +18,15 @@ import {
 
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * DIALOG SERVICE - FIXED
+ * DIALOG SERVICE - ENHANCED
  * ═══════════════════════════════════════════════════════════════════════
  * 
- * FIXES:
- * ✅ setInterval cleanup handle stored
- * ✅ Cleaned up in destroyRef.onDestroy
- * ✅ No memory leaks from interval timer
+ * FEATURES:
+ * ✅ Deduplication (prevents duplicate dialogs)
+ * ✅ Queue system (max 3 concurrent dialogs)
+ * ✅ Lazy loading (dynamic imports)
+ * ✅ Memory safe (cleanup on destroy)
+ * ✅ Semantic helpers (confirmDelete, promptMoveToPosition, etc.)
  */
 
 interface DialogTracker {
@@ -52,7 +54,6 @@ export class DialogService {
   private readonly _isProcessingQueue = signal(false);
   private readonly _loadingDialogRef = signal<MatDialogRef<any> | null>(null);
 
-  // FIX: Store cleanup interval handle
   private cleanupIntervalHandle?: ReturnType<typeof setInterval>;
 
   readonly isProcessingQueue = this._isProcessingQueue.asReadonly();
@@ -60,7 +61,6 @@ export class DialogService {
   constructor() {
     this.setupCleanup();
     
-    // FIX: Register cleanup on destroy
     this.destroyRef.onDestroy(() => {
       if (this.cleanupIntervalHandle) {
         clearInterval(this.cleanupIntervalHandle);
@@ -237,7 +237,7 @@ export class DialogService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Semantic Presets
+  // Semantic Presets - ENHANCED
   // ═══════════════════════════════════════════════════════════════════════
 
   async confirmDelete(itemName?: string): Promise<boolean> {
@@ -265,6 +265,119 @@ export class DialogService {
 
   async confirmLogout(): Promise<boolean> {
     return this.confirm(DIALOG_PRESETS.confirmLogout);
+  }
+
+  /**
+   * NEW: Confirm unsaved changes (for forms)
+   * @param message Optional custom message
+   * @returns Promise<boolean> - true if user wants to leave, false if stay
+   */
+  async confirmUnsaved(message?: string): Promise<boolean> {
+    return this.confirm({
+      ...DIALOG_PRESETS.confirmUnsaved,
+      message: message || DIALOG_PRESETS.confirmUnsaved.message,
+    });
+  }
+
+  /**
+   * NEW: Prompt for moving item to position (numbers only)
+   * Perfect for reordering with validation
+   */
+  async promptMoveToPosition(options: {
+    itemName: string;
+    currentPosition: number;
+    totalItems?: number;
+    min?: number;
+    max?: number;
+  }): Promise<number | null> {
+    const { itemName, currentPosition, totalItems, min, max } = options;
+    
+    let message = `Move "${itemName}" to position:\n\nCurrent position: ${currentPosition}`;
+    
+    if (totalItems !== undefined) {
+      message += `\nTotal items: ${totalItems}`;
+    }
+    
+    const helperText = 'If position is taken, items will swap automatically.';
+    
+    const result = await this.prompt({
+      title: '🔄 Move to Position',
+      message,
+      placeholder: 'Enter position number',
+      defaultValue: currentPosition.toString(),
+      inputType: 'number',
+      required: true,
+      min: min ?? 1,
+      max,
+      step: 1,
+      helperText,
+      confirmText: 'Move',
+      cancelText: 'Cancel',
+      icon: { name: 'open_with', color: '#2196f3' },
+    });
+
+    if (result === null) {
+      return null; // User cancelled
+    }
+
+    const position = parseInt(result, 10);
+    
+    if (isNaN(position)) {
+      return null;
+    }
+
+    return position;
+  }
+
+  /**
+   * NEW: Prompt for text input with custom validation
+   */
+  async promptText(options: {
+    title: string;
+    message: string;
+    placeholder?: string;
+    defaultValue?: string;
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    helperText?: string;
+  }): Promise<string | null> {
+    return this.prompt({
+      ...options,
+      inputType: 'text',
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+    });
+  }
+
+  /**
+   * NEW: Prompt for number input
+   */
+  async promptNumber(options: {
+    title: string;
+    message: string;
+    placeholder?: string;
+    defaultValue?: number;
+    min?: number;
+    max?: number;
+    step?: number;
+    required?: boolean;
+    helperText?: string;
+  }): Promise<number | null> {
+    const result = await this.prompt({
+      ...options,
+      defaultValue: options.defaultValue?.toString(),
+      inputType: 'number',
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+    });
+
+    if (result === null) {
+      return null;
+    }
+
+    const num = parseFloat(result);
+    return isNaN(num) ? null : num;
   }
 
   async alertSuccess(message: string, title?: string): Promise<void> {
@@ -404,7 +517,7 @@ export class DialogService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Cleanup - FIXED
+  // Cleanup
   // ═══════════════════════════════════════════════════════════════════════
 
   private setupCleanup(): void {
