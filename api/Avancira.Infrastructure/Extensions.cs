@@ -17,24 +17,21 @@ using Avancira.Infrastructure.Mail;
 using Avancira.Infrastructure.Messaging;
 using Avancira.Infrastructure.OpenApi;
 using Avancira.Infrastructure.Persistence;
+using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Persistence.Repositories;
 using Avancira.Infrastructure.RateLimit;
 using Avancira.Infrastructure.SecurityHeaders;
-using Avancira.Infrastructure.Storage;
-using Avancira.Infrastructure.Storage.Files;
 using Avancira.ServiceDefaults;
 using FluentValidation;
 using Mapster;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 
-namespace Avancira.Infrastructure.Composition;
+namespace Avancira.Infrastructure;
 
 /// <summary>
 /// Registers all Avancira infrastructure modules and feature services.
@@ -50,11 +47,6 @@ public static class Extensions
         var config = builder.Configuration;
         var env = builder.Environment;
 
-        var appName = env.ApplicationName ?? string.Empty;
-        var isAuthProject = appName.Contains("Auth", StringComparison.OrdinalIgnoreCase);
-        var isApiProject = appName.Contains("API", StringComparison.OrdinalIgnoreCase);
-        var isBffProject = appName.Contains("BFF", StringComparison.OrdinalIgnoreCase);
-
         // ════════════════════════════════════════════════════════════
         // 1️⃣ Core Platform Defaults
         // ════════════════════════════════════════════════════════════
@@ -62,6 +54,7 @@ public static class Extensions
         builder.ConfigureSerilog();
         builder.ConfigureDatabase();
 
+        // ════════════════════════════════════════════════════════════
         // 2️⃣ Identity & Database Seeding (Auth Server only)
         // ════════════════════════════════════════════════════════════
         services.ConfigureIdentity(config, env);
@@ -77,7 +70,9 @@ public static class Extensions
         services.ConfigureCaching(config);
         services.ConfigureRateLimit(config);
         services.ConfigureSecurityHeaders(config);
-        services.ConfigureFileStorage();
+
+        services.AddFileStorage(config);
+
         services.AddCorsPolicy(config, env);
         services.ConfigureOpenApi();
 
@@ -86,7 +81,6 @@ public static class Extensions
         // ════════════════════════════════════════════════════════════
         services.AddExceptionHandler<CustomExceptionHandler>();
         services.AddProblemDetails();
-       // services.AddHealthChecks();
         services.AddHttpContextAccessor();
 
         // ════════════════════════════════════════════════════════════
@@ -129,52 +123,4 @@ public static class Extensions
         services.Configure<GoogleOptions>(config.GetSection("Avancira:ExternalServices:Google"));
         services.Configure<FacebookOptions>(config.GetSection("Avancira:ExternalServices:Facebook"));
     }
-
-    // ───────────────────────────────────────────────────────────────
-    //  Optional HTTP Pipeline Composition (shared baseline)
-    // ───────────────────────────────────────────────────────────────
-    //public static WebApplication UseAvanciraFramework(this WebApplication app)
-    //{
-    //    // Default endpoints (health, metrics)
-    //    app.MapDefaultEndpoints();
-
-    //    // Security and middleware
-    //    app.UseRateLimit();
-    //    app.UseSecurityHeaders();
-    //    app.UseExceptionHandler();
-
-    //    app.UseRouting();
-    //    app.UseCorsPolicy();
-    //    app.UseOpenApi();
-    //    app.UseJobDashboard(app.Configuration);
-
-    //    // Static file support
-    //    app.UseStaticFiles();
-
-    //    var assetsPath = Path.Combine(app.Environment.ContentRootPath, "assets");
-    //    if (Directory.Exists(assetsPath))
-    //    {
-    //        app.UseStaticFiles(new StaticFileOptions
-    //        {
-    //            FileProvider = new PhysicalFileProvider(assetsPath),
-    //            RequestPath = new PathString("/api/assets")
-    //        });
-    //    }
-    //    else
-    //    {
-    //        app.Logger.LogWarning("Static assets directory '{AssetsPath}' not found.", assetsPath);
-    //    }
-
-    //    // File uploads
-    //    app.UseStaticFilesUploads();
-
-    //    // Security middlewares
-    //    app.UseAuthentication();
-    //    app.UseAuthorization();
-
-    //    // Current user middleware (audit context)
-    //    app.UseMiddleware<CurrentUserMiddleware>();
-
-    //    return app;
-    //}
 }

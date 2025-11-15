@@ -1,19 +1,42 @@
+using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
+
 namespace Avancira.Application.Subjects.Dtos;
 
-public class SubjectUpdateDto
+public record SubjectUpdateDto
 {
-    public int Id { get; set; }
+    [Required]
+    [Range(1, int.MaxValue, ErrorMessage = "Subject ID must be positive")]
+    public int Id { get; init; }
 
-    public string Name { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Subject name is required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters")]
+    public string Name { get; init; } = string.Empty;
 
-    public string? Description { get; set; }
+    [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+    public string? Description { get; init; }
 
-    public string? IconUrl { get; set; }
+    /// <summary>
+    /// New icon file upload (replaces existing icon)
+    /// </summary>
+    public IFormFile? Icon { get; init; }
 
-    public bool IsActive { get; set; }
-    public bool IsVisible { get; set; }
-    public bool IsFeatured { get; set; }
-    public int SortOrder { get; set; }
+    /// <summary>
+    /// Or provide/keep an icon URL
+    /// </summary>
+    [Url(ErrorMessage = "IconUrl must be a valid URL")]
+    public string? IconUrl { get; init; }
 
-    public int CategoryId { get; set; }
+    public bool IsActive { get; init; }
+
+    public bool IsVisible { get; init; }
+
+    public bool IsFeatured { get; init; }
+
+    [Range(0, int.MaxValue, ErrorMessage = "Sort order must be non-negative")]
+    public int SortOrder { get; init; }
+
+    [Required(ErrorMessage = "Category ID is required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Category ID must be positive")]
+    public int CategoryId { get; init; }
 }

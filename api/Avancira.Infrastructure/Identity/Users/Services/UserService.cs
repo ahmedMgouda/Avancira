@@ -4,8 +4,6 @@ using Avancira.Application.Identity.Users.Abstractions;
 using Avancira.Application.Identity.Users.Dtos;
 using Avancira.Application.Jobs;
 using Avancira.Application.Storage;
-using Avancira.Application.Storage.File;
-using Avancira.Application.Storage.File.Dtos;
 using Avancira.Application.StudentProfiles.Dtos;
 using Avancira.Application.TutorProfiles.Dtos;
 using Avancira.Domain.Catalog.Enums;
@@ -34,7 +32,7 @@ internal sealed partial class UserService(
     ICacheService cache,
     IJobService jobService,
     INotificationService notificationService,
-    IStorageService storageService,
+    IFileStorageService storageService,
     IdentityLinkBuilder linkBuilder
 ) : IUserService
 {
@@ -397,36 +395,37 @@ internal sealed partial class UserService(
         var imageUri = user.ProfileImageUrl;
         if (request.Image != null || request.DeleteCurrentImage)
         {
-            FileUploadDto? fileUploadDto = null;
-            if (request.Image != null)
-            {
-                using var memoryStream = new MemoryStream();
-                await request.Image.CopyToAsync(memoryStream);
-                var fileBytes = memoryStream.ToArray();
-                var base64Data = Convert.ToBase64String(fileBytes);
-                var base64String = $"data:{request.Image.ContentType};base64,{base64Data}";
+        //    FileUploadDto? fileUploadDto = null;
+        //    if (request.Image != null)
+        //    {
+        //        using var memoryStream = new MemoryStream();
+        //        await request.Image.CopyToAsync(memoryStream);
+        //        var fileBytes = memoryStream.ToArray();
+        //        var base64Data = Convert.ToBase64String(fileBytes);
+        //        var base64String = $"data:{request.Image.ContentType};base64,{base64Data}";
 
-                fileUploadDto = new FileUploadDto
-                {
-                    Name = request.Image.FileName,
-                    Extension = Path.GetExtension(request.Image.FileName),
-                    Data = base64String
-                };
-            }
+        //        fileUploadDto = new FileUploadDto
+        //        {
+        //            Name = request.Image.FileName,
+        //            Extension = Path.GetExtension(request.Image.FileName),
+        //            Data = base64String
+        //        };
+        //    }
 
-            if (fileUploadDto is not null)
-            {
-                user.ProfileImageUrl = await storageService.UploadAsync<User>(fileUploadDto, FileType.Image);
-            }
-            else if (request.DeleteCurrentImage)
-            {
-                user.ProfileImageUrl = null;
-            }
+        //    if (fileUploadDto is not null)
+        //    {
+        //        user.ProfileImageUrl = string.Empty;
+        //      //  user.ProfileImageUrl = await storageService.UploadAsync<User>(fileUploadDto, FileType.Image);
+        //    }
+        //    else if (request.DeleteCurrentImage)
+        //    {
+        //        user.ProfileImageUrl = null;
+        //    }
 
-            if (request.DeleteCurrentImage && imageUri is not null)
-            {
-                storageService.Remove(imageUri);
-            }
+        //    if (request.DeleteCurrentImage && imageUri is not null)
+        //    {
+        //        storageService.Remove(imageUri);
+        //    }
         }
 
         // Update basic info

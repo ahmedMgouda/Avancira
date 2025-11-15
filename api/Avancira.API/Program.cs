@@ -1,14 +1,12 @@
-﻿using Avancira.Infrastructure.Composition;
+﻿using Avancira.Infrastructure.Storage;
 using Avancira.Infrastructure.Health;
 using Avancira.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenIddict.Validation.AspNetCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.FileProviders;
-
+using Avancira.Infrastructure;
 
 public partial class Program
 {
@@ -16,10 +14,10 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-
+        // ADD INFRASTRUCTURE SERVICES
         builder.AddAvanciraInfrastructure();
 
-
+        // DATABASE CONFIGURATION
         var isAspire = builder.Configuration.GetConnectionString("avancira") is not null ||
                        builder.Environment.IsDevelopment();
 
@@ -35,7 +33,7 @@ public partial class Program
             builder.Services.BindDbContext<AvanciraDbContext>();
         }
 
-
+        // AUTHENTICATION & AUTHORIZATION
         var authIssuer = builder.Configuration["Auth:Issuer"]
             ?? throw new InvalidOperationException("Missing 'Auth:Issuer' configuration.");
 
@@ -46,8 +44,6 @@ public partial class Program
             .AddValidation(options =>
             {
                 options.SetIssuer(authIssuer);
-
-                // Introspection-based validation (for encrypted access tokens)
                 options.UseIntrospection()
                        .SetClientId("resource_server")
                        .SetClientSecret("846B62D0-DEF9-4215-A99D-86E6B8DAB342");
@@ -55,7 +51,6 @@ public partial class Program
                 options.UseSystemNetHttp();
                 options.UseAspNetCore();
 
-                // Optional logging for development
                 if (builder.Environment.IsDevelopment())
                 {
                     options.AddEventHandler<
@@ -66,86 +61,60 @@ public partial class Program
                             {
                                 Console.WriteLine("Token validated successfully");
                                 Console.WriteLine($"Subject: {context.AccessTokenPrincipal.FindFirst("sub")?.Value}");
-                                Console.WriteLine($"Scopes: {context.AccessTokenPrincipal.FindFirst("scope")?.Value}");
-                            }
-                            else
-                            {
-                                Console.WriteLine("Token validation failed");
-                                Console.WriteLine($"Error: {context.Error}");
-                                Console.WriteLine($"Description: {context.ErrorDescription}");
                             }
                             return default;
                         }));
                 }
             });
 
-     
+        // CONTROLLERS & JSON CONFIGURATION
         builder.Services.AddControllers(options =>
         {
             options.Filters.Add(new ProducesAttribute("application/json"));
         })
         .AddJsonOptions(options =>
         {
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            options.JsonSerializerOptions.Converters.Add(
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            options.JsonSerializerOptions.DefaultIgnoreCondition =
+                JsonIgnoreCondition.WhenWritingNull;
         });
 
+        // HEALTH CHECKS
         builder.Services.AddAvanciraHealthChecks<AvanciraDbContext>(builder.Configuration);
-
 
         var app = builder.Build();
 
+        // MIDDLEWARE PIPELINE
 
-        //app.MapDefaultEndpoints(); // Aspire service defaults (health, liveness, etc.)
-
-        //app.UseRateLimit();
-       // app.UseSecurityHeaders();
-       // app.UseExceptionHandler();
-
-
-
+        // CORS
         app.UseCorsPolicy();
-       // app.UseOpenApi();
-        // app.UseJobDashboard(app.Configuration);
 
-        // Static file serving
+        // Static files - Default ASP.NET Core wwwroot
         app.UseStaticFiles();
 
-        var assetsPath = Path.Combine(app.Environment.ContentRootPath, "assets");
-        if (Directory.Exists(assetsPath))
-        {
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(assetsPath),
-                RequestPath = new PathString("/api/assets")
-            });
-        }
-        else
-        {
-            app.Logger.LogWarning("Static assets directory '{AssetsPath}' not found.", assetsPath);
-        }
+        app.UseFileStorage(app.Configuration);
 
-        //app.UseStaticFilesUploads();
-
+        // HTTPS & Routing
         app.UseHttpsRedirection();
         app.UseRouting();
+
+        // Authentication & Authorization
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Current user middleware for audit context
-        //app.UseMiddleware<CurrentUserMiddleware>();
-
+        // Controllers
         app.MapControllers();
+
+        // Health checks
         app.MapAvanciraHealthChecks();
 
-
-        // ═════════════════════════════════════════════════════════
-        // 9️⃣ STARTUP LOGGING
-        // ═════════════════════════════════════════════════════════
-        app.Logger.LogInformation("Avancira API Started");
+        // STARTUP LOGGING
+        app.Logger.LogInformation("🚀 Avancira API Started");
         app.Logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
         app.Logger.LogInformation("Auth Issuer: {Issuer}", authIssuer);
         app.Logger.LogInformation("Health: /health/live, /health/ready, /health");
+        app.Logger.LogInformation("File Storage: /api/files/*");
         app.Logger.LogInformation("Endpoints: /api/*");
 
         await app.RunAsync();

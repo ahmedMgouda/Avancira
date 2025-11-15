@@ -1,7 +1,7 @@
 ﻿using Avancira.Auth.Extensions;
 using Avancira.Auth.OpenIddict;
 using Avancira.Auth.Validators;
-using Avancira.Infrastructure.Composition;
+using Avancira.Infrastructure;
 using Avancira.Infrastructure.Health;
 using Avancira.Infrastructure.Identity;
 using Avancira.Infrastructure.Persistence;

@@ -1,17 +1,27 @@
+using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
+
 namespace Avancira.Application.Subjects.Dtos;
 
-public class SubjectCreateDto
+public record SubjectCreateDto
 {
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
-    public string? IconUrl { get; set; }
+    /// <summary>
+    /// Icon file upload (IFormFile from multipart/form-data)
+    /// </summary>
+    public IFormFile? Icon { get; init; }
 
-    public bool IsActive { get; set; } = true;
-    public bool IsVisible { get; set; } = true;
-    public bool IsFeatured { get; set; } = false;
-    public int SortOrder { get; set; } = 0;
+    public string? IconUrl { get; init; }
 
-    public int CategoryId { get; set; }
+    public bool IsActive { get; init; } = true;
+
+    public bool IsVisible { get; init; } = true;
+
+    public bool IsFeatured { get; init; } = false;
+
+    public int SortOrder { get; init; } = 0;
+    public int CategoryId { get; init; }
 }

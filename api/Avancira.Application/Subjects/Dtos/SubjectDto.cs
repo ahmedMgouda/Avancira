@@ -1,18 +1,17 @@
-using System;
-
 namespace Avancira.Application.Subjects.Dtos;
 
-public class SubjectDto
+public record SubjectDto
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string? IconUrl { get; set; }
-    public bool IsActive { get; set; }
-    public bool IsVisible { get; set; }
-    public bool IsFeatured { get; set; }
-    public int SortOrder { get; set; }
-    public int CategoryId { get; set; }
-    public DateTime CreatedOnUtc { get; set; }
-    public DateTime? UpdatedOnUtc { get; set; }
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public string? IconUrl { get; init; }
+    public bool IsActive { get; init; }
+    public bool IsVisible { get; init; }
+    public bool IsFeatured { get; init; }
+    public int SortOrder { get; init; }
+    public int CategoryId { get; init; }
+    public string? CategoryName { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? UpdatedAt { get; init; }
 }

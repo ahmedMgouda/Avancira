@@ -4,10 +4,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
+import { StandardError } from '@core/logging/models/standard-error.model';
 import { CategoryCreateDto, CategoryUpdateDto } from '@models/category';
 
 import { LoadingService } from '@/core/loading/services/loading.service';
-import { StandardError } from '@core/logging/models/standard-error.model';
 import { LoggerService } from '@core/logging/services/logger.service';
 import { NetworkService } from '@core/network/services/network.service';
 import { ToastManager } from '@core/toast/services/toast-manager.service';
@@ -84,11 +84,11 @@ export class CategoryFormComponent implements OnInit {
       isActive: [true],
       isVisible: [true],
       isFeatured: [false],
-      
+
       // NEW: Position controls (only for create mode)
       insertPosition: ['end'], // 'start' | 'end' | 'custom'
       customPosition: [null, [Validators.min(1)]]
-      
+
       // REMOVED: sortOrder field - auto-assigned by backend!
     });
   }
@@ -133,9 +133,9 @@ export class CategoryFormComponent implements OnInit {
             isFeatured: category.isFeatured,
             // Note: sortOrder is NOT loaded into form (read-only)
           });
-          
-          this.logger.debug('Category loaded for editing', { 
-            categoryId: id, 
+
+          this.logger.debug('Category loaded for editing', {
+            categoryId: id,
             categoryName: category.name,
             currentSortOrder: category.sortOrder // Log but don't edit
           });
@@ -176,13 +176,13 @@ export class CategoryFormComponent implements OnInit {
       isActive: formValue.isActive,
       isVisible: formValue.isVisible,
       isFeatured: formValue.isFeatured,
-      
+
       // NEW: Include position preference
       insertPosition: formValue.insertPosition || 'end',
-      customPosition: formValue.insertPosition === 'custom' 
-        ? formValue.customPosition 
+      customPosition: formValue.insertPosition === 'custom'
+        ? formValue.customPosition
         : undefined
-      
+
       // REMOVED: sortOrder - auto-assigned by backend!
     };
 
@@ -203,8 +203,8 @@ export class CategoryFormComponent implements OnInit {
             `"${formValue.name}" has been created at position ${result.sortOrder}.`,
             'Category Created'
           );
-          this.logger.info('Category created', { 
-            categoryId: result.id, 
+          this.logger.info('Category created', {
+            categoryId: result.id,
             categoryName: result.name,
             assignedPosition: result.sortOrder
           });
@@ -221,7 +221,7 @@ export class CategoryFormComponent implements OnInit {
       isActive: formValue.isActive,
       isVisible: formValue.isVisible,
       isFeatured: formValue.isFeatured
-      
+
       // REMOVED: sortOrder - changed via reorder/move endpoints only!
     };
 
@@ -301,7 +301,7 @@ export class CategoryFormComponent implements OnInit {
     return !!(control && control.invalid && control.touched);
   }
 
-  private getFieldLabel(fieldName: string): Record<string, string> {
+  private getFieldLabel(fieldName: string): string {
     const labels: Record<string, string> = {
       name: 'Name',
       description: 'Description',

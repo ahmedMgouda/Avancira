@@ -44,7 +44,6 @@ namespace Avancira.Infrastructure.Catalog
             services.AddTransient<INotificationService, NotificationService>();
             services.AddTransient<IWalletService, WalletService>();
             services.AddHttpClient();
-            services.AddTransient<IFileUploadService, FileUploadService>();
             services.AddSingleton<Parser>(_ => Parser.GetDefault());
 
             // Register billing services
